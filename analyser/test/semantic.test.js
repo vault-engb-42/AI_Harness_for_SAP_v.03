@@ -40,7 +40,7 @@ function hasEdge(edges, source, target, kind) {
 }
 
 test("class object produces a class node with Z namespace", () => {
-  const { nodes } = analyzeObjects(FILES);
+  const { nodes } = analyzeObjects(FILES).toGraphJSON();
   const cls = findNode(nodes, "ZCL_PROBE");
   assert.ok(cls, "ZCL_PROBE node exists");
   assert.equal(cls.kind, "class");
@@ -48,13 +48,13 @@ test("class object produces a class node with Z namespace", () => {
 });
 
 test("class methods become method nodes", () => {
-  const { nodes } = analyzeObjects(FILES);
+  const { nodes } = analyzeObjects(FILES).toGraphJSON();
   assert.equal(findNode(nodes, "ZCL_PROBE.RUN")?.kind, "method");
   assert.equal(findNode(nodes, "ZCL_PROBE.HELPER")?.kind, "method");
 });
 
 test("intra-class method call becomes a call-method edge", () => {
-  const { edges } = analyzeObjects(FILES);
+  const { edges } = analyzeObjects(FILES).toGraphJSON();
   assert.ok(
     hasEdge(edges, "ZCL_PROBE.RUN", "ZCL_PROBE.HELPER", "call-method"),
     "RUN --call-method--> HELPER"
@@ -62,7 +62,7 @@ test("intra-class method call becomes a call-method edge", () => {
 });
 
 test("SELECT on a void SAP table becomes a uses-table edge to a sap-namespace table node", () => {
-  const { nodes, edges } = analyzeObjects(FILES);
+  const { nodes, edges } = analyzeObjects(FILES).toGraphJSON();
   assert.ok(hasEdge(edges, "ZCL_PROBE.RUN", "T000", "uses-table"), "RUN --uses-table--> T000");
   const t000 = findNode(nodes, "T000");
   assert.ok(t000, "T000 table node exists");
@@ -71,14 +71,19 @@ test("SELECT on a void SAP table becomes a uses-table edge to a sap-namespace ta
 });
 
 test("report object produces a report node and a PERFORM 'calls' edge", () => {
-  const { nodes, edges } = analyzeObjects(FILES);
+  const { nodes, edges } = analyzeObjects(FILES).toGraphJSON();
   assert.equal(findNode(nodes, "ZR_PROBE")?.kind, "report");
   assert.ok(hasEdge(edges, "ZR_PROBE", "ZR_PROBE.DO_IT", "calls"), "report --calls--> DO_IT form");
 });
 
 test("CDS DDL source produces a cds node", () => {
-  const { nodes } = analyzeObjects(FILES);
+  const { nodes } = analyzeObjects(FILES).toGraphJSON();
   assert.equal(findNode(nodes, "ZI_PROBE")?.kind, "cds");
+});
+
+test("analyzeObjects returns a traversable DependencyGraph (successors)", () => {
+  const graph = analyzeObjects(FILES);
+  assert.ok(graph.successors("ZCL_PROBE.RUN").includes("T000"), "RUN reaches T000 via successors");
 });
 
 test("no edge carries a kind outside the schema EdgeKind enum", () => {
@@ -87,6 +92,6 @@ test("no edge carries a kind outside the schema EdgeKind enum", () => {
     "authority-check", "inherits", "consumes-cds", "includes",
     "data-flow-def", "data-flow-use",
   ]);
-  const { edges } = analyzeObjects(FILES);
+  const { edges } = analyzeObjects(FILES).toGraphJSON();
   for (const e of edges) assert.ok(allowed.has(e.kind), `edge kind ${e.kind} is in enum`);
 });
