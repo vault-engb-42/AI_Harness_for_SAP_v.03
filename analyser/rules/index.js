@@ -1,6 +1,7 @@
 import { releasedApiRule } from "./released-api.js";
 import { invariantAuthCheckRule } from "./invariant-auth-check.js";
 import { regexPack } from "./regex-pack.js";
+import { statementPack } from "./statement-pack.js";
 
 /**
  * The harness-owned rule registry (ALL_RULES is the source of truth). abaplint's
@@ -10,4 +11,4 @@ import { regexPack } from "./regex-pack.js";
  * Data-driven packs (regexPack, and the statement/metadata/graph packs) each
  * carry many ported TALOS rules; a pack's findings surface their own rule_id.
  */
-export const ALL_RULES = [releasedApiRule, invariantAuthCheckRule, regexPack];
+export const ALL_RULES = [releasedApiRule, invariantAuthCheckRule, regexPack, statementPack];
