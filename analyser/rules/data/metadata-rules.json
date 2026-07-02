@@ -1,0 +1,28 @@
+[
+  {
+    "id": "talos-cds-auth-not-required",
+    "family": "security",
+    "severity": "priority-2",
+    "applies_to": ["DDLS"],
+    "forbid": "@AccessControl\\.authorizationCheck\\s*:\\s*#NOT_REQUIRED",
+    "flags": "i",
+    "message": "CDS view sets @AccessControl.authorizationCheck: #NOT_REQUIRED — confirm no sensitive data is exposed without a DCL"
+  },
+  {
+    "id": "talos-cds-missing-access-control",
+    "family": "clean-core",
+    "severity": "priority-3",
+    "applies_to": ["DDLS"],
+    "require": "AccessControl.authorizationCheck",
+    "message": "CDS view entity has no @AccessControl.authorizationCheck annotation"
+  },
+  {
+    "id": "talos-cds-legacy-sqlview",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "applies_to": ["DDLS"],
+    "forbid": "@AbapCatalog\\.sqlViewName",
+    "flags": "i",
+    "message": "@AbapCatalog.sqlViewName is legacy DEFINE VIEW syntax; migrate to define view entity (no SQL view)"
+  }
+]
