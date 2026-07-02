@@ -1,0 +1,38 @@
+[
+  {
+    "id": "talos-native-sql",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\bEXEC\\s+SQL\\b",
+    "flags": "i",
+    "message": "Native SQL (EXEC SQL) is not Clean-Core; use CDS / Open SQL",
+    "object_types": []
+  },
+  {
+    "id": "talos-os-command",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "CALL\\s+['\"]SYSTEM['\"]",
+    "flags": "i",
+    "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core",
+    "object_types": []
+  },
+  {
+    "id": "talos-client-specified",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "\\bCLIENT\\s+SPECIFIED\\b",
+    "flags": "i",
+    "message": "CLIENT SPECIFIED bypasses automatic client handling; review cross-client access",
+    "object_types": []
+  },
+  {
+    "id": "talos-dynamic-where-subquery",
+    "family": "dynamic-sql",
+    "severity": "priority-2",
+    "pattern": "\\bWHERE\\s+\\(",
+    "flags": "i",
+    "message": "Dynamic WHERE condition; verify input is not attacker-controlled (SQL injection surface)",
+    "object_types": []
+  }
+]
