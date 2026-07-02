@@ -5,12 +5,16 @@
   "type": "module",
   "description": "SAP ABAP Claude Code harness — MCP-ADT bridge + hooks",
   "scripts": {
-    "test": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js .claude/scripts/test/model-tier.test.js mcp-adt-bridge/test/bridge.test.js",
+    "test": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js .claude/scripts/test/model-tier.test.js mcp-adt-bridge/test/bridge.test.js \"analyser/test/*.test.js\"",
     "test:bridge": "node --test mcp-adt-bridge/test/bridge.test.js",
     "test:hooks": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js",
-    "test:scripts": "node --test .claude/scripts/test/model-tier.test.js"
+    "test:scripts": "node --test .claude/scripts/test/model-tier.test.js",
+    "test:analyser": "node --test \"analyser/test/*.test.js\""
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@abaplint/core": "^2.119.53"
   }
 }
