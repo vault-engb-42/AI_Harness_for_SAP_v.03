@@ -34,5 +34,1136 @@
     "flags": "i",
     "message": "Dynamic WHERE condition; verify input is not attacker-controlled (SQL injection surface)",
     "object_types": []
+  },
+  {
+    "id": "talos-cloud-006-write",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "^\\s*WRITE[:/\\s]",
+    "flags": "i",
+    "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-001-call-function",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+'[^']+'",
+    "flags": "i",
+    "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-002-tables-param",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "^\\s*TABLES\\s+\\w+",
+    "flags": "i",
+    "message": "TABLES parameters are a compile error in ABAP Cloud — use IMPORTING/EXPORTING/CHANGING TYPE TABLE OF (CLOUD-002).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-004-message-type",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "^\\s*MESSAGE\\s+\\S+.*\\bTYPE\\s+['\"]?[EAXIWS]['\"]?",
+    "flags": "i",
+    "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-005-class-final-abstract",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "^\\s*CLASS\\s+\\S+\\s+DEFINITION\\b(?!.*\\b(?:FINAL|ABSTRACT)\\b)",
+    "flags": "i",
+    "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-cloud-007-fieldsymbol-any",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "<\\w+>\\s+TYPE\\s+ANY\\b(?!\\s+TABLE)",
+    "flags": "i",
+    "message": "FIELD-SYMBOLS typed as ANY defeats type safety — use a concrete type (CLOUD-007).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-008-describe-table-lines",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "^\\s*DESCRIBE\\s+TABLE\\s+\\w+\\s+LINES\\b",
+    "flags": "i",
+    "message": "DESCRIBE TABLE ... LINES is forbidden in ABAP Cloud — use lines( itab ) (CLOUD-008).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-009-get-reference-of",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bGET\\s+REFERENCE\\s+OF\\b",
+    "flags": "i",
+    "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-010-read-report",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "^\\s*READ\\s+REPORT\\b",
+    "flags": "i",
+    "message": "READ REPORT bypasses the cloud boundary — use the XCO library for repository access (CLOUD-010).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-011-break-point",
+    "family": "anti-pattern",
+    "severity": "priority-1",
+    "pattern": "^\\s*BREAK-POINT\\b",
+    "flags": "i",
+    "message": "BREAK-POINT is a debugging artefact — forbidden in shipped ABAP Cloud code (CLOUD-011).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-013-using-client",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\bUSING\\s+CLIENT\\b",
+    "flags": "i",
+    "message": "USING CLIENT is forbidden in ABAP Cloud — the runtime sets the client implicitly (CLOUD-013).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-014-classic-dynpro",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:CALL\\s+SCREEN|SET\\s+SCREEN|LEAVE\\s+SCREEN|LEAVE\\s+PROGRAM)\\b",
+    "flags": "i",
+    "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-015-salv-table-factory",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bcl_salv_table\\s*=>\\s*factory\\b",
+    "flags": "i",
+    "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-016-sy-datetime",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "\\bsy[-_](?:uzeit|datum|timlo|tzone|zonlo)\\b",
+    "flags": "i",
+    "message": "Direct SY-UZEIT/DATUM/TIMLO/TZONE/ZONLO read lacks timezone context — use the XCO time library (CLOUD-016).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-017-compute",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "^\\s*COMPUTE\\s+\\w+\\s*=",
+    "flags": "i",
+    "message": "COMPUTE is the obsolete assignment prefix — drop it in ABAP Cloud (CLOUD-017).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-018-header-line",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bWITH\\s+HEADER\\s+LINE\\b",
+    "flags": "i",
+    "message": "DATA ... WITH HEADER LINE is a Dynpro-era construct forbidden in ABAP Cloud — declare a separate work area (CLOUD-018).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-031-internal-api",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "\\b(?:cl_\\w*_internal\\w*|if_\\w*_internal\\w*|sap_\\w*_internal\\w*)\\b",
+    "flags": "i",
+    "message": "Reference to an SAP-internal-marked API (*_internal*) — no compatibility commitment; use a released API (CLOUD-031).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-032-ddic-table-read",
+    "family": "clean-core",
+    "severity": "priority-2",
+    "pattern": "\\bSELECT\\b.*\\bFROM\\s+(?!(?:[zyq]\\w|/[\\w/]+/|i_|c_|p_|/dco/|/sap/)|(?:value|entities|fields|field|table)\\b)([a-z]\\w+)",
+    "flags": "i",
+    "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-019-source-plugin",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:ENHANCEMENT-POINT|ENHANCEMENT-SECTION)\\b",
+    "flags": "i",
+    "message": "ENHANCEMENT-POINT/ENHANCEMENT-SECTION is a source-code plug-in — only BAdI is clean-core compliant (CLOUD-019).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-020-sap-modification-marker",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\*\\$\\*\\$-(?:Start|End):",
+    "flags": "i",
+    "message": "SAP modification marker $*$* — modifying SAP objects breaks on every upgrade (CLOUD-020).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-021-direct-table-write",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:INSERT\\s+INTO\\s+|UPDATE\\s+|DELETE\\s+FROM\\s+|MODIFY\\s+)(?![zyq]|/[\\w/]+/)([a-z][a-z0-9_]+)",
+    "flags": "i",
+    "message": "Direct INSERT/UPDATE/DELETE/MODIFY on a SAP-namespace table bypasses the transactional framework — use a released API (CLOUD-021).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-022-perform-in-sap-program",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\bPERFORM\\s+\\w+\\s+IN\\s+PROGRAM\\s+(?:sap[mlf]\\w*|rv\\w+|rm\\w+)",
+    "flags": "i",
+    "message": "PERFORM ... IN PROGRAM SAP* / RV* / RM* calls a SAP-internal subroutine — use a released class method or BAPI (CLOUD-022).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-026-internal-badi",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "^\\s*INTERFACES\\s+(?:if_ex_(?:sap_)?internal\\w*|if_ex_\\w*_internal\\w*)",
+    "flags": "i",
+    "message": "Implementation of an SAP-internal-flagged BAdI (IF_EX_*INTERNAL*) — not for customer extensions (CLOUD-026).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-cloud-027-user-exit",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "^\\s*(?:FORM\\s+userexit_\\w+|FUNCTION\\s+customer_function_\\w+)",
+    "flags": "i",
+    "message": "Classic user/customer exit (FORM userexit_* / FUNCTION customer_function_*) — migrate to a released BAdI (CLOUD-027).",
+    "object_types": [
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-030-segw-bopf",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "(?<![\\w/])(?:/iwbep/cl_mgw_\\w+|/iwbep/if_mgw_\\w+|/bobf/cl_\\w+|/bobf/if_\\w+)(?!\\w)",
+    "flags": "i",
+    "message": "SEGW / BOPF reference (/IWBEP/*_MGW_*, /BOBF/*) is superseded by RAP (CLOUD-030).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-001-native-sql-concat",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "\\bEXEC\\s+SQL\\b.*&&",
+    "flags": "i",
+    "message": "String-concatenation (&&) inside an EXEC SQL statement — SQL injection vector; use parameterized ABAP SQL (SEC-001).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-002-open-dataset-var",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "\\bOPEN\\s+DATASET\\s+(?!')[^\\s'.]+",
+    "flags": "i",
+    "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-003-code-injection",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "\\b(?:INSERT\\s+REPORT|GENERATE\\s+SUBROUTINE\\s+POOL)\\b",
+    "flags": "i",
+    "message": "Dynamic ABAP source generation via INSERT REPORT / GENERATE SUBROUTINE POOL — RCE risk (SEC-003).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-004-call-transaction-var",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "\\bCALL\\s+TRANSACTION\\s+(?!['\"])[\\w_]+",
+    "flags": "i",
+    "message": "CALL TRANSACTION with a variable t-code — bypasses static SU24/S_TCODE checks; validate against an allowlist (SEC-004).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-005-hardcoded-credential",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "\\b(?:password|api[_-]?key|secret|token|bearer)\\s*=\\s*'[^']{4,}'",
+    "flags": "i",
+    "message": "Hardcoded credential in source (password/api_key/secret/token/bearer) — move to a Secure Store (SEC-005).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-006-xss-show-html",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "cl_abap_browser\\s*=>\\s*show_html\\s*\\([^)]*&&",
+    "flags": "i",
+    "message": "cl_abap_browser=>show_html with string concatenation — possible XSS; HTML-encode the input (SEC-006).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-007-kernel-call",
+    "family": "security",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+'(?:SYSTEM|C_\\w+)'",
+    "flags": "i",
+    "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-009-dynamic-destination",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "\\bDESTINATION\\s+(?!['\"])[\\w_]+",
+    "flags": "i",
+    "message": "CALL FUNCTION ... DESTINATION with a variable destination — RFC routing controlled by data (SEC-009).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-010-open-redirect",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "set_header_field\\s*\\(\\s*name\\s*=\\s*['\"]location['\"]",
+    "flags": "i",
+    "message": "Location-header redirect set from a non-literal value — open-redirect risk; validate against an allowlist (SEC-010).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-001-classic-table-read",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "pattern": "\\bFROM\\s+(?:T001|T005|MARA)\\b",
+    "flags": "i",
+    "message": "Direct SELECT from classic table T001/T005/MARA — use a CDS view entity (S4-001).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-003-classic-list-output",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "^\\s*(?:WRITE:|FORMAT\\s+COLOR)\\b",
+    "flags": "i",
+    "message": "Classic list output (WRITE:/FORMAT COLOR) — migrate to ALV Grid or Fiori List Report (S4-003).",
+    "object_types": [
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-004-screen-flow",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:SET\\s+SCREEN|CALL\\s+SCREEN)\\b",
+    "flags": "i",
+    "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004).",
+    "object_types": [
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-005-web-dynpro",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bIF_WD_\\w+\\b|(?<!\\w)WD_[A-Z]\\w*\\b",
+    "flags": "i",
+    "message": "Web Dynpro reference (IF_WD_* / WD_*) — WDYN sunset in S/4HANA 2027; migrate to Fiori (S4-005).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-006-config-table-read",
+    "family": "rap-odata",
+    "severity": "info",
+    "pattern": "\\bFROM\\s+(?:T001|T005|T006)\\b",
+    "flags": "i",
+    "message": "Direct FROM T001/T005/T006 config-table access — use CDS view I_CompanyCode / I_UoM (S4-006).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-007-matnr-len18",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:DATA|TYPES)\\s*:?\\s*[\\w\\-,\\s]*?\\bTYPE\\s+c\\s+LENGTH\\s+18(?!\\d)",
+    "flags": "i",
+    "message": "Field declared TYPE c LENGTH 18 — likely MATNR; truncates under S/4HANA's 40-char MATNR (S4-007).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-008-vbuk-access",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "\\b(?:FROM\\s+VBUK|INTO\\s+VBUK|UPDATE\\s+VBUK|MODIFY\\s+VBUK|TYPE\\s+VBUK|TABLE\\s+OF\\s+VBUK)\\b",
+    "flags": "i",
+    "message": "Access to VBUK — header status table removed in S/4HANA; use VBAK / I_SalesDocument (S4-008).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-009-vbup-access",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "\\b(?:FROM\\s+VBUP|INTO\\s+VBUP|UPDATE\\s+VBUP|MODIFY\\s+VBUP|TYPE\\s+VBUP|TABLE\\s+OF\\s+VBUP)\\b",
+    "flags": "i",
+    "message": "Access to VBUP — item status table removed in S/4HANA; use VBAP / I_SalesDocumentItem (S4-009).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-011-konv-access",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "\\b(?:FROM\\s+KONV|INTO\\s+KONV|UPDATE\\s+KONV|MODIFY\\s+KONV|TYPE\\s+KONV|TABLE\\s+OF\\s+KONV)\\b",
+    "flags": "i",
+    "message": "Access to KONV — pricing conditions replaced by PRCD_ELEMENTS in S/4HANA (S4-011).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-013-vbtyp-1char",
+    "family": "modification",
+    "severity": "priority-2",
+    "pattern": "\\bvbtyp(?!l)\\w*\\s*(?:=|<>|EQ|NE)\\s*'[^']'(?!')",
+    "flags": "i",
+    "message": "1-char VBTYP comparison — silently fails after S/4HANA migration to 4-char VBTYPL (S4-013).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-014-amount-len11",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "^\\s*(?:DATA|TYPES)\\s*:?\\s*[\\w\\-,\\s]*?\\bTYPE\\s+p\\s+LENGTH\\s+11\\b",
+    "flags": "i",
+    "message": "Field declared TYPE p LENGTH 11 — too short for S/4HANA's extended amount fields; use DMBTR/WRBTR/WERTV13 (S4-014).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-hardy-04-deprecated-table",
+    "family": "modification",
+    "severity": "priority-1",
+    "pattern": "\\bFROM\\s+(?:BSIS|BSAS|BSID|BSAD|BSIK|BSAK|KONV|VBFA)\\b",
+    "flags": "i",
+    "message": "SELECT from a deprecated FI/SD table (BSIS/BSAS/BSID/BSAD/BSIK/BSAK/KONV/VBFA) removed or restructured in S/4HANA (HARDY-04).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-hardy-08-transporting-no-fields",
+    "family": "anti-pattern",
+    "severity": "priority-2",
+    "pattern": "READ\\s+TABLE\\s+.*\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
+    "flags": "i",
+    "message": "READ TABLE ... TRANSPORTING NO FIELDS then work-area access reads stale data — use line_exists( ) (HARDY-08).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-perf-57-value-param",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "\\bIMPORTING\\s+VALUE\\s*\\(\\s*\\w+\\s*\\)",
+    "flags": "i",
+    "message": "IMPORTING VALUE(param) copies the argument on every call — pass by reference when unmutated (ABAP-PERF-57).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-perf-63-default-key",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "\\bWITH\\s+DEFAULT\\s+KEY\\b",
+    "flags": "i",
+    "message": "WITH DEFAULT KEY leaves key composition implicit — use WITH EMPTY KEY or explicit keys (ABAP-PERF-63).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-perf-64-append-non-loop",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "^\\s*APPEND\\s+\\w+\\s+TO\\s+\\w+\\s*\\.",
+    "flags": "i",
+    "message": "Standalone APPEND ... TO — INSERT INTO TABLE is table-type-agnostic (ABAP-PERF-64).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-perf-65-read-table-existence",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "\\bREAD\\s+TABLE\\s+\\w+.*\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
+    "flags": "i",
+    "message": "READ TABLE ... TRANSPORTING NO FIELDS for an existence check — line_exists( ) is more direct (ABAP-PERF-65).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-perf-85-left-outer-join-no-cardinality",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "\\bleft\\s+outer\\s+join\\b(?!\\s+many\\s+to\\s+one\\b)",
+    "flags": "i",
+    "message": "LEFT OUTER JOIN without MANY TO ONE — HANA cannot prune the join when right-side fields are unprojected (ABAP-PERF-85).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf-73-eml-local-mode",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "pattern": "\\b(?:MODIFY|READ)\\s+ENTITIES?\\b.*\\bIN\\s+LOCAL\\s+MODE\\b",
+    "flags": "i",
+    "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-cc-001-obsolete-arithmetic",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "^\\s*(?:MOVE|COMPUTE|ADD|SUBTRACT|MULTIPLY|DIVIDE)\\s+\\w+",
+    "flags": "i",
+    "message": "Obsolete statement (MOVE/COMPUTE/ADD/SUBTRACT/MULTIPLY/DIVIDE) blocked in clean-core strict mode >=1 — use operators (CC-001).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-cloud-033-sfw-status-probe",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\b(?:cl_sfw_bf_status_check|cl_fdt_environment)\\s*=>",
+    "flags": "i",
+    "message": "Switch-Framework business-function state probe (cl_sfw_bf_status_check / cl_fdt_environment) — fixed per release in ABAP Cloud, so the branch is dead-or-always-taken (CLOUD-033).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-sec-006-xss-show-html-concat",
+    "family": "security",
+    "severity": "priority-2",
+    "pattern": "cl_abap_browser\\s*=>\\s*show_html\\s*\\([^)]*&&[^)]*\\)",
+    "flags": "i",
+    "message": "cl_abap_browser=>show_html with string concatenation (&&) — possible XSS; HTML-encode via cl_abap_xml_utility=>html_encode or render via Fiori.",
+    "object_types": []
+  },
+  {
+    "id": "talos-hardy-08-read-transporting-no-fields",
+    "family": "anti-pattern",
+    "severity": "priority-2",
+    "pattern": "\\bREAD\\s+TABLE\\b.*\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
+    "flags": "i",
+    "message": "READ TABLE ... TRANSPORTING NO FIELDS — the work area is not filled; use line_exists( ) or IS FOUND instead of accessing components afterwards.",
+    "object_types": []
+  },
+  {
+    "id": "talos-hardy-09-hardcoded-dependency",
+    "family": "anti-pattern",
+    "severity": "priority-3",
+    "pattern": "(?:NEW|CREATE\\s+OBJECT)\\s+\\w*\\s*(?:TYPE\\s+)?(?:z\\w+|y\\w+|/\\w+/\\w+)",
+    "flags": "i",
+    "message": "Direct instantiation of a custom class (NEW/CREATE OBJECT of z*/y*//ns/) — consider a factory/DI pattern for testability.",
+    "object_types": []
+  },
+  {
+    "id": "talos-cloud-033-sfw-status-check",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bcl_sfw_bf_status_check\\s*=>\\s*is_active\\s*\\(\\s*'[\\w/]+'",
+    "flags": "i",
+    "message": "Switch Framework state-probe cl_sfw_bf_status_check=>is_active( ) — forbidden in ABAP Cloud; BF state is fixed per release, so the gated path is dead-or-always-taken (CLOUD-033).",
+    "object_types": []
+  },
+  {
+    "id": "talos-cloud-033-sfw-fdt-environment",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bcl_fdt_environment\\s*=>\\s*is_business_function_active\\s*\\(\\s*'[\\w/]+'",
+    "flags": "i",
+    "message": "Switch Framework state-probe cl_fdt_environment=>is_business_function_active( ) — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
+    "object_types": []
+  },
+  {
+    "id": "talos-cloud-033-sfw-rfc-get-bfs",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+'SFW_BF_GET_BFS'",
+    "flags": "i",
+    "message": "Switch Framework bulk-probe RFC 'SFW_BF_GET_BFS' — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
+    "object_types": []
+  },
+  {
+    "id": "talos-cloud-033-sfw-table-read",
+    "family": "deprecation",
+    "severity": "priority-1",
+    "pattern": "\\b(?:FROM|INTO\\s+TABLE\\s+OF)\\s+sfw_bf_users_new\\b",
+    "flags": "i",
+    "message": "Raw Switch Framework table read on SFW_BF_USERS_NEW — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
+    "object_types": []
+  },
+  {
+    "id": "talos-rap-eml-commit-rollback-in-handler",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\b(?:COMMIT|ROLLBACK)\\s+ENTITIES\\b",
+    "flags": "i",
+    "message": "EML COMMIT/ROLLBACK ENTITIES inside a RAP handler/saver — the RAP framework owns the LUW; remove it (ABAP-PERF-74).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-commit-work-in-handler",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\b(?:COMMIT|ROLLBACK)\\s+WORK\\b",
+    "flags": "i",
+    "message": "COMMIT/ROLLBACK WORK inside a RAP handler/saver short-circuits the controlled SAP LUW — remove the manual commit (ABAP-PERF-75).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-submit-and-return-in-handler",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\bSUBMIT\\b.{0,200}?\\bAND\\s+RETURN\\b",
+    "flags": "i",
+    "message": "SUBMIT ... AND RETURN inside a RAP handler/saver bypasses the RAP transactional buffer — call an API/class instead (ABAP-PERF-76).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-screen-call-in-handler",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\b(?:CALL\\s+SCREEN|SET\\s+SCREEN|CALL\\s+DIALOG|CALL\\s+TRANSACTION|MESSAGE\\s+\\w+\\s+(?:TYPE|WITH|DISPLAY))",
+    "flags": "i",
+    "message": "SAP GUI/screen statement inside a RAP handler/saver — RAP runs without a Dynpro session; surface dialogs via the RAP message protocol (ABAP-PERF-77).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-modify-entities-in-read-handler",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\bMODIFY\\s+ENTITIES?\\b",
+    "flags": "i",
+    "message": "EML MODIFY ENTITIES inside a FOR READ handler — read paths must not change buffer state; model side effects as an action/determination (ABAP-PERF-78).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-update-task-in-late-save",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+'[^']+'.{0,400}?\\bIN\\s+UPDATE\\s+TASK\\b",
+    "flags": "i",
+    "message": "CALL FUNCTION ... IN UPDATE TASK inside the ADJUST_NUMBERS/SAVE phase queues work past the LUW boundary — write inline in SAVE (ABAP-PERF-79).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-rap-bg-unit-in-late-save",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+'[^']+'.{0,400}?\\bIN\\s+BACKGROUND\\s+UNIT\\b",
+    "flags": "i",
+    "message": "CALL FUNCTION ... IN BACKGROUND UNIT inside the ADJUST_NUMBERS/SAVE phase binds bgRFC to the wrong LUW — schedule via bgPF after commit (ABAP-PERF-80).",
+    "object_types": [
+      "CLAS"
+    ]
+  },
+  {
+    "id": "talos-cds-left-outer-no-many-to-one",
+    "family": "performance",
+    "severity": "priority-3",
+    "pattern": "\\bleft\\s+outer\\s+join\\b(?!\\s+(?:to\\s+one\\s+)?join)",
+    "flags": "i",
+    "message": "LEFT OUTER JOIN without a MANY TO ONE qualifier — HANA cannot prune the join when right-side fields are unprojected; add MANY TO ONE for 1:1 cardinality (ABAP-PERF-85).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-cds-constant-in-join-on",
+    "family": "performance",
+    "severity": "priority-3",
+    "pattern": "\\bon\\b[^;{]*?(?:=|<>)\\s*(?:'[^']*'|\\d+)",
+    "flags": "i",
+    "message": "Literal constant in a JOIN ON clause triggers an engine switch + materialisation in HANA — move the constant filter to WHERE, keep ON column-to-column (ABAP-PERF-89).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-cds-non-equi-join",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\b(?:inner|left\\s+outer|right\\s+outer|outer)\\s+join\\s+[\\w/]+(?:\\s+as\\s+\\w+)?\\s+on\\b.*?(?:between\\b|\\bnot\\s+like\\b|\\blike\\b|<\\s|>\\s|<=|>=)",
+    "flags": "i",
+    "message": "Non-equi JOIN (BETWEEN/LIKE/<,>,<=,>=) forces an engine switch + materialisation with super-linear cardinality cost — restructure to an equi-join (ABAP-PERF-91).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-cds-case-else-constant",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bcase\\b.*?\\belse\\b\\s+(?:'[^']*'|\\d+).*?\\bend\\b",
+    "flags": "i",
+    "message": "CASE...ELSE constant is not NULL-preserving — prevents the optimiser from swapping CASE with a LEFT OUTER JOIN; omit ELSE or move CASE to the consumption view (ABAP-PERF-88).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-cds-aggregation-wraps-function",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\b(?:SUM|AVG|MIN|MAX)\\s*\\(\\s*(?:ROUND|CONVERT_CURRENCY|CAST|COALESCE)\\b",
+    "flags": "i",
+    "message": "SUM/AVG/MIN/MAX wrapping ROUND/CONVERT_CURRENCY/CAST/COALESCE runs the function per-row before aggregation — apply the function once on the aggregate result (ABAP-PERF-94).",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf-sql-host-type-mismatch",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\b\\w*(?:_id|_key|_code|_nr|_text)\\s*=\\s*\\d+\\b",
+    "flags": "i",
+    "message": "Char-shaped column (_id/_key/_code/_nr/_text) compared to a bare numeric literal — possible implicit type-cast cost; use a typed host variable matching the DDIC type (ABAP-PERF-62).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-read-table-transporting-no-fields",
+    "family": "performance",
+    "severity": "priority-3",
+    "pattern": "\\bREAD\\s+TABLE\\s+\\w+.*?\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
+    "flags": "i",
+    "message": "READ TABLE ... TRANSPORTING NO FIELDS for an existence check — line_exists( itab[ ... ] ) is more direct (ABAP-PERF-65).",
+    "object_types": []
+  },
+  {
+    "id": "talos-rap-draft-action-no-optimized",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "pattern": "\\bdraft\\s+action\\s+\\w+\\b(?![^;]*\\boptimized\\b)[^;]*;",
+    "flags": "i",
+    "message": "Draft action declared without the 'optimized' addition — declare as 'draft action <name> optimized;' (ABAP-PERF-70).",
+    "object_types": [
+      "BDEF"
+    ]
+  },
+  {
+    "id": "talos-eml-local-mode-outside-test",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "pattern": "\\b(?:MODIFY|READ)\\s+ENTITIES?\\s+OF\\s+\\w+.*?\\bIN\\s+LOCAL\\s+MODE\\b",
+    "flags": "i",
+    "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf01-select-star-projection",
+    "family": "performance",
+    "severity": "priority-1",
+    "pattern": "\\bSELECT\\b(?:\\s+SINGLE)?\\s+\\*\\s+\\bFROM\\b",
+    "flags": "i",
+    "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view.",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf27-cds-ddic-type-cast",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "cast\\s*\\(\\s*\\w+\\s+as\\s+abap\\.(char|numc|dec|int4|int8)\\b",
+    "flags": "i",
+    "message": "DDIC primitive cast in CDS (abap.char/numc/dec/int4/int8) loses semantic annotations; use a CDS-typed DataElement.",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf28-currency-quantity-no-ref",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "@Semantics\\.(amount\\.currencyCode|quantity\\.unitOfMeasure)",
+    "flags": "i",
+    "message": "Currency/quantity @Semantics field likely missing @ObjectModel.foreignKey.association reference; add the master-entity association.",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf29-authcheck-check-only",
+    "family": "performance",
+    "severity": "priority-3",
+    "pattern": "@AccessControl\\.authorizationCheck\\s*:\\s*#CHECK",
+    "flags": "i",
+    "message": "@AccessControl.authorizationCheck: #CHECK filters application-side; define DCL access control and use #PRIVILEGED_ONLY to push to SQL.",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf40-rap-early-numbering",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "numbering\\s*::\\s*early",
+    "flags": "i",
+    "message": "RAP behavior declares 'numbering :: early'; switch to 'numbering :: late' for create-heavy entities.",
+    "object_types": [
+      "BDEF"
+    ]
+  },
+  {
+    "id": "talos-perf41-rap-deep-create-uncapped",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "create\\s*\\(\\s*cba\\s*::\\s*\\w+\\s*\\)",
+    "flags": "i",
+    "message": "RAP deep-create (create( cba::child )) without a cardinality cap; cap child cardinality or split the deep-create into two roundtrips.",
+    "object_types": [
+      "BDEF"
+    ]
+  },
+  {
+    "id": "talos-perf22-expand-high-cardinality",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "pattern": "@ObjectModel\\.expand\\.\\s*=\\s*true|composition\\s*\\[\\s*0\\.\\.\\*\\s*\\]",
+    "flags": "i",
+    "message": "$expand-able association/composition [0..*] (or @ObjectModel.expand = true) without cardinality cap; restrict via maxItems or a paged sub-resource.",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf25-high-cost-virtual-element",
+    "family": "rap-odata",
+    "severity": "info",
+    "pattern": "@ObjectModel\\.virtualElement",
+    "flags": "i",
+    "message": "@ObjectModel.virtualElement runs per-row at fetch time and breaks server-side filtering; move to a CDS view function or association.",
+    "object_types": [
+      "DDLS"
+    ]
+  },
+  {
+    "id": "talos-perf33-enqueue-no-wait",
+    "family": "performance",
+    "severity": "priority-1",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+'ENQUEUE_\\w+'",
+    "flags": "i",
+    "message": "CALL FUNCTION 'ENQUEUE_*' should set a bounded _WAIT; infinite wait risks a dispatcher hang.",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-06-read-standard-keyed",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bREAD\\s+TABLE\\s+\\w+\\s+WITH\\s+KEY\\b",
+    "flags": "i",
+    "message": "READ TABLE ... WITH KEY against a STANDARD internal table is O(n); declare the table HASHED or SORTED for keyed lookup (ABAP-PERF-06).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-07-sorted-hashed-sequential-scan",
+    "family": "performance",
+    "severity": "info",
+    "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s*\\.",
+    "flags": "i",
+    "message": "Bare LOOP AT (no WHERE / USING KEY) over a SORTED/HASHED table does a pure sequential scan; use TYPE STANDARD TABLE if only scanned sequentially (ABAP-PERF-07).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-08-loop-into-copy-on-assign",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s+INTO\\s+(?!FIELD-SYMBOL|REFERENCE\\s+INTO)\\w",
+    "flags": "i",
+    "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-37-collect-into-standard",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bCOLLECT\\s+\\w+\\s+INTO\\s+\\w+",
+    "flags": "i",
+    "message": "COLLECT into a STANDARD table is O(n) per insert; declare the target HASHED TABLE with the COLLECT key as UNIQUE KEY (ABAP-PERF-37).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-38-loop-where-no-secondary-key",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s+(?:INTO|ASSIGNING|REFERENCE\\s+INTO)\\s+\\S+\\s+WHERE\\b",
+    "flags": "i",
+    "message": "LOOP AT ... WHERE on a STANDARD table without a secondary key does a full scan per outer iteration; declare a SECONDARY KEY or use LOOP AT ... USING KEY (ABAP-PERF-38).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-14-fae-nonpk-where-prefix",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bFOR\\s+ALL\\s+ENTRIES\\s+IN\\s+\\S+\\s+WHERE\\s+\\w+\\s*=",
+    "flags": "i",
+    "message": "FOR ALL ENTRIES WHERE clause leads with a non-primary-key field; restructure driver columns to lead with PK fields (MANDT/BUKRS/BELNR/GJAHR/MATNR/...) (ABAP-PERF-14).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-17-sync-event-mesh-send",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\b(?:cl_em_client|cl_event_mesh)\\b.*?->\\s*(?:send|publish)\\s*\\(",
+    "flags": "i",
+    "message": "Synchronous Event Mesh send/publish (cl_em_client / cl_event_mesh); use the asynchronous dispatch API so bgRFC handles retry/dead-letter (ABAP-PERF-17).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-18-callfunc-destination-no-bgrfc",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "\\bCALL\\s+FUNCTION\\s+\\S+\\s+DESTINATION\\s+\\S+",
+    "flags": "i",
+    "message": "CALL FUNCTION ... DESTINATION without bgRFC scheduling; schedule via cl_bgrfc_unit_factory for retry/persistence (ABAP-PERF-18).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-43-http-create-by-url",
+    "family": "performance",
+    "severity": "priority-1",
+    "pattern": "cl_http_client(?:_factory)?\\s*=>\\s*create_by_url\\s*\\(",
+    "flags": "i",
+    "message": "cl_http_client(_factory)=>create_by_url bypasses the Destination service; use cl_http_destination_provider=>create_by_comm_arrangement (ABAP-PERF-43).",
+    "object_types": []
+  },
+  {
+    "id": "talos-perf-44-dest-provider-create-by-url",
+    "family": "performance",
+    "severity": "priority-2",
+    "pattern": "cl_http_destination_provider\\s*=>\\s*create_by_url\\s*\\(",
+    "flags": "i",
+    "message": "HTTP destination created by URL instead of communication arrangement; use create_by_comm_arrangement so cert/token state is shared (ABAP-PERF-44).",
+    "object_types": []
+  },
+  {
+    "id": "talos-deprecated-classic-function-module",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "CALL\\s+FUNCTION\\s+'(?:CONVERSION_EXIT_|NUMBER_GET_NEXT|POPUP_TO_CONFIRM|RS_COVERPAGE_|REUSE_ALV_GRID_DISPLAY)[^']*'",
+    "flags": "i",
+    "message": "Deprecated classic function module call (CONVERSION_EXIT_*, NUMBER_GET_NEXT, POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY) — not S/4HANA-Cloud ready; replace with a released API/CDS/Fiori equivalent (S/4 readiness).",
+    "object_types": []
   }
 ]

@@ -39,8 +39,9 @@ START-OF-SELECTION.`);
 test("clean source produces no regex-pack findings", () => {
   const f = findings(`REPORT zr_clean.
 START-OF-SELECTION.
-  WRITE 'hello'.`);
-  assert.deepEqual(f, []);
+  DATA lv_count TYPE i.
+  lv_count = 1.`);
+  assert.deepEqual(f, [], `unexpected: ${JSON.stringify(f.map((x) => x.rule_id))}`);
 });
 
 test("every regex-pack finding is well-formed and schema-severity valid", () => {
