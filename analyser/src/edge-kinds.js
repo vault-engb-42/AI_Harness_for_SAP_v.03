@@ -13,12 +13,17 @@
  * @typedef {"calls"|"call-function"|"call-method"|"get-badi"|"uses-table"|"authority-check"|"inherits"|"consumes-cds"|"includes"|"data-flow-def"|"data-flow-use"} EdgeKind
  */
 
-/** @type {Record<string, EdgeKind>} */
+/**
+ * @type {Record<string, EdgeKind>}
+ * NOTE: table references are intentionally NOT mapped here. `uses-table` edges
+ * come from the SELECT statement AST (statement-edges.js), which survives
+ * unresolved types (e.g. a class whose superclass is outside the bundle, where
+ * abaplint's resolver drops the method-body references). Keeping tables in the
+ * resolver path made brownfield table dependencies vanish.
+ */
 const REFERENCE_TYPE_TO_EDGE = {
   Method: "call-method",
   Form: "calls",
-  Table: "uses-table",
-  "Table (Void)": "uses-table",
   "Read From": "data-flow-use",
   "Write To": "data-flow-def",
 };

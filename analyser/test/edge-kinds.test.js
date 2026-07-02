@@ -10,9 +10,11 @@ test("form references (PERFORM) map to calls", () => {
   assert.equal(edgeKindForReference("Form"), "calls");
 });
 
-test("resolved and void table references both map to uses-table", () => {
-  assert.equal(edgeKindForReference("Table"), "uses-table");
-  assert.equal(edgeKindForReference("Table (Void)"), "uses-table");
+test("table references are NOT mapped here (uses-table comes from the SELECT AST)", () => {
+  // Resolver-based table refs collapse when a type is unresolved; uses-table
+  // edges are extracted from statements instead (statement-edges.js).
+  assert.equal(edgeKindForReference("Table"), null);
+  assert.equal(edgeKindForReference("Table (Void)"), null);
 });
 
 test("read/write references map to data-flow edges", () => {

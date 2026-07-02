@@ -48,6 +48,39 @@ test("GET BADI yields an edge-only get-badi edge to the handle", () => {
   assert.ok(has(edges, "get-badi", "LO", null));
 });
 
+test("SELECT ... FROM <table> yields a uses-table edge (statement AST)", () => {
+  const src = `REPORT zr_sel.
+START-OF-SELECTION.
+  SELECT SINGLE * FROM t000 INTO @DATA(ls).`;
+  const [obj] = load([{ filename: "zr_sel.prog.abap", source: src }]);
+  assert.ok(has(collectStatementEdges(obj), "uses-table", "T000", "table"));
+});
+
+test("uses-table survives an unresolved superclass (resolution-independent)", () => {
+  // The reference walk collapses when the superclass is void; the statement
+  // extractor must still capture the table dependency.
+  const src = `CLASS zcl_svc DEFINITION PUBLIC INHERITING FROM cl_not_in_bundle.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_svc IMPLEMENTATION.
+  METHOD run.
+    SELECT SINGLE * FROM bapiret1 INTO @DATA(ls).
+  ENDMETHOD.
+ENDCLASS.`;
+  const [obj] = load([{ filename: "zcl_svc.clas.abap", source: src }]);
+  assert.ok(has(collectStatementEdges(obj), "uses-table", "BAPIRET1", "table"));
+});
+
+test("dynamic and internal-table SELECT sources are not treated as tables", () => {
+  const src = `REPORT zr_dyn.
+START-OF-SELECTION.
+  DATA lt TYPE TABLE OF t000.
+  SELECT * FROM @lt AS src INTO TABLE @DATA(r).`;
+  const [obj] = load([{ filename: "zr_dyn.prog.abap", source: src }]);
+  assert.ok(!collectStatementEdges(obj).some((e) => e.kind === "uses-table" && e.target.startsWith("@")));
+});
+
 test("statement edges carry file:row evidence", () => {
   const [obj] = load([{ filename: "zr_gap.prog.abap", source: REPORT }]);
   const cf = collectStatementEdges(obj).find((e) => e.kind === "call-function");

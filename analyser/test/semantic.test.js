@@ -61,9 +61,10 @@ test("intra-class method call becomes a call-method edge", () => {
   );
 });
 
-test("SELECT on a void SAP table becomes a uses-table edge to a sap-namespace table node", () => {
+test("SELECT on a void SAP table becomes an object-level uses-table edge to a sap table node", () => {
   const { nodes, edges } = analyzeObjects(FILES).toGraphJSON();
-  assert.ok(hasEdge(edges, "ZCL_PROBE.RUN", "T000", "uses-table"), "RUN --uses-table--> T000");
+  // uses-table is statement-derived (object-level) so it survives unresolved types.
+  assert.ok(hasEdge(edges, "ZCL_PROBE", "T000", "uses-table"), "ZCL_PROBE --uses-table--> T000");
   const t000 = findNode(nodes, "T000");
   assert.ok(t000, "T000 table node exists");
   assert.equal(t000.kind, "table");
@@ -83,7 +84,7 @@ test("CDS DDL source produces a cds node", () => {
 
 test("analyzeObjects returns a traversable DependencyGraph (successors)", () => {
   const graph = analyzeObjects(FILES);
-  assert.ok(graph.successors("ZCL_PROBE.RUN").includes("T000"), "RUN reaches T000 via successors");
+  assert.ok(graph.successors("ZCL_PROBE").includes("T000"), "ZCL_PROBE reaches T000 via successors");
 });
 
 test("no edge carries a kind outside the schema EdgeKind enum", () => {

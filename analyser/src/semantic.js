@@ -26,7 +26,17 @@ const ROUTINE_KIND = { method: "method", form: "form", function: "function" };
  * @returns {DependencyGraph}
  */
 export function analyzeObjects(files) {
-  const reg = loadRegistry(files);
+  return analyzeRegistry(loadRegistry(files));
+}
+
+/**
+ * Build the CPG from an already-parsed registry. Lets a caller (the
+ * orchestrator) load the registry once and share it with the rule engine
+ * rather than parsing twice.
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {DependencyGraph}
+ */
+export function analyzeRegistry(reg) {
   const graph = new DependencyGraph();
 
   for (const obj of objectsOf(reg)) {
@@ -113,8 +123,6 @@ function targetNodeFor(kind, ref, objName) {
   const name = (ref.targetName ?? "").toUpperCase();
   if (!name) return null;
   switch (kind) {
-    case "uses-table":
-      return { id: name, kind: "table", object: name };
     case "call-method":
       // C1 assumes same-object resolution; cross-object linking is a gap-filler.
       return { id: `${objName}.${name}`, kind: "method", object: objName };

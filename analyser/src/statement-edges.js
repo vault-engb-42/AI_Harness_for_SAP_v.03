@@ -58,6 +58,14 @@ export function collectStatementEdges(obj) {
  * @returns {Omit<EdgeDescriptor, "evidence">|null}
  */
 function descriptorFor(grammar, tokens) {
+  if (grammar instanceof Statements.Select || grammar instanceof Statements.SelectLoop) {
+    const t = tokenAfter(tokens, "FROM");
+    if (!t) return null;
+    const name = t.getStr();
+    // Skip dynamic ( FROM (lv_tab) ) and internal-table ( FROM @lt ) sources.
+    if (name.startsWith("@") || name.startsWith("(")) return null;
+    return { kind: "uses-table", target: name.toUpperCase(), targetKind: "table" };
+  }
   if (grammar instanceof Statements.CallFunction) {
     const lit = tokens.find((t) => t.getStr().startsWith("'"));
     if (!lit) return null; // dynamic CALL FUNCTION <var> — no static target
