@@ -1,0 +1,17 @@
+CLASS zcl_legacy DEFINITION PUBLIC INHERITING FROM cl_a4c_bc_factory.
+  PUBLIC SECTION.
+    METHODS process IMPORTING it_keys TYPE STANDARD TABLE.
+ENDCLASS.
+CLASS zcl_legacy IMPLEMENTATION.
+  METHOD process.
+    AUTHORITY-CHECK OBJECT 'S_DEVELOP' ID 'ACTVT' FIELD '03'.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    CALL FUNCTION 'Z_LEGACY_FM'
+      EXPORTING iv_flag = abap_true.
+    LOOP AT it_keys INTO DATA(lv_key).
+      SELECT SINGLE * FROM bapiret1 INTO @DATA(ls) WHERE type = @lv_key.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.

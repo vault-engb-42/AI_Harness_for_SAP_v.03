@@ -1,0 +1,13 @@
+managed implementation in class zbp_i_travel unique;
+strict ( 2 );
+
+define behavior for ZI_Travel alias Travel
+persistent table zdmo_travel
+lock master
+authorization master ( instance )
+{
+  create;
+  update;
+  delete;
+  field ( readonly ) TravelId;
+}
