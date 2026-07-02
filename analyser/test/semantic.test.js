@@ -95,3 +95,58 @@ test("no edge carries a kind outside the schema EdgeKind enum", () => {
   const { edges } = analyzeObjects(FILES).toGraphJSON();
   for (const e of edges) assert.ok(allowed.has(e.kind), `edge kind ${e.kind} is in enum`);
 });
+
+const GAP_FILES = [
+  {
+    filename: "zcl_svc.clas.abap",
+    source: `CLASS zcl_svc DEFINITION PUBLIC INHERITING FROM zcl_base.
+  PUBLIC SECTION.
+    INTERFACES zif_svc.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_svc IMPLEMENTATION.
+  METHOD run.
+    AUTHORITY-CHECK OBJECT 'S_DEVELOP' ID 'ACTVT' FIELD '03'.
+    CALL FUNCTION 'Z_DO_WORK' EXPORTING iv = 1.
+  ENDMETHOD.
+ENDCLASS.`,
+  },
+  {
+    filename: "zi_ord.ddls.asddls",
+    source: `define view entity ZI_Ord as select from vbak
+  association [0..1] to ZI_Cust as _c on $projection.kunnr = _c.kunnr
+{ key vbak.vbeln, _c.name }`,
+  },
+];
+
+test("gap-filler edges (inherits/call-function/authority-check/consumes-cds) land in the graph", () => {
+  const { nodes, edges } = analyzeObjects(GAP_FILES).toGraphJSON();
+  assert.ok(hasEdge(edges, "ZCL_SVC", "ZCL_BASE", "inherits"), "inherits superclass");
+  assert.ok(hasEdge(edges, "ZCL_SVC", "ZIF_SVC", "inherits"), "inherits interface");
+  assert.ok(hasEdge(edges, "ZCL_SVC", "Z_DO_WORK", "call-function"), "call-function");
+  assert.ok(hasEdge(edges, "ZCL_SVC", "S_DEVELOP", "authority-check"), "authority-check");
+  assert.ok(hasEdge(edges, "ZI_ORD", "VBAK", "consumes-cds"), "cds source");
+  assert.ok(hasEdge(edges, "ZI_ORD", "ZI_CUST", "consumes-cds"), "cds association");
+  // confident targets get typed nodes; edge-only targets do not
+  assert.equal(findNode(nodes, "Z_DO_WORK")?.kind, "function");
+  assert.equal(findNode(nodes, "ZCL_BASE")?.kind, "class");
+  assert.equal(findNode(nodes, "ZIF_SVC")?.kind, "interface");
+  assert.equal(findNode(nodes, "S_DEVELOP"), undefined, "auth object is edge-only, no node");
+});
+
+test("RAP behavior definition yields a behavior node with entity + handler edges", () => {
+  const files = [
+    {
+      filename: "zbp_i_ord.bdef.asbdef",
+      source: `managed implementation in class zbp_ord_handler unique;
+define behavior for ZI_Ord alias Order
+persistent table zord
+{ create; update; delete; }`,
+    },
+  ];
+  const { nodes, edges } = analyzeObjects(files).toGraphJSON();
+  assert.equal(findNode(nodes, "ZBP_I_ORD")?.kind, "behavior");
+  assert.ok(hasEdge(edges, "ZBP_I_ORD", "ZI_ORD", "consumes-cds"), "behavior -> entity");
+  assert.ok(hasEdge(edges, "ZBP_I_ORD", "ZBP_ORD_HANDLER", "calls"), "behavior -> handler class");
+  assert.equal(findNode(nodes, "ZBP_ORD_HANDLER")?.kind, "class");
+});

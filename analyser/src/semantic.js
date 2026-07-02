@@ -1,6 +1,9 @@
 import { ABAPObject } from "@abaplint/core";
 import { loadRegistry, objectsOf } from "./abaplint-loader.js";
 import { collectReferences } from "./references.js";
+import { collectStatementEdges } from "./statement-edges.js";
+import { collectInheritEdges, collectCdsEdges } from "./metadata-edges.js";
+import { collectRapEdges } from "./rap-edges.js";
 import { edgeKindForReference } from "./edge-kinds.js";
 import { nodeKindForObjectType } from "./node-kinds.js";
 import { classifyNamespace } from "./namespace.js";
@@ -31,16 +34,45 @@ export function analyzeObjects(files) {
     const objKind = nodeKindForObjectType(obj.getType());
     if (!objKind) continue;
     graph.addNode({ id: objName, kind: objKind, object: objName, namespace: classifyNamespace(objName) });
-    // SyntaxLogic (the reference walk) only supports ABAP-code objects.
-    // CDS (DDLS) and DDIC (TABL) nodes exist but their edges come from the
-    // CDS/DDIC gap-fillers, not the spaghetti reference stream.
+
+    // Metadata edges work on non-ABAP objects too (CDS consumes-cds, class
+    // inherits, RAP behavior). BDEF is opaque to abaplint, so RAP edges come
+    // from a raw-source scan.
+    for (const e of collectInheritEdges(obj)) addDescribedEdge(objName, e, graph);
+    for (const e of collectCdsEdges(obj)) addDescribedEdge(objName, e, graph);
+    for (const e of collectRapEdges(obj)) addDescribedEdge(objName, e, graph);
+
+    // SyntaxLogic (the reference walk) and statement extraction only support
+    // ABAP-code objects. CDS/DDIC nodes still exist (added above); their edges
+    // come from the metadata extractors, not the spaghetti stream.
     if (!(obj instanceof ABAPObject)) continue;
     for (const ref of collectReferences(reg, obj)) {
       addEdgeFromRef(ref, objName, graph);
     }
+    for (const e of collectStatementEdges(obj)) addDescribedEdge(objName, e, graph);
   }
 
   return graph;
+}
+
+/**
+ * Add an object-level edge from a gap-filler descriptor. Materializes a target
+ * node only when its kind is known with confidence (descriptor.targetKind);
+ * otherwise the edge is recorded without a node (auth object, include, handle).
+ * @param {string} objName
+ * @param {import("./statement-edges.js").EdgeDescriptor} e
+ * @param {DependencyGraph} graph
+ */
+function addDescribedEdge(objName, e, graph) {
+  if (e.targetKind) {
+    graph.addNode({
+      id: e.target,
+      kind: e.targetKind,
+      object: e.target,
+      namespace: classifyNamespace(e.target),
+    });
+  }
+  graph.addEdge({ source: objName, target: e.target, kind: e.kind, evidence: e.evidence });
 }
 
 /**
