@@ -1,0 +1,15 @@
+{
+  "_comment": "SAP ABAP Harness — .mcp.json stamped by /scaffold-abap. Wires ONLY the sap-adt bridge (node mcp-adt-bridge/server.js), the single external substrate: the MCP-ADT server exposing the aws_abap_cb_* tools. MOCK MODE = fully offline: run the ADT sidecar with S4_TRIAL_URL unset and no live SAP is contacted — every aws_abap_cb_* call is served from the sidecar's mock fixtures, so /scaffold-abap and the read/plan lanes work with zero SAP connectivity. Point ADT_MCP_URL at a live sidecar (S4_TRIAL_URL set) only when you intend real ADT reads. Writes are fail-closed by default (P5): HARNESS_ADT_ALLOW_WRITE=\"0\" makes every write tool refuse; a human sets it to \"1\" on a non-prod tier and still releases the transport by hand.",
+  "mcpServers": {
+    "sap-adt": {
+      "command": "node",
+      "args": ["mcp-adt-bridge/server.js"],
+      "env": {
+        "ADT_MCP_URL": "http://127.0.0.1:8090",
+        "HARNESS_ADT_ALLOW_WRITE": "0"
+      },
+      "_comment_env": "ADT_MCP_URL — URL of the MCP-ADT sidecar (default http://127.0.0.1:8090, loopback only). HARNESS_ADT_ALLOW_WRITE — write gate, default \"0\" = writes fail closed (P5, non-prod-only, human releases the transport). Set \"1\" ONLY against a non-production tier; never in a shared or prod context."
+    },
+    "_comment_disabled_servers": "Extra MCP servers stay OUT of this template by default (mirrors the eng disabled-by-default convention). The sap-adt bridge is the only substrate this harness needs — no code graph, no browser. If you add a server, add it here explicitly with \"disabled\": true and enable it deliberately."
+  }
+}

@@ -1,0 +1,12 @@
+# Normalize all text to LF in the repo (portable plugin — clone-clean on any OS)
+* text=auto eol=lf
+
+# Explicit text types
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.abap  text eol=lf
+*.xml   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf

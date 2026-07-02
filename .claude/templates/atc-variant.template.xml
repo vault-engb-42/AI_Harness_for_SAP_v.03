@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  ATC CHECK VARIANT  —  ABAP_CLEAN_CORE_DEVELOPMENT
+  ============================================================================
+  HARNESS IMMUTABLE CONSTANT (P6).
+  This variant name is pinned. The abap-validate gate (Gate 5, the keystone)
+  runs `aws_abap_cb_run_atc_check` with EXACTLY this variant. Priority-1
+  findings under this variant MUST be ZERO before any story group is "done"
+  and before any transport is assembled. A priority-1 finding is an absolute
+  BLOCK regardless of every other gate being green — a functional pass on top
+  of a priority-1 finding is still a BLOCK.
+
+  The gate REFUSES A LAXER VARIANT: if the ATC run reports a different variant
+  name, a downgraded priority for any check below, or a check listed here that
+  is missing/disabled, the run is treated as `atc-unavailable` ⇒ BLOCK. You do
+  not "pass" this gate by running a friendlier variant.
+
+  PURPOSE OF THIS FILE
+  --------------------
+  Bootstrap artifact. Where the target ABAP Cloud / S/4HANA system does not
+  already carry the `ABAP_CLEAN_CORE_DEVELOPMENT` variant, the scaffold ships
+  this template so a human can create the variant (transaction ATC / SATC, or
+  ADT "Import Check Variant") with the exact check set and priorities below.
+  It is NOT executed by the harness; it is the source-of-truth definition the
+  live variant must match.
+
+  SCHEMA NOTE (read before importing)
+  -----------------------------------
+  The canonical SAP serialization of an ATC/Code-Inspector check variant is
+  produced by ADT variant export (CL_SATC_* / CL_CI_* persistence) and its
+  exact element names differ by ABAP Platform release. THIS FILE IS A CLEARLY
+  STRUCTURED, REPRESENTATIVE FORM: it names every check by its Code Inspector
+  check class (CL_CI_*) and message-code, and fixes each priority explicitly,
+  so a human can reproduce the variant faithfully by hand or adapt it to the
+  precise export schema of the target release. Treat the check identifiers and
+  the PRIORITY assignments as the contract; treat the surrounding element
+  nesting as illustrative.
+
+  PRIORITY SEMANTICS (SAP ATC)
+  -----------------------------
+    priority="1"  ERROR    — gate-blocking. Must be zero to pass.
+    priority="2"  WARNING  — recorded, does not block on its own.
+    priority="3"  INFO     — advisory.
+  The harness only fails-closed on priority-1. The point of this variant is to
+  push the Clean-Core-critical checks (non-released-API usage, modifications,
+  source-code plug-ins) UP to priority 1 so they cannot ship.
+  ============================================================================
+-->
+<atc:checkVariant
+    xmlns:atc="http://www.sap.com/adt/atc/checkvariant"
+    name="ABAP_CLEAN_CORE_DEVELOPMENT"
+    kind="global"
+    changedBy="HARNESS_BOOTSTRAP"
+    description="Clean Core Level A development gate — released-API-only, RAP/CDS readiness. Priority-1 findings must be zero (harness P6).">
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 1 — CLEAN CORE / RELEASED-API SURFACE  (all PRIORITY 1)
+    These are the checks that enforce "released APIs only" (P1/P2). A finding
+    here means the code reaches a non-released or C1/C2-only object, or a
+    non-whitelisted internal API. This is the core of the gate — priority 1.
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_CLEAN_CORE_SPILLAGE" enabled="true">
+    <!-- Use of objects NOT released for cloud / not in the released-API set.
+         The single most important check: non-released-API usage = priority 1. -->
+    <description>Usage of non-released (non-C1) objects and APIs — Clean Core spillage</description>
+    <message code="USE_OF_NON_RELEASED_API" priority="1"/>
+    <message code="USE_OF_C2_INTERNAL_API"  priority="1"/>
+    <message code="USE_OF_DEPRECATED_API"    priority="1"/>
+  </check>
+
+  <check id="CL_CI_TEST_API_RELEASE_STATE" enabled="true">
+    <!-- Released-state / API-state check: the object's own release contract
+         and the release contract of everything it consumes. -->
+    <description>Released-API state of consumed objects (API release contract)</description>
+    <message code="CONSUMED_OBJECT_NOT_RELEASED" priority="1"/>
+    <message code="RELEASE_CONTRACT_VIOLATION"    priority="1"/>
+  </check>
+
+  <check id="CL_CI_TEST_LANGUAGE_VERSION" enabled="true">
+    <!-- ABAP language version must be "ABAP for Cloud Development"
+         (ABAP Cloud). Falling back to Standard/Unrestricted ABAP breaks
+         Clean Core Level A — priority 1. -->
+    <description>ABAP language version must be ABAP Cloud (for Cloud Development)</description>
+    <message code="LANGUAGE_VERSION_NOT_CLOUD" priority="1"/>
+  </check>
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 2 — MODIFICATIONS  (PRIORITY 1)
+    Modifications to SAP standard objects are the anti-pattern Clean Core
+    exists to kill. Any modification finding is a hard block: the extension
+    ladder (BAdI / RAP extension / CDS extend view entity / released
+    enhancement) must be used instead. Priority 1.
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_MODIFICATION" enabled="true">
+    <description>Modification of SAP standard objects (modification assistant / direct)</description>
+    <message code="MODIFICATION_OF_SAP_OBJECT"   priority="1"/>
+    <message code="REPAIR_OF_SAP_OBJECT"          priority="1"/>
+    <message code="MODIFICATION_WITHOUT_ASSIST"   priority="1"/>
+  </check>
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 3 — SOURCE-CODE PLUG-INS  (PRIORITY 1)
+    Source-code (implicit/explicit) enhancement plug-ins, enhancement
+    implementations, and source-code enhancement points are the classic
+    "invisible modification". Not allowed at Clean Core Level A — priority 1.
+    Only released BAdIs, RAP behavior extensions, CDS extend view entity, and
+    released enhancement spots are the sanctioned seams.
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_ENHANCEMENT" enabled="true">
+    <description>Source-code plug-ins / enhancement implementations on standard objects</description>
+    <message code="SOURCE_CODE_PLUGIN"             priority="1"/>
+    <message code="IMPLICIT_ENHANCEMENT_POINT"     priority="1"/>
+    <message code="EXPLICIT_ENHANCEMENT_ON_STD"    priority="1"/>
+    <message code="ENHANCEMENT_ON_NON_RELEASED"    priority="1"/>
+  </check>
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 4 — RAP / CDS READINESS  (PRIORITY 1)
+    The harness only builds RAP (managed/unmanaged, draft) + CDS view entities
+    (never legacy DEFINE VIEW) + ABAP classes (P3). These checks reject the
+    legacy data-model / dynpro patterns that break Clean Core and RAP.
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_CDS_MIGRATION" enabled="true">
+    <!-- Legacy DEFINE VIEW (DDL SQL view) instead of CDS VIEW ENTITY. -->
+    <description>CDS legacy DEFINE VIEW usage — must be CDS VIEW ENTITY</description>
+    <message code="LEGACY_DEFINE_VIEW"            priority="1"/>
+    <message code="MANAGED_DB_VIEW_GENERATED"     priority="1"/>
+  </check>
+
+  <check id="CL_CI_TEST_DYNPRO_AND_GUI" enabled="true">
+    <!-- Classic Dynpro, screens, WRITE lists, SAPGUI-only calls, CALL SCREEN.
+         RAP/Fiori-only surface at Clean Core — priority 1. -->
+    <description>Classic Dynpro / SAPGUI-only patterns (not RAP/Fiori)</description>
+    <message code="CLASSIC_DYNPRO_SCREEN" priority="1"/>
+    <message code="CALL_SCREEN_STATEMENT" priority="1"/>
+    <message code="WRITE_LIST_OUTPUT"     priority="1"/>
+  </check>
+
+  <check id="CL_CI_TEST_SELECT_PATTERNS" enabled="true">
+    <!-- SELECT * INTO workarea and other non-Clean-Core SELECT patterns.
+         Priority 1: the harness forbids SELECT * INTO workarea outright. -->
+    <description>Forbidden SELECT patterns (SELECT * INTO work area, implicit client, etc.)</description>
+    <message code="SELECT_STAR_INTO_WORKAREA" priority="1"/>
+    <message code="SELECT_WITHOUT_FIELDLIST"  priority="1"/>
+  </check>
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 5 — IMMUTABLE SECURITY INVARIANTS (P4)  (PRIORITY 1)
+    These encode the harness immutable invariants. They are priority 1 and
+    they are never to be downgraded:
+      * AUTHORITY-CHECK must never be removed.
+      * SY-SUBRC must be checked immediately after every AUTHORITY-CHECK.
+      * COMMIT WORK must never be suppressed.
+    ATC's own authority/commit checks are the machine backstop for the
+    abap-security-reviewer's P4 diff (Gate 7).
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_AUTHORITY_CHECK" enabled="true">
+    <description>AUTHORITY-CHECK presence and SY-SUBRC evaluation (P4 invariants)</description>
+    <!-- Missing AUTHORITY-CHECK on a protected operation. Never removable. -->
+    <message code="MISSING_AUTHORITY_CHECK"        priority="1"/>
+    <!-- SY-SUBRC not evaluated immediately after AUTHORITY-CHECK. -->
+    <message code="SUBRC_NOT_CHECKED_AFTER_AUTH"   priority="1"/>
+  </check>
+
+  <check id="CL_CI_TEST_TRANSACTION_CONSISTENCY" enabled="true">
+    <description>Transactional consistency — COMMIT/ROLLBACK WORK usage (P4)</description>
+    <!-- COMMIT WORK suppressed / missing where an update task requires it. -->
+    <message code="COMMIT_WORK_SUPPRESSED"  priority="1"/>
+    <message code="MISSING_COMMIT_WORK"     priority="1"/>
+  </check>
+
+  <!--
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    BLOCK 6 — HYGIENE  (PRIORITY 2 / 3)
+    Recorded for the evidence pack but NON-BLOCKING on their own. Kept in the
+    variant so the ATC run surfaces them; they do not gate. Do NOT promote a
+    Clean-Core-critical check (Blocks 1-5) down to this tier to "make it pass".
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -->
+  <check id="CL_CI_TEST_NAMING_CONVENTIONS" enabled="true">
+    <description>Naming conventions for CDS/RAP/class objects (Z*/Y* namespace)</description>
+    <message code="NAMING_CONVENTION_VIOLATION" priority="2"/>
+  </check>
+
+  <check id="CL_CI_TEST_UNIT_TEST_PRESENCE" enabled="true">
+    <description>ABAP Unit test class presence for behavior/class objects</description>
+    <message code="NO_UNIT_TEST_CLASS" priority="2"/>
+  </check>
+
+  <check id="CL_CI_TEST_DOC_AND_LABELS" enabled="true">
+    <description>Missing field labels / EndUserText annotations on CDS entities</description>
+    <message code="MISSING_ENDUSERTEXT_LABEL" priority="3"/>
+  </check>
+
+  <!--
+    ============================================================================
+    GATE CONTRACT (restated so it travels with the file)
+    ----------------------------------------------------------------------------
+    PASS  ⇔  ATC run used variant name "ABAP_CLEAN_CORE_DEVELOPMENT"
+             AND every priority="1" message count == 0
+             AND no Block-1..5 check is missing/disabled/downgraded
+             AND the run completed (data_available == true).
+    BLOCK ⇔  any priority-1 finding > 0
+             OR the run did not complete (atc-unavailable)
+             OR a laxer/renamed variant was substituted.
+    Priority-2/3 findings are recorded in the transport-evidence pack and do
+    not, by themselves, block. The human releases the transport (P5); the gate
+    never self-approves.
+    ============================================================================
+  -->
+</atc:checkVariant>

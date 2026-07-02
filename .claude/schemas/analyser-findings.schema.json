@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sap-abap-harness/analyser-findings",
+  "title": "ABAP Analyser Findings",
+  "description": "The insights the standalone /abap-analyser lane produces for a scanned SAP custom-code package, written to specs/brownfield/analyser-findings.json and consumed by /abap-brownfield, /readiness, and /seam-finder. Built entirely by the harness (Claude reasoning over the ADT read tools) — no TALOS/cloud dependency. Shape modeled on what a mature ABAP analyser emits (code graph + blast-radius + S/4-readiness + quality findings).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_system", "package", "generated_at", "findings", "s4_readiness", "graph"],
+  "properties": {
+    "source_system": {
+      "type": "string",
+      "description": "Identity of the SAP SOURCE system the analyser connected to (read-only), distinct from the DEV build tier."
+    },
+    "package": { "type": "string", "description": "The custom-code package scanned." },
+    "generated_at": { "type": "string", "description": "ISO-8601 UTC timestamp the analyser wrote this artifact." },
+    "coverage_note": {
+      "type": "string",
+      "description": "What the scan could and could not establish; note any object skipped or any ADT signal that came back data_available:false (never assume retirement from a missing signal)."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Static-analysis + quality findings, primarily from run_atc_check plus harness pattern checks. Models TALOS AbapFinding.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "severity", "object", "message"],
+        "properties": {
+          "rule_id": { "type": "string", "description": "ATC check id or harness rule id." },
+          "severity": { "type": "string", "enum": ["priority-1", "priority-2", "priority-3", "info"], "description": "ATC priority (priority-1 is a Clean-Core blocker under ABAP_CLEAN_CORE_DEVELOPMENT)." },
+          "object": { "type": "string", "description": "Object name the finding is in." },
+          "object_type": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" },
+          "message": { "type": "string" },
+          "suggestion": { "type": "string" },
+          "family": { "type": "string", "description": "e.g. released-api, modification, invariant, performance, dynamic-sql." }
+        }
+      }
+    },
+    "s4_readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["s4_readiness_pct", "released_hits", "deprecated_hits"],
+      "description": "S/4HANA / Clean-Core readiness, grounded on aws_abap_cb_get_migration_analysis per referenced object. Models TALOS S4ReadinessSummary.",
+      "properties": {
+        "s4_readiness_pct": { "type": "number" },
+        "cloud_readiness_pct": { "type": "number" },
+        "released_hits": { "type": "integer" },
+        "deprecated_hits": { "type": "integer" },
+        "not_released_hits": { "type": "integer" },
+        "total_api_calls": { "type": "integer" }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "description": "Call/uses dependency graph derived from the pulled ABAP source (parsed by the analyser). Models TALOS GraphNodeDict/GraphEdgeDict. Every edge must be traceable to a source read.",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "object"],
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string", "enum": ["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"], "description": "canonical CPG node kind (matches the analyser NodeKind union in docs/ANALYSER_ARCHITECTURE.md #3 C2)" },
+              "object": { "type": "string" },
+              "namespace": { "type": "string", "enum": ["Z", "Y", "registered", "sap"], "description": "Z/Y = customer; registered = /NS/ vendor namespace; sap = SAP standard." },
+              "clean_core_posture": { "type": "string", "enum": ["level-a", "brownfield-mixed", "classic", "unknown"] },
+              "modernization_target": { "type": "string" },
+              "effort_tier": { "type": "string", "enum": ["retire", "re-platform", "keep-and-clean", "unknown"] }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "target", "kind"],
+            "properties": {
+              "source": { "type": "string" },
+              "target": { "type": "string" },
+              "kind": { "type": "string", "enum": ["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"], "description": "canonical CPG edge kind (matches the analyser EdgeKind union in docs/ANALYSER_ARCHITECTURE.md #3 C2)" },
+              "evidence": { "type": "string", "description": "the object + statement the edge was read from (traceability)." }
+            }
+          }
+        }
+      }
+    },
+    "blast_radius": {
+      "type": "array",
+      "description": "Per deprecated/at-risk object: who is affected if it changes. Models TALOS S4BlastRadiusEntry.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["object", "affected_program_count"],
+        "properties": {
+          "object": { "type": "string" },
+          "affected_program_count": { "type": "integer" },
+          "successor_kind": { "type": "string" },
+          "highest_impact": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+        }
+      }
+    },
+    "namespace_summary": {
+      "type": "object",
+      "description": "Customer vs SAP-standard breakdown and mixed-namespace warnings.",
+      "additionalProperties": true
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Live-SAP usage/mod signals; each carries data_available so a missing signal is never read as 'unused/retired'.",
+      "properties": {
+        "scmon": { "type": "object", "additionalProperties": true },
+        "smodilog": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

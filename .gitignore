@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Logs / runtime noise
+*.log
+npm-debug.log*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local env / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/

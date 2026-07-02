@@ -1,0 +1,85 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "sourcegraph@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node --test:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git init:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh pr:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "mcp__sap-adt__aws_abap_cb_connection_status",
+      "mcp__sap-adt__aws_abap_cb_get_objects",
+      "mcp__sap-adt__aws_abap_cb_get_source",
+      "mcp__sap-adt__aws_abap_cb_search_object",
+      "mcp__sap-adt__aws_abap_cb_check_syntax",
+      "mcp__sap-adt__aws_abap_cb_run_atc_check",
+      "mcp__sap-adt__aws_abap_cb_run_unit_tests",
+      "mcp__sap-adt__aws_abap_cb_get_test_classes",
+      "mcp__sap-adt__aws_abap_cb_get_transport_requests",
+      "mcp__sap-adt__aws_abap_cb_get_migration_analysis",
+      "mcp__sap-adt__aws_abap_cb_query_scmon_usage",
+      "mcp__sap-adt__aws_abap_cb_query_smodilog_modifications"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-write-gate.js\"",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__sap-adt__aws_abap_cb_(create_object|update_source|activate_object|activate_objects_batch|create_or_update_test_class)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/adt-write-guard.js\"",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/artifact-guard.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
