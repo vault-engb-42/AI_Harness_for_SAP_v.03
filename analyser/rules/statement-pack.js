@@ -52,11 +52,32 @@ const STATEMENT_PATTERNS = [
   { id: "talos-select-single-no-where", family: "performance", severity: "priority-2", stmts: ["Select"], re: /^SELECT\s+SINGLE\b/i, notRe: /\bWHERE\b/i, message: "SELECT SINGLE without a WHERE clause reads an arbitrary row; constrain the full key (ABAP-PERF-58)" },
   { id: "talos-limit-without-filter", family: "performance", severity: "priority-2", stmts: ["Select", "SelectLoop"], re: /\bUP\s+TO\s+\S+\s+ROWS\b/i, notRe: /\bWHERE\b/i, message: "UP TO n ROWS without a selective WHERE applies the limit after a full scan; filter first (ABAP-PERF-96)" },
   { id: "talos-excessive-secondary-keys", family: "performance", severity: "info", stmts: ["Data", "ClassData", "Types"], re: /(?:\bKEY\b[\s\S]*?){4}/i, message: "internal table declares 4+ keys; every write maintains each key — trim secondary keys (ABAP-PERF-39)" },
+  // Moved from the regex pack: statement text is multi-line safe, so the
+  // standard ADT class header (FINAL on a continuation line) parses correctly.
+  { id: "talos-cloud-005-class-final-abstract", family: "clean-core", severity: "priority-2", stmts: ["ClassDefinition"], notRe: /\b(?:FINAL|ABSTRACT|DEFERRED|LOCAL\s+FRIENDS|FOR\s+TESTING)\b/i, message: "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)" },
 ];
+
+// CLOUD-021 (coded): abaplint's MODIFY/DELETE classification is syntactic —
+// `MODIFY itab FROM wa` parses as ModifyDatabase too — so the check also
+// consults the file's DECLARED names: a declared local is an itab, not a
+// DDIC table.
+const DB_WRITE_STMTS = new Set(["InsertDatabase", "UpdateDatabase", "ModifyDatabase", "DeleteDatabase"]);
+const DB_WRITE_TARGET_RE = /^(?:INSERT(?:\s+INTO)?|UPDATE|MODIFY(?:\s+TABLE)?|DELETE(?:\s+FROM)?)\s+(\w+)/i;
+const DECLARE_RE = /^(?:CLASS-)?DATA\s+(\w+)/i;
 
 const FAE_RE = /FOR\s+ALL\s+ENTRIES\s+IN\s+@?(\w+)/i;
 const MODIFY_WITH_RE = /\bWITH\s+@?(\w+)/i;
 const GUARD_LOOKBACK = 6;
+
+// PERF-14 heuristic: common leading primary-key fields across SAP tables.
+// Without DDIC metadata a prefix allowlist is the strongest portable check;
+// the finding message states the heuristic.
+const COMMON_PK_PREFIX = new Set([
+  "MANDT", "BUKRS", "BELNR", "GJAHR", "MATNR", "VBELN", "POSNR", "KUNNR",
+  "LIFNR", "WERKS", "EBELN", "EBELP", "AUFNR", "KOKRS", "PERNR", "OBJNR",
+  "EQUNR", "TPLNR", "QMNUM", "BANFN", "BNFPO", "RLDNR", "RBUKRS", "CARRID",
+  "CONNID", "SPRAS", "LANGU",
+]);
 
 export const statementPack = {
   id: "statement-pack",
@@ -80,7 +101,7 @@ export const statementPack = {
 
 function scanStatements(file, obj, findings) {
   const stmts = file.getStatements();
-  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null };
+  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set() };
   let depth = 0;
   let blockDepth = 0;
   let enhDepth = 0;
@@ -111,6 +132,7 @@ function scanStatements(file, obj, findings) {
 function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   if (name === "Select" || name === "SelectLoop") {
     checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
+    checkFaePrefix(text, obj, file, stmts[i], findings);
     countSelectSingle(text, stmts[i], ctx.fileState.selectSingles);
     trackSelect(text, stmts[i], ctx.fileState);
   }
@@ -120,8 +142,19 @@ function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   if (name === "Sort") {
     checkSortAfterSelect(stmts, i, text, obj, file, findings);
   }
-  if ((name === "Data" || name === "ClassData") && ctx.blockDepth > 0) {
-    push(findings, { id: "talos-data-in-block", family: "anti-pattern", severity: "priority-2", message: "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)" }, obj, file, stmts[i]);
+  if (name === "Data" || name === "ClassData") {
+    const decl = DECLARE_RE.exec(text);
+    if (decl) ctx.fileState.declared.add(decl[1].toUpperCase());
+    if (ctx.blockDepth > 0) {
+      push(findings, { id: "talos-data-in-block", family: "anti-pattern", severity: "priority-2", message: "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)" }, obj, file, stmts[i]);
+    }
+  }
+  if (DB_WRITE_STMTS.has(name)) {
+    const m = DB_WRITE_TARGET_RE.exec(text);
+    const target = m?.[1]?.toUpperCase();
+    if (target && !/^[ZYQ]/.test(target) && !ctx.fileState.declared.has(target)) {
+      push(findings, { id: "talos-cloud-021-direct-table-write", family: "clean-core", severity: "priority-1", message: `Direct write to SAP-namespace DDIC table ${target} — modify SAP data only through released APIs/BAPIs (CLOUD-021)` }, obj, file, stmts[i]);
+    }
   }
   if (name === "CallFunction" && ctx.enhDepth > 0 && /CALL\s+FUNCTION\s+'BAPI_/i.test(text)) {
     push(findings, { id: "talos-bapi-in-enhancement", family: "deprecation", severity: "info", message: "BAPI call inside an ENHANCEMENT block; migrate the enhancement to a RAP action + EML (S4-2)" }, obj, file, stmts[i]);
@@ -181,6 +214,24 @@ function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
     obj,
     file,
     stmts[i]
+  );
+}
+
+/**
+ * PERF-14 (ported from the line-regex row, which missed the multi-line FAE
+ * layout): a FOR ALL ENTRIES whose WHERE clause leads with a field outside
+ * the common primary-key prefix set misaligns with the index.
+ */
+function checkFaePrefix(text, obj, file, st, findings) {
+  if (!FAE_RE.test(text)) return;
+  const m = /\bWHERE\s+(\w+)/i.exec(text);
+  if (!m || COMMON_PK_PREFIX.has(m[1].toUpperCase())) return;
+  push(
+    findings,
+    { id: "talos-fae-nonpk-where-prefix", family: "performance", severity: "priority-2", message: `FOR ALL ENTRIES WHERE clause leads with ${m[1].toUpperCase()}, which is not a common primary-key prefix field — index misalignment risk (heuristic; verify against the table's key) (ABAP-PERF-14)` },
+    obj,
+    file,
+    st,
   );
 }
 

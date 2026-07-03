@@ -189,6 +189,58 @@ test("3+ SELECTs from distinct tables in one source suggest a CDS join (PERF-4)"
   assert.ok(ids(f).includes("talos-cds-join-candidate"));
 });
 
+// --- rules moved from the regex pack (multi-line-safe here) ---
+
+test("a multi-line ADT class header WITH FINAL is NOT flagged by cloud-005", () => {
+  const src = `CLASS zcl_ok DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
+ENDCLASS.
+CLASS zcl_ok IMPLEMENTATION.
+ENDCLASS.`;
+  const reg = loadRegistry([{ filename: "zcl_ok.clas.abap", source: src }]);
+  const f = statementPack.check({ reg });
+  assert.ok(!ids(f).includes("talos-cloud-005-class-final-abstract"), "FINAL on a continuation line is seen");
+});
+
+test("a class definition without FINAL/ABSTRACT is flagged by cloud-005", () => {
+  const src = `CLASS zcl_open DEFINITION PUBLIC CREATE PUBLIC.
+ENDCLASS.
+CLASS zcl_open IMPLEMENTATION.
+ENDCLASS.`;
+  const reg = loadRegistry([{ filename: "zcl_open.clas.abap", source: src }]);
+  const f = statementPack.check({ reg });
+  assert.ok(ids(f).includes("talos-cloud-005-class-final-abstract"));
+});
+
+test("cloud-021 flags a direct SAP-table write but not customer tables or itabs", () => {
+  // lt_rows must be DECLARED so abaplint classifies its MODIFY as
+  // ModifyInternal (an undeclared name defaults to a DB modify).
+  const f = findings(`    DATA lt_rows TYPE STANDARD TABLE OF t000 WITH EMPTY KEY.
+    DATA ls_row TYPE t000.
+    UPDATE t000 SET mtext = 'x' WHERE mandt = '999'.
+    MODIFY ztable FROM ls_row.
+    MODIFY lt_rows FROM ls_row.`);
+  const hits = f.filter((x) => x.rule_id === "talos-cloud-021-direct-table-write");
+  assert.equal(hits.length, 1, JSON.stringify(hits.map((h) => h.message)));
+  assert.equal(hits[0].severity, "priority-1");
+});
+
+test("FAE leading WHERE field outside the PK-prefix set is flagged (PERF-14)", () => {
+  const f = findings(`    IF lt_drv IS NOT INITIAL.
+      SELECT * FROM t000 FOR ALL ENTRIES IN @lt_drv WHERE mtext = @lt_drv-mtext INTO TABLE @DATA(lt).
+    ENDIF.`);
+  assert.ok(ids(f).includes("talos-fae-nonpk-where-prefix"));
+});
+
+test("FAE leading WHERE field on a PK-prefix field is NOT flagged by PERF-14", () => {
+  const f = findings(`    IF lt_drv IS NOT INITIAL.
+      SELECT * FROM t000 FOR ALL ENTRIES IN @lt_drv WHERE mandt = @lt_drv-mandt INTO TABLE @DATA(lt).
+    ENDIF.`);
+  assert.ok(!ids(f).includes("talos-fae-nonpk-where-prefix"));
+});
+
 test("a BAPI call inside an ENHANCEMENT block is flagged (S4-2)", () => {
   const src = `REPORT zr_enh.
 ENHANCEMENT 1 zenh_impl.

@@ -83,6 +83,26 @@ early numbering
   assert.ok(findings([b]).some((x) => x.rule_id === "talos-rap-early-numbering"));
 });
 
+test("a draft BDEF guarded by 'total etag' is NOT flagged for missing lockingMode (PERF-23)", () => {
+  const b = bdef("zbp_te", `managed implementation in class zbp_te unique;
+define behavior for ZI_TE alias TE
+with draft
+total etag LastChangedAt
+{ create; }`);
+  assert.ok(!findings([b]).some((x) => x.rule_id === "talos-rap-draft-no-optimistic-lock"), "total etag accepted as the concurrency guard");
+});
+
+test("deep-create via association is flagged with the real BDEF grammar (PERF-41)", () => {
+  const b = bdef("zbp_dc", `managed implementation in class zbp_dc unique;
+define behavior for ZI_DC alias DC
+{
+  association _Items { create; }
+}`);
+  const hit = findings([b]).find((x) => x.rule_id === "talos-rap-deep-create-no-cap");
+  assert.ok(hit, "association-create detected");
+  assert.equal(hit.severity, "priority-3");
+});
+
 test("managed + unmanaged implementation in one BDEF is flagged priority-1", () => {
   const b = bdef("zbp_m", `managed implementation in class zbp_a unique;
 unmanaged implementation in class zbp_b unique;

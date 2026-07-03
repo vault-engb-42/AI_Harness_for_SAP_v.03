@@ -9,18 +9,24 @@ import { objectsOf } from "../src/abaplint-loader.js";
  * This is how the bulk of TALOS's regex-mechanism rules are ported: the engine
  * is coded + tested once; coverage scales by adding data rows.
  *
- * Each data row: { id, family, severity, pattern, flags?, message, object_types? }
- * A finding carries the row's own id/family so the rule engine surfaces the
- * specific rule, not "regex-pack".
+ * Row shape: { id, family, severity, pattern, flags?, message, object_types?,
+ *             when?, scan_comments? }
+ *   - when:          regex that must match somewhere in the FILE for the row
+ *                    to apply (e.g. RAP-handler rules only fire inside
+ *                    behavior handler/saver classes)
+ *   - scan_comments: the row sees raw comment lines (for rules whose subject
+ *                    IS a comment marker, e.g. SAP modification markers)
  *
- * Full-line comments (`*` in column-effective position) are skipped to avoid
- * matching commented-out code. Patterns that fail to compile are dropped
- * (fail-open) so one bad row can't disable the pack.
+ * Line sanitization before matching (unless scan_comments): full-line
+ * comments (`*` in column 1, or first non-blank `"`), trailing `"` comments,
+ * and '...' string-literal CONTENTS are removed — commented-out or merely
+ * quoted code must never raise findings. Patterns that fail to compile are
+ * dropped (fail-open) so one bad row can't disable the pack.
  */
 
 const DATA_FILE = join(dirname(fileURLToPath(import.meta.url)), "data", "regex-rules.json");
 
-/** @type {Array<{id: string, family: string, severity: string, message: string, re: RegExp, object_types: string[]}>|null} */
+/** @type {Array<object>|null} */
 let _compiled = null;
 
 function compiledRules() {
@@ -42,6 +48,8 @@ function compiledRules() {
         severity: r.severity,
         message: r.message,
         re: new RegExp(r.pattern, flags),
+        when: r.when ? new RegExp(r.when, "i") : null,
+        scanComments: r.scan_comments === true,
         object_types: Array.isArray(r.object_types) ? r.object_types : [],
       });
     } catch {
@@ -75,6 +83,38 @@ export const regexPack = {
 };
 
 /**
+ * Strip the trailing `"` comment from a line. String literals are copied
+ * VERBATIM (many rules legitimately inspect them — CALL FUNCTION 'BAPI_*',
+ * CALL 'SYSTEM', hardcoded credentials); the literal tracking exists only so
+ * a `"` INSIDE a literal is never mistaken for a comment start. Caller has
+ * already excluded full-line comments.
+ * @param {string} line
+ * @returns {string}
+ */
+export function sanitizeLine(line) {
+  let inString = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inString) {
+      if (ch === "'") {
+        if (line[i + 1] === "'") {
+          i++; // escaped '' inside the literal
+          continue;
+        }
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === "'") {
+      inString = true;
+      continue;
+    }
+    if (ch === '"') return line.slice(0, i); // genuine trailing comment
+  }
+  return line;
+}
+
+/**
  * @param {string} raw
  * @param {string} filename
  * @param {string} objName
@@ -83,13 +123,20 @@ export const regexPack = {
  * @param {object[]} findings
  */
 function scanFile(raw, filename, objName, type, rules, findings) {
+  const applicable = rules.filter(
+    (rule) => (!rule.object_types.length || rule.object_types.includes(type)) && (!rule.when || rule.when.test(raw)),
+  );
+  if (!applicable.length) return;
+
   const lines = raw.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\s*\*/.test(line)) continue; // full-line comment
-    for (const rule of rules) {
-      if (rule.object_types.length && !rule.object_types.includes(type)) continue;
-      if (rule.re.test(line)) {
+    const isComment = /^\s*[*"]/.test(line);
+    const sanitized = isComment ? null : sanitizeLine(line);
+    for (const rule of applicable) {
+      const subject = rule.scanComments ? line : sanitized;
+      if (subject === null) continue; // comment line, rule doesn't scan comments
+      if (rule.re.test(subject)) {
         findings.push({
           rule_id: rule.id,
           severity: rule.severity,

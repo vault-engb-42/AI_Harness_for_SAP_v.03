@@ -30,9 +30,9 @@
     "id": "talos-dynamic-where-subquery",
     "family": "dynamic-sql",
     "severity": "priority-2",
-    "pattern": "\\bWHERE\\s+\\(",
+    "pattern": "\\bWHERE\\s+\\(\\s*\\w+\\s*\\)",
     "flags": "i",
-    "message": "Dynamic WHERE condition; verify input is not attacker-controlled (SQL injection surface)",
+    "message": "Dynamic WHERE condition (parenthesized variable); verify input is not attacker-controlled (SQL injection surface)",
     "object_types": []
   },
   {
@@ -85,17 +85,6 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
-  },
-  {
-    "id": "talos-cloud-005-class-final-abstract",
-    "family": "clean-core",
-    "severity": "priority-2",
-    "pattern": "^\\s*CLASS\\s+\\S+\\s+DEFINITION\\b(?!.*\\b(?:FINAL|ABSTRACT)\\b)",
-    "flags": "i",
-    "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005).",
-    "object_types": [
-      "CLAS"
     ]
   },
   {
@@ -291,20 +280,8 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
-  },
-  {
-    "id": "talos-cloud-021-direct-table-write",
-    "family": "clean-core",
-    "severity": "priority-1",
-    "pattern": "^\\s*(?:INSERT\\s+INTO\\s+|UPDATE\\s+|DELETE\\s+FROM\\s+|MODIFY\\s+)(?![zyq]|/[\\w/]+/)([a-z][a-z0-9_]+)",
-    "flags": "i",
-    "message": "Direct INSERT/UPDATE/DELETE/MODIFY on a SAP-namespace table bypasses the transactional framework — use a released API (CLOUD-021).",
-    "object_types": [
-      "CLAS",
-      "PROG",
-      "FUGR"
-    ]
+    ],
+    "scan_comments": true
   },
   {
     "id": "talos-cloud-022-perform-in-sap-program",
@@ -749,15 +726,6 @@
     "object_types": []
   },
   {
-    "id": "talos-hardy-08-read-transporting-no-fields",
-    "family": "anti-pattern",
-    "severity": "priority-2",
-    "pattern": "\\bREAD\\s+TABLE\\b.*\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
-    "flags": "i",
-    "message": "READ TABLE ... TRANSPORTING NO FIELDS — the work area is not filled; use line_exists( ) or IS FOUND instead of accessing components afterwards.",
-    "object_types": []
-  },
-  {
     "id": "talos-hardy-09-hardcoded-dependency",
     "family": "anti-pattern",
     "severity": "priority-3",
@@ -811,7 +779,8 @@
     "message": "EML COMMIT/ROLLBACK ENTITIES inside a RAP handler/saver — the RAP framework owns the LUW; remove it (ABAP-PERF-74).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
   },
   {
     "id": "talos-rap-commit-work-in-handler",
@@ -822,7 +791,8 @@
     "message": "COMMIT/ROLLBACK WORK inside a RAP handler/saver short-circuits the controlled SAP LUW — remove the manual commit (ABAP-PERF-75).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
   },
   {
     "id": "talos-rap-submit-and-return-in-handler",
@@ -833,7 +803,8 @@
     "message": "SUBMIT ... AND RETURN inside a RAP handler/saver bypasses the RAP transactional buffer — call an API/class instead (ABAP-PERF-76).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
   },
   {
     "id": "talos-rap-screen-call-in-handler",
@@ -844,7 +815,8 @@
     "message": "SAP GUI/screen statement inside a RAP handler/saver — RAP runs without a Dynpro session; surface dialogs via the RAP message protocol (ABAP-PERF-77).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
   },
   {
     "id": "talos-rap-modify-entities-in-read-handler",
@@ -855,7 +827,8 @@
     "message": "EML MODIFY ENTITIES inside a FOR READ handler — read paths must not change buffer state; model side effects as an action/determination (ABAP-PERF-78).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "FOR\\s+READ|cl_abap_behavior_handler"
   },
   {
     "id": "talos-rap-update-task-in-late-save",
@@ -866,7 +839,8 @@
     "message": "CALL FUNCTION ... IN UPDATE TASK inside the ADJUST_NUMBERS/SAVE phase queues work past the LUW boundary — write inline in SAVE (ABAP-PERF-79).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_saver"
   },
   {
     "id": "talos-rap-bg-unit-in-late-save",
@@ -877,7 +851,8 @@
     "message": "CALL FUNCTION ... IN BACKGROUND UNIT inside the ADJUST_NUMBERS/SAVE phase binds bgRFC to the wrong LUW — schedule via bgPF after commit (ABAP-PERF-80).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "when": "cl_abap_behavior_saver"
   },
   {
     "id": "talos-cds-left-outer-no-many-to-one",
@@ -938,18 +913,9 @@
     "id": "talos-perf-sql-host-type-mismatch",
     "family": "performance",
     "severity": "priority-2",
-    "pattern": "\\b\\w*(?:_id|_key|_code|_nr|_text)\\s*=\\s*\\d+\\b",
+    "pattern": "\\b(?:WHERE|AND|OR|ON)\\s+\\w*(?:_id|_key|_code|_nr|_text)\\s*=\\s*\\d+\\b",
     "flags": "i",
     "message": "Char-shaped column (_id/_key/_code/_nr/_text) compared to a bare numeric literal — possible implicit type-cast cost; use a typed host variable matching the DDIC type (ABAP-PERF-62).",
-    "object_types": []
-  },
-  {
-    "id": "talos-perf-read-table-transporting-no-fields",
-    "family": "performance",
-    "severity": "priority-3",
-    "pattern": "\\bREAD\\s+TABLE\\s+\\w+.*?\\bTRANSPORTING\\s+NO\\s+FIELDS\\b",
-    "flags": "i",
-    "message": "READ TABLE ... TRANSPORTING NO FIELDS for an existence check — line_exists( itab[ ... ] ) is more direct (ABAP-PERF-65).",
     "object_types": []
   },
   {
@@ -1059,15 +1025,6 @@
     ]
   },
   {
-    "id": "talos-perf33-enqueue-no-wait",
-    "family": "performance",
-    "severity": "priority-1",
-    "pattern": "\\bCALL\\s+FUNCTION\\s+'ENQUEUE_\\w+'",
-    "flags": "i",
-    "message": "CALL FUNCTION 'ENQUEUE_*' should set a bounded _WAIT; infinite wait risks a dispatcher hang.",
-    "object_types": []
-  },
-  {
     "id": "talos-perf-06-read-standard-keyed",
     "family": "performance",
     "severity": "priority-2",
@@ -1110,15 +1067,6 @@
     "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s+(?:INTO|ASSIGNING|REFERENCE\\s+INTO)\\s+\\S+\\s+WHERE\\b",
     "flags": "i",
     "message": "LOOP AT ... WHERE on a STANDARD table without a secondary key does a full scan per outer iteration; declare a SECONDARY KEY or use LOOP AT ... USING KEY (ABAP-PERF-38).",
-    "object_types": []
-  },
-  {
-    "id": "talos-perf-14-fae-nonpk-where-prefix",
-    "family": "performance",
-    "severity": "priority-2",
-    "pattern": "\\bFOR\\s+ALL\\s+ENTRIES\\s+IN\\s+\\S+\\s+WHERE\\s+\\w+\\s*=",
-    "flags": "i",
-    "message": "FOR ALL ENTRIES WHERE clause leads with a non-primary-key field; restructure driver columns to lead with PK fields (MANDT/BUKRS/BELNR/GJAHR/MATNR/...) (ABAP-PERF-14).",
     "object_types": []
   },
   {

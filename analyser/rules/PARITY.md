@@ -22,8 +22,8 @@ catalog groups. A rule counts as covered only if a shipped pack implements it
 | **Total covered** | **137 / 162** |
 
 Where they live:
-- **regex-pack** — 106 data rows ([data/regex-rules.json](data/regex-rules.json)): ABAP-Cloud forbidden constructs, S/4 simplification/field-length, security, deprecated APIs.
-- **statement-pack** — 22 coded rules: in-loop cluster (N+1, DML, RAP, COMMIT, HTTP, scalar-fn, FREE, SORT, COLLECT, running-total, ASSIGN COMPONENT), guards (FAE, RAP MODIFY), lookbacks (sort-after-select, binary-search-no-order-by), statement patterns (enqueue-no-wait, no-package-size, select-single-no-where, limit-no-filter, excessive keys), file-level (repeated select-single, cds-join-candidate), blocks (data-in-block, bapi-in-enhancement).
+- **regex-pack** — 100 data rows ([data/regex-rules.json](data/regex-rules.json)): ABAP-Cloud forbidden constructs, S/4 simplification/field-length, security, deprecated APIs. Engine supports `when` file-gates (RAP-handler rules fire only inside behavior handler/saver classes) and `scan_comments` rows (modification markers); trailing/full-line `"` comments are stripped before matching, string literals stay inspectable. *(2026-07-03 audit remediation: 6 rows removed — cloud-005/cloud-021/perf-14 moved to statement-pack for multi-line safety, perf-33 diverged twin deleted, 2 TRANSPORTING-NO-FIELDS dupes deleted.)*
+- **statement-pack** — 25 coded rules: in-loop cluster (N+1, DML, RAP, COMMIT, HTTP, scalar-fn, FREE, SORT, COLLECT, running-total, ASSIGN COMPONENT), guards (FAE incl. early-return polarity, RAP MODIFY), lookbacks (sort-after-select, binary-search-no-order-by), statement patterns (enqueue-no-wait, no-package-size, select-single-no-where, limit-no-filter, excessive keys, class-not-final CLOUD-005), coded DB-write check (CLOUD-021 with declared-itab exclusion), FAE non-PK WHERE prefix (PERF-14, PK-allowlist heuristic), file-level (repeated select-single, cds-join-candidate), blocks (data-in-block, bapi-in-enhancement).
 - **metadata-pack** — 14 data rows with `when`/`unless` gates: draft locking/timeout, analytical annotations, virtualElement, expand caps, numbering, deep-create, mixed implementation, usage-type contract.
 - **cds-structure-pack** — 10 coded rules: join-graph size/cycles, serviceQuality mismatch, calc-fields in WHERE/JOIN, business logic, field order, VDM layering.
 - **graph-pack** — god-object / fan-out / dependency cycles. **missing-test-class** (HARDY-10). **released-api** (CLOUD-23/24/25 + registry rows). **invariant-auth-check** (SEC-8, P4).
@@ -43,6 +43,20 @@ Where they live:
 | FP-prone heuristics (need semantic judgment) | PERF-5, 10, 31 | better modeled as evaluator/LLM review than regex — flagging every loop calc would drown the report |
 | Test-coverage mapping | CLEAN-015, CLEAN-019 | test-method↔method association model |
 | App-level UI aggregation | CLOUD-28 | line-level variants shipped (CLOUD-006/014/015); the app-level rollup needs object grouping |
+
+## Known approximations (audited 2026-07-03, documented rather than over-claimed)
+
+- **PERF-58**: detects only SELECT SINGLE with NO WHERE clause — the
+  partial-primary-key case needs DDIC metadata (deferred with the DDIC-XML
+  surface).
+- **PERF-14**: leading-WHERE-field vs a common-PK allowlist heuristic; the
+  finding message says so.
+- **PERF-41**: BDEF grammar has no payload-cap syntax; the rule now flags
+  deep-create *enablement* (association `{ create; }`) as priority-3 advisory.
+- **PERF-23**: `total etag` / `@Semantics.systemDate.lastChangedAt` accepted
+  as the concurrency guard alongside `lockingMode`.
+- **PERF-1**: shipped as a regex approximation (SELECT * projection); true
+  consumed-fields analysis needs DFG.
 
 ## Regression protocol
 

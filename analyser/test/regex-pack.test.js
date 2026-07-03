@@ -44,6 +44,77 @@ START-OF-SELECTION.
   assert.deepEqual(f, [], `unexpected: ${JSON.stringify(f.map((x) => x.rule_id))}`);
 });
 
+test("trailing quote-comments do not raise findings", () => {
+  const f = findings(`REPORT zr_x.
+START-OF-SELECTION.
+  lv_x = 1. " legacy note: EXEC SQL used to live here`);
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-native-sql"), []);
+});
+
+test("full-line quote-comments do not raise findings", () => {
+  const f = findings(`REPORT zr_x.
+" EXEC SQL is mentioned in this comment only
+START-OF-SELECTION.`);
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-native-sql"), []);
+});
+
+test("a quote INSIDE a string literal is not treated as a comment start", () => {
+  // the literal contains a double quote; the EXEC SQL after it is real code
+  const f = findings(`REPORT zr_x.
+START-OF-SELECTION.
+  lv_msg = 'he said "hi"'. EXEC SQL.
+ENDEXEC.`);
+  assert.ok(f.some((x) => x.rule_id === "talos-native-sql"), "real code after a quoted literal still fires");
+});
+
+test("string literals remain inspectable (function-name rules still fire)", () => {
+  const f = findings(`REPORT zr_x.
+START-OF-SELECTION.
+  CALL FUNCTION 'Z_ANY_FM' EXPORTING iv = 1.`);
+  assert.ok(f.some((x) => x.rule_id === "talos-cloud-001-call-function"));
+});
+
+test("when-gated RAP handler rules stay silent outside handler classes", () => {
+  const f = findings(
+    `CLASS zcl_plain DEFINITION PUBLIC FINAL.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_plain IMPLEMENTATION.
+  METHOD run.
+    MODIFY ENTITIES OF zi_travel ENTITY travel UPDATE FIELDS ( status ) WITH lt_upd.
+    COMMIT WORK.
+  ENDMETHOD.
+ENDCLASS.`,
+    "zcl_plain.clas.abap",
+  );
+  assert.deepEqual(f.filter((x) => /-in-handler|in-late-save/.test(x.rule_id)), [], "no handler-context, no handler findings");
+});
+
+test("when-gated RAP handler rules fire inside a behavior handler class", () => {
+  const f = findings(
+    `CLASS lhc_travel DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS modify FOR MODIFY IMPORTING keys FOR ACTION travel~x.
+ENDCLASS.
+CLASS lhc_travel IMPLEMENTATION.
+  METHOD modify.
+    COMMIT WORK.
+  ENDMETHOD.
+ENDCLASS.`,
+    "zcl_handler.clas.abap",
+  );
+  assert.ok(f.some((x) => x.rule_id === "talos-rap-commit-work-in-handler"), "handler context detected");
+});
+
+test("scan_comments row fires on comment-line modification markers (cloud-020 no longer dead)", () => {
+  const f = findings(`REPORT zr_mod.
+*$*$-Start: ZMOD_01----------------------------------------------$*$*
+  lv_x = 1.
+*$*$-End: ZMOD_01------------------------------------------------$*$*`);
+  assert.ok(f.some((x) => x.rule_id === "talos-cloud-020-sap-modification-marker"), "marker rule scans comments");
+});
+
 test("every regex-pack finding is well-formed and schema-severity valid", () => {
   const allowed = new Set(["priority-1", "priority-2", "priority-3", "info"]);
   const f = findings(`REPORT zr_x.
