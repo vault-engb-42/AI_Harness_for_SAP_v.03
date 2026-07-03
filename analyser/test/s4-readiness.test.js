@@ -37,3 +37,14 @@ test("all-released package is 100% ready", () => {
   assert.equal(r.s4_readiness_pct, 100);
   assert.equal(r.released_hits, 1);
 });
+
+test("a removed (noAPI) dependency lands in not_released_hits and dilutes readiness", () => {
+  const g = graphWith([
+    { source: "ZCL_X", target: "/ATL/BLART_RANGE", kind: "uses-table" }, // released
+    { source: "ZCL_X", target: "CF_REBD_BUILDING", kind: "call-function" }, // noAPI -> removed
+  ]);
+  const r = computeReadiness(g, cloud);
+  assert.equal(r.not_released_hits, 1, "removed branch tallied");
+  assert.equal(r.total_api_calls, 2);
+  assert.equal(r.s4_readiness_pct, 50, "removed dilutes the percentage");
+});

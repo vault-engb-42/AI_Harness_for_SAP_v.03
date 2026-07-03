@@ -189,6 +189,39 @@ test("3+ SELECTs from distinct tables in one source suggest a CDS join (PERF-4)"
   assert.ok(ids(f).includes("talos-cds-join-candidate"));
 });
 
+// --- previously-untested priority-1 in-loop rules ---
+
+test("RAP MODIFY ENTITIES inside a LOOP is flagged priority-1", () => {
+  const f = findings(`    LOOP AT keys INTO DATA(ls_key).
+      MODIFY ENTITIES OF zi_travel ENTITY travel UPDATE FIELDS ( status ) WITH lt_upd.
+    ENDLOOP.`);
+  const hit = f.find((x) => x.rule_id === "talos-rap-modify-in-loop");
+  assert.ok(hit);
+  assert.equal(hit.severity, "priority-1");
+});
+
+test("RAP COMMIT ENTITIES inside a LOOP is flagged priority-1", () => {
+  const f = findings(`    LOOP AT keys INTO DATA(ls_key).
+      COMMIT ENTITIES.
+    ENDLOOP.`);
+  assert.ok(ids(f).includes("talos-rap-commit-in-loop"));
+});
+
+test("per-row HANA scalar CALL FUNCTION inside a LOOP is flagged (PERF-35)", () => {
+  const f = findings(`    LOOP AT lt INTO DATA(ls).
+      CALL FUNCTION 'CONVERT_TO_LOCAL_CURRENCY' EXPORTING iv = 1.
+    ENDLOOP.`);
+  assert.ok(ids(f).includes("talos-scalar-fn-in-loop"));
+});
+
+test("DELETE ADJACENT DUPLICATES inside a LOOP is flagged (PERF-66 DeleteInternal variant)", () => {
+  const f = findings(`    DATA lt_other TYPE STANDARD TABLE OF t000 WITH EMPTY KEY.
+    LOOP AT lt INTO DATA(ls).
+      DELETE ADJACENT DUPLICATES FROM lt_other.
+    ENDLOOP.`);
+  assert.ok(ids(f).includes("talos-itab-fulltable-op-in-loop"));
+});
+
 // --- rules moved from the regex pack (multi-line-safe here) ---
 
 test("a multi-line ADT class header WITH FINAL is NOT flagged by cloud-005", () => {

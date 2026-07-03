@@ -125,7 +125,7 @@ export async function docFromAdtOnly(env, packageName, opts = {}) {
 }
 
 /** @param {*} atc @returns {object[]} schema findings from a tolerant ATC shape */
-function normalizeAtcFindings(atc) {
+export function normalizeAtcFindings(atc) {
   const arr = atc?.findings ?? atc?.issues ?? atc?.results ?? [];
   const prio = (p) => (p === 1 || p === "1" ? "priority-1" : p === 2 || p === "2" ? "priority-2" : p === 3 || p === "3" ? "priority-3" : "info");
   return arr.map((f) => ({
@@ -138,7 +138,7 @@ function normalizeAtcFindings(atc) {
 }
 
 /** @param {*} m @returns {object} schema s4_readiness from a tolerant migration shape */
-function normalizeMigrationSummary(m) {
+export function normalizeMigrationSummary(m) {
   const s = m?.summary ?? m ?? {};
   // Finite-guard every count: a non-numeric sidecar value must never become
   // NaN (which JSON-serializes to null and violates the schema).

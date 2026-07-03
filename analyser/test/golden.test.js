@@ -67,6 +67,20 @@ test("blast radius lists the at-risk SAP objects", () => {
   assert.ok(objs.includes("CL_A4C_BC_FACTORY"));
 });
 
+test("blast radius entries carry the successor TADIR type, valid tiers, and sort by impact", () => {
+  const factory = doc.blast_radius.find((b) => b.object === "CL_A4C_BC_FACTORY");
+  assert.equal(factory.successor_kind, "CLAS", "TADIR type, not the successor's name");
+  const IMPACT = new Set(["low", "medium", "high", "critical"]);
+  for (const b of doc.blast_radius) assert.ok(IMPACT.has(b.highest_impact), b.object);
+  const counts = doc.blast_radius.map((b) => b.affected_program_count);
+  assert.deepEqual(counts, [...counts].sort((a, b) => b - a), "most-impactful first");
+});
+
+test("packs without golden assertions still fire through the full pipeline (wiring)", () => {
+  // zcl_legacy ships no testclasses include -> missing-test-class (HARDY-10)
+  assert.ok(ruleIds.has("talos-missing-test-class"), "missing-test-class wired through ALL_RULES");
+});
+
 test("nodes carry modernization metadata for deprecated dependencies", () => {
   const parent = nodeById("CL_A4C_BC_FACTORY");
   assert.equal(parent.effort_tier, "re-platform");

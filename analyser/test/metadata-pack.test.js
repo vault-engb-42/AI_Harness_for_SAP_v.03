@@ -103,6 +103,50 @@ define behavior for ZI_DC alias DC
   assert.equal(hit.severity, "priority-3");
 });
 
+test("the usage-type contract rules fire on a plain non-private view (PERF-84/26)", () => {
+  const f = findings([cds("zi_plain2", `@AccessControl.authorizationCheck: #CHECK
+define view entity ZI_Plain2 as select from vbak { key vbeln }`)]);
+  for (const id of [
+    "talos-cds-missing-service-quality",
+    "talos-cds-missing-size-category",
+    "talos-cds-missing-data-class",
+    "talos-cds-missing-view-enhancement-category",
+  ]) {
+    assert.ok(f.some((x) => x.rule_id === id), `${id} fires`);
+  }
+});
+
+test("virtualElement presence is flagged info (PERF-25)", () => {
+  const f = findings([cds("zc_ve", `@AccessControl.authorizationCheck: #CHECK
+@ObjectModel.virtualElement: true
+define view entity ZC_VE as select from vbak { key vbeln }`)]);
+  const hit = f.find((x) => x.rule_id === "talos-cds-virtual-element-cost");
+  assert.ok(hit);
+  assert.equal(hit.severity, "info");
+});
+
+test("uncapped composition [0..*] is flagged (PERF-22)", () => {
+  const f = findings([cds("zi_comp", `@AccessControl.authorizationCheck: #CHECK
+define view entity ZI_Comp as select from vbak
+  composition [0..*] of ZI_Item as _Items
+{ key vbeln, _Items }`)]);
+  assert.ok(f.some((x) => x.rule_id === "talos-cds-expand-no-cardinality-cap"));
+});
+
+test("pessimistic draft without timeoutSeconds is flagged; optimistic is exempt (PERF-32)", () => {
+  const pess = bdef("zbp_pess", `managed implementation in class zbp_pess unique;
+define behavior for ZI_P alias P
+with draft
+{ create; }`);
+  assert.ok(findings([pess]).some((x) => x.rule_id === "talos-rap-draft-lock-no-timeout"), "pessimistic flagged");
+  const opti = bdef("zbp_opti", `managed implementation in class zbp_opti unique;
+"@ObjectModel.draftEnabled.lockingMode: #OPTIMISTIC
+define behavior for ZI_O alias O
+with draft
+{ create; }`);
+  assert.ok(!findings([opti]).some((x) => x.rule_id === "talos-rap-draft-lock-no-timeout"), "optimistic exempt via unless");
+});
+
 test("managed + unmanaged implementation in one BDEF is flagged priority-1", () => {
   const b = bdef("zbp_m", `managed implementation in class zbp_a unique;
 unmanaged implementation in class zbp_b unique;

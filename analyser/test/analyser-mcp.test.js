@@ -62,7 +62,7 @@ function startServer() {
       child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
     });
   };
-  return { request, close: () => child.kill() };
+  return { request, sendRaw: (s) => child.stdin.write(s), close: () => child.kill() };
 }
 
 test("filesFromBundle reads real ABAP/CDS/BDEF files from a directory", () => {
@@ -151,6 +151,22 @@ test("unknown analyser tools are rejected with a JSON-RPC error", async () => {
     const r = await s.request("tools/call", { name: "not_a_tool", arguments: {} });
     assert.ok(r.error);
     assert.equal(r.error.code, -32602);
+  } finally {
+    s.close();
+  }
+});
+
+test("protocol branches: ping answers, unknown method errors, garbage lines are ignored", async () => {
+  const s = startServer();
+  try {
+    const pong = await s.request("ping", {});
+    assert.deepEqual(pong.result, {});
+    const unknown = await s.request("no/such/method", {});
+    assert.equal(unknown.error.code, -32601);
+    // a non-JSON line must not kill the server: send garbage, then ping again
+    s.sendRaw("this is not json\n");
+    const stillAlive = await s.request("ping", {});
+    assert.deepEqual(stillAlive.result, {});
   } finally {
     s.close();
   }

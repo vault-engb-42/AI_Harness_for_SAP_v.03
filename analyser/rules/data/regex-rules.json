@@ -6,7 +6,8 @@
     "pattern": "\\bEXEC\\s+SQL\\b",
     "flags": "i",
     "message": "Native SQL (EXEC SQL) is not Clean-Core; use CDS / Open SQL",
-    "object_types": []
+    "object_types": [],
+    "example": "  EXEC SQL."
   },
   {
     "id": "talos-os-command",
@@ -15,7 +16,8 @@
     "pattern": "CALL\\s+['\"]SYSTEM['\"]",
     "flags": "i",
     "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core",
-    "object_types": []
+    "object_types": [],
+    "example": "  CALL 'SYSTEM' ID 'COMMAND' FIELD lv_cmd."
   },
   {
     "id": "talos-client-specified",
@@ -24,7 +26,8 @@
     "pattern": "\\bCLIENT\\s+SPECIFIED\\b",
     "flags": "i",
     "message": "CLIENT SPECIFIED bypasses automatic client handling; review cross-client access",
-    "object_types": []
+    "object_types": [],
+    "example": "  SELECT * FROM t000 CLIENT SPECIFIED INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-dynamic-where-subquery",
@@ -33,7 +36,9 @@
     "pattern": "\\bWHERE\\s+\\(\\s*\\w+\\s*\\)",
     "flags": "i",
     "message": "Dynamic WHERE condition (parenthesized variable); verify input is not attacker-controlled (SQL injection surface)",
-    "object_types": []
+    "object_types": [],
+    "example": "  SELECT * FROM t000 INTO TABLE @DATA(lt) WHERE (lv_cond).",
+    "counter_example": "  SELECT * FROM t000 INTO TABLE @DATA(lt) WHERE ( a = 1 AND b = 2 )."
   },
   {
     "id": "talos-cloud-006-write",
@@ -46,7 +51,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  WRITE: / 'Total:', lv_total.",
+    "counter_example": "  ri_result = lo_grid->get_data( )."
   },
   {
     "id": "talos-cloud-001-call-function",
@@ -59,7 +66,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  CALL FUNCTION 'Z_DO_STUFF'.",
+    "counter_example": "  lo_api->do_stuff( )."
   },
   {
     "id": "talos-cloud-002-tables-param",
@@ -72,7 +81,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "TABLES mara.",
+    "counter_example": "  DATA it TYPE TABLE OF mara."
   },
   {
     "id": "talos-cloud-004-message-type",
@@ -85,7 +96,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  MESSAGE e001 TYPE 'E'.",
+    "counter_example": "  RAISE EXCEPTION NEW cx_err( )."
   },
   {
     "id": "talos-cloud-007-fieldsymbol-any",
@@ -98,7 +111,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  FIELD-SYMBOLS <fs> TYPE ANY.",
+    "counter_example": "  FIELD-SYMBOLS <fs> TYPE ANY TABLE."
   },
   {
     "id": "talos-cloud-008-describe-table-lines",
@@ -111,7 +126,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DESCRIBE TABLE it LINES n.",
+    "counter_example": "  DATA(n) = lines( it )."
   },
   {
     "id": "talos-cloud-009-get-reference-of",
@@ -124,7 +141,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  GET REFERENCE OF x INTO ref.",
+    "counter_example": "  ref = REF #( x )."
   },
   {
     "id": "talos-cloud-010-read-report",
@@ -137,7 +156,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  READ REPORT prog INTO tab.",
+    "counter_example": "  READ TABLE it INTO wa INDEX 1."
   },
   {
     "id": "talos-cloud-011-break-point",
@@ -150,7 +171,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  BREAK-POINT.",
+    "counter_example": "  x = 1."
   },
   {
     "id": "talos-cloud-013-using-client",
@@ -163,7 +186,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM t USING CLIENT '100' INTO TABLE it.",
+    "counter_example": "  SELECT * FROM t INTO TABLE it."
   },
   {
     "id": "talos-cloud-014-classic-dynpro",
@@ -176,7 +201,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  LEAVE PROGRAM.",
+    "counter_example": "  RETURN."
   },
   {
     "id": "talos-cloud-015-salv-table-factory",
@@ -189,7 +216,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  cl_salv_table=>factory( ).",
+    "counter_example": "  lo->display( )."
   },
   {
     "id": "talos-cloud-016-sy-datetime",
@@ -202,7 +231,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  lv = sy-datum.",
+    "counter_example": "  lv = sy-subrc."
   },
   {
     "id": "talos-cloud-017-compute",
@@ -215,7 +246,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  COMPUTE x = a + b.",
+    "counter_example": "  x = a + b."
   },
   {
     "id": "talos-cloud-018-header-line",
@@ -228,7 +261,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA it TYPE TABLE OF ty WITH HEADER LINE.",
+    "counter_example": "  DATA it TYPE TABLE OF ty."
   },
   {
     "id": "talos-cloud-031-internal-api",
@@ -241,7 +276,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA(lo) = cl_sadl_internal_api=>get_instance( ).",
+    "counter_example": "  DATA(lo) = cl_salv_table=>factory( )."
   },
   {
     "id": "talos-cloud-032-ddic-table-read",
@@ -254,7 +291,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM mara INTO TABLE @DATA(lt_mara).",
+    "counter_example": "  SELECT * FROM i_salesorder INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-cloud-019-source-plugin",
@@ -267,7 +306,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  ENHANCEMENT-POINT ep1 SPOTS zspot.",
+    "counter_example": "  METHOD foo."
   },
   {
     "id": "talos-cloud-020-sap-modification-marker",
@@ -281,7 +322,9 @@
       "PROG",
       "FUGR"
     ],
-    "scan_comments": true
+    "scan_comments": true,
+    "example": "*$*$-Start: NOTE_12345",
+    "counter_example": "  x = 1."
   },
   {
     "id": "talos-cloud-022-perform-in-sap-program",
@@ -294,7 +337,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  PERFORM userexit_x IN PROGRAM saplv45a.",
+    "counter_example": "  PERFORM helper IN PROGRAM zmyprog."
   },
   {
     "id": "talos-cloud-026-internal-badi",
@@ -305,7 +350,9 @@
     "message": "Implementation of an SAP-internal-flagged BAdI (IF_EX_*INTERNAL*) — not for customer extensions (CLOUD-026).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "example": "    INTERFACES if_ex_internal_badi.",
+    "counter_example": "    INTERFACES if_ex_customer_badi."
   },
   {
     "id": "talos-cloud-027-user-exit",
@@ -317,7 +364,9 @@
     "object_types": [
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "FORM userexit_save_document.",
+    "counter_example": "FORM normal_routine."
   },
   {
     "id": "talos-cloud-030-segw-bopf",
@@ -330,7 +379,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA lo TYPE REF TO /iwbep/cl_mgw_push_abs_data.",
+    "counter_example": "  DATA lo TYPE REF TO zcl_rap_handler."
   },
   {
     "id": "talos-sec-001-native-sql-concat",
@@ -343,7 +394,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  EXEC SQL. SELECT * FROM t WHERE k = && lv_k",
+    "counter_example": "  EXEC SQL. SELECT * FROM t WHERE k = 1"
   },
   {
     "id": "talos-sec-002-open-dataset-var",
@@ -356,7 +409,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  OPEN DATASET lv_filename FOR INPUT IN TEXT MODE.",
+    "counter_example": "  OPEN DATASET '/tmp/fixed.txt' FOR INPUT."
   },
   {
     "id": "talos-sec-003-code-injection",
@@ -369,7 +424,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  GENERATE SUBROUTINE POOL lt_src NAME lv_name.",
+    "counter_example": "  INSERT ls_row INTO TABLE it."
   },
   {
     "id": "talos-sec-004-call-transaction-var",
@@ -382,7 +439,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  CALL TRANSACTION lv_tcode.",
+    "counter_example": "  CALL TRANSACTION 'VA01'."
   },
   {
     "id": "talos-sec-005-hardcoded-credential",
@@ -395,7 +454,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  password = 'hunter2secret'.",
+    "counter_example": "  password = ''."
   },
   {
     "id": "talos-sec-006-xss-show-html",
@@ -408,7 +469,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  cl_abap_browser=>show_html( '<b>' && lv_in && '</b>' ).",
+    "counter_example": "  cl_abap_browser=>show_html( lv_safe_html )."
   },
   {
     "id": "talos-sec-007-kernel-call",
@@ -421,7 +484,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  CALL 'SYSTEM' ID 'COMMAND' FIELD lv_cmd.",
+    "counter_example": "  CALL FUNCTION 'Z_FOO'."
   },
   {
     "id": "talos-sec-009-dynamic-destination",
@@ -434,20 +499,24 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  CALL FUNCTION 'RFC_PING' DESTINATION lv_dest.",
+    "counter_example": "  CALL FUNCTION 'RFC_PING' DESTINATION 'PRD_100'."
   },
   {
     "id": "talos-sec-010-open-redirect",
     "family": "security",
     "severity": "priority-2",
-    "pattern": "set_header_field\\s*\\(\\s*name\\s*=\\s*['\"]location['\"]",
+    "pattern": "set_header_field\\s*\\(\\s*name\\s*=\\s*['\"]location['\"][^)]*\\bvalue\\s*=\\s*(?!\\s*')\\S",
     "flags": "i",
     "message": "Location-header redirect set from a non-literal value — open-redirect risk; validate against an allowlist (SEC-010).",
     "object_types": [
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  lo_resp->set_header_field( name = 'location' value = lv_target ).",
+    "counter_example": "  lo_resp->set_header_field( name = 'location' value = '/fixed' )."
   },
   {
     "id": "talos-s4-001-classic-table-read",
@@ -460,7 +529,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM t001 INTO TABLE @DATA(lt).",
+    "counter_example": "  SELECT * FROM i_companycode INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-s4-003-classic-list-output",
@@ -472,7 +543,9 @@
     "object_types": [
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  FORMAT COLOR 3.",
+    "counter_example": "  WRITE sy-uname."
   },
   {
     "id": "talos-s4-004-screen-flow",
@@ -484,7 +557,9 @@
     "object_types": [
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  CALL SCREEN 100.",
+    "counter_example": "  x = 1."
   },
   {
     "id": "talos-s4-005-web-dynpro",
@@ -497,7 +572,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA lo TYPE REF TO if_wd_component.",
+    "counter_example": "  DATA lo TYPE REF TO zcl_x."
   },
   {
     "id": "talos-s4-006-config-table-read",
@@ -510,7 +587,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT SINGLE * FROM t006 WHERE msehi = lv_u.",
+    "counter_example": "  SELECT SINGLE * FROM i_unitofmeasure WHERE x = lv_u."
   },
   {
     "id": "talos-s4-007-matnr-len18",
@@ -523,7 +602,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA lv_matnr TYPE c LENGTH 18.",
+    "counter_example": "  DATA lv_x TYPE c LENGTH 188."
   },
   {
     "id": "talos-s4-008-vbuk-access",
@@ -536,7 +617,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM vbuk INTO TABLE @DATA(lt).",
+    "counter_example": "  SELECT * FROM vbak INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-s4-009-vbup-access",
@@ -549,7 +632,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM vbup INTO TABLE @DATA(lt).",
+    "counter_example": "  SELECT * FROM vbap INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-s4-011-konv-access",
@@ -562,7 +647,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM konv INTO TABLE @DATA(lt).",
+    "counter_example": "  SELECT * FROM prcd_elements INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-s4-013-vbtyp-1char",
@@ -575,7 +662,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  IF vbtyp_n = 'C'.",
+    "counter_example": "  IF vbtypl = 'CDEF'."
   },
   {
     "id": "talos-s4-014-amount-len11",
@@ -588,7 +677,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA lv_amt TYPE p LENGTH 11 DECIMALS 2.",
+    "counter_example": "  DATA lv_amt TYPE p LENGTH 13 DECIMALS 2."
   },
   {
     "id": "talos-hardy-04-deprecated-table",
@@ -601,7 +692,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM bsis INTO TABLE lt_items WHERE bukrs = lv_bukrs.",
+    "counter_example": "  SELECT * FROM acdoca INTO TABLE lt_items."
   },
   {
     "id": "talos-hardy-08-transporting-no-fields",
@@ -614,7 +707,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  READ TABLE it WITH KEY k = 1 TRANSPORTING NO FIELDS.",
+    "counter_example": "  READ TABLE it INTO wa INDEX 1."
   },
   {
     "id": "talos-perf-57-value-param",
@@ -627,7 +722,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  METHODS m IMPORTING VALUE(iv_x) TYPE i.",
+    "counter_example": "  METHODS m IMPORTING iv_x TYPE i."
   },
   {
     "id": "talos-perf-63-default-key",
@@ -640,7 +737,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  DATA it TYPE STANDARD TABLE OF ty WITH DEFAULT KEY.",
+    "counter_example": "  DATA it TYPE STANDARD TABLE OF ty WITH EMPTY KEY."
   },
   {
     "id": "talos-perf-64-append-non-loop",
@@ -653,7 +752,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  APPEND ls_row TO it_target.",
+    "counter_example": "  INSERT ls_row INTO TABLE it_target."
   },
   {
     "id": "talos-perf-65-read-table-existence",
@@ -666,7 +767,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  READ TABLE it WITH KEY k = 1 TRANSPORTING NO FIELDS.",
+    "counter_example": "  IF line_exists( it[ k = 1 ] )."
   },
   {
     "id": "talos-perf-85-left-outer-join-no-cardinality",
@@ -677,7 +780,9 @@
     "message": "LEFT OUTER JOIN without MANY TO ONE — HANA cannot prune the join when right-side fields are unprojected (ABAP-PERF-85).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  left outer join i_customer as c on c.id = a.cid",
+    "counter_example": "  left outer join many to one i_customer as c on c.id = a.cid"
   },
   {
     "id": "talos-perf-73-eml-local-mode",
@@ -688,7 +793,9 @@
     "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
     "object_types": [
       "CLAS"
-    ]
+    ],
+    "example": "  MODIFY ENTITIES OF zi_travel IN LOCAL MODE ENTITY travel.",
+    "counter_example": "  MODIFY ENTITIES OF zi_travel ENTITY travel."
   },
   {
     "id": "talos-cc-001-obsolete-arithmetic",
@@ -701,7 +808,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SUBTRACT lv_b FROM lv_a.",
+    "counter_example": "  lv_a = lv_a - lv_b."
   },
   {
     "id": "talos-cloud-033-sfw-status-probe",
@@ -714,7 +823,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  IF cl_sfw_bf_status_check=>is_active( 'FIN_LOC_CI_1' ) = abap_true.",
+    "counter_example": "  IF cl_some_other_check=>is_active( 'X' ) = abap_true."
   },
   {
     "id": "talos-sec-006-xss-show-html-concat",
@@ -723,7 +834,9 @@
     "pattern": "cl_abap_browser\\s*=>\\s*show_html\\s*\\([^)]*&&[^)]*\\)",
     "flags": "i",
     "message": "cl_abap_browser=>show_html with string concatenation (&&) — possible XSS; HTML-encode via cl_abap_xml_utility=>html_encode or render via Fiori.",
-    "object_types": []
+    "object_types": [],
+    "example": "  cl_abap_browser=>show_html( lv_head && lv_user_input && lv_tail ).",
+    "counter_example": "  cl_abap_browser=>show_html( lv_static_html )."
   },
   {
     "id": "talos-hardy-09-hardcoded-dependency",
@@ -732,7 +845,9 @@
     "pattern": "(?:NEW|CREATE\\s+OBJECT)\\s+\\w*\\s*(?:TYPE\\s+)?(?:z\\w+|y\\w+|/\\w+/\\w+)",
     "flags": "i",
     "message": "Direct instantiation of a custom class (NEW/CREATE OBJECT of z*/y*//ns/) — consider a factory/DI pattern for testability.",
-    "object_types": []
+    "object_types": [],
+    "example": "  DATA(lo) = NEW zcl_my_handler( ).",
+    "counter_example": "  DATA(lo) = NEW cl_std_handler( )."
   },
   {
     "id": "talos-cloud-033-sfw-status-check",
@@ -741,7 +856,9 @@
     "pattern": "\\bcl_sfw_bf_status_check\\s*=>\\s*is_active\\s*\\(\\s*'[\\w/]+'",
     "flags": "i",
     "message": "Switch Framework state-probe cl_sfw_bf_status_check=>is_active( ) — forbidden in ABAP Cloud; BF state is fixed per release, so the gated path is dead-or-always-taken (CLOUD-033).",
-    "object_types": []
+    "object_types": [],
+    "example": "  IF cl_sfw_bf_status_check=>is_active( 'FIN_LOC_CI_1' ) = abap_true.",
+    "counter_example": "  IF cl_some_other_check=>is_active( 'FIN_LOC_CI_1' ) = abap_true."
   },
   {
     "id": "talos-cloud-033-sfw-fdt-environment",
@@ -750,7 +867,9 @@
     "pattern": "\\bcl_fdt_environment\\s*=>\\s*is_business_function_active\\s*\\(\\s*'[\\w/]+'",
     "flags": "i",
     "message": "Switch Framework state-probe cl_fdt_environment=>is_business_function_active( ) — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
-    "object_types": []
+    "object_types": [],
+    "example": "  lv = cl_fdt_environment=>is_business_function_active( 'LOG_MM_CI_1' ).",
+    "counter_example": "  lv = cl_fdt_environment=>get_instance( )."
   },
   {
     "id": "talos-cloud-033-sfw-rfc-get-bfs",
@@ -759,7 +878,9 @@
     "pattern": "\\bCALL\\s+FUNCTION\\s+'SFW_BF_GET_BFS'",
     "flags": "i",
     "message": "Switch Framework bulk-probe RFC 'SFW_BF_GET_BFS' — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
-    "object_types": []
+    "object_types": [],
+    "example": "  CALL FUNCTION 'SFW_BF_GET_BFS' TABLES et_bf = lt_bf.",
+    "counter_example": "  CALL FUNCTION 'BAPI_MATERIAL_GET_DETAIL'."
   },
   {
     "id": "talos-cloud-033-sfw-table-read",
@@ -768,7 +889,9 @@
     "pattern": "\\b(?:FROM|INTO\\s+TABLE\\s+OF)\\s+sfw_bf_users_new\\b",
     "flags": "i",
     "message": "Raw Switch Framework table read on SFW_BF_USERS_NEW — forbidden in ABAP Cloud; BF state is fixed per release (CLOUD-033).",
-    "object_types": []
+    "object_types": [],
+    "example": "  SELECT * FROM sfw_bf_users_new INTO TABLE @DATA(lt).",
+    "counter_example": "  SELECT * FROM zsfw_custom_table INTO TABLE @DATA(lt)."
   },
   {
     "id": "talos-rap-eml-commit-rollback-in-handler",
@@ -780,7 +903,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF",
+    "example": "    COMMIT ENTITIES RESPONSE OF zi_travel.",
+    "counter_example": "    lv_x = commit_flag."
   },
   {
     "id": "talos-rap-commit-work-in-handler",
@@ -792,7 +917,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF",
+    "example": "    COMMIT WORK AND WAIT.",
+    "counter_example": "* comment describing a commit"
   },
   {
     "id": "talos-rap-submit-and-return-in-handler",
@@ -804,7 +931,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF",
+    "example": "    SUBMIT zrep WITH p = 1 AND RETURN.",
+    "counter_example": "    lv_result = submit_form( )."
   },
   {
     "id": "talos-rap-screen-call-in-handler",
@@ -816,7 +945,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF"
+    "when": "cl_abap_behavior_(?:handler|saver)|FOR\\s+BEHAVIOR\\s+OF",
+    "example": "    CALL SCREEN 0100.",
+    "counter_example": "    result = calculate_screen_size( )."
   },
   {
     "id": "talos-rap-modify-entities-in-read-handler",
@@ -828,7 +959,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "FOR\\s+READ|cl_abap_behavior_handler"
+    "when": "FOR\\s+READ|cl_abap_behavior_handler",
+    "example": "    MODIFY ENTITIES OF zi_travel IN LOCAL MODE.",
+    "counter_example": "    modify_flag = abap_true."
   },
   {
     "id": "talos-rap-update-task-in-late-save",
@@ -840,7 +973,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_saver"
+    "when": "cl_abap_behavior_saver",
+    "example": "    CALL FUNCTION 'Z_POST' IN UPDATE TASK EXPORTING iv = 1.",
+    "counter_example": "    CALL FUNCTION 'Z_POST' EXPORTING iv = 1."
   },
   {
     "id": "talos-rap-bg-unit-in-late-save",
@@ -852,7 +987,9 @@
     "object_types": [
       "CLAS"
     ],
-    "when": "cl_abap_behavior_saver"
+    "when": "cl_abap_behavior_saver",
+    "example": "    CALL FUNCTION 'Z_POST' IN BACKGROUND UNIT lo_unit.",
+    "counter_example": "    CALL FUNCTION 'Z_POST' EXPORTING iv = 1."
   },
   {
     "id": "talos-cds-left-outer-no-many-to-one",
@@ -863,7 +1000,9 @@
     "message": "LEFT OUTER JOIN without a MANY TO ONE qualifier — HANA cannot prune the join when right-side fields are unprojected; add MANY TO ONE for 1:1 cardinality (ABAP-PERF-85).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  left outer join zmara as m on m.matnr = k.matnr",
+    "counter_example": "  left outer to one join zmara as m on m.matnr = k.matnr"
   },
   {
     "id": "talos-cds-constant-in-join-on",
@@ -874,7 +1013,9 @@
     "message": "Literal constant in a JOIN ON clause triggers an engine switch + materialisation in HANA — move the constant filter to WHERE, keep ON column-to-column (ABAP-PERF-89).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  inner join zt as t on t.mandt = '100'",
+    "counter_example": "  inner join zt as t on t.matnr = k.matnr"
   },
   {
     "id": "talos-cds-non-equi-join",
@@ -885,7 +1026,9 @@
     "message": "Non-equi JOIN (BETWEEN/LIKE/<,>,<=,>=) forces an engine switch + materialisation with super-linear cardinality cost — restructure to an equi-join (ABAP-PERF-91).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  inner join zmseg as s on s.qty between k.lo and k.hi",
+    "counter_example": "  inner join zmseg as s on s.matnr = k.matnr"
   },
   {
     "id": "talos-cds-case-else-constant",
@@ -896,7 +1039,9 @@
     "message": "CASE...ELSE constant is not NULL-preserving — prevents the optimiser from swapping CASE with a LEFT OUTER JOIN; omit ELSE or move CASE to the consumption view (ABAP-PERF-88).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  case when x = 1 then 'A' else 'B' end as flag",
+    "counter_example": "  case when x = 1 then 'A' end as flag"
   },
   {
     "id": "talos-cds-aggregation-wraps-function",
@@ -907,7 +1052,9 @@
     "message": "SUM/AVG/MIN/MAX wrapping ROUND/CONVERT_CURRENCY/CAST/COALESCE runs the function per-row before aggregation — apply the function once on the aggregate result (ABAP-PERF-94).",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  sum( round( amount, 2 ) ) as total",
+    "counter_example": "  round( sum( amount ), 2 ) as total"
   },
   {
     "id": "talos-perf-sql-host-type-mismatch",
@@ -916,7 +1063,9 @@
     "pattern": "\\b(?:WHERE|AND|OR|ON)\\s+\\w*(?:_id|_key|_code|_nr|_text)\\s*=\\s*\\d+\\b",
     "flags": "i",
     "message": "Char-shaped column (_id/_key/_code/_nr/_text) compared to a bare numeric literal — possible implicit type-cast cost; use a typed host variable matching the DDIC type (ABAP-PERF-62).",
-    "object_types": []
+    "object_types": [],
+    "example": "  SELECT * FROM ztab INTO TABLE @DATA(lt) WHERE doc_id = 12345.",
+    "counter_example": "  lv_doc_id = 12345."
   },
   {
     "id": "talos-rap-draft-action-no-optimized",
@@ -927,7 +1076,9 @@
     "message": "Draft action declared without the 'optimized' addition — declare as 'draft action <name> optimized;' (ABAP-PERF-70).",
     "object_types": [
       "BDEF"
-    ]
+    ],
+    "example": "  draft action Edit;",
+    "counter_example": "  draft action Edit optimized;"
   },
   {
     "id": "talos-eml-local-mode-outside-test",
@@ -936,7 +1087,9 @@
     "pattern": "\\b(?:MODIFY|READ)\\s+ENTITIES?\\s+OF\\s+\\w+.*?\\bIN\\s+LOCAL\\s+MODE\\b",
     "flags": "i",
     "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-    "object_types": []
+    "object_types": [],
+    "example": "    READ ENTITIES OF zi_travel IN LOCAL MODE ENTITY x.",
+    "counter_example": "    READ ENTITIES OF zi_travel ENTITY x FROM lt."
   },
   {
     "id": "talos-perf01-select-star-projection",
@@ -945,7 +1098,9 @@
     "pattern": "\\bSELECT\\b(?:\\s+SINGLE)?\\s+\\*\\s+\\bFROM\\b",
     "flags": "i",
     "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view.",
-    "object_types": []
+    "object_types": [],
+    "example": "  SELECT * FROM sflight INTO TABLE @lt.",
+    "counter_example": "  SELECT carrid connid FROM sflight INTO TABLE @lt."
   },
   {
     "id": "talos-perf27-cds-ddic-type-cast",
@@ -956,7 +1111,9 @@
     "message": "DDIC primitive cast in CDS (abap.char/numc/dec/int4/int8) loses semantic annotations; use a CDS-typed DataElement.",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  cast( amount as abap.dec ) as Amount,",
+    "counter_example": "  cast( amount as _Currency ) as Amount,"
   },
   {
     "id": "talos-perf28-currency-quantity-no-ref",
@@ -967,7 +1124,9 @@
     "message": "Currency/quantity @Semantics field likely missing @ObjectModel.foreignKey.association reference; add the master-entity association.",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  @Semantics.amount.currencyCode: 'CurrencyCode'",
+    "counter_example": "  @Semantics.text: true"
   },
   {
     "id": "talos-perf29-authcheck-check-only",
@@ -978,7 +1137,9 @@
     "message": "@AccessControl.authorizationCheck: #CHECK filters application-side; define DCL access control and use #PRIVILEGED_ONLY to push to SQL.",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "@AccessControl.authorizationCheck: #CHECK",
+    "counter_example": "@AccessControl.authorizationCheck: #NOT_REQUIRED"
   },
   {
     "id": "talos-perf40-rap-early-numbering",
@@ -989,7 +1150,9 @@
     "message": "RAP behavior declares 'numbering :: early'; switch to 'numbering :: late' for create-heavy entities.",
     "object_types": [
       "BDEF"
-    ]
+    ],
+    "example": "  managed; numbering :: early;",
+    "counter_example": "  managed; numbering :: late;"
   },
   {
     "id": "talos-perf41-rap-deep-create-uncapped",
@@ -1000,7 +1163,9 @@
     "message": "RAP deep-create (create( cba::child )) without a cardinality cap; cap child cardinality or split the deep-create into two roundtrips.",
     "object_types": [
       "BDEF"
-    ]
+    ],
+    "example": "  create ( cba::_Items )",
+    "counter_example": "  create;"
   },
   {
     "id": "talos-perf22-expand-high-cardinality",
@@ -1011,7 +1176,9 @@
     "message": "$expand-able association/composition [0..*] (or @ObjectModel.expand = true) without cardinality cap; restrict via maxItems or a paged sub-resource.",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  composition [0..*] of Item as _Items",
+    "counter_example": "  association [0..1] to Master as _Master"
   },
   {
     "id": "talos-perf25-high-cost-virtual-element",
@@ -1022,7 +1189,9 @@
     "message": "@ObjectModel.virtualElement runs per-row at fetch time and breaks server-side filtering; move to a CDS view function or association.",
     "object_types": [
       "DDLS"
-    ]
+    ],
+    "example": "  @ObjectModel.virtualElement: true",
+    "counter_example": "  @ObjectModel.readOnly: true"
   },
   {
     "id": "talos-perf-06-read-standard-keyed",
@@ -1031,7 +1200,9 @@
     "pattern": "\\bREAD\\s+TABLE\\s+\\w+\\s+WITH\\s+KEY\\b",
     "flags": "i",
     "message": "READ TABLE ... WITH KEY against a STANDARD internal table is O(n); declare the table HASHED or SORTED for keyed lookup (ABAP-PERF-06).",
-    "object_types": []
+    "object_types": [],
+    "example": "  READ TABLE lt_items WITH KEY matnr = lv_matnr.",
+    "counter_example": "  READ TABLE lt_items INDEX 1."
   },
   {
     "id": "talos-perf-07-sorted-hashed-sequential-scan",
@@ -1040,7 +1211,9 @@
     "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s*\\.",
     "flags": "i",
     "message": "Bare LOOP AT (no WHERE / USING KEY) over a SORTED/HASHED table does a pure sequential scan; use TYPE STANDARD TABLE if only scanned sequentially (ABAP-PERF-07).",
-    "object_types": []
+    "object_types": [],
+    "example": "  LOOP AT lt_sorted.",
+    "counter_example": "  LOOP AT lt_sorted WHERE kunnr = lv_k."
   },
   {
     "id": "talos-perf-08-loop-into-copy-on-assign",
@@ -1049,7 +1222,9 @@
     "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s+INTO\\s+(?!FIELD-SYMBOL|REFERENCE\\s+INTO)\\w",
     "flags": "i",
     "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08).",
-    "object_types": []
+    "object_types": [],
+    "example": "  LOOP AT lt_items INTO ls_row.",
+    "counter_example": "  LOOP AT lt_items ASSIGNING FIELD-SYMBOL(<fs>)."
   },
   {
     "id": "talos-perf-37-collect-into-standard",
@@ -1058,7 +1233,9 @@
     "pattern": "\\bCOLLECT\\s+\\w+\\s+INTO\\s+\\w+",
     "flags": "i",
     "message": "COLLECT into a STANDARD table is O(n) per insert; declare the target HASHED TABLE with the COLLECT key as UNIQUE KEY (ABAP-PERF-37).",
-    "object_types": []
+    "object_types": [],
+    "example": "  COLLECT ls_wa INTO lt_totals.",
+    "counter_example": "  APPEND ls_wa TO lt_totals."
   },
   {
     "id": "talos-perf-38-loop-where-no-secondary-key",
@@ -1067,7 +1244,9 @@
     "pattern": "\\bLOOP\\s+AT\\s+\\w+\\s+(?:INTO|ASSIGNING|REFERENCE\\s+INTO)\\s+\\S+\\s+WHERE\\b",
     "flags": "i",
     "message": "LOOP AT ... WHERE on a STANDARD table without a secondary key does a full scan per outer iteration; declare a SECONDARY KEY or use LOOP AT ... USING KEY (ABAP-PERF-38).",
-    "object_types": []
+    "object_types": [],
+    "example": "  LOOP AT lt_tab INTO ls_row WHERE bukrs = '1000'.",
+    "counter_example": "  LOOP AT lt_tab INTO ls_row."
   },
   {
     "id": "talos-perf-17-sync-event-mesh-send",
@@ -1076,7 +1255,9 @@
     "pattern": "\\b(?:cl_em_client|cl_event_mesh)\\b.*?->\\s*(?:send|publish)\\s*\\(",
     "flags": "i",
     "message": "Synchronous Event Mesh send/publish (cl_em_client / cl_event_mesh); use the asynchronous dispatch API so bgRFC handles retry/dead-letter (ABAP-PERF-17).",
-    "object_types": []
+    "object_types": [],
+    "example": "  cl_em_client=>get_instance( )->send( iv_topic = 'x' ).",
+    "counter_example": "  DATA(lo) = cl_em_client=>get_instance( )."
   },
   {
     "id": "talos-perf-18-callfunc-destination-no-bgrfc",
@@ -1085,7 +1266,9 @@
     "pattern": "\\bCALL\\s+FUNCTION\\s+\\S+\\s+DESTINATION\\s+\\S+",
     "flags": "i",
     "message": "CALL FUNCTION ... DESTINATION without bgRFC scheduling; schedule via cl_bgrfc_unit_factory for retry/persistence (ABAP-PERF-18).",
-    "object_types": []
+    "object_types": [],
+    "example": "  CALL FUNCTION 'Z_REMOTE' DESTINATION lv_dest",
+    "counter_example": "  CALL FUNCTION 'Z_LOCAL'."
   },
   {
     "id": "talos-perf-43-http-create-by-url",
@@ -1094,7 +1277,9 @@
     "pattern": "cl_http_client(?:_factory)?\\s*=>\\s*create_by_url\\s*\\(",
     "flags": "i",
     "message": "cl_http_client(_factory)=>create_by_url bypasses the Destination service; use cl_http_destination_provider=>create_by_comm_arrangement (ABAP-PERF-43).",
-    "object_types": []
+    "object_types": [],
+    "example": "  cl_http_client_factory=>create_by_url( url = 'https://x' ).",
+    "counter_example": "  cl_http_destination_provider=>create_by_comm_arrangement( )."
   },
   {
     "id": "talos-perf-44-dest-provider-create-by-url",
@@ -1103,7 +1288,9 @@
     "pattern": "cl_http_destination_provider\\s*=>\\s*create_by_url\\s*\\(",
     "flags": "i",
     "message": "HTTP destination created by URL instead of communication arrangement; use create_by_comm_arrangement so cert/token state is shared (ABAP-PERF-44).",
-    "object_types": []
+    "object_types": [],
+    "example": "  cl_http_destination_provider=>create_by_url( i_url = 'https://x' ).",
+    "counter_example": "  cl_http_destination_provider=>create_by_comm_arrangement( )."
   },
   {
     "id": "talos-deprecated-classic-function-module",
@@ -1112,7 +1299,9 @@
     "pattern": "CALL\\s+FUNCTION\\s+'(?:CONVERSION_EXIT_|NUMBER_GET_NEXT|POPUP_TO_CONFIRM|RS_COVERPAGE_|REUSE_ALV_GRID_DISPLAY)[^']*'",
     "flags": "i",
     "message": "Deprecated classic function module call (CONVERSION_EXIT_*, NUMBER_GET_NEXT, POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY) — not S/4HANA-Cloud ready; replace with a released API/CDS/Fiori equivalent (S/4 readiness).",
-    "object_types": []
+    "object_types": [],
+    "example": "  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'.",
+    "counter_example": "  CALL FUNCTION 'BAPI_MATERIAL_SAVEDATA'."
   },
   {
     "id": "talos-s4-010-vbfa-access",
@@ -1125,7 +1314,8 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT * FROM vbfa INTO TABLE lt."
   },
   {
     "id": "talos-s4-012-bseg-access",
@@ -1138,7 +1328,8 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "  SELECT SINGLE * FROM bseg INTO ls."
   },
   {
     "id": "talos-s4-015-stock-length",
@@ -1151,7 +1342,9 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "DATA lv_stock_qty TYPE p LENGTH 7.",
+    "counter_example": "DATA lv_name TYPE p LENGTH 7."
   },
   {
     "id": "talos-s4-016-season-length",
@@ -1164,6 +1357,8 @@
       "CLAS",
       "PROG",
       "FUGR"
-    ]
+    ],
+    "example": "DATA lv_season TYPE c LENGTH 10.",
+    "counter_example": "DATA lv_season TYPE c LENGTH 20."
   }
 ]

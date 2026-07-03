@@ -1,10 +1,14 @@
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { analyzePackage, writeReport } from "../src/orchestrator.js";
 import { validateFindings } from "../src/validate-findings.js";
+
+// pid-suffixed so parallel runs never collide; cleaned in teardown.
+const TMP = join(tmpdir(), `analyser-orch-test-${process.pid}`);
+after(() => rmSync(TMP, { recursive: true, force: true }));
 
 const FILES = [
   {
@@ -72,18 +76,14 @@ test("namespace_summary counts customer vs SAP", () => {
 
 test("writeReport refuses a schema-invalid document (fail-closed)", () => {
   const bad = { package: "ZP" }; // missing required fields
-  assert.throws(
-    () => writeReport(bad, join(tmpdir(), "analyser-orch-test", "never.json")),
-    /schema-invalid/,
-  );
+  assert.throws(() => writeReport(bad, join(TMP, "never.json")), /schema-invalid/);
 });
 
 test("writeReport round-trips valid JSON", () => {
   const doc = analyzePackage(FILES, OPTS);
-  const out = join(tmpdir(), "analyser-orch-test", "findings.json");
+  const out = join(TMP, "findings.json");
   writeReport(doc, out);
   const reparsed = JSON.parse(readFileSync(out, "utf8"));
   assert.equal(reparsed.package, "ZTEST");
   assert.ok(validateFindings(reparsed).valid);
-  rmSync(join(tmpdir(), "analyser-orch-test"), { recursive: true, force: true });
 });

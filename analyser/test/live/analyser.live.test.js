@@ -104,3 +104,17 @@ test("analyse_source_system: live package pull -> local parse -> schema-valid re
   assert.ok(valid, `schema errors: ${errors.join("; ")}`);
   assert.ok(doc.graph.nodes.length > 0, "graph built from live source");
 });
+
+test("analyse_via_adt: live ATC + migration signals -> schema-valid subset report", async () => {
+  const out = OUT.replace("findings.json", "findings-adt.json");
+  const r = await request("tools/call", {
+    name: "analyse_via_adt",
+    arguments: { package: PKG, source_system: process.env.SAP_HOST, out },
+  });
+  assert.notEqual(r.result.isError, true, r.result.content?.[0]?.text?.slice(0, 400));
+  const doc = JSON.parse(readFileSync(out, "utf8"));
+  const { valid, errors } = validateFindings(doc);
+  assert.ok(valid, `schema errors: ${errors.join("; ")}`);
+  assert.match(doc.coverage_note, /live-via-ADT subset/);
+  assert.deepEqual(doc.graph, { nodes: [], edges: [] }, "subset mode has no graph");
+});
