@@ -56,3 +56,17 @@ test("a finding missing its object fails", () => {
   const { valid } = validateFindings(doc);
   assert.equal(valid, false);
 });
+
+test("null and empty-string enum values are rejected (not silently accepted)", () => {
+  const withNullSeverity = minimalValid();
+  withNullSeverity.findings[0].severity = null;
+  assert.equal(validateFindings(withNullSeverity).valid, false, "null severity");
+
+  const withEmptyNamespace = minimalValid();
+  withEmptyNamespace.graph.nodes[0].namespace = "";
+  assert.equal(validateFindings(withEmptyNamespace).valid, false, "empty namespace");
+
+  const withNullRequired = minimalValid();
+  withNullRequired.package = null;
+  assert.equal(validateFindings(withNullRequired).valid, false, "null required field");
+});

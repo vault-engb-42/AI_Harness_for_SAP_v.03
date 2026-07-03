@@ -86,7 +86,10 @@ function objectProjection(graph) {
 }
 
 /**
- * Objects that belong to a strongly-connected component of size >= 2 (Tarjan).
+ * Objects that belong to a strongly-connected component of size >= 2.
+ * Iterative Tarjan (explicit frame stack): a deep dependency chain must not
+ * overflow the JS call stack — a crash here would silently degrade ALL
+ * graph-pack findings to one engine diagnostic.
  * @param {Map<string, Set<string>>} out
  * @returns {Set<string>}
  */
@@ -98,32 +101,49 @@ function cyclicObjects(out) {
   const stack = [];
   const cyclic = new Set();
 
-  const strongConnect = (v) => {
-    idx.set(v, index);
-    low.set(v, index);
+  const visit = (root) => {
+    const frames = [{ v: root, it: (out.get(root) ?? new Set())[Symbol.iterator]() }];
+    idx.set(root, index);
+    low.set(root, index);
     index++;
-    stack.push(v);
-    onStack.add(v);
-    for (const w of out.get(v) ?? []) {
-      if (!idx.has(w)) {
-        strongConnect(w);
-        low.set(v, Math.min(low.get(v), low.get(w)));
-      } else if (onStack.has(w)) {
-        low.set(v, Math.min(low.get(v), idx.get(w)));
+    stack.push(root);
+    onStack.add(root);
+
+    while (frames.length > 0) {
+      const frame = frames[frames.length - 1];
+      const next = frame.it.next();
+      if (!next.done) {
+        const w = next.value;
+        if (!idx.has(w)) {
+          idx.set(w, index);
+          low.set(w, index);
+          index++;
+          stack.push(w);
+          onStack.add(w);
+          frames.push({ v: w, it: (out.get(w) ?? new Set())[Symbol.iterator]() });
+        } else if (onStack.has(w)) {
+          low.set(frame.v, Math.min(low.get(frame.v), idx.get(w)));
+        }
+        continue;
       }
-    }
-    if (low.get(v) === idx.get(v)) {
-      const comp = [];
-      let w;
-      do {
-        w = stack.pop();
-        onStack.delete(w);
-        comp.push(w);
-      } while (w !== v);
-      if (comp.length >= 2) for (const c of comp) cyclic.add(c);
+      // frame exhausted: close the SCC root and propagate lowlink upward
+      frames.pop();
+      const v = frame.v;
+      if (low.get(v) === idx.get(v)) {
+        const comp = [];
+        let w;
+        do {
+          w = stack.pop();
+          onStack.delete(w);
+          comp.push(w);
+        } while (w !== v);
+        if (comp.length >= 2) for (const c of comp) cyclic.add(c);
+      }
+      const parent = frames[frames.length - 1];
+      if (parent) low.set(parent.v, Math.min(low.get(parent.v), low.get(v)));
     }
   };
 
-  for (const v of out.keys()) if (!idx.has(v)) strongConnect(v);
+  for (const v of out.keys()) if (!idx.has(v)) visit(v);
   return cyclic;
 }

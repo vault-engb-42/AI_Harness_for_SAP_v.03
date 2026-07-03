@@ -45,7 +45,7 @@ before(async () => {
     });
   });
   analyser = spawn(process.execPath, [ANALYSER], {
-    env: { ...process.env, ADT_MCP_URL: sidecarUrl },
+    env: { ...process.env, ADT_MCP_URL: sidecarUrl, ANALYSER_OUTPUT_DIR: tmpdir() },
     stdio: ["pipe", "pipe", "pipe"],
   });
   let buf = "";

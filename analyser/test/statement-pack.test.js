@@ -61,6 +61,21 @@ test("FOR ALL ENTRIES WITH a preceding IS NOT INITIAL guard is NOT flagged", () 
   assert.deepEqual(f.filter((x) => x.rule_id === "talos-fae-no-guard"), []);
 });
 
+test("the early-return guard form (IF drv IS INITIAL. RETURN.) is also accepted", () => {
+  const f = findings(wrapClass(`    IF lt_drv IS INITIAL.
+      RETURN.
+    ENDIF.
+    SELECT * FROM t000 FOR ALL ENTRIES IN @lt_drv WHERE mandt = @lt_drv-mandt INTO TABLE @DATA(lt).`));
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-fae-no-guard"), []);
+});
+
+test("old-syntax IF NOT drv IS INITIAL is also accepted as a guard", () => {
+  const f = findings(wrapClass(`    IF NOT lt_drv IS INITIAL.
+      SELECT * FROM t000 FOR ALL ENTRIES IN @lt_drv WHERE mandt = @lt_drv-mandt INTO TABLE @DATA(lt).
+    ENDIF.`));
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-fae-no-guard"), []);
+});
+
 test("nested loops still flag inner DB access", () => {
   const f = findings(wrapClass(`    LOOP AT lt1 INTO DATA(a).
       LOOP AT lt2 INTO DATA(b).

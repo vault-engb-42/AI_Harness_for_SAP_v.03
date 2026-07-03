@@ -15,7 +15,8 @@ test("a deprecated object with a successor classifies correctly", () => {
   const c = classify("ABAP_CLOUD_DEVELOPMENT_3TIER");
   assert.equal(c.raw_state, "deprecated");
   assert.equal(c.release_state, "deprecated");
-  assert.ok(c.successors.includes("ABAP_CLEAN_CORE_DEVELOPMENT"), "successor present");
+  assert.ok(c.successors.some((s) => s.name === "ABAP_CLEAN_CORE_DEVELOPMENT"), "successor present");
+  assert.ok(c.successors[0].type, "successor carries its TADIR type");
   assert.equal(getSuccessor("ABAP_CLOUD_DEVELOPMENT_3TIER"), "ABAP_CLEAN_CORE_DEVELOPMENT");
   assert.equal(effortTier("ABAP_CLOUD_DEVELOPMENT_3TIER"), "re-platform");
 });

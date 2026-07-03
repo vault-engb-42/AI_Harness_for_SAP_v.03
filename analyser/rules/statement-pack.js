@@ -136,8 +136,9 @@ function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
 
 /** Track SELECT targets/sources for the file-level rules (OB1, PERF-4). */
 function trackSelect(text, st, fileState) {
-  const from = /\bFROM\s+@?(\w+)/i.exec(text);
-  if (from && !from[1].startsWith("@")) {
+  // Lookahead excludes internal-table sources (FROM @lt) — only DB tables count.
+  const from = /\bFROM\s+(?!@)(\w+)/i.exec(text);
+  if (from) {
     fileState.fromTables.add(from[1].toUpperCase());
     if (!fileState.firstSelect) fileState.firstSelect = st;
   }
@@ -168,7 +169,11 @@ function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
   const driver = m[1].toUpperCase();
   for (let j = i - 1; j >= Math.max(0, i - GUARD_LOOKBACK); j--) {
     const t = stmts[j].concatTokens().toUpperCase();
-    if (t.includes(driver) && (t.includes("IS NOT INITIAL") || t.includes("LINES("))) return;
+    // Both guard polarities count: `IF drv IS NOT INITIAL.` (wrapping) and
+    // `IF drv IS INITIAL. RETURN/EXIT.` (early return) prove non-emptiness,
+    // as does a LINES( drv ) comparison. "IS INITIAL" also matches the
+    // old-syntax `IF NOT drv IS INITIAL`.
+    if (t.includes(driver) && (t.includes("IS NOT INITIAL") || t.includes("IS INITIAL") || t.includes("LINES("))) return;
   }
   push(
     findings,

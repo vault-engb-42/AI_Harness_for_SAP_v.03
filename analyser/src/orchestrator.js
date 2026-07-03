@@ -1,5 +1,6 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { validateFindings } from "./validate-findings.js";
 import { loadRegistry } from "./abaplint-loader.js";
 import { analyzeRegistry } from "./semantic.js";
 import { runAbaplintRules } from "./abaplint-rules.js";
@@ -66,11 +67,17 @@ function buildNamespaceSummary(nodes) {
 
 /**
  * Write a findings document to disk as pretty JSON (creates parent dirs).
+ * Fail-closed: the document is schema-validated first (arch doc §10.3) so a
+ * malformed report can never reach the track consumers' file.
  * @param {object} doc
  * @param {string} outPath
  * @returns {string} the path written
  */
 export function writeReport(doc, outPath) {
+  const { valid, errors } = validateFindings(doc);
+  if (!valid) {
+    throw new Error(`refusing to write a schema-invalid findings document: ${errors.slice(0, 5).join("; ")}`);
+  }
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(doc, null, 2), "utf8");
   return outPath;

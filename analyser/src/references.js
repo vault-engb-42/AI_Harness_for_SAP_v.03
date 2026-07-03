@@ -14,6 +14,7 @@ const ROUTINE_SCOPE_TYPES = new Set(["method", "form", "function"]);
  * @property {string|null} routineType  the ScopeType of the routine, or null
  * @property {string} referenceType  abaplint ReferenceType value string
  * @property {string|null} targetName  resolved name, else the reference-site token
+ * @property {string|null} targetOwner  owning object of the target (ref.extra.ooName), or null
  * @property {boolean} resolved  true if abaplint resolved the target locally
  * @property {string} filename
  * @property {number} row
@@ -65,11 +66,16 @@ function normalizeRef(ref, filename, routine, routineType) {
   const token = ref.position?.getToken?.();
   const targetName = resolvedName ?? token?.getStr?.() ?? null;
   const start = ref.position?.getStart?.();
+  // ref.extra.ooName is the target's OWNING object (e.g. the class a called
+  // method belongs to) — without it, cross-object calls mis-attribute to the
+  // caller and blast radius goes blind to method-level dependees.
+  const owner = ref.extra?.ooName ?? null;
   return {
     routine,
     routineType,
     referenceType: ref.referenceType,
     targetName,
+    targetOwner: owner ? String(owner).toUpperCase() : null,
     resolved: resolvedName !== null,
     filename,
     row: start?.getRow?.() ?? 0,

@@ -70,6 +70,14 @@ test("namespace_summary counts customer vs SAP", () => {
   assert.ok(doc.namespace_summary.sap >= 2); // CL_A4C_BC_FACTORY + BAPIRET1
 });
 
+test("writeReport refuses a schema-invalid document (fail-closed)", () => {
+  const bad = { package: "ZP" }; // missing required fields
+  assert.throws(
+    () => writeReport(bad, join(tmpdir(), "analyser-orch-test", "never.json")),
+    /schema-invalid/,
+  );
+});
+
 test("writeReport round-trips valid JSON", () => {
   const doc = analyzePackage(FILES, OPTS);
   const out = join(tmpdir(), "analyser-orch-test", "findings.json");

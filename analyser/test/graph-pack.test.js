@@ -49,6 +49,20 @@ test("an acyclic customer graph yields no cycle findings", () => {
   assert.deepEqual(run(g).filter((x) => x.rule_id === "talos-dependency-cycle"), []);
 });
 
+test("a 50k-deep dependency chain does not overflow the stack (iterative Tarjan)", () => {
+  const g = new DependencyGraph();
+  const N = 50_000;
+  for (let i = 0; i < N; i++) {
+    g.addNode({ id: `ZC${i}`, kind: "class", object: `ZC${i}`, namespace: "Z" });
+    if (i > 0) g.addEdge({ source: `ZC${i - 1}`, target: `ZC${i}`, kind: "call-method" });
+  }
+  // close one cycle at the deep end so the SCC logic runs the full chain
+  g.addEdge({ source: `ZC${N - 1}`, target: `ZC${N - 2}`, kind: "call-method" });
+  const f = run(g); // recursion would throw RangeError here before the fix
+  const cyc = f.filter((x) => x.rule_id === "talos-dependency-cycle").map((x) => x.object).sort();
+  assert.deepEqual(cyc, [`ZC${N - 2}`, `ZC${N - 1}`].sort());
+});
+
 test("high fan-out customer object is flagged", () => {
   const g = new DependencyGraph();
   g.addNode({ id: "ZCL_BIG", kind: "class", object: "ZCL_BIG", namespace: "Z" });

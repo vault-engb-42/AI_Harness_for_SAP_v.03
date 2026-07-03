@@ -39,11 +39,20 @@ export function analyzeObjects(files) {
 export function analyzeRegistry(reg) {
   const graph = new DependencyGraph();
 
+  // First pass: register EVERY object node before any edge extraction, so
+  // authoritative kinds always win over edge-target guesses (a SELECT on an
+  // in-bundle CDS entity must never leave it kinded "table" just because the
+  // consuming class parsed first — node kind is first-write-wins).
+  const objects = [];
   for (const obj of objectsOf(reg)) {
     const objName = obj.getName();
     const objKind = nodeKindForObjectType(obj.getType());
     if (!objKind) continue;
     graph.addNode({ id: objName, kind: objKind, object: objName, namespace: classifyNamespace(objName) });
+    objects.push({ obj, objName });
+  }
+
+  for (const { obj, objName } of objects) {
 
     // Metadata edges work on non-ABAP objects too (CDS consumes-cds, class
     // inherits, RAP behavior). BDEF is opaque to abaplint, so RAP edges come
@@ -122,12 +131,15 @@ function addEdgeFromRef(ref, objName, graph) {
 function targetNodeFor(kind, ref, objName) {
   const name = (ref.targetName ?? "").toUpperCase();
   if (!name) return null;
+  // abaplint's ref.extra.ooName is the target's true owning object; without
+  // it a cross-object call would fabricate a wrong-owner method node and
+  // leave blast radius blind to method-level dependees.
+  const owner = ref.targetOwner ?? objName;
   switch (kind) {
     case "call-method":
-      // C1 assumes same-object resolution; cross-object linking is a gap-filler.
-      return { id: `${objName}.${name}`, kind: "method", object: objName };
+      return { id: `${owner}.${name}`, kind: "method", object: owner };
     case "calls":
-      return { id: `${objName}.${name}`, kind: "form", object: objName };
+      return { id: `${owner}.${name}`, kind: "form", object: owner };
     default:
       return null; // data-flow-def / data-flow-use target locals — not C1 nodes
   }

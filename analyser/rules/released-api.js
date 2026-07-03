@@ -39,7 +39,7 @@ export const releasedApiRule = {
       if (seen.has(key)) continue;
       seen.add(key);
 
-      const successor = c.successors[0];
+      const successor = c.successors[0]?.name;
       findings.push({
         severity: c.release_state === "removed" ? "priority-1" : "priority-2",
         object: edge.source,

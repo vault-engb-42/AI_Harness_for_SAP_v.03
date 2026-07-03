@@ -21,6 +21,9 @@ const CLASSIFIABLE_EDGE_KINDS = new Set([
  * @returns {object[]} schema blast_radius entries
  */
 export function collectBlastRadius(graph, cloud, maxDepth = 3) {
+  // Spec range 1-5 (arch doc §C3); a 0/negative/absurd depth degrades the
+  // report silently, so clamp here at the report boundary.
+  const depth = Math.min(5, Math.max(1, Number(maxDepth) || 3));
   const atRisk = new Map(); // target -> classification
   for (const edge of graph.toGraphJSON().edges) {
     if (!CLASSIFIABLE_EDGE_KINDS.has(edge.kind)) continue;
@@ -32,11 +35,13 @@ export function collectBlastRadius(graph, cloud, maxDepth = 3) {
 
   const entries = [];
   for (const [target, c] of atRisk) {
-    const br = blastRadius(graph, target, maxDepth);
+    const br = blastRadius(graph, target, depth);
     entries.push({
       object: target,
       affected_program_count: br.affected_program_count,
-      successor_kind: c.successors[0] ?? "none",
+      // successor_kind carries the successor's TADIR object type (CLAS/FUNC/…),
+      // per TALOS S4BlastRadiusEntry semantics — not the successor's name.
+      successor_kind: c.successors[0]?.type ?? "none",
       highest_impact: br.highest_impact,
     });
   }

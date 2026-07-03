@@ -74,7 +74,11 @@ export async function filesFromLiveSystem(env, packageName) {
       skipped.push(`${obj.name} (${obj.type}: empty source)`);
       continue;
     }
-    files.push({ filename: `${obj.name.toLowerCase()}${suffix}`, source });
+    // abapGit filename convention encodes registered-namespace slashes as '#'
+    // (/NS/CL_X -> #ns#cl_x.clas.abap); a raw slash would make abaplint drop
+    // the namespace and misclassify vendor code as SAP standard.
+    const base = obj.name.toLowerCase().replace(/\//g, "#");
+    files.push({ filename: `${base}${suffix}`, source });
   }
   return { files, skipped };
 }
@@ -136,9 +140,12 @@ function normalizeAtcFindings(atc) {
 /** @param {*} m @returns {object} schema s4_readiness from a tolerant migration shape */
 function normalizeMigrationSummary(m) {
   const s = m?.summary ?? m ?? {};
-  const released = Number(s.released ?? s.released_hits ?? 0);
-  const deprecated = Number(s.deprecated ?? s.deprecated_hits ?? 0);
-  const notReleased = Number(s.not_released ?? s.not_released_hits ?? 0);
+  // Finite-guard every count: a non-numeric sidecar value must never become
+  // NaN (which JSON-serializes to null and violates the schema).
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const released = num(s.released ?? s.released_hits);
+  const deprecated = num(s.deprecated ?? s.deprecated_hits);
+  const notReleased = num(s.not_released ?? s.not_released_hits);
   const total = released + deprecated + notReleased;
   return {
     s4_readiness_pct: total > 0 ? Math.round((released / total) * 100) : 100,

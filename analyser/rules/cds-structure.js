@@ -99,7 +99,10 @@ function checkJoinPredicates(findings, raw) {
 }
 
 function checkProjection(findings, raw) {
-  const proj = /\{([\s\S]*)\}/.exec(raw);
+  // Anchor on the first '{' AFTER the select clause: header annotations with
+  // braced values (@UI: { ... }) must not leak into the CASE-count and
+  // key-order checks.
+  const proj = /\bselect\b[^{]*\{([\s\S]*)\}/i.exec(raw);
   if (!proj) return;
   const body = proj[1];
 

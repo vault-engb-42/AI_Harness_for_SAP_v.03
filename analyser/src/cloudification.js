@@ -49,8 +49,12 @@ function ingest(map, src) {
     const name = String(e.tadirObjName ?? "").toUpperCase();
     if (!name) continue;
     if (!src.authoritative && map.has(name)) continue; // release info wins
+    // Keep both the successor's name and its TADIR type: consumers need the
+    // name for suggestions and the type for blast_radius.successor_kind.
     const successors = Array.isArray(e.successors)
-      ? e.successors.map((s) => String(s.tadirObjName ?? "").toUpperCase()).filter(Boolean)
+      ? e.successors
+          .map((s) => ({ name: String(s.tadirObjName ?? "").toUpperCase(), type: String(s.objectType ?? s.tadirObject ?? "") }))
+          .filter((s) => s.name)
       : [];
     map.set(name, { objectType: e.objectType, state: e.state, successors });
   }
@@ -58,7 +62,7 @@ function ingest(map, src) {
 
 /**
  * @param {string|null|undefined} name object name
- * @returns {{release_state: string, raw_state: string|undefined, successors: string[], object_type: string|undefined}}
+ * @returns {{release_state: string, raw_state: string|undefined, successors: Array<{name: string, type: string}>, object_type: string|undefined}}
  */
 export function classify(name) {
   const rec = loadIndex().get(String(name ?? "").toUpperCase());
@@ -78,7 +82,7 @@ export function isReleased(name) {
 
 /** @param {string} name @returns {string|undefined} first released successor name */
 export function getSuccessor(name) {
-  return classify(name).successors[0];
+  return classify(name).successors[0]?.name;
 }
 
 /** @param {string} name @returns {string} schema effort_tier for the object's state */

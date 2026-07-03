@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analyzeObjects } from "../src/semantic.js";
+import { blastRadius } from "../src/blast-radius.js";
 
 const CLASS_SRC = `CLASS zcl_probe DEFINITION PUBLIC.
   PUBLIC SECTION.
@@ -133,6 +134,67 @@ test("gap-filler edges (inherits/call-function/authority-check/consumes-cds) lan
   assert.equal(findNode(nodes, "ZCL_BASE")?.kind, "class");
   assert.equal(findNode(nodes, "ZIF_SVC")?.kind, "interface");
   assert.equal(findNode(nodes, "S_DEVELOP"), undefined, "auth object is edge-only, no node");
+});
+
+test("cross-object method calls attribute to the TARGET's owning object", () => {
+  const files = [
+    {
+      filename: "zcl_a.clas.abap",
+      source: `CLASS zcl_a DEFINITION PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_a IMPLEMENTATION.
+  METHOD run.
+    DATA(lo_b) = NEW zcl_b( ).
+    lo_b->do_b( ).
+  ENDMETHOD.
+ENDCLASS.`,
+    },
+    {
+      filename: "zcl_b.clas.abap",
+      source: `CLASS zcl_b DEFINITION PUBLIC.
+  PUBLIC SECTION.
+    METHODS do_b.
+ENDCLASS.
+CLASS zcl_b IMPLEMENTATION.
+  METHOD do_b.
+  ENDMETHOD.
+ENDCLASS.`,
+    },
+  ];
+  const graph = analyzeObjects(files);
+  const { nodes, edges } = graph.toGraphJSON();
+  const target = findNode(nodes, "ZCL_B.DO_B");
+  assert.ok(target, "method node lives under its true owner");
+  assert.equal(target.object, "ZCL_B");
+  assert.equal(findNode(nodes, "ZCL_A.DO_B"), undefined, "no fabricated wrong-owner node");
+  assert.ok(hasEdge(edges, "ZCL_A.RUN", "ZCL_B.DO_B", "call-method"), "cross-object edge");
+  // blast radius of ZCL_B now sees its method-level dependee
+  assert.ok(blastRadius(graph, "ZCL_B", 3).affected_objects.includes("ZCL_A"));
+});
+
+test("in-bundle CDS entity keeps kind 'cds' regardless of input file order", () => {
+  const clas = {
+    filename: "zcl_reader.clas.abap",
+    source: `CLASS zcl_reader DEFINITION PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_reader IMPLEMENTATION.
+  METHOD run.
+    SELECT SINGLE * FROM zi_view INTO @DATA(ls).
+  ENDMETHOD.
+ENDCLASS.`,
+  };
+  const ddls = {
+    filename: "zi_view.ddls.asddls",
+    source: "define view entity ZI_View as select from t000 { key mandt }",
+  };
+  for (const files of [[clas, ddls], [ddls, clas]]) {
+    const { nodes } = analyzeObjects(files).toGraphJSON();
+    assert.equal(findNode(nodes, "ZI_VIEW")?.kind, "cds", `order ${files[0].filename} first`);
+  }
 });
 
 test("RAP behavior definition yields a behavior node with entity + handler edges", () => {

@@ -53,6 +53,17 @@ test("a key field declared after a non-key field is flagged (PERF-61)", () => {
   assert.ok(ids(f).includes("talos-cds-field-order"));
 });
 
+test("braced header annotations do not leak into projection checks", () => {
+  const f = packFindings("zi_hdr", `@AccessControl.authorizationCheck: #CHECK
+@UI.headerInfo: { typeName: 'Case', typeNamePlural: 'Cases in case case' }
+define view entity ZI_Hdr as select from vbak {
+  key vbeln,
+  kunnr
+}`);
+  assert.ok(!f.some((x) => x.rule_id === "talos-cds-business-logic"), "header words not counted as CASE expressions");
+  assert.ok(!f.some((x) => x.rule_id === "talos-cds-field-order"), "header braces not parsed as projection");
+});
+
 test("a clean small view raises no structure findings", () => {
   const f = packFindings("zi_clean", `@AccessControl.authorizationCheck: #CHECK
 define view entity ZI_Clean as select from vbak {

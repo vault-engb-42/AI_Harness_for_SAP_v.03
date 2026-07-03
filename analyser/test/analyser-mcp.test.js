@@ -21,7 +21,11 @@ const OUT_DIR = join(tmpdir(), "analyser-mcp-e2e");
 after(() => rmSync(OUT_DIR, { recursive: true, force: true }));
 
 function startServer() {
-  const child = spawn(process.execPath, [SERVER], { stdio: ["pipe", "pipe", "pipe"] });
+  // Reports are contained under ANALYSER_OUTPUT_DIR; the test writes to tmp.
+  const child = spawn(process.execPath, [SERVER], {
+    env: { ...process.env, ANALYSER_OUTPUT_DIR: tmpdir() },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
   const pending = new Map();
   let buf = "";
   child.stdout.on("data", (d) => {
@@ -122,6 +126,20 @@ test("analyse_bundle with a bad path returns a tool error, not a crash", async (
     });
     assert.equal(r.result.isError, true);
     assert.match(r.result.content[0].text, /bundle path/i);
+  } finally {
+    s.close();
+  }
+});
+
+test("an out path escaping the report root is rejected (containment)", async () => {
+  const s = startServer();
+  try {
+    const r = await s.request("tools/call", {
+      name: "analyse_bundle",
+      arguments: { path: FIXTURES, out: join(tmpdir(), "..", "escape", "findings.json") },
+    });
+    assert.equal(r.result.isError, true);
+    assert.match(r.result.content[0].text, /escapes the report root/);
   } finally {
     s.close();
   }

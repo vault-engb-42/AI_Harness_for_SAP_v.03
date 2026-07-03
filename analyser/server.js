@@ -2,6 +2,7 @@
 // analyser's three modes (offline bundle / live-via-engine / live-via-ADT).
 // Read-only against SAP; the only writes are local report files.
 import { createInterface } from "node:readline";
+import { resolve, relative, isAbsolute } from "node:path";
 import { ANALYSER_TOOLS, TOOL_NAMES } from "./analyser-tools.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
 import { filesFromBundle, filesFromLiveSystem, docFromAdtOnly } from "./src/modes.js";
@@ -9,6 +10,19 @@ import { filesFromBundle, filesFromLiveSystem, docFromAdtOnly } from "./src/mode
 const SERVER_INFO = { name: "abap-analyser", version: "1.0.0" };
 const PROTOCOL_VERSION = "2024-11-05";
 const DEFAULT_OUT = "specs/brownfield/analyser-findings.json";
+// Reports are contained under this root (ANALYSER_OUTPUT_DIR or the cwd) —
+// the `out` tool argument is boundary input and must not escape it.
+const OUT_ROOT = resolve(process.env.ANALYSER_OUTPUT_DIR ?? process.cwd());
+
+/** @param {string|undefined} out @returns {string} contained absolute path */
+function resolveOut(out) {
+  const abs = resolve(OUT_ROOT, out ?? DEFAULT_OUT);
+  const rel = relative(OUT_ROOT, abs);
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    throw new Error(`out path escapes the report root ${OUT_ROOT}: ${out} — set ANALYSER_OUTPUT_DIR to widen the root`);
+  }
+  return abs;
+}
 
 function send(msg) {
   process.stdout.write(JSON.stringify(msg) + "\n");
@@ -31,7 +45,7 @@ function emit(files, args, extra = {}) {
     depth: args.depth,
     coverage_note: extra.coverage_note,
   });
-  const out = writeReport(doc, args.out ?? DEFAULT_OUT);
+  const out = writeReport(doc, resolveOut(args.out));
   return summarize(doc, files.length, out);
 }
 
@@ -63,7 +77,7 @@ async function runTool(name, args, env) {
     }
     case "analyse_via_adt": {
       const doc = await docFromAdtOnly(env, args.package, { source_system: args.source_system });
-      const out = writeReport(doc, args.out ?? DEFAULT_OUT);
+      const out = writeReport(doc, resolveOut(args.out));
       return summarize(doc, 0, out);
     }
     default:
