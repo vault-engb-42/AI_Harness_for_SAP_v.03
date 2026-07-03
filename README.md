@@ -11,7 +11,7 @@ The ADT sidecar (`docker/sap-adt/adapter.py`) is a **FastAPI REST** service (`PO
 - `server.js` — MCP stdio server (JSON-RPC 2.0). Handles `initialize`, `tools/list`, `tools/call`.
 - `adt-tools.js` — the 17-tool registry with input schemas and the read/write classification.
 - `adt-client.js` — forwards a call to the sidecar's `POST /mcp` with `X-SAP-*` credential headers.
-- `test/` — end-to-end tests (real process, real HTTP to a stub sidecar fixture — no mocks).
+- `test/` — end-to-end tests (spawn the real server process, real stdio, real network failure paths — **no mocks, no stubs, no fakes**). The sidecar round-trip is covered by the live E2E suite against a real sidecar.
 
 ### Read vs write (P5 fail-closed)
 

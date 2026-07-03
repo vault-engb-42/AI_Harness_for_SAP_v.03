@@ -140,7 +140,7 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_get_transport_requests",
     readOnly: true,
-    description: "List transport requests/change orders (upstream currently a stub).",
+    description: "List transport requests/change orders (upstream implementation pending — returns an empty list today).",
     inputSchema: obj({ username: str("Owner to filter by") }),
   },
   {
@@ -155,13 +155,13 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_query_scmon_usage",
     readOnly: true,
-    description: "Query ABAP Call Monitor usage (STUB: returns data_available=false).",
+    description: "Query ABAP Call Monitor usage (upstream returns data_available=false until SCMON is wired; never infer retirement from a missing signal).",
     inputSchema: obj({ window_days: int("Look-back window in days"), package_name: str("Package scope") }),
   },
   {
     name: "aws_abap_cb_query_smodilog_modifications",
     readOnly: true,
-    description: "Query SAP-standard modification log (STUB: returns data_available=false).",
+    description: "Query SAP-standard modification log (upstream returns data_available=false until SMODILOG is wired; never infer cleanliness from a missing signal).",
     inputSchema: obj({ package_name: str("Package scope"), date_from: str("ISO date lower bound") }),
   },
 ];
