@@ -4,6 +4,7 @@ import { regexPack } from "./regex-pack.js";
 import { statementPack } from "./statement-pack.js";
 import { metadataPack } from "./metadata-pack.js";
 import { graphPack } from "./graph-pack.js";
+import { cdsStructurePack } from "./cds-structure.js";
 
 /**
  * The harness-owned rule registry (ALL_RULES is the source of truth). abaplint's
@@ -20,4 +21,5 @@ export const ALL_RULES = [
   statementPack,
   metadataPack,
   graphPack,
+  cdsStructurePack,
 ];
