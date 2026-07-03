@@ -5,6 +5,7 @@ import { statementPack } from "./statement-pack.js";
 import { metadataPack } from "./metadata-pack.js";
 import { graphPack } from "./graph-pack.js";
 import { cdsStructurePack } from "./cds-structure.js";
+import { missingTestClassRule } from "./missing-test-class.js";
 
 /**
  * The harness-owned rule registry (ALL_RULES is the source of truth). abaplint's
@@ -22,4 +23,5 @@ export const ALL_RULES = [
   metadataPack,
   graphPack,
   cdsStructurePack,
+  missingTestClassRule,
 ];

@@ -41,3 +41,53 @@ test("metadata rules do not apply to non-CDS objects", () => {
   const f = findings([{ filename: "zcl_x.clas.abap", source: "CLASS zcl_x DEFINITION PUBLIC.\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\nENDCLASS." }]);
   assert.deepEqual(f, []);
 });
+
+// --- conditional (when/unless) rules ---
+
+const bdef = (name, src) => ({ filename: `${name}.bdef.asbdef`, source: src });
+
+test("a draft BDEF without lockingMode is flagged; a non-draft BDEF is not (when-gate)", () => {
+  const draft = bdef("zbp_d", `managed implementation in class zbp_d unique;
+define behavior for ZI_D alias D
+with draft
+{ create; }`);
+  const plain = bdef("zbp_p", `managed implementation in class zbp_p unique;
+define behavior for ZI_P alias P
+{ create; }`);
+  assert.ok(findings([draft]).some((x) => x.rule_id === "talos-rap-draft-no-optimistic-lock"), "draft flagged");
+  assert.ok(!findings([plain]).some((x) => x.rule_id === "talos-rap-draft-no-optimistic-lock"), "non-draft not flagged");
+});
+
+test("an analytical CDS without @Analytics.dataCategory is flagged; a plain view is not", () => {
+  const analytical = cds("zc_alp", `@UI.headerInfo: { typeName: 'Order' }
+@AccessControl.authorizationCheck: #CHECK
+define view entity ZC_Alp as select from vbak { key vbeln }`);
+  const plain = cds("zi_plain", `@AccessControl.authorizationCheck: #CHECK
+define view entity ZI_Plain as select from vbak { key vbeln }`);
+  assert.ok(findings([analytical]).some((x) => x.rule_id === "talos-cds-analytical-missing-analytics"));
+  assert.ok(!findings([plain]).some((x) => x.rule_id === "talos-cds-analytical-missing-analytics"));
+});
+
+test("unless-gate suppresses the rule (private view exempt from usage-type contract)", () => {
+  const priv = cds("zp_priv", `@VDM.private: true
+@AccessControl.authorizationCheck: #CHECK
+define view entity ZP_Priv as select from vbak { key vbeln }`);
+  assert.ok(!findings([priv]).some((x) => x.rule_id === "talos-cds-missing-service-quality"));
+});
+
+test("early numbering in a BDEF is flagged", () => {
+  const b = bdef("zbp_e", `managed implementation in class zbp_e unique;
+define behavior for ZI_E alias E
+early numbering
+{ create; }`);
+  assert.ok(findings([b]).some((x) => x.rule_id === "talos-rap-early-numbering"));
+});
+
+test("managed + unmanaged implementation in one BDEF is flagged priority-1", () => {
+  const b = bdef("zbp_m", `managed implementation in class zbp_a unique;
+unmanaged implementation in class zbp_b unique;
+define behavior for ZI_M alias M { create; }`);
+  const hit = findings([b]).find((x) => x.rule_id === "talos-rap-mixed-managed-unmanaged");
+  assert.ok(hit);
+  assert.equal(hit.severity, "priority-1");
+});

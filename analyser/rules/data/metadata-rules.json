@@ -10,11 +10,11 @@
   },
   {
     "id": "talos-cds-missing-access-control",
-    "family": "clean-core",
-    "severity": "priority-3",
+    "family": "security",
+    "severity": "priority-2",
     "applies_to": ["DDLS"],
     "require": "AccessControl.authorizationCheck",
-    "message": "CDS view entity has no @AccessControl.authorizationCheck annotation"
+    "message": "CDS view entity has no @AccessControl.authorizationCheck annotation — rows may be exposed without a DCL access control (TALOS RAP-SEC-002)"
   },
   {
     "id": "talos-cds-legacy-sqlview",
@@ -24,5 +24,115 @@
     "forbid": "@AbapCatalog\\.sqlViewName",
     "flags": "i",
     "message": "@AbapCatalog.sqlViewName is legacy DEFINE VIEW syntax; migrate to define view entity (no SQL view)"
+  },
+  {
+    "id": "talos-rap-draft-no-optimistic-lock",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["DDLS", "BDEF"],
+    "when": "\\bwith\\s+draft\\b|@ObjectModel\\.draftEnabled",
+    "require": "ObjectModel.draftEnabled.lockingMode",
+    "message": "Draft-enabled entity without an optimistic-concurrency guard — set @ObjectModel.draftEnabled.lockingMode: #OPTIMISTIC and expose an ETag via @Semantics.systemDate.lastChangedAt (ABAP-PERF-23)"
+  },
+  {
+    "id": "talos-rap-draft-lock-no-timeout",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["DDLS", "BDEF"],
+    "when": "\\bwith\\s+draft\\b|@ObjectModel\\.draftEnabled",
+    "unless": "#OPTIMISTIC",
+    "require": "Locking.timeoutSeconds",
+    "message": "Pessimistic draft lock without @Locking.timeoutSeconds — set a 60-120s timeout; the default lets abandoned drafts block other editors (ABAP-PERF-32)"
+  },
+  {
+    "id": "talos-cds-analytical-missing-analytics",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["DDLS"],
+    "when": "AnalyticalListPage|@UI\\.headerInfo",
+    "require": "Analytics.dataCategory",
+    "message": "Analytical Fiori consumer without @Analytics.dataCategory — annotate #FACT/#DIMENSION so aggregation pushes to the analytical engine (ABAP-PERF-24)"
+  },
+  {
+    "id": "talos-cds-virtual-element-cost",
+    "family": "rap-odata",
+    "severity": "info",
+    "applies_to": ["DDLS"],
+    "forbid": "@ObjectModel\\.virtualElement",
+    "flags": "i",
+    "message": "Virtual element runs per-row at fetch time and breaks server-side filtering — compute via association or a view function if filterability matters (ABAP-PERF-25)"
+  },
+  {
+    "id": "talos-cds-expand-no-cardinality-cap",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["DDLS"],
+    "forbid": "composition\\s*\\[\\s*0\\.\\.\\*\\s*\\](?!.*maxItems)",
+    "flags": "i",
+    "message": "$expand-able composition [0..*] without a cardinality cap — restrict via @ObjectModel.expand.maxItems or split into a paged sub-resource (ABAP-PERF-22)"
+  },
+  {
+    "id": "talos-rap-early-numbering",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["BDEF"],
+    "forbid": "\\bearly\\s+numbering\\b",
+    "flags": "i",
+    "message": "RAP behavior declares early numbering — switch to late numbering for create-heavy entities (ABAP-PERF-40)"
+  },
+  {
+    "id": "talos-rap-deep-create-no-cap",
+    "family": "rap-odata",
+    "severity": "priority-2",
+    "applies_to": ["BDEF"],
+    "forbid": "create\\s*\\(\\s*cba\\s*::\\s*\\w+\\s*\\)(?!.*max\\s*[:=]\\s*\\d+)",
+    "flags": "i",
+    "message": "Deep-create (create by association) without a cardinality cap — cap child cardinality or split the deep-create (ABAP-PERF-41)"
+  },
+  {
+    "id": "talos-rap-mixed-managed-unmanaged",
+    "family": "rap-odata",
+    "severity": "priority-1",
+    "applies_to": ["BDEF"],
+    "when": "\\bmanaged\\s+implementation\\b",
+    "forbid": "\\bunmanaged\\s+implementation\\b",
+    "flags": "i",
+    "message": "RAP behavior mixes managed and unmanaged implementation in one BO — inverts the savepoint contract; pick one mode per BO (ABAP-PERF-42)"
+  },
+  {
+    "id": "talos-cds-missing-service-quality",
+    "family": "performance",
+    "severity": "priority-3",
+    "applies_to": ["DDLS"],
+    "unless": "@VDM\\.private\\s*:\\s*true",
+    "require": "ObjectModel.usageType.serviceQuality",
+    "message": "Missing @ObjectModel.usageType.serviceQuality — declare the view's plan-stability class (#A..#D) as part of its runtime contract (ABAP-PERF-84)"
+  },
+  {
+    "id": "talos-cds-missing-size-category",
+    "family": "performance",
+    "severity": "priority-3",
+    "applies_to": ["DDLS"],
+    "unless": "@VDM\\.private\\s*:\\s*true",
+    "require": "ObjectModel.usageType.sizeCategory",
+    "message": "Missing @ObjectModel.usageType.sizeCategory — declare the expected result-set size as part of the view's runtime contract (ABAP-PERF-84)"
+  },
+  {
+    "id": "talos-cds-missing-data-class",
+    "family": "performance",
+    "severity": "priority-3",
+    "applies_to": ["DDLS"],
+    "unless": "@VDM\\.private\\s*:\\s*true",
+    "require": "ObjectModel.usageType.dataClass",
+    "message": "Missing @ObjectModel.usageType.dataClass — declare the data class (#TRANSACTIONAL/#MASTER/...) as part of the view's runtime contract (ABAP-PERF-84)"
+  },
+  {
+    "id": "talos-cds-missing-view-enhancement-category",
+    "family": "performance",
+    "severity": "priority-3",
+    "applies_to": ["DDLS"],
+    "unless": "@VDM\\.private\\s*:\\s*true",
+    "require": "AbapCatalog.viewEnhancementCategory",
+    "message": "CDS view has no @AbapCatalog.viewEnhancementCategory — declare it (e.g. [#NONE]) so enhancement behavior is an explicit contract (ABAP-PERF-26)"
   }
 ]

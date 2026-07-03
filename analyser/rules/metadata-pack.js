@@ -10,8 +10,14 @@ import { objectsOf } from "../src/abaplint-loader.js";
  *             (e.g. @AccessControl.authorizationCheck: #NOT_REQUIRED)
  *   - require: an annotation path that, if ABSENT from the source, raises a
  *              finding (e.g. missing @AccessControl.authorizationCheck)
+ * Optional gates on either mode:
+ *   - when:   regex that must match the source for the rule to apply
+ *             (e.g. only draft-enabled behaviors need lockingMode)
+ *   - unless: regex that suppresses the rule when it matches
+ *             (e.g. @VDM.private views are exempt from the usage-type contract)
  *
- * Rows: { id, family, severity, message, applies_to[], forbid?, flags?, require? }
+ * Rows: { id, family, severity, message, applies_to[], forbid?, flags?,
+ *         require?, when?, unless? }
  * Findings surface their own rule_id/family.
  */
 
@@ -61,6 +67,8 @@ export const metadataPack = {
  * @param {object[]} findings
  */
 function evalRule(rule, raw, obj, file, findings) {
+  if (rule.when && !safeRe(rule.when)?.test(raw)) return;
+  if (rule.unless && safeRe(rule.unless)?.test(raw)) return;
   if (rule.require) {
     const present = new RegExp("@" + escapeRegExp(rule.require), "i").test(raw);
     if (!present) push(findings, rule, obj, file, 1);
@@ -99,6 +107,15 @@ function push(findings, rule, obj, file, line) {
 /** @param {string} s */
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Compile a gate regex; a bad pattern disables its gate (fail-open). */
+function safeRe(pattern) {
+  try {
+    return new RegExp(pattern, "i");
+  } catch {
+    return null;
+  }
 }
 
 /** Test seam: drop the rule cache. */

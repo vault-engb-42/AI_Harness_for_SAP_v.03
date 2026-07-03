@@ -1165,5 +1165,57 @@
     "flags": "i",
     "message": "Deprecated classic function module call (CONVERSION_EXIT_*, NUMBER_GET_NEXT, POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY) — not S/4HANA-Cloud ready; replace with a released API/CDS/Fiori equivalent (S/4 readiness).",
     "object_types": []
+  },
+  {
+    "id": "talos-s4-010-vbfa-access",
+    "family": "modification",
+    "severity": "priority-2",
+    "pattern": "\\b(?:FROM\\s+VBFA|INTO\\s+VBFA|UPDATE\\s+VBFA|MODIFY\\s+VBFA|TYPE\\s+VBFA|TABLE\\s+OF\\s+VBFA)\\b",
+    "flags": "i",
+    "message": "Access to VBFA — audit VBTYP_N/V comparisons (1-char to 4-char VBTYPL in S/4HANA); use I_BillingDocumentPredecess (S4-010).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-012-bseg-access",
+    "family": "modification",
+    "severity": "priority-2",
+    "pattern": "\\b(?:FROM\\s+BSEG|INTO\\s+BSEG|UPDATE\\s+BSEG|MODIFY\\s+BSEG|TYPE\\s+BSEG|TABLE\\s+OF\\s+BSEG)\\b",
+    "flags": "i",
+    "message": "Access to BSEG — fields renamed/extended in S/4HANA G/L; audit DMBTR/WRBTR and consider migrating reads to ACDOCA (S4-012).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-015-stock-length",
+    "family": "modification",
+    "severity": "priority-2",
+    "pattern": "^\\s*(?:DATA|TYPES)\\s*:?\\s*[\\w,\\s-]*?(?:stock|menge|meng|qty|quantity|labst|requirement)[\\w,\\s-]*?\\bTYPE\\s+p\\s+LENGTH\\s+(?:7|13)\\b",
+    "flags": "i",
+    "message": "Stock/quantity-shaped field with short hardcoded LENGTH — truncates under S/4 stock field-length extension; use MENG13/MENG13V (S4-015).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
+  },
+  {
+    "id": "talos-s4-016-season-length",
+    "family": "modification",
+    "severity": "priority-2",
+    "pattern": "^\\s*(?:DATA|TYPES)\\s*:?\\s*[\\w,\\s-]*?(?:season|theme|collection)[\\w,\\s-]*?\\bTYPE\\s+c\\s+LENGTH\\s+(?:[1-9]|1\\d)\\b",
+    "flags": "i",
+    "message": "Season/theme/collection field hardcoded shorter than the extended FMS length; use fms_season/fms_theme/fms_collection (S4-016).",
+    "object_types": [
+      "CLAS",
+      "PROG",
+      "FUGR"
+    ]
   }
 ]
