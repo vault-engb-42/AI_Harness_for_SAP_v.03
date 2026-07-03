@@ -48,14 +48,21 @@ test("every metadata row compiles and declares valid mode + severity", () => {
 test("ALL_RULES wiring is pinned — removing any pack breaks this test", () => {
   const ids = ALL_RULES.map((r) => r.id).sort();
   assert.deepEqual(ids, [
+    "bf-pack",
     "cds-structure-pack",
+    "clone-pack",
     "ddic-pack",
+    "flow-pack",
     "graph-pack",
+    "intf-pack",
     "invariant-authority-check-subrc",
     "metadata-pack",
+    "rap-context-pack",
     "regex-pack",
     "released-api",
+    "srvb-pack",
     "statement-pack",
     "talos-missing-test-class",
+    "test-quality-pack",
   ]);
 });

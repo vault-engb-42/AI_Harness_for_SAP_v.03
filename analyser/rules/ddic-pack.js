@@ -85,6 +85,15 @@ function checkTable(obj, writtenTables, findings) {
   if (buffered && writtenTables.has(name)) {
     mk("talos-tabl-buffered-write", "priority-2", `buffered table ${name} is written by in-bundle DML — every write invalidates the buffer on all servers; reconsider the buffering mode or route writes elsewhere (ABAP-PERF-52)`, "performance");
   }
+
+  // CLOUD-29: a classic append structure extending a SAP-namespace table —
+  // Clean Core extends via released extension includes, not raw appends.
+  if (category === "APPEND") {
+    const target = /<SQLTAB>(\w+)<\/SQLTAB>/.exec(raw)?.[1]?.toUpperCase();
+    if (target && classifyNamespace(target) === "sap") {
+      mk("talos-append-on-sap-table", "priority-2", `append structure ${name} extends SAP table ${target} directly — use the released extension include / key-user extensibility instead of a classic append (CLOUD-29)`, "clean-core");
+    }
+  }
 }
 
 function checkDataElement(obj, domains, findings) {

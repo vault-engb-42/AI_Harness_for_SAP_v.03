@@ -7,6 +7,13 @@ import { graphPack } from "./graph-pack.js";
 import { cdsStructurePack } from "./cds-structure.js";
 import { missingTestClassRule } from "./missing-test-class.js";
 import { ddicPack } from "./ddic-pack.js";
+import { rapContextPack } from "./rap-context.js";
+import { flowPack } from "./flow-pack.js";
+import { clonePack } from "./clone-pack.js";
+import { intfPack } from "./intf-pack.js";
+import { testQualityPack } from "./test-quality-pack.js";
+import { bfPack } from "./bf-pack.js";
+import { srvbPack } from "./srvb-pack.js";
 
 /**
  * The harness-owned rule registry (ALL_RULES is the source of truth). abaplint's
@@ -26,4 +33,11 @@ export const ALL_RULES = [
   cdsStructurePack,
   missingTestClassRule,
   ddicPack,
+  rapContextPack,
+  flowPack,
+  clonePack,
+  intfPack,
+  testQualityPack,
+  bfPack,
+  srvbPack,
 ];

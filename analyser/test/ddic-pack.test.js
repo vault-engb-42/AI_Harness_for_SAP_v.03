@@ -43,6 +43,30 @@ test("a Z data element on a SAP domain suggests reusing the SAP element (PERF-50
   assert.ok(!run([dtel("ZDE_OWN", "ZDO_OWN"), doma("ZDO_OWN")]).some((x) => x.rule_id === "talos-dtel-duplicates-sap"));
 });
 
+test("a classic append structure on a SAP table is flagged; appends on Z-tables are fine (CLOUD-29)", () => {
+  const appendOnSap = {
+    filename: "zzacme_vbak.tabl.xml",
+    source: tabl("ZZACME_VBAK", { category: "APPEND", fields: [field("ZZFIELD", false)] }).source.replace(
+      "</DD02V>",
+      "<SQLTAB>VBAK</SQLTAB>\n   </DD02V>",
+    ),
+  };
+  const f = run([appendOnSap]);
+  const hit = f.find((x) => x.rule_id === "talos-append-on-sap-table");
+  assert.ok(hit, f.map((x) => x.rule_id).join(","));
+  assert.equal(hit.severity, "priority-2");
+  assert.match(hit.message, /VBAK/);
+
+  const appendOnZ = {
+    filename: "zzacme_zt.tabl.xml",
+    source: tabl("ZZACME_ZT", { category: "APPEND", fields: [field("ZZFIELD", false)] }).source.replace(
+      "</DD02V>",
+      "<SQLTAB>ZORDERS</SQLTAB>\n   </DD02V>",
+    ),
+  };
+  assert.ok(!ids(run([appendOnZ])).includes("talos-append-on-sap-table"));
+});
+
 test("a buffered table written by in-bundle DML is flagged; unwritten buffered table is not (PERF-52)", () => {
   const writer = {
     filename: "zcl_writer.clas.abap",

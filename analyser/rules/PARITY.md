@@ -17,9 +17,15 @@ catalog groups. A rule counts as covered only if a shipped pack implements it
 | Bucket | Count |
 |---|---|
 | Distinct coded port-worthy rules | 154 |
-| **Covered by shipped packs** | **131 (85%)** |
-| No-code catalog rows | 8 (6 covered — registry lookups = `released-api`; deprecated FM/table rows = regex data) |
-| **Total covered** | **137 / 162** |
+| **Covered by shipped packs** | **154 (100%)** |
+| No-code catalog rows | 8 — all covered (registry lookups = `released-api`; deprecated FM/table rows = regex data; CLEAN-015/019 = test-quality-pack) |
+| **Total covered** | **162 / 162** — *full parity, with the approximations below stated openly* |
+
+**2026-07-04: the final 25 deferrals were implemented** by building the missing
+surfaces: DDIC XML (ddic-pack), cross-artifact RAP context (rap-context-pack),
+flow/window analyses (flow-pack), clone detection (clone-pack), test-quality
+mapping (test-quality-pack), INTF signatures (intf-pack), SRVB chain
+(srvb-pack), and the bundled business-function datasets (bf-pack).
 
 Where they live:
 - **regex-pack** — 100 data rows ([data/regex-rules.json](data/regex-rules.json)): ABAP-Cloud forbidden constructs, S/4 simplification/field-length, security, deprecated APIs. Engine supports `when` file-gates (RAP-handler rules fire only inside behavior handler/saver classes) and `scan_comments` rows (modification markers); trailing/full-line `"` comments are stripped before matching, string literals stay inspectable. *(2026-07-03 audit remediation: 6 rows removed — cloud-005/cloud-021/perf-14 moved to statement-pack for multi-line safety, perf-33 diverged twin deleted, 2 TRANSPORTING-NO-FIELDS dupes deleted.)*
@@ -27,36 +33,40 @@ Where they live:
 - **metadata-pack** — 14 data rows with `when`/`unless` gates: draft locking/timeout, analytical annotations, virtualElement, expand caps, numbering, deep-create, mixed implementation, usage-type contract.
 - **cds-structure-pack** — 10 coded rules: join-graph size/cycles, serviceQuality mismatch, calc-fields in WHERE/JOIN, business logic, field order, VDM layering.
 - **graph-pack** — god-object / fan-out / dependency cycles. **missing-test-class** (HARDY-10). **released-api** (CLOUD-23/24/25 + registry rows). **invariant-auth-check** (SEC-8, P4).
+- **ddic-pack** — abapGit TABL/DTEL/DOMA XML: cluster/pool category p1 (PERF-53), client-only key (PERF-55), buffered-table writes (PERF-52), conversion-exit DTELs (PERF-49), Z-DTEL-on-SAP-domain (PERF-50), classic append on a SAP table (CLOUD-29). Also feeds the statement-pack's DDIC-aware FAE check (PERF-51: real keys + secondary-index leads; PERF-14 heuristic only as out-of-bundle fallback).
+- **rap-context-pack** — BDEF joined to classes/tables: strict-mode CALL TRANSACTION / direct DB writes p1 (CC-3/CC-4), draft-child direct create p1 (PERF-71), late-numbering draft table without DRAFTUUID key p1 (PERF-72), unbounded SELECT in FOR READ methods p1 (PERF-10).
+- **flow-pack** — statement-window analyses: lock held across external calls (PERF-34), dangling loop-assigned field symbols (HARDY-6), heavy per-row loop calculation advisory (PERF-5, threshold 8), unfiltered GET_ENTITYSET (PERF-31), legacy-UI app rollup (CLOUD-28, threshold 3).
+- **clone-pack** — 6-line duplicate-block detection, one finding per file (HARDY-2).
+- **test-quality-pack** — assert-less FOR TESTING methods p2 (CLEAN-015), public methods never referenced by the test include p3 (CLEAN-019).
+- **intf-pack** — table-returning interface methods without paging params (PERF-47), per-row methods without batch siblings (PERF-48).
+- **srvb-pack** — SRVB→SRVD→CDS chain joined by raw content: exposed entity without a paging policy p1 (PERF-21), large entity over OData V2 offset paging p2 (PERF-30). Fail-quiet when the chain is incomplete in the bundle.
+- **bf-pack** — bundled business-function datasets ([data/business-functions/](../data/business-functions/), SAP Notes 2240359/2240360 cross-walk): probing an always-off BF p1, depending on an object owned by one p1 (CLOUD-34).
 
-## Deferred (25) — each needs a surface the analyser does not parse yet
+## Known approximations (updated 2026-07-04, documented rather than over-claimed)
 
-| Needs | Rules | What unblocks |
-|---|---|---|
-| DDIC XML (TABL/DTEL via abapGit `*.tabl.xml`, `*.dtel.xml`) | PERF-49, 50, 51, 52, 53, 55 | parse abapGit XML into table/element metadata (abaplint supports the file type) |
-| Service-binding (SRVB) artifacts | PERF-21, 30 | SRVB parsing — not in scope of source bundles today |
-| INTF signature analysis | PERF-47, 48 | method-signature model over `getObjectsByType("INTF")` |
-| Cross-artifact joins (BDEF↔CDS↔table) | PERF-71, 72 | child-entity resolution across the bundle |
-| Business-function ownership data | CLOUD-34 | bundled SFW ownership map (dataset not in the cloudification bundle) |
-| CFG/DFG | PERF-34, HARDY-6 (PERF-1 has a shipped regex approximation) | the deferred data-flow layer (arch doc §9) |
-| Clone detection | HARDY-2 | dedicated duplicate-block algorithm (TALOS used clone_detector.py) |
-| Strict-mode cross-object context | CC-3, CC-4 | BDEF strict-level propagated to handler classes |
-| FP-prone heuristics (need semantic judgment) | PERF-5, 10, 31 | better modeled as evaluator/LLM review than regex — flagging every loop calc would drown the report |
-| Test-coverage mapping | CLEAN-015, CLEAN-019 | test-method↔method association model |
-| App-level UI aggregation | CLOUD-28 | line-level variants shipped (CLOUD-006/014/015); the app-level rollup needs object grouping |
-
-## Known approximations (audited 2026-07-03, documented rather than over-claimed)
-
-- **PERF-58**: detects only SELECT SINGLE with NO WHERE clause — the
-  partial-primary-key case needs DDIC metadata (deferred with the DDIC-XML
-  surface).
-- **PERF-14**: leading-WHERE-field vs a common-PK allowlist heuristic; the
-  finding message says so.
-- **PERF-41**: BDEF grammar has no payload-cap syntax; the rule now flags
+- **PERF-58**: detects only SELECT SINGLE with NO WHERE clause; the
+  partial-key refinement is possible for in-bundle tables via ddic-pack data
+  but is not yet wired.
+- **PERF-14**: allowlist heuristic ONLY when the target table is not in the
+  bundle; in-bundle tables get the precise PERF-51 key/index check.
+- **PERF-41**: BDEF grammar has no payload-cap syntax; the rule flags
   deep-create *enablement* (association `{ create; }`) as priority-3 advisory.
 - **PERF-23**: `total etag` / `@Semantics.systemDate.lastChangedAt` accepted
   as the concurrency guard alongside `lockingMode`.
-- **PERF-1**: shipped as a regex approximation (SELECT * projection); true
-  consumed-fields analysis needs DFG.
+- **PERF-1**: regex approximation (SELECT * projection); true consumed-fields
+  analysis needs DFG.
+- **PERF-49/50**: flag the DTEL itself (conversion-exit domain / SAP-domain
+  reuse hint) — the "hot SELECT projection" and "same label" halves need
+  usage/catalog data the bundle does not carry.
+- **PERF-5**: threshold-calibrated (8 arithmetic assignments per loop) at
+  priority-3 to avoid drowning the report; PERF-31 fires only on unfiltered
+  SELECTs inside `*get_entityset*` methods.
+- **PERF-21/30, CC-3/4, PERF-71/72, PERF-10**: cross-artifact rules judge only
+  when the joined artifact is IN the bundle; incomplete chains stay silent
+  rather than guessing.
+- **CLOUD-34**: grounded on a community cross-walk of login-walled SAP Notes
+  (see the dataset provenance headers) — refresh the JSONs when SAP updates
+  the notes.
 
 ## Regression protocol
 

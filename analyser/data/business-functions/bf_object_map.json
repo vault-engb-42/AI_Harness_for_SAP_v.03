@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "source": "SFW_DELIVERY_BF cross-walk — community-published mappings + ABAP help dataset (github.com/SAP/abap-atc-cr-cv-s4hc) where available",
+  "license": "Curated reference data; underlying SAP tables are © SAP SE",
+  "mappings": [
+    {"bf_name": "FIN_GL_CI_1", "tadir_object": "TABL", "object_name": "T800A"},
+    {"bf_name": "FIN_GL_CI_1", "tadir_object": "TABL", "object_name": "FAGL_T800A_CONFIG"},
+    {"bf_name": "FIN_GL_CI_1", "tadir_object": "FUGR", "object_name": "SAPLFAGL_CONFIGURATION"},
+    {"bf_name": "FIN_AA_PARALLEL_VAL", "tadir_object": "FUGR", "object_name": "SAPLAFAR_PARALLEL_VAL"},
+    {"bf_name": "LOG_MM_CI_1", "tadir_object": "TABL", "object_name": "T156"},
+    {"bf_name": "LOG_MM_CI_1", "tadir_object": "FUGR", "object_name": "SAPLM07M"},
+    {"bf_name": "LOG_TM_OBD_BSPL", "tadir_object": "FUGR", "object_name": "MM_OBD_LEGACY"},
+    {"bf_name": "LOG_TM_OBD_BSPL", "tadir_object": "TABL", "object_name": "MM_OBD_HEADER_LEGACY"},
+    {"bf_name": "LOG_PP_AFS_PROD_HU_CI_1", "tadir_object": "TABL", "object_name": "AFS_HU_LEGACY"},
+    {"bf_name": "ISH_NOT_TO_USE", "tadir_object": "FUGR", "object_name": "SAPLNZ4"},
+    {"bf_name": "PSM_FA_FUND_LOAN", "tadir_object": "TABL", "object_name": "FA_FUND_LOAN_LEGACY"},
+    {"bf_name": "LOG_PP_DOCS_LEGACY", "tadir_object": "TABL", "object_name": "PP_DOCS_LEGACY"},
+    {"bf_name": "FIN_REP_SIMPL_2", "tadir_object": "FUGR", "object_name": "SAPLFINREP_SIMPL"},
+    {"bf_name": "FIN_GL_LEDGER_GROUP_DEFAULT", "tadir_object": "TABL", "object_name": "FAGL_LDGRP_DEFAULT"}
+  ]
+}
