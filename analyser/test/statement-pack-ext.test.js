@@ -127,3 +127,74 @@ test("the same SELECT SINGLE repeated 3x in one file is flagged (HARDY-11)", () 
     SELECT SINGLE * FROM t000 INTO @DATA(ls3) WHERE mandt = '100'.`);
   assert.ok(ids(f).includes("talos-repeated-select-single"));
 });
+
+// --- batch 2: HARDY-3, OB1, PERF-2/96/39/4, S4-2 ---
+
+test("classic DATA declared inside an IF block is flagged (HARDY-3)", () => {
+  const f = findings(`    IF 1 = 1.
+      DATA lv_late TYPE i.
+      lv_late = 1.
+    ENDIF.`);
+  assert.ok(ids(f).includes("talos-data-in-block"));
+});
+
+test("DATA at method top level is NOT flagged by HARDY-3", () => {
+  const f = findings(`    DATA lv_ok TYPE i.
+    lv_ok = 1.`);
+  assert.ok(!ids(f).includes("talos-data-in-block"));
+});
+
+test("BINARY SEARCH on a table filled without ORDER BY is flagged (ABAP-OB1)", () => {
+  const f = findings(`    SELECT * FROM t000 INTO TABLE @DATA(lt_srt).
+    READ TABLE lt_srt INTO DATA(ls) WITH KEY mandt = '100' BINARY SEARCH.`);
+  assert.ok(ids(f).includes("talos-binary-search-no-order-by"));
+});
+
+test("BINARY SEARCH on a table filled WITH ORDER BY is NOT flagged", () => {
+  const f = findings(`    SELECT * FROM t000 ORDER BY mandt INTO TABLE @DATA(lt_srt).
+    READ TABLE lt_srt INTO DATA(ls) WITH KEY mandt = '100' BINARY SEARCH.`);
+  assert.ok(!ids(f).includes("talos-binary-search-no-order-by"));
+});
+
+test("COLLECT inside a LOOP is flagged as pushdown candidate (PERF-2)", () => {
+  const f = findings(`    LOOP AT lt INTO DATA(ls).
+      COLLECT ls INTO lt_sum.
+    ENDLOOP.`);
+  assert.ok(ids(f).includes("talos-aggregation-in-loop"));
+});
+
+test("UP TO n ROWS without a WHERE is flagged (PERF-96)", () => {
+  const f = findings(`    SELECT * FROM t000 UP TO 10 ROWS INTO TABLE @DATA(lt).`);
+  assert.ok(ids(f).includes("talos-limit-without-filter"));
+});
+
+test("UP TO n ROWS with a WHERE is NOT flagged", () => {
+  const f = findings(`    SELECT * FROM t000 UP TO 10 ROWS INTO TABLE @DATA(lt) WHERE mandt = @sy-mandt.`);
+  assert.ok(!ids(f).includes("talos-limit-without-filter"));
+});
+
+test("an internal table with 4+ KEY declarations is flagged (PERF-39)", () => {
+  const f = findings(`    DATA lt_multi TYPE STANDARD TABLE OF t000
+      WITH NON-UNIQUE KEY mandt
+      WITH NON-UNIQUE SORTED KEY k2 COMPONENTS mandt
+      WITH NON-UNIQUE SORTED KEY k3 COMPONENTS mandt
+      WITH UNIQUE HASHED KEY k4 COMPONENTS mandt.`);
+  assert.ok(ids(f).includes("talos-excessive-secondary-keys"));
+});
+
+test("3+ SELECTs from distinct tables in one source suggest a CDS join (PERF-4)", () => {
+  const f = findings(`    SELECT SINGLE * FROM t000 INTO @DATA(a) WHERE mandt = '1'.
+    SELECT SINGLE * FROM t001 INTO @DATA(b) WHERE bukrs = '1'.
+    SELECT SINGLE * FROM t005 INTO @DATA(c) WHERE land1 = 'DE'.`);
+  assert.ok(ids(f).includes("talos-cds-join-candidate"));
+});
+
+test("a BAPI call inside an ENHANCEMENT block is flagged (S4-2)", () => {
+  const src = `REPORT zr_enh.
+ENHANCEMENT 1 zenh_impl.
+  CALL FUNCTION 'BAPI_SALESORDER_CREATEFROMDAT2' EXPORTING iv = 1.
+ENDENHANCEMENT.`;
+  const reg = loadRegistry([{ filename: "zr_enh.prog.abap", source: src }]);
+  const f = statementPack.check({ reg });
+  assert.ok(ids(f).includes("talos-bapi-in-enhancement"));
+});

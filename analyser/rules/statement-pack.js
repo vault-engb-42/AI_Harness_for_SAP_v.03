@@ -16,6 +16,9 @@ import { objectsOf } from "../src/abaplint-loader.js";
 
 const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);
 const LOOP_CLOSE = new Set(["EndLoop", "EndWhile", "EndDo", "EndSelect"]);
+// HARDY-3 blocks = loops plus conditionals; ENHANCEMENT tracked separately (S4-2).
+const BLOCK_OPEN = new Set([...LOOP_OPEN, "If", "Case"]);
+const BLOCK_CLOSE = new Set([...LOOP_CLOSE, "EndIf", "EndCase"]);
 
 /** statement constructor name -> finding spec when seen inside a loop. */
 const IN_LOOP = {
@@ -39,6 +42,7 @@ const IN_LOOP_PATTERNS = [
   { id: "talos-window-function-candidate", family: "performance", severity: "priority-2", re: /^(\w+)\s*=\s*\1\s*[+-]/i, message: "Running total/counter computed per row in an ABAP loop; SQL window function or CDS aggregation candidate (ABAP-PERF-36)" },
   { id: "talos-assign-component-in-loop", family: "performance", severity: "info", re: /^ASSIGN\s+COMPONENT\b/i, message: "ASSIGN COMPONENT inside a loop does per-iteration RTTI lookup; resolve the component once before the loop (ABAP-PERF-46)" },
   { id: "talos-scalar-fn-in-loop", family: "performance", severity: "priority-2", re: /CALL\s+FUNCTION\s+'(?:CONVERT_TO_LOCAL_CURRENCY|CONVERT_TO_FOREIGN_CURRENCY|UNIT_CONVERSION_SIMPLE|CURRENCY_CONVERSION|FISCAL_\w+)'/i, message: "HANA scalar function reimplemented per row via CALL FUNCTION in a loop; push down to CDS/AMDP (ABAP-PERF-35)" },
+  { id: "talos-aggregation-in-loop", family: "performance", severity: "priority-2", re: /^COLLECT\b/i, message: "COLLECT aggregation in an ABAP loop; push SUM/COUNT/GROUP BY to a CDS view (ABAP-PERF-2)" },
 ];
 
 /** single-statement checks, any depth. `re` must match; `notRe` must NOT. */
@@ -46,6 +50,8 @@ const STATEMENT_PATTERNS = [
   { id: "talos-enqueue-no-wait", family: "performance", severity: "priority-1", stmts: ["CallFunction"], re: /CALL\s+FUNCTION\s+'ENQUEUE_/i, notRe: /_WAIT/i, message: "ENQUEUE_* without a bounded _WAIT parameter risks unbounded lock wait (ABAP-PERF-33)" },
   { id: "talos-endselect-no-package-size", family: "performance", severity: "priority-2", stmts: ["SelectLoop"], notRe: /PACKAGE\s+SIZE/i, message: "SELECT ... ENDSELECT without PACKAGE SIZE does single-row round-trips (ABAP-PERF-56)" },
   { id: "talos-select-single-no-where", family: "performance", severity: "priority-2", stmts: ["Select"], re: /^SELECT\s+SINGLE\b/i, notRe: /\bWHERE\b/i, message: "SELECT SINGLE without a WHERE clause reads an arbitrary row; constrain the full key (ABAP-PERF-58)" },
+  { id: "talos-limit-without-filter", family: "performance", severity: "priority-2", stmts: ["Select", "SelectLoop"], re: /\bUP\s+TO\s+\S+\s+ROWS\b/i, notRe: /\bWHERE\b/i, message: "UP TO n ROWS without a selective WHERE applies the limit after a full scan; filter first (ABAP-PERF-96)" },
+  { id: "talos-excessive-secondary-keys", family: "performance", severity: "info", stmts: ["Data", "ClassData", "Types"], re: /(?:\bKEY\b[\s\S]*?){4}/i, message: "internal table declares 4+ keys; every write maintains each key — trim secondary keys (ABAP-PERF-39)" },
 ];
 
 const FAE_RE = /FOR\s+ALL\s+ENTRIES\s+IN\s+@?(\w+)/i;
@@ -74,8 +80,10 @@ export const statementPack = {
 
 function scanStatements(file, obj, findings) {
   const stmts = file.getStatements();
-  const selectSingleCounts = new Map();
+  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null };
   let depth = 0;
+  let blockDepth = 0;
+  let enhDepth = 0;
   for (let i = 0; i < stmts.length; i++) {
     const name = stmts[i].get()?.constructor?.name;
     const text = stmts[i].concatTokens();
@@ -87,22 +95,56 @@ function scanStatements(file, obj, findings) {
       matchPatterns(IN_LOOP_PATTERNS, name, text, findings, obj, file, stmts[i]);
     }
     matchPatterns(STATEMENT_PATTERNS, name, text, findings, obj, file, stmts[i]);
-
-    if (name === "Select" || name === "SelectLoop") {
-      checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
-      countSelectSingle(text, stmts[i], selectSingleCounts);
-    }
-    if (name === "ModifyEntities") {
-      checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings);
-    }
-    if (name === "Sort") {
-      checkSortAfterSelect(stmts, i, text, obj, file, findings);
-    }
+    checkContext(stmts, i, name, text, { blockDepth, enhDepth, fileState }, obj, file, findings);
 
     if (LOOP_OPEN.has(name)) depth++;
     else if (LOOP_CLOSE.has(name)) depth = Math.max(0, depth - 1);
+    if (BLOCK_OPEN.has(name)) blockDepth++;
+    else if (BLOCK_CLOSE.has(name)) blockDepth = Math.max(0, blockDepth - 1);
+    if (name === "Enhancement") enhDepth++;
+    else if (name === "EndEnhancement") enhDepth = Math.max(0, enhDepth - 1);
   }
-  reportRepeatedSelects(selectSingleCounts, obj, file, findings);
+  reportFileLevel(fileState, obj, file, findings);
+}
+
+/** Per-statement context rules (guards, lookbacks, file-state accumulation). */
+function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
+  if (name === "Select" || name === "SelectLoop") {
+    checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
+    countSelectSingle(text, stmts[i], ctx.fileState.selectSingles);
+    trackSelect(text, stmts[i], ctx.fileState);
+  }
+  if (name === "ModifyEntities") {
+    checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings);
+  }
+  if (name === "Sort") {
+    checkSortAfterSelect(stmts, i, text, obj, file, findings);
+  }
+  if ((name === "Data" || name === "ClassData") && ctx.blockDepth > 0) {
+    push(findings, { id: "talos-data-in-block", family: "anti-pattern", severity: "priority-2", message: "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)" }, obj, file, stmts[i]);
+  }
+  if (name === "CallFunction" && ctx.enhDepth > 0 && /CALL\s+FUNCTION\s+'BAPI_/i.test(text)) {
+    push(findings, { id: "talos-bapi-in-enhancement", family: "deprecation", severity: "info", message: "BAPI call inside an ENHANCEMENT block; migrate the enhancement to a RAP action + EML (S4-2)" }, obj, file, stmts[i]);
+  }
+  if (name === "ReadTable" && /\bBINARY\s+SEARCH\b/i.test(text)) {
+    const m = /^READ\s+TABLE\s+(\w+)/i.exec(text);
+    if (m && ctx.fileState.unorderedTables.has(m[1].toUpperCase())) {
+      push(findings, { id: "talos-binary-search-no-order-by", family: "performance", severity: "priority-2", message: `BINARY SEARCH on ${m[1].toUpperCase()}, which was filled by a SELECT without ORDER BY — the sort order is not guaranteed (ABAP-OB1)` }, obj, file, stmts[i]);
+    }
+  }
+}
+
+/** Track SELECT targets/sources for the file-level rules (OB1, PERF-4). */
+function trackSelect(text, st, fileState) {
+  const from = /\bFROM\s+@?(\w+)/i.exec(text);
+  if (from && !from[1].startsWith("@")) {
+    fileState.fromTables.add(from[1].toUpperCase());
+    if (!fileState.firstSelect) fileState.firstSelect = st;
+  }
+  if (!/\bORDER\s+BY\b/i.test(text)) {
+    const into = /\bINTO\s+TABLE\s+@?(?:DATA\()?(\w+)\)?/i.exec(text);
+    if (into) fileState.unorderedTables.add(into[1].toUpperCase());
+  }
 }
 
 /** Apply a pattern table to one statement. */
@@ -162,11 +204,14 @@ function countSelectSingle(text, st, counts) {
   counts.set(key, rec);
 }
 
-function reportRepeatedSelects(counts, obj, file, findings) {
-  for (const rec of counts.values()) {
+function reportFileLevel(fileState, obj, file, findings) {
+  for (const rec of fileState.selectSingles.values()) {
     if (rec.n >= 3) {
       push(findings, { id: "talos-repeated-select-single", family: "performance", severity: "priority-2", message: `identical SELECT SINGLE repeated ${rec.n}x in this source; read once and cache (HARDY-11)` }, obj, file, rec.st);
     }
+  }
+  if (fileState.fromTables.size >= 3 && fileState.firstSelect) {
+    push(findings, { id: "talos-cds-join-candidate", family: "performance", severity: "info", message: `${fileState.fromTables.size} tables read by separate SELECTs in this source; a single CDS view join may replace them (ABAP-PERF-4)` }, obj, file, fileState.firstSelect);
   }
 }
 
