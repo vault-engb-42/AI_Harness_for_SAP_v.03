@@ -2,16 +2,16 @@
 
 A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system** — the engineering harness `claude_harness_eng_v5` retargeted for ABAP Cloud / RAP / CDS. Same anatomy (generator/evaluator separation, the Karpathy ratchet, lanes, "the human merges"), same "no backend of its own" philosophy.
 
-**The only external substrate is the MCP-ADT server** (ABAP Developer Tools — 17 `aws_abap_cb_*` tools). Everything — grounding, quality gates, delivery — rides those tools. There is no code graph, analyser, or gateway. `CLAUDE.md` is the always-loaded spine (prime directives P1–P8); this README carries the roster and reference tables (kept out of `CLAUDE.md` for prompt-cache stability).
+**The core substrate is the MCP-ADT server** (ABAP Developer Tools — 17 `aws_abap_cb_*` tools). Grounding, quality gates, and delivery ride those tools; the standalone **analyser** adds an offline/local code graph on top. `CLAUDE.md` is the always-loaded spine (prime directives P1–P8); this README carries the roster and reference tables (kept out of `CLAUDE.md` for prompt-cache stability).
 
-## The MCP-ADT bridge (`mcp-adt-bridge/`)
+## The MCP-ADT sidecar (`sap-adt-sidecar/`) + bridge (`mcp-adt-bridge/`)
 
-The ADT sidecar (`docker/sap-adt/adapter.py`) is a **FastAPI REST** service (`POST /mcp`, port 8090), **not** a native MCP server — a Claude Code `.mcp.json` cannot connect to it directly. This harness ships a thin **MCP stdio → ADT REST bridge** so the agents can call the ADT tools as normal MCP tools. It is the harness's only new engine.
+The harness ships its **own Node ADT sidecar** — the TALOS `docker/sap-adt` adapter ported to real working code (no mock mode). It is a FastAPI-compatible REST service (`POST /mcp` with `{tool, params}` + `X-SAP-*` credential headers, `GET /health`) bound to `127.0.0.1:8090`. All 17 tools make real ADT calls; the reference's fake-success write handlers are replaced with real lock→PUT→activate flows, and quality-tool errors propagate instead of collapsing to empty/fabricated results (P6 fail-closed).
 
-- `server.js` — MCP stdio server (JSON-RPC 2.0). Handles `initialize`, `tools/list`, `tools/call`.
-- `adt-tools.js` — the 17-tool registry with input schemas and the read/write classification.
-- `adt-client.js` — forwards a call to the sidecar's `POST /mcp` with `X-SAP-*` credential headers.
-- `test/` — end-to-end tests (spawn the real server process, real stdio, real network failure paths — **no mocks, no stubs, no fakes**). The sidecar round-trip is covered by the live E2E suite against a real sidecar.
+- `sap-adt-sidecar/lib/` — `session.js` (real ADT auth: discovery + basic auth + CSRF fetch + manual cookie jar), `adt-xml.js` (namespace-agnostic parse/build), `adt-uris.js`, `security.js` (credential-scrubbing error sanitizer).
+- `sap-adt-sidecar/handlers/` — `read.js`, `quality.js`, `write.js` (the 17 tools).
+- `mcp-adt-bridge/` — the thin **MCP stdio → ADT REST bridge**: `server.js` (JSON-RPC 2.0), `adt-tools.js` (17-tool registry + read/write classification), `adt-client.js` (forwards to the sidecar).
+- All tests are **real-path — no mocks, no stubs, no fakes**: offline tests spawn the real processes and exercise real failure paths (bad input, closed ports); the SAP round-trip lives in the live suites (below).
 
 ### Read vs write (P5 fail-closed)
 
@@ -20,16 +20,25 @@ The ADT sidecar (`docker/sap-adt/adapter.py`) is a **FastAPI REST** service (`PO
 ### Running it
 
 ```bash
-# 1. Start the ADT sidecar (from the TALOS repo). Mock mode = fully offline (no SAP):
-#    S4_TRIAL_URL unset  -> MockToolHandlers ; set -> live SAP.
-#    uvicorn adapter:app --host 127.0.0.1 --port 8090   (or via its docker compose)
-# 2. The harness reaches it through .mcp.json (server "sap-adt"); override the target with:
-#      ADT_MCP_URL=http://127.0.0.1:8090
-# 3. Tests:
+# Start the ported Node sidecar (no docker, no Python). Binds 127.0.0.1:8090:
+node sap-adt-sidecar/server.js            # ADAPTER_PORT overrides the port
+
+# Offline tests (no SAP needed) — real processes + real failure paths:
 npm test
+
+# LIVE end-to-end against a real SAP system (read-only). Fails LOUDLY if creds
+# are missing — never skipped, never faked:
+SAP_HOST=... SAP_USER=... SAP_PASSWORD=... \
+  SAP_PORT=44300 SAP_CLIENT=100 SAP_TEST_PACKAGE=SABAPDEMOS \
+  NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  npm run test:live
+
+# LIVE write-path E2E (create/update/test-class/activate/unit-test) — DEV ONLY (P5):
+SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
+  npm run test:live:write
 ```
 
-`.mcp.json` wires exactly one server, `sap-adt`, pointing at `127.0.0.1:8090` with writes disabled by default.
+`NODE_TLS_REJECT_UNAUTHORIZED=0` is needed only for a self-signed (trial) SAP certificate. `.mcp.json` wires two servers — `sap-adt` (bridge; `ADT_MCP_URL` defaults to the sidecar at `127.0.0.1:8090`, writes fail-closed) and `abap-analyser` (the standalone analyser).
 
 ## Build status
 
