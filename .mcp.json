@@ -7,6 +7,13 @@
         "ADT_MCP_URL": "http://127.0.0.1:8090",
         "HARNESS_ADT_ALLOW_WRITE": "0"
       }
+    },
+    "abap-analyser": {
+      "command": "node",
+      "args": ["analyser/server.js"],
+      "env": {
+        "ADT_MCP_URL": "http://127.0.0.1:8090"
+      }
     }
   }
 }
