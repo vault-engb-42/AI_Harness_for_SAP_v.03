@@ -34,10 +34,11 @@ export function analyzeObjects(files) {
  * orchestrator) load the registry once and share it with the rule engine
  * rather than parsing twice.
  * @param {import("@abaplint/core").Registry} reg
+ * @param {{maxNodes?: number}} [opts] forwarded to the graph store (§10.2 cap)
  * @returns {DependencyGraph}
  */
-export function analyzeRegistry(reg) {
-  const graph = new DependencyGraph();
+export function analyzeRegistry(reg, opts = {}) {
+  const graph = new DependencyGraph(opts);
 
   // First pass: register EVERY object node before any edge extraction, so
   // authoritative kinds always win over edge-target guesses (a SELECT on an

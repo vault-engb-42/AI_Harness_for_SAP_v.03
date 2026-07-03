@@ -2,6 +2,7 @@
 // analyser's three modes (offline bundle / live-via-engine / live-via-ADT).
 // Read-only against SAP; the only writes are local report files.
 import { createInterface } from "node:readline";
+import { readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute } from "node:path";
 import { ANALYSER_TOOLS, TOOL_NAMES } from "./analyser-tools.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
@@ -79,6 +80,14 @@ async function runTool(name, args, env) {
       const doc = await docFromAdtOnly(env, args.package, { source_system: args.source_system });
       const out = writeReport(doc, resolveOut(args.out));
       return summarize(doc, 0, out);
+    }
+    case "get_report": {
+      const path = resolveOut(args.out);
+      try {
+        return readFileSync(path, "utf8");
+      } catch {
+        throw new Error(`no report at ${path} — run analyse_bundle / analyse_source_system / analyse_via_adt first`);
+      }
     }
     default:
       throw new Error(`unhandled tool ${name}`);

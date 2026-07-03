@@ -76,15 +76,39 @@ test("filesFromBundle on a missing directory throws an actionable error", () => 
   assert.throws(() => filesFromBundle(join(FIXTURES, "does-not-exist")), /bundle path/i);
 });
 
-test("initialize + tools/list expose the three analyser tools", async () => {
+test("initialize + tools/list expose the four analyser tools", async () => {
   const s = startServer();
   try {
     const init = await s.request("initialize", { protocolVersion: "2024-11-05", capabilities: {} });
     assert.equal(init.result.serverInfo.name, "abap-analyser");
     const r = await s.request("tools/list", {});
     const names = r.result.tools.map((t) => t.name).sort();
-    assert.deepEqual(names, ["analyse_bundle", "analyse_source_system", "analyse_via_adt"]);
+    assert.deepEqual(names, ["analyse_bundle", "analyse_source_system", "analyse_via_adt", "get_report"]);
     assert.ok(r.result.tools.every((t) => t.inputSchema), "tools carry input schemas");
+  } finally {
+    s.close();
+  }
+});
+
+test("get_report returns a previously written report and errors on a missing one", async () => {
+  const s = startServer();
+  const out = join(OUT_DIR, "get-report.json");
+  try {
+    await s.request("tools/call", {
+      name: "analyse_bundle",
+      arguments: { path: FIXTURES, package: "ZGOLDEN", out },
+    });
+    const r = await s.request("tools/call", { name: "get_report", arguments: { out } });
+    assert.notEqual(r.result.isError, true);
+    const doc = JSON.parse(r.result.content[0].text);
+    assert.equal(doc.package, "ZGOLDEN");
+
+    const missing = await s.request("tools/call", {
+      name: "get_report",
+      arguments: { out: join(OUT_DIR, "nope.json") },
+    });
+    assert.equal(missing.result.isError, true);
+    assert.match(missing.result.content[0].text, /no report/i);
   } finally {
     s.close();
   }

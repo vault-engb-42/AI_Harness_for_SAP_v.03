@@ -22,8 +22,25 @@ import { collectBlastRadius } from "./blast-radius-report.js";
  * @returns {object} analyser-findings document
  */
 export function analyzePackage(files, opts = {}) {
-  const reg = loadRegistry(files);
-  const graph = analyzeRegistry(reg);
+  const notes = opts.coverage_note ? [opts.coverage_note] : [];
+  const admitted = applyFileByteCap(files, notes);
+
+  // ABAPLINT_TIMEOUT_MS is a SOFT budget: abaplint's parse() is synchronous
+  // and cannot be preempted without worker isolation, so an overrun is
+  // recorded in coverage_note rather than aborted. The hard runaway guards
+  // are the per-file byte cap above and the graph-node cap below.
+  const budget = Number(process.env.ABAPLINT_TIMEOUT_MS);
+  const started = Date.now();
+  const reg = loadRegistry(admitted);
+  const maxNodes = Number(process.env.MAX_GRAPH_NODES);
+  const graph = analyzeRegistry(reg, { maxNodes: Number.isFinite(maxNodes) ? maxNodes : undefined });
+  const elapsed = Date.now() - started;
+  if (Number.isFinite(budget) && budget > 0 && elapsed > budget) {
+    notes.push(`parse+graph took ${elapsed}ms, exceeding the ABAPLINT_TIMEOUT_MS soft budget of ${budget}ms`);
+  }
+  if (graph.truncated) {
+    notes.push(`graph truncated at MAX_GRAPH_NODES=${maxNodes}; dependency coverage is partial — raise the cap or narrow the package`);
+  }
 
   const findings = [
     ...runAbaplintRules(reg),
@@ -45,8 +62,29 @@ export function analyzePackage(files, opts = {}) {
     blast_radius,
     namespace_summary: buildNamespaceSummary(g.nodes),
   };
-  if (opts.coverage_note) doc.coverage_note = opts.coverage_note;
+  if (notes.length) doc.coverage_note = notes.join(" | ");
   return doc;
+}
+
+/**
+ * Skip files above ANALYSER_MAX_FILE_BYTES (default 2 MB), naming each skip
+ * in the coverage notes — a runaway input degrades loudly, never silently.
+ * @param {Array<{filename: string, source: string}>} files
+ * @param {string[]} notes
+ * @returns {Array<{filename: string, source: string}>}
+ */
+function applyFileByteCap(files, notes) {
+  const cap = Number(process.env.ANALYSER_MAX_FILE_BYTES) || 2_000_000;
+  const admitted = [];
+  const skipped = [];
+  for (const f of files) {
+    if (Buffer.byteLength(f.source, "utf8") > cap) skipped.push(f.filename);
+    else admitted.push(f);
+  }
+  if (skipped.length) {
+    notes.push(`files skipped over ANALYSER_MAX_FILE_BYTES=${cap}: ${skipped.join(", ")}`);
+  }
+  return admitted;
 }
 
 /**

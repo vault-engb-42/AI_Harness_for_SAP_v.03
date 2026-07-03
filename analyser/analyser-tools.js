@@ -40,6 +40,14 @@ export const ANALYSER_TOOLS = [
     ),
   },
   {
+    name: "get_report",
+    description:
+      "Return a previously written analyser-findings report (default: the standard report path). Read-only convenience for consumers that cannot read files directly.",
+    inputSchema: obj({
+      out: str("Report path to read (default specs/brownfield/analyser-findings.json, contained under the report root)"),
+    }),
+  },
+  {
     name: "analyse_via_adt",
     description:
       "Subset analysis of a live SAP package via ADT signals only (read-only): run_atc_check (variant ABAP_CLEAN_CORE_DEVELOPMENT) + get_migration_analysis. No local parse — findings + readiness only, empty graph, explicit coverage note. Requires ADT_MCP_URL.",
