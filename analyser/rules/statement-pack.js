@@ -89,19 +89,40 @@ export const statementPack = {
    */
   check(ctx) {
     const findings = [];
+    const ddic = buildDdicIndex(ctx.reg);
     for (const obj of objectsOf(ctx.reg)) {
       if (!(obj instanceof ABAPObject)) continue;
       for (const file of obj.getABAPFiles()) {
-        scanStatements(file, obj, findings);
+        scanStatements(file, obj, findings, ddic);
       }
     }
     return findings;
   },
 };
 
-function scanStatements(file, obj, findings) {
+/**
+ * In-bundle TABL key/index knowledge for the DDIC-aware FAE check (PERF-51):
+ * table -> { keys, indexLeads } (leading field of each secondary index).
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {Map<string, {keys: Set<string>, indexLeads: Set<string>}>}
+ */
+function buildDdicIndex(reg) {
+  const ddic = new Map();
+  for (const obj of objectsOf(reg)) {
+    if (obj.getType?.() !== "TABL") continue;
+    const fields = obj.parsedData?.fields ?? [];
+    const keys = new Set(fields.filter((f) => f.KEYFLAG === "X").map((f) => String(f.FIELDNAME).toUpperCase()));
+    const indexLeads = new Set(
+      (obj.getSecondaryIndexes?.() ?? []).map((i) => String(i.fields?.[0] ?? "").toUpperCase()).filter(Boolean),
+    );
+    ddic.set(obj.getName().toUpperCase(), { keys, indexLeads });
+  }
+  return ddic;
+}
+
+function scanStatements(file, obj, findings, ddic = new Map()) {
   const stmts = file.getStatements();
-  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set() };
+  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set(), ddic };
   let depth = 0;
   let blockDepth = 0;
   let enhDepth = 0;
@@ -132,7 +153,7 @@ function scanStatements(file, obj, findings) {
 function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   if (name === "Select" || name === "SelectLoop") {
     checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
-    checkFaePrefix(text, obj, file, stmts[i], findings);
+    checkFaePrefix(text, obj, file, stmts[i], findings, ctx.fileState.ddic);
     countSelectSingle(text, stmts[i], ctx.fileState.selectSingles);
     trackSelect(text, stmts[i], ctx.fileState);
   }
@@ -218,17 +239,35 @@ function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
 }
 
 /**
- * PERF-14 (ported from the line-regex row, which missed the multi-line FAE
- * layout): a FOR ALL ENTRIES whose WHERE clause leads with a field outside
- * the common primary-key prefix set misaligns with the index.
+ * PERF-14 / PERF-51: a FOR ALL ENTRIES whose WHERE clause leads with a field
+ * that misaligns with the target's index. When the target table is in the
+ * bundle (TABL XML), its REAL key fields and secondary-index leads decide
+ * (PERF-51, precise); otherwise the common-PK allowlist heuristic applies
+ * (PERF-14, stated in the message).
  */
-function checkFaePrefix(text, obj, file, st, findings) {
+function checkFaePrefix(text, obj, file, st, findings, ddic) {
   if (!FAE_RE.test(text)) return;
   const m = /\bWHERE\s+(\w+)/i.exec(text);
-  if (!m || COMMON_PK_PREFIX.has(m[1].toUpperCase())) return;
+  if (!m) return;
+  const lead = m[1].toUpperCase();
+  const tableName = /\bFROM\s+(?!@)(\w+)/i.exec(text)?.[1]?.toUpperCase();
+  const info = tableName ? ddic?.get(tableName) : undefined;
+
+  if (info) {
+    if (info.keys.has(lead) || info.indexLeads.has(lead)) return;
+    push(
+      findings,
+      { id: "talos-fae-unindexed-where", family: "performance", severity: "priority-2", message: `FOR ALL ENTRIES on ${tableName} leads with ${lead}, which is neither a key field nor a secondary-index lead of the table — full scan per driver row (ABAP-PERF-51)` },
+      obj,
+      file,
+      st,
+    );
+    return;
+  }
+  if (COMMON_PK_PREFIX.has(lead)) return;
   push(
     findings,
-    { id: "talos-fae-nonpk-where-prefix", family: "performance", severity: "priority-2", message: `FOR ALL ENTRIES WHERE clause leads with ${m[1].toUpperCase()}, which is not a common primary-key prefix field — index misalignment risk (heuristic; verify against the table's key) (ABAP-PERF-14)` },
+    { id: "talos-fae-nonpk-where-prefix", family: "performance", severity: "priority-2", message: `FOR ALL ENTRIES WHERE clause leads with ${lead}, which is not a common primary-key prefix field — index misalignment risk (heuristic; verify against the table's key) (ABAP-PERF-14)` },
     obj,
     file,
     st,

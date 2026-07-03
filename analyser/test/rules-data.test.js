@@ -49,6 +49,7 @@ test("ALL_RULES wiring is pinned — removing any pack breaks this test", () => 
   const ids = ALL_RULES.map((r) => r.id).sort();
   assert.deepEqual(ids, [
     "cds-structure-pack",
+    "ddic-pack",
     "graph-pack",
     "invariant-authority-check-subrc",
     "metadata-pack",

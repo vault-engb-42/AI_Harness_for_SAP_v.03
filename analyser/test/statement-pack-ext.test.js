@@ -274,6 +274,35 @@ test("FAE leading WHERE field on a PK-prefix field is NOT flagged by PERF-14", (
   assert.ok(!ids(f).includes("talos-fae-nonpk-where-prefix"));
 });
 
+test("with the table in-bundle, FAE alignment uses REAL keys and index leads (PERF-51)", async () => {
+  const { field, tabl } = await import("./helpers/abapgit-xml.js");
+  const table = tabl("ZT_ORD", {
+    fields: [field("MANDT", true, "MANDT"), field("ORDER_ID", true), field("AMOUNT", false), field("STATUS", false)],
+    indexes: [{ name: "ST1", fields: ["STATUS", "AMOUNT"] }],
+  });
+  const clas = (whereField) => ({
+    filename: "zcl_fae.clas.abap",
+    source: `CLASS zcl_fae DEFINITION PUBLIC FINAL.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_fae IMPLEMENTATION.
+  METHOD run.
+    IF lt_drv IS NOT INITIAL.
+      SELECT * FROM zt_ord FOR ALL ENTRIES IN @lt_drv WHERE ${whereField} = @lt_drv-f INTO TABLE @DATA(lt).
+    ENDIF.
+  ENDMETHOD.
+ENDCLASS.`,
+  });
+  const run = (whereField) =>
+    statementPack.check({ reg: loadRegistry([table, clas(whereField)]) }).map((x) => x.rule_id);
+
+  assert.ok(run("amount").includes("talos-fae-unindexed-where"), "non-key non-index lead flagged precisely");
+  assert.ok(!run("order_id").includes("talos-fae-unindexed-where"), "real key field passes");
+  assert.ok(!run("status").includes("talos-fae-unindexed-where"), "secondary-index lead passes");
+  assert.ok(!run("amount").includes("talos-fae-nonpk-where-prefix"), "heuristic suppressed when real DDIC is present");
+});
+
 test("a BAPI call inside an ENHANCEMENT block is flagged (S4-2)", () => {
   const src = `REPORT zr_enh.
 ENHANCEMENT 1 zenh_impl.
