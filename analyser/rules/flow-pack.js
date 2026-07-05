@@ -17,7 +17,11 @@ const LOOP_CLOSE = new Set(["EndLoop", "EndWhile", "EndDo", "EndSelect"]);
 const HEAVY_CALC_THRESHOLD = 8;
 const LEGACY_UI_THRESHOLD = 3;
 const LEGACY_UI_RE = /^(?:WRITE\b|CALL\s+SCREEN\b|SET\s+SCREEN\b|LEAVE\s+(?:SCREEN|PROGRAM)\b|CALL\s+FUNCTION\s+'REUSE_ALV)/i;
-const ARITH_ASSIGN_RE = /^\w[\w-]*\s*=\s*.*[-+*/]/;
+// ABAP requires spaces around arithmetic operators (`a + b`), while a structure
+// field selector is unspaced (`struct-comp`) — so a SPACED operator distinguishes
+// genuine arithmetic from a field move. Literals are blanked first so a `/`/`-`
+// inside a string is not miscounted.
+const ARITH_ASSIGN_RE = /^\w[\w-]*\s*=\s*.*\s[-+*/]+\s/;
 
 export const flowPack = {
   id: "flow-pack",
@@ -31,8 +35,26 @@ export const flowPack = {
     const findings = [];
     for (const obj of objectsOf(ctx.reg)) {
       if (!(obj instanceof ABAPObject)) continue;
+      // CLOUD-28 is an app-level rollup, so the legacy-UI count aggregates
+      // across ALL of the object's includes and emits at most once per object.
+      let legacyUiCount = 0;
+      let firstLegacyUi = null; // { st, file }
       for (const file of obj.getABAPFiles()) {
-        scanFile(file, obj, findings);
+        const ui = scanFile(file, obj, findings);
+        legacyUiCount += ui.count;
+        if (!firstLegacyUi && ui.firstSt) firstLegacyUi = { st: ui.firstSt, file };
+      }
+      if (legacyUiCount >= LEGACY_UI_THRESHOLD && firstLegacyUi) {
+        findings.push({
+          rule_id: "talos-legacy-ui-rollup",
+          severity: "priority-2",
+          object: obj.getName(),
+          object_type: obj.getType(),
+          file: firstLegacyUi.file.getFilename(),
+          line: firstLegacyUi.st?.getFirstToken()?.getStart()?.getRow?.() ?? 1,
+          message: `${legacyUiCount} classic-UI statements (WRITE/Dynpro/ALV) in this object — the app rides the legacy UI stack; target RAP/Fiori (CLOUD-28)`,
+          family: "clean-core",
+        });
       }
     }
     return findings;
@@ -68,6 +90,7 @@ function scanFile(file, obj, findings) {
     } else if (kind === "EndMethod") {
       currentMethod = null;
       loopAssigns.clear();
+      lockHolder = null; // an enqueue window cannot legitimately span a method boundary
     }
 
     if (currentMethod && entitysetMethods.has(currentMethod) && (kind === "Select" || kind === "SelectLoop") && !/\bWHERE\b/i.test(text)) {
@@ -91,7 +114,7 @@ function scanFile(file, obj, findings) {
         mk("talos-heavy-loop-calc", "priority-3", `${loopCalcCount} arithmetic assignments per row in this loop — push the calculation down to CDS/AMDP (ABAP-PERF-5; threshold ${HEAVY_CALC_THRESHOLD})`, "performance", loopStart);
       }
     } else if (depth > 0) {
-      if (ARITH_ASSIGN_RE.test(text)) loopCalcCount++;
+      if (ARITH_ASSIGN_RE.test(text.replace(/'[^']*'/g, "''"))) loopCalcCount++;
       const fs = /^ASSIGN\b.*\bTO\s+FIELD-SYMBOL\(?(<\w+>)/i.exec(text)?.[1] ?? /^ASSIGN\b.*\bTO\s+(<\w+>)/i.exec(text)?.[1];
       if (fs) loopAssigns.set(fs.toUpperCase(), st);
     } else {
@@ -99,9 +122,8 @@ function scanFile(file, obj, findings) {
     }
   }
 
-  if (legacyUiCount >= LEGACY_UI_THRESHOLD) {
-    mk("talos-legacy-ui-rollup", "priority-2", `${legacyUiCount} classic-UI statements (WRITE/Dynpro/ALV) in this object — the app rides the legacy UI stack; target RAP/Fiori (CLOUD-28)`, "clean-core", firstLegacyUi);
-  }
+  // The legacy-UI rollup is aggregated per object in check(), not per file.
+  return { count: legacyUiCount, firstSt: firstLegacyUi };
 }
 
 /** PERF-34: between ENQUEUE_* and its DEQUEUE_*, unrelated external calls hold the lock. */
@@ -129,6 +151,13 @@ function checkDanglingFs(text, loopAssigns, mk, st) {
   const un = /^UNASSIGN\s+(<\w+>)/i.exec(text)?.[1];
   if (un) {
     loopAssigns.delete(un.toUpperCase());
+    return;
+  }
+  // An `IS [NOT] ASSIGNED` / `IS BOUND` check is a defensive guard on the field
+  // symbol, not a dangling deref — clear it rather than flag it.
+  const guarded = /(<\w+>)\s+IS\s+(?:NOT\s+)?(?:ASSIGNED|BOUND)\b/i.exec(text)?.[1];
+  if (guarded) {
+    loopAssigns.delete(guarded.toUpperCase());
     return;
   }
   for (const [fs] of loopAssigns) {

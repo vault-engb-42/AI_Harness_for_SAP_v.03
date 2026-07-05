@@ -89,3 +89,86 @@ test("3+ legacy-UI statements roll up to one app-level finding (CLOUD-28)", () =
   const single = findings(`    WRITE 'only one'.`);
   assert.ok(!single.some((x) => x.rule_id === "talos-legacy-ui-rollup"));
 });
+
+// ---- audit remediation 2026-07-05: flow-pack accuracy (F12-F15) ----
+
+// F12: plain structure-field moves and string literals must not be counted as
+// arithmetic (ABAP requires spaces around arithmetic operators; a field
+// selector `-` and slashes/hyphens inside literals do not).
+test("field-copy moves and string literals in a loop are not heavy-calc (F12)", () => {
+  const moves = Array.from({ length: 8 }, (_, i) => `      ls_out-c${i} = ls-c${i}.`).join("\n");
+  const f = findings(`    LOOP AT lt INTO DATA(ls).
+${moves}
+    ENDLOOP.`);
+  assert.ok(!f.some((x) => x.rule_id === "talos-heavy-loop-calc"), "structure-field moves are not arithmetic");
+
+  const strs = Array.from({ length: 8 }, (_, i) => `      lv_p${i} = '/tmp/a-b/f${i}'.`).join("\n");
+  const f2 = findings(`    LOOP AT lt INTO DATA(ls).
+${strs}
+    ENDLOOP.`);
+  assert.ok(!f2.some((x) => x.rule_id === "talos-heavy-loop-calc"), "string literals with / or - are not arithmetic");
+});
+
+// F13: an unpaired ENQUEUE must not leak across a method boundary.
+test("an unpaired ENQUEUE does not leak into the next method (F13)", () => {
+  const source = `CLASS zcl_lk DEFINITION PUBLIC FINAL FOR TESTING.
+  PUBLIC SECTION.
+    METHODS lock.
+    METHODS other.
+ENDCLASS.
+CLASS zcl_lk IMPLEMENTATION.
+  METHOD lock.
+    CALL FUNCTION 'ENQUEUE_EZORDER' EXPORTING iv = 1.
+  ENDMETHOD.
+  METHOD other.
+    CALL FUNCTION 'Z_UNRELATED_THING' EXPORTING iv = 2.
+  ENDMETHOD.
+ENDCLASS.`;
+  const f = flowPack.check({ reg: loadRegistry([{ filename: "zcl_lk.clas.abap", source }]) });
+  assert.ok(!ids(f).includes("talos-lock-held-across-calls"), "lock must not leak past ENDMETHOD");
+});
+
+// F14: the legacy-UI rollup must aggregate per object across includes, not
+// reset per file (documented as per-object in the module docstring + PARITY).
+test("legacy-UI rollup aggregates per object across includes (F14)", () => {
+  const main = {
+    filename: "zcl_ui.clas.abap",
+    source: `CLASS zcl_ui DEFINITION PUBLIC FINAL FOR TESTING.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_ui IMPLEMENTATION.
+  METHOD run.
+    WRITE 'a'.
+    WRITE 'b'.
+  ENDMETHOD.
+ENDCLASS.`,
+  };
+  const locals = {
+    filename: "zcl_ui.clas.locals_imp.abap",
+    source: `CLASS lcl_helper DEFINITION.
+  PUBLIC SECTION.
+    METHODS helper.
+ENDCLASS.
+CLASS lcl_helper IMPLEMENTATION.
+  METHOD helper.
+    WRITE 'c'.
+    WRITE 'd'.
+  ENDMETHOD.
+ENDCLASS.`,
+  };
+  const hits = flowPack.check({ reg: loadRegistry([main, locals]) }).filter((x) => x.rule_id === "talos-legacy-ui-rollup");
+  assert.equal(hits.length, 1, "4 legacy stmts across 2 includes -> one per-object rollup");
+});
+
+// F15: an `IS ASSIGNED` guard after the loop is a defensive check, not a
+// dangling deref — it must not be flagged (it neutralizes the empty-table case).
+test("an IS ASSIGNED guard after the loop is not flagged dangling (F15)", () => {
+  const f = findings(`    LOOP AT lt INTO DATA(ls).
+      ASSIGN ls-comp TO FIELD-SYMBOL(<fs_row>).
+    ENDLOOP.
+    IF <fs_row> IS ASSIGNED.
+      lv_x = 1.
+    ENDIF.`);
+  assert.ok(!ids(f).includes("talos-dangling-field-symbol"), "IS ASSIGNED is a guard, not a dangling deref");
+});
