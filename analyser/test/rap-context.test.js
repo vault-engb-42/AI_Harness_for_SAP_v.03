@@ -139,3 +139,43 @@ ENDCLASS.`,
   };
   assert.ok(!ids(run([b, fae])).includes("talos-rap-read-unbounded"), "FAE reads only the requested keys");
 });
+
+// F5: /NS/-namespaced class & entity names must not silently disable the BDEF
+// cross-artifact join. abapGit encodes /ACME/ as #acme# in filenames.
+test("namespaced (/NS/) names still drive the BDEF cross-artifact join (F5)", () => {
+  // implementation-in-class capture must accept a namespaced class -> CC-3
+  const strictNs = {
+    filename: "#acme#zbp_ns.bdef.asbdef",
+    source: `managed implementation in class /acme/cl_h unique;
+strict ( 2 );
+define behavior for /acme/i_r alias R
+{ create; }`,
+  };
+  const clsNs = {
+    filename: "#acme#cl_h.clas.abap",
+    source: `CLASS /acme/cl_h DEFINITION PUBLIC FINAL FOR TESTING.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS /acme/cl_h IMPLEMENTATION.
+  METHOD run.
+    CALL TRANSACTION 'VA01'.
+  ENDMETHOD.
+ENDCLASS.`,
+  };
+  assert.ok(ids(run([strictNs, clsNs])).includes("talos-strict-call-transaction"), "namespaced strict impl class joins for CC-3");
+
+  // define-behavior capture must accept a namespaced child entity -> PERF-71
+  const draftNs = {
+    filename: "#acme#zbp_dn.bdef.asbdef",
+    source: `managed implementation in class /acme/cl_dn unique;
+define behavior for /acme/i_root alias Root
+with draft
+{ create; association _Items { create; } }
+define behavior for /acme/i_item alias Item
+{ create; }`,
+  };
+  const hit = run([draftNs]).find((x) => x.rule_id === "talos-rap-draft-child-create");
+  assert.ok(hit, "namespaced child entity parsed");
+  assert.match(hit.message, /I_ITEM/i);
+});

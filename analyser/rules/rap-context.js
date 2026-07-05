@@ -56,11 +56,11 @@ function parseBdef(obj) {
   const file = obj.getFiles?.()[0];
   const raw = file?.getRaw?.();
   if (!raw) return null;
-  const implClass = /implementation\s+in\s+class\s+(\w+)/i.exec(raw)?.[1]?.toUpperCase() ?? null;
+  const implClass = /implementation\s+in\s+class\s+(\/\w+\/\w+|\w+)/i.exec(raw)?.[1]?.toUpperCase() ?? null;
   const strictM = /\bstrict\s*(?:\(\s*(\d)\s*\))?\s*;/i.exec(raw);
   const strict = strictM ? Number(strictM[1] ?? 1) : 0;
   const behaviors = [];
-  const re = /define\s+behavior\s+for\s+(\w+)/gi;
+  const re = /define\s+behavior\s+for\s+(\/\w+\/\w+|\w+)/gi;
   const marks = [];
   let m;
   while ((m = re.exec(raw)) !== null) marks.push({ entity: m[1].toUpperCase(), start: m.index });
@@ -76,7 +76,7 @@ function parseBdef(obj) {
     strict,
     draft: /\bwith\s+draft\b/i.test(raw),
     lateNumbering: /\blate\s+numbering\b/i.test(raw),
-    draftTable: /\bdraft\s+table\s+(\w+)/i.exec(raw)?.[1]?.toUpperCase() ?? null,
+    draftTable: /\bdraft\s+table\s+(\/\w+\/\w+|\w+)/i.exec(raw)?.[1]?.toUpperCase() ?? null,
     behaviors,
   };
 }
