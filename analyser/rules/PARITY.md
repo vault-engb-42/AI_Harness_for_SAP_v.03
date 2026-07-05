@@ -66,7 +66,13 @@ Where they live:
   rather than guessing.
 - **CLOUD-34**: grounded on a community cross-walk of login-walled SAP Notes
   (see the dataset provenance headers) — refresh the JSONs when SAP updates
-  the notes.
+  the notes. Owned-object detection (`talos-bf-owned-object-ref`) fires only for
+  cross-walk rows whose object name can appear as a dependency-edge target —
+  TABL (uses-table), CDS (consumes-cds), classes (inherits/calls). The FUGR rows
+  key on the function-GROUP program (SAPL…), which no edge target equals (a
+  call-function edge carries the function-MODULE name), so function-group
+  ownership is not yet edge-detectable; it needs an FM→function-group map the
+  offline bundle does not carry. The rows are retained for that future path.
 
 ## Regression protocol
 

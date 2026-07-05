@@ -30,6 +30,14 @@ export const bfPack = {
         scanProbes(file, obj, findings);
       }
     }
+    // Owned-object detection matches an edge target against the BF cross-walk.
+    // Reachable target names are object names the edge model actually emits:
+    // TABL (uses-table), CDS (consumes-cds), classes (inherits/calls). The
+    // dataset's FUGR rows key on the function-GROUP program (SAPL…), which no
+    // edge target ever equals — a call-function edge carries the function
+    // MODULE name (statement-edges.js) — so FUGR ownership is not edge-detectable
+    // without an FM->function-group map the offline bundle does not carry. See
+    // PARITY.md (CLOUD-34 approximation); the rows are kept for that future path.
     for (const edge of ctx.graph?.toGraphJSON?.().edges ?? []) {
       if (!CLASSIFIABLE_EDGE_KINDS.has(edge.kind)) continue;
       const bf = offOwnerOf(edge.target);
