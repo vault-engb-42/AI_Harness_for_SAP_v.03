@@ -140,7 +140,14 @@ function checkForReadMethods(obj, findings) {
       } else if (kind === "EndMethod") {
         current = null;
       } else if (current && (kind === "Select" || kind === "SelectLoop")) {
-        if (!/\bUP\s+TO\b|\bPACKAGE\s+SIZE\b/i.test(text)) {
+        // SELECT SINGLE reads one row and FOR ALL ENTRIES reads only the
+        // requested keys — both are inherently bounded, so neither
+        // "materializes the whole collection" the rule warns about.
+        const bounded =
+          /^SELECT\s+SINGLE\b/i.test(text) ||
+          /\bFOR\s+ALL\s+ENTRIES\b/i.test(text) ||
+          /\bUP\s+TO\b|\bPACKAGE\s+SIZE\b/i.test(text);
+        if (!bounded) {
           findings.push({ rule_id: "talos-rap-read-unbounded", severity: "priority-1", object: obj.getName(), object_type: obj.getType(), file: file.getFilename(), line: st.getFirstToken()?.getStart()?.getRow?.() ?? 0, message: `SELECT inside FOR READ method ${current} has no UP TO/paging bound — a read-list must never materialize the whole collection (ABAP-PERF-10)`, family: "rap-odata" });
         }
       }

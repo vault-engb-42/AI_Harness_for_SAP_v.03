@@ -109,3 +109,33 @@ ENDCLASS.`,
   const bounded = { ...reader, source: reader.source.replace("WHERE id = '1'", "UP TO 100 ROWS WHERE id = '1'") };
   assert.ok(!ids(run([b, bounded])).includes("talos-rap-read-unbounded"));
 });
+
+// F4: SELECT SINGLE (one row) and FOR ALL ENTRIES (keyed) inside a FOR READ
+// method are inherently bounded — PERF-10 must not flag the canonical RAP read.
+test("bounded reads inside a FOR READ method are not PERF-10 (SELECT SINGLE, FAE)", () => {
+  const b = bdef("zbp_read2", `managed implementation in class zbp_read2 unique;
+define behavior for ZI_R2 alias R
+{ create; }`);
+  const single = {
+    filename: "zbp_read2.clas.abap",
+    source: `CLASS zbp_read2 DEFINITION PUBLIC FINAL FOR TESTING.
+  PUBLIC SECTION.
+    METHODS read_r FOR READ IMPORTING keys FOR READ R RESULT result.
+ENDCLASS.
+CLASS zbp_read2 IMPLEMENTATION.
+  METHOD read_r.
+    SELECT SINGLE * FROM zorders INTO @DATA(ls) WHERE id = '1'.
+  ENDMETHOD.
+ENDCLASS.`,
+  };
+  assert.ok(!ids(run([b, single])).includes("talos-rap-read-unbounded"), "SELECT SINGLE reads one row");
+
+  const fae = {
+    ...single,
+    source: single.source.replace(
+      "SELECT SINGLE * FROM zorders INTO @DATA(ls) WHERE id = '1'.",
+      "SELECT * FROM zorders FOR ALL ENTRIES IN @keys WHERE id = @keys-id INTO TABLE @DATA(lt).",
+    ),
+  };
+  assert.ok(!ids(run([b, fae])).includes("talos-rap-read-unbounded"), "FAE reads only the requested keys");
+});
