@@ -73,8 +73,12 @@ function checkTable(obj, writtenTables, findings) {
   if (category === "TRANSP") {
     const fields = obj.parsedData?.fields ?? [];
     const keyFields = fields.filter((f) => f.KEYFLAG === "X").map((f) => String(f.FIELDNAME).toUpperCase());
+    // A key `.INCLUDE` carries the included structure's key fields, which
+    // abapGit does not expand — so the real key is unknown and the table
+    // cannot be proven client-only. Stay silent rather than guess.
+    const hasKeyInclude = keyFields.includes(".INCLUDE");
     const nonClientKeys = keyFields.filter((k) => k !== "MANDT" && k !== ".INCLUDE");
-    if (fields.length > 0 && nonClientKeys.length === 0) {
+    if (!hasKeyInclude && fields.length > 0 && nonClientKeys.length === 0) {
       mk("talos-tabl-low-cardinality-key", "priority-2", `table ${name}'s primary key is client-only — every row shares one lock granularity, forcing table-level lock escalation (ABAP-PERF-55)`, "performance");
     }
   }

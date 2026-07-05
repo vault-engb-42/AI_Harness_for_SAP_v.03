@@ -27,6 +27,15 @@ test("a transparent table with a real key is NOT flagged by PERF-55", () => {
   assert.ok(!ids(f).includes("talos-tabl-low-cardinality-key"));
 });
 
+// F8: a key `.INCLUDE` hides the real key fields (abapGit does not expand the
+// included structure), so PERF-55 cannot prove the key is client-only — it must
+// stay silent rather than treat MANDT + .INCLUDE as client-only.
+test("a transparent table whose key has a key .INCLUDE is NOT flagged PERF-55 (F8)", () => {
+  const includeRow = "<DD03P><FIELDNAME>.INCLUDE</FIELDNAME><KEYFLAG>X</KEYFLAG><PRECFIELD>ZKEY</PRECFIELD><COMPTYPE>S</COMPTYPE></DD03P>";
+  const f = run([tabl("ZT_INC", { fields: [field("MANDT", true, "MANDT"), includeRow, field("PAYLOAD", false)] })]);
+  assert.ok(!ids(f).includes("talos-tabl-low-cardinality-key"), "key .INCLUDE hides real key fields — cannot prove client-only");
+});
+
 test("a DTEL whose in-bundle domain declares a conversion exit is flagged advisory (PERF-49)", () => {
   const f = run([dtel("ZDE_ORDER", "ZDO_ORDER"), doma("ZDO_ORDER", "ALPHA")]);
   const hit = f.find((x) => x.rule_id === "talos-dtel-conversion-exit");
