@@ -26,7 +26,7 @@ export const srvbPack = {
     const findings = [];
     for (const srvb of catalog.bindings) {
       for (const srvd of catalog.definitions) {
-        if (!srvb.raw.toUpperCase().includes(srvd.name)) continue;
+        if (!srvb.srvdNames.includes(srvd.name)) continue;
         for (const entity of srvd.exposed) {
           const cds = catalog.cds.get(entity);
           if (!cds) continue; // chain incomplete — cannot judge
@@ -51,7 +51,7 @@ function judgeEntity(srvb, entity, cdsRaw, findings) {
   }
 }
 
-/** @returns {{bindings: Array<{name: string, file: string, raw: string}>, definitions: Array<{name: string, exposed: string[]}>, cds: Map<string, string>}} */
+/** @returns {{bindings: Array<{name: string, file: string, raw: string, srvdNames: string[]}>, definitions: Array<{name: string, exposed: string[]}>, cds: Map<string, string>}} */
 function collectArtifacts(reg) {
   const bindings = [];
   const definitions = [];
@@ -61,7 +61,11 @@ function collectArtifacts(reg) {
       const filename = f.getFilename?.() ?? "";
       const raw = f.getRaw?.() ?? "";
       if (filename.includes(".srvb.")) {
-        bindings.push({ name: obj.getName(), file: filename, raw });
+        // Join on the referenced service-definition name(s) declared in the
+        // SRVB XML (<SRVD_NAME>…</SRVD_NAME>), not a raw substring of the whole
+        // document — a substring over-joins on prefix-overlapping SRVD names.
+        const srvdNames = [...raw.matchAll(/<SRVD_NAME>\s*([\w/]+)\s*<\/SRVD_NAME>/gi)].map((m) => m[1].toUpperCase());
+        bindings.push({ name: obj.getName(), file: filename, raw, srvdNames });
       } else if (filename.includes(".srvd.")) {
         const exposed = [...raw.matchAll(/expose\s+(\w+)/gi)].map((m) => m[1].toUpperCase());
         definitions.push({ name: obj.getName().toUpperCase(), exposed });

@@ -108,3 +108,29 @@ test("a paged entity raises neither SRVB finding; an incomplete chain stays sile
   const incomplete = srvbPack.check({ reg: loadRegistry([SRVB, SRVD]) }); // CDS missing
   assert.deepEqual(ids(incomplete), []);
 });
+
+// F6: the SRVB->SRVD join must match the <SRVD_NAME> element, not a raw
+// substring. A binding for ZSD_ORDERS_EXT must NOT over-join the unrelated
+// base service ZSD_ORDERS (whose name is a substring of the bound name).
+test("the SRVB->SRVD join matches <SRVD_NAME>, not a raw substring (F6)", () => {
+  const srvbExt = {
+    filename: "zui_ext_o2.srvb.xml",
+    source: `<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_SRVB">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <SRVB><HEADER><SRVB_NAME>ZUI_EXT_O2</SRVB_NAME><BINDING_TYPE>ODATA</BINDING_TYPE><BINDING_VERSION>V2</BINDING_VERSION></HEADER>
+   <SERVICES><SERVICE><SRVD_NAME>ZSD_ORDERS_EXT</SRVD_NAME></SERVICE></SERVICES></SRVB>
+  </asx:values>
+ </asx:abap>
+</abapGit>`,
+  };
+  const srvdExt = { filename: "zsd_orders_ext.srvd.asrvd", source: `define service ZSD_ORDERS_EXT {\n  expose ZC_Ext as Ext;\n}` };
+  const srvdBase = { filename: "zsd_orders.srvd.asrvd", source: `define service ZSD_ORDERS {\n  expose ZC_Base as Base;\n}` };
+  const cdsExtPaged = { filename: "zc_ext.ddls.asddls", source: `@UI.presentationVariant: [{ maxItems: 100 }]\ndefine view entity ZC_Ext as select from vbak { key vbeln }` };
+  const cdsBaseUnpaged = { filename: "zc_base.ddls.asddls", source: `@AccessControl.authorizationCheck: #CHECK\ndefine view entity ZC_Base as select from vbak { key vbeln }` };
+  const f = srvbPack.check({ reg: loadRegistry([srvbExt, srvdExt, srvdBase, cdsExtPaged, cdsBaseUnpaged]) });
+  // Binding references only ZSD_ORDERS_EXT (paged) -> zero findings; the
+  // substring bug would over-join ZSD_ORDERS (base, unpaged) -> false PERF-21.
+  assert.deepEqual(ids(f), [], JSON.stringify(f.map((x) => x.message)));
+});
