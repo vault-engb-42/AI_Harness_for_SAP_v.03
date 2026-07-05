@@ -54,6 +54,37 @@ ENDCLASS.`;
   assert.deepEqual(f, []);
 });
 
+// F10: a trailing inline `"` comment must not hide an otherwise-identical clone.
+test("a clone differing only by a trailing inline comment is still detected (F10)", () => {
+  const blockA = `    lv_a = 1.
+    lv_b = 2.
+    lv_c = lv_a + lv_b.
+    lv_d = lv_c * 2.
+    lv_e = lv_d - 1.
+    lv_f = lv_e + 3.`;
+  const blockB = `    lv_a = 1.
+    lv_b = 2.
+    lv_c = lv_a + lv_b. " compute the running sum
+    lv_d = lv_c * 2.
+    lv_e = lv_d - 1.
+    lv_f = lv_e + 3.`;
+  const source = `CLASS zcl_dup2 DEFINITION PUBLIC FINAL FOR TESTING.
+  PUBLIC SECTION.
+    METHODS m1.
+    METHODS m2.
+ENDCLASS.
+CLASS zcl_dup2 IMPLEMENTATION.
+  METHOD m1.
+${blockA}
+  ENDMETHOD.
+  METHOD m2.
+${blockB}
+  ENDMETHOD.
+ENDCLASS.`;
+  const f = clonePack.check({ reg: loadRegistry([{ filename: "zcl_dup2.clas.abap", source }]) });
+  assert.ok(ids(f).includes("talos-duplicate-block"), "a trailing-comment-only difference must not hide the clone");
+});
+
 // ---- PERF-47/48: interface signatures ----
 
 const INTF = `INTERFACE zif_orders PUBLIC.
