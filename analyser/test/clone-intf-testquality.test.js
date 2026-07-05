@@ -86,6 +86,18 @@ ENDINTERFACE.`);
   assert.ok(!ids(f2).includes("talos-intf-no-batch-sibling"));
 });
 
+// F9: the PERF-47 paging guard must test the PARAMETER region, not the method
+// name — a table reader named get_top_orders (no paging param) must be flagged.
+test("PERF-47 flags a table reader whose NAME contains a paging word but has no paging param (F9)", () => {
+  const intf = `INTERFACE zif_x PUBLIC.
+  METHODS get_top_orders
+    IMPORTING iv_customer TYPE string
+    RETURNING VALUE(rt) TYPE STANDARD TABLE.
+ENDINTERFACE.`;
+  const f = intfPack.check({ reg: loadRegistry([{ filename: "zif_x.intf.abap", source: intf }]) });
+  assert.ok(ids(f).includes("talos-intf-read-no-paging"), JSON.stringify(f.map((x) => x.message)));
+});
+
 // ---- CLEAN-015/019: test quality ----
 
 const MAIN_CLASS = {

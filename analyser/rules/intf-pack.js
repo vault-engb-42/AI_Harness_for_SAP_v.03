@@ -41,8 +41,12 @@ function checkInterface(obj, findings) {
       if (!name) continue;
       methodNames.push({ name, st });
 
-      // PERF-47: returns a table but accepts no paging parameter
-      if (/RETURNING\s+VALUE\(\w+\)\s+TYPE\s+(?:STANDARD\s+|SORTED\s+|HASHED\s+)?TABLE\b/i.test(text) && !PAGING_PARAM_RE.test(text.replace(/RETURNING[\s\S]*$/i, ""))) {
+      // PERF-47: returns a table but accepts no paging parameter. Test the
+      // PARAMETER region only — strip the METHODS keyword + method name (so a
+      // name like get_top_orders is not mistaken for a paging param) and the
+      // RETURNING clause onward.
+      const paramRegion = text.replace(/^(?:CLASS-)?METHODS\s+[\w~]+/i, "").replace(/RETURNING[\s\S]*$/i, "");
+      if (/RETURNING\s+VALUE\(\w+\)\s+TYPE\s+(?:STANDARD\s+|SORTED\s+|HASHED\s+)?TABLE\b/i.test(text) && !PAGING_PARAM_RE.test(paramRegion)) {
         mk("talos-intf-read-no-paging", `interface method ${name} returns a table with no paging parameter (top/skip/max) — unbounded reads cannot scale (ABAP-PERF-47)`, st);
       }
     }
