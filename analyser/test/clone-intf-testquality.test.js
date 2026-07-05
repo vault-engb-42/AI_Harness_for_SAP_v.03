@@ -141,3 +141,100 @@ test("a class without any test include yields no CLEAN-019 (HARDY-10 owns that c
   const f = testQualityPack.check({ reg: loadRegistry([MAIN_CLASS]) });
   assert.deepEqual(ids(f), []);
 });
+
+// ---- audit remediation 2026-07-05: CLEAN-015/019 accuracy (F1/F2/F3) ----
+
+// F2: idiomatic colon-chained `METHODS:` test declarations must not silently
+// disable CLEAN-015 (raw-regex miss). test_empty asserts nothing -> flagged.
+const TESTS_CHAINED = {
+  filename: "zcl_calc.clas.testclasses.abap",
+  source: `CLASS ltcl_calc DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS: test_ok FOR TESTING, test_empty FOR TESTING.
+ENDCLASS.
+CLASS ltcl_calc IMPLEMENTATION.
+  METHOD test_ok.
+    cl_abap_unit_assert=>assert_true( act = abap_true ).
+  ENDMETHOD.
+  METHOD test_empty.
+    DATA(x) = 1.
+  ENDMETHOD.
+ENDCLASS.`,
+};
+
+test("colon-chained METHODS: test declarations still get CLEAN-015 (F2)", () => {
+  const f = testQualityPack.check({ reg: loadRegistry([MAIN_CLASS, TESTS_CHAINED]) });
+  const hits = f.filter((x) => x.rule_id === "talos-test-no-assert");
+  assert.equal(hits.length, 1, JSON.stringify(hits.map((h) => h.message)));
+  assert.match(hits[0].message, /TEST_EMPTY/);
+});
+
+// F3: an assertion delegated to a same-class helper is a real assertion — the
+// test must NOT be flagged as assert-less.
+const TESTS_HELPER = {
+  filename: "zcl_calc.clas.testclasses.abap",
+  source: `CLASS ltcl_calc DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS test_via_helper FOR TESTING.
+    METHODS verify IMPORTING iv_exp TYPE i iv_act TYPE i.
+ENDCLASS.
+CLASS ltcl_calc IMPLEMENTATION.
+  METHOD test_via_helper.
+    verify( iv_exp = 3 iv_act = 3 ).
+  ENDMETHOD.
+  METHOD verify.
+    cl_abap_unit_assert=>assert_equals( exp = iv_exp act = iv_act ).
+  ENDMETHOD.
+ENDCLASS.`,
+};
+
+test("a test delegating its assertion to a same-class helper is not flagged (F3)", () => {
+  const f = testQualityPack.check({ reg: loadRegistry([MAIN_CLASS, TESTS_HELPER]) });
+  const hits = f.filter((x) => x.rule_id === "talos-test-no-assert");
+  assert.deepEqual(hits, [], JSON.stringify(hits.map((h) => h.message)));
+});
+
+// F1: CLEAN-019's visibility guard was dead (m.visibility is a numeric enum,
+// compared to strings) — private/protected methods were mislabeled as untested
+// public methods. Only genuinely-public methods belong in the finding.
+const MAIN_WITH_PRIVATE = {
+  filename: "zcl_svc.clas.abap",
+  source: `CLASS zcl_svc DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS run.
+    METHODS compute RETURNING VALUE(rv) TYPE i.
+  PRIVATE SECTION.
+    METHODS internal_helper.
+ENDCLASS.
+CLASS zcl_svc IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+  METHOD compute.
+    rv = 1.
+  ENDMETHOD.
+  METHOD internal_helper.
+  ENDMETHOD.
+ENDCLASS.`,
+};
+const TESTS_RUN_ONLY = {
+  filename: "zcl_svc.clas.testclasses.abap",
+  source: `CLASS ltcl_svc DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS test_run FOR TESTING.
+ENDCLASS.
+CLASS ltcl_svc IMPLEMENTATION.
+  METHOD test_run.
+    DATA(lo) = NEW zcl_svc( ).
+    lo->run( ).
+    cl_abap_unit_assert=>assert_bound( act = lo ).
+  ENDMETHOD.
+ENDCLASS.`,
+};
+
+test("CLEAN-019 lists only public untested methods, not private helpers (F1)", () => {
+  const f = testQualityPack.check({ reg: loadRegistry([MAIN_WITH_PRIVATE, TESTS_RUN_ONLY]) });
+  const hit = f.find((x) => x.rule_id === "talos-public-method-untested");
+  assert.ok(hit, "COMPUTE is public and untested — should be flagged");
+  assert.match(hit.message, /COMPUTE/);
+  assert.ok(!/INTERNAL_HELPER/.test(hit.message), "private method must not be reported as public");
+});
