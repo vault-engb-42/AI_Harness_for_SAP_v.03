@@ -70,7 +70,12 @@ function collectArtifacts(reg) {
         const exposed = [...raw.matchAll(/expose\s+(\w+)/gi)].map((m) => m[1].toUpperCase());
         definitions.push({ name: obj.getName().toUpperCase(), exposed });
       } else if (filename.endsWith(".asddls")) {
+        // Index by BOTH the DDLS source/object name and the declared view
+        // entity name — an SRVD exposes the entity name, which may differ from
+        // the source name, and either must resolve the same CDS.
         cds.set(obj.getName().toUpperCase(), raw);
+        const entity = /\bdefine\s+(?:root\s+)?view\s+entity\s+([\w/]+)/i.exec(raw)?.[1];
+        if (entity) cds.set(entity.toUpperCase(), raw);
       }
     }
   }

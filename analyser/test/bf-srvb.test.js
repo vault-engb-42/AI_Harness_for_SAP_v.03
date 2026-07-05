@@ -134,3 +134,26 @@ test("the SRVB->SRVD join matches <SRVD_NAME>, not a raw substring (F6)", () => 
   // substring bug would over-join ZSD_ORDERS (base, unpaged) -> false PERF-21.
   assert.deepEqual(ids(f), [], JSON.stringify(f.map((x) => x.message)));
 });
+
+// F7: the CDS must resolve by its entity name (what the SRVD exposes), even
+// when the DDLS source/object name differs from it — otherwise a fully
+// in-bundle chain is silently missed.
+test("the SRVB chain resolves the CDS by entity name, not just DDLS source name (F7)", () => {
+  const srvb = {
+    filename: "zui_x_o2.srvb.xml",
+    source: `<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_SRVB">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <SRVB><HEADER><SRVB_NAME>ZUI_X_O2</SRVB_NAME><BINDING_TYPE>ODATA</BINDING_TYPE><BINDING_VERSION>V2</BINDING_VERSION></HEADER>
+   <SERVICES><SERVICE><SRVD_NAME>ZSD_X</SRVD_NAME></SERVICE></SERVICES></SRVB>
+  </asx:values>
+ </asx:abap>
+</abapGit>`,
+  };
+  const srvd = { filename: "zsd_x.srvd.asrvd", source: `define service ZSD_X {\n  expose ZC_Orders as Orders;\n}` };
+  // DDLS source name (ZI_ORDERS_DDL) differs from the exposed entity (ZC_Orders)
+  const cds = { filename: "zi_orders_ddl.ddls.asddls", source: `@AccessControl.authorizationCheck: #CHECK\ndefine view entity ZC_Orders as select from vbak { key vbeln }` };
+  const f = srvbPack.check({ reg: loadRegistry([srvb, srvd, cds]) });
+  assert.ok(ids(f).includes("talos-srvb-no-paging-policy"), JSON.stringify(f.map((x) => x.message)));
+});
