@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { analyzePackage } from "../src/orchestrator.js";
 import { validateFindings } from "../src/validate-findings.js";
+import { wrap } from "./helpers/abapgit-xml.js";
 
 // C5 corpus robustness — the analyser must never crash on malformed, edge-case,
 // or hostile source (harness rule P8: retrieved ABAP is untrusted data). Every
@@ -75,4 +76,41 @@ test("one broken object does not suppress findings from the others", () => {
   ];
   const doc = analyzeOk(files, "partial-failure");
   assert.ok(doc.findings.some((f) => f.rule_id === "talos-native-sql"), "healthy object still analysed");
+});
+
+// abapGit XML (DDIC + service bindings) is a NEW untrusted-input surface the
+// DDIC/SRVB packs introduced. abaplint's DDIC parser THROWS (not collects) on
+// some malformed shapes (e.g. a TABL field with no type), so the analysis must
+// isolate that so hostile/truncated XML never crashes the run (P8).
+
+// A TABL whose DD03P field carries no type (DATATYPE/COMPTYPE/ROLLNAME) makes
+// abaplint's table parser throw "Expected DATATYPE".
+const BAD_TABL = wrap(`   <DD02V><TABNAME>ZT_BAD</TABNAME><TABCLASS>TRANSP</TABCLASS></DD02V>
+   <DD03P_TABLE><DD03P><FIELDNAME>F1</FIELDNAME><KEYFLAG>X</KEYFLAG></DD03P></DD03P_TABLE>`);
+
+test("a malformed TABL (field with no type) does not crash the analysis, and is noted", () => {
+  const doc = analyzeOk([{ filename: "zt_bad.tabl.xml", source: BAD_TABL }], "malformed-tabl");
+  assert.match(doc.coverage_note ?? "", /zt_bad\.tabl\.xml/, "dropped object is surfaced loudly, not silently");
+});
+
+test("a malformed TABL does not suppress a healthy object's findings", () => {
+  const doc = analyzeOk(
+    [
+      { filename: "zt_bad.tabl.xml", source: BAD_TABL },
+      { filename: "zr_ok.prog.abap", source: "REPORT zr_ok.\nSTART-OF-SELECTION.\n  EXEC SQL.\n  ENDEXEC." },
+    ],
+    "malformed-tabl-plus-healthy",
+  );
+  assert.ok(doc.findings.some((f) => f.rule_id === "talos-native-sql"), "healthy object still analysed");
+});
+
+test("truncated, garbage and malformed DDIC + service XML all stay valid", () => {
+  const cases = [
+    { filename: "zt_cut.tabl.xml", source: `<?xml version="1.0"?><abapGit><asx:abap><asx:values><DD02V><TABNAME>ZT_CUT</TABN` },
+    { filename: "zde_bad.dtel.xml", source: wrap(`   <DD04V><ROLLNAME>ZDE_BAD</ROLLNAME></DD04V>`) },
+    { filename: "zdo_bad.doma.xml", source: "@@@ definitely not xml %%%" },
+    { filename: "zsrvb_bad.srvb.xml", source: "<<< broken service binding >>>" },
+    { filename: "zsd_bad.srvd.asrvd", source: "define service" },
+  ];
+  analyzeOk(cases, "mixed-hostile-xml");
 });

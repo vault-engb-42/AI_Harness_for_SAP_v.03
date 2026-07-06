@@ -32,6 +32,9 @@ export function analyzePackage(files, opts = {}) {
   const budget = Number(process.env.ABAPLINT_TIMEOUT_MS);
   const started = Date.now();
   const reg = loadRegistry(admitted);
+  if (reg.droppedFiles?.length) {
+    notes.push(`files abaplint could not parse (malformed DDIC/XML), skipped: ${reg.droppedFiles.join(", ")}`);
+  }
   const maxNodes = Number(process.env.MAX_GRAPH_NODES);
   const graph = analyzeRegistry(reg, { maxNodes: Number.isFinite(maxNodes) ? maxNodes : undefined });
   const elapsed = Date.now() - started;
