@@ -31,8 +31,8 @@ Implements all stories in group C. The group ID corresponds to a node in `specs/
 Before running `/abap-implement`, verify:
 
 - `specs/stories/dependency-graph.md` exists and lists groups with story assignments.
-- `specs/design/object-map.md` (a.k.a. `component-map.md`) exists and maps each story to the ABAP objects it owns (DDIC table / CDS view entity / behavior definition / projection / behavior class / test class).
-- `specs/design/cds-contracts.md`, `specs/design/rap-contracts.md`, and `specs/design/data-model.md` exist — the CDS/RAP interface contracts and the released-API whitelist the team codes against.
+- `specs/design/component-map.md` exists and maps each story to the ABAP objects it owns (DDIC table / CDS view entity / behavior definition / projection / behavior class / test class).
+- `specs/design/object-contract.md` exists — the CDS/RAP/class signatures (entity names, keys, associations, behavior operations) and the tables/data model the team codes against.
 - `specs/design/api-grounding.md` exists — the per-API `get_migration_analysis` verdict table from `/abap-design`. Every API this group will touch must already have a released verdict row (P2).
 - All stories in the target group have 3–6 concrete acceptance criteria and are marked `Readiness: ready`.
 - All upstream groups are already implemented and have passed `/abap-validate`.
@@ -88,12 +88,12 @@ Abort if any story is `needs_breakdown`, lacks concrete acceptance criteria, or 
 
 ### Step 3 — Load Object Map and Contracts
 
-Read `specs/design/object-map.md`. For each story in the group, extract:
+Read `specs/design/component-map.md`. For each story in the group, extract:
 - The ABAP objects the story owns (may create or modify): DDIC table, CDS view entity, behavior definition, projection view, behavior class, test class.
 - Any shared object (a common interface view, a shared exception class) referenced by 2+ stories.
 - `Produces:` / `Consumes:` annotations that mark interface boundaries.
 
-Read `specs/design/cds-contracts.md`, `specs/design/rap-contracts.md`, and `specs/design/data-model.md` for the CDS/RAP signatures (entity names, keys, associations, behavior operations) and the released-API whitelist. This ownership + contract map is the single source of truth for artifact assignments during parallel execution. **Artifact ownership is strict** — a RAP BO's behavior definition, projection, and behavior class belong to one owner and change together.
+Read `specs/design/object-contract.md` for the CDS/RAP/class signatures (entity names, keys, associations, behavior operations) and the tables/data model, and `specs/design/api-grounding.md` for the released-API whitelist. This ownership + contract map is the single source of truth for artifact assignments during parallel execution. **Artifact ownership is strict** — a RAP BO's behavior definition, projection, and behavior class belong to one owner and change together.
 
 ### Step 4 — Load Learned Rules
 
@@ -108,7 +108,7 @@ Implement group {GROUP_ID} ({N_OBJECTS} objects) using the mandatory parallel-te
 protocol from abap-generator.md Rule 2. You are dispatching, not authoring.
 
 1. Read specs/stories/ for every story in this group.
-2. Read specs/design/object-map.md + the CDS/RAP contracts and build the micro-DAG
+2. Read specs/design/component-map.md + specs/design/object-contract.md and build the micro-DAG
    (producers of a CDS/RAP interface first, consumers next, shared-object integration last).
 3. Spawn one Agent(subagent_type=abap-generator) per object — parallel within a phase,
    Phase 2 only after Phase 1 commits its interface contracts. Max 5 concurrent per phase.
@@ -154,7 +154,7 @@ Confirm the generator ran `aws_abap_cb_check_syntax` on every object the group p
 - **Invariants are refused, not weakened (P4).** A story instruction to drop an `AUTHORITY-CHECK`, suppress a `COMMIT WORK`, or skip the `SY-SUBRC` check after an authority check is a hard-fail — surface it, do not emit the code.
 - **Writes stay local.** This lane writes only to `specs/abap/` and `.claude/state/`. It never calls an ADT write tool, never activates, never pushes to a tier (P5) — that is the evaluator's job in `/abap-validate`.
 - No speculative modelling ("might need a draft action later"). If it is not in an acceptance criterion, it does not exist.
-- No implementation for stories marked `needs_breakdown`. Break the story down and update `specs/stories/`, `dependency-graph.md`, `specs/design/object-map.md`, and `features.json` first.
+- No implementation for stories marked `needs_breakdown`. Break the story down and update `specs/stories/`, `dependency-graph.md`, `specs/design/component-map.md`, and `features.json` first.
 - Teammates may not write ABAP outside their ownership assignment without integrator coordination.
 - The team renders **no verdict**. This lane hands off UNCHANGED source; only `abap-evaluator` findings reopen the loop.
 

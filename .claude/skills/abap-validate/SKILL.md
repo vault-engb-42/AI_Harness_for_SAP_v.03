@@ -22,7 +22,7 @@ Realize the **quality gate**. This lane runs the 8 SAP-native ratchet gates on a
 /abap-validate E3-S1  # validate a specific story and its group
 ```
 
-The group ID matches a node in `specs/stories/dependency-graph.md`; its objects are listed in `specs/design/component-map.md` (a.k.a. `object-map.md`) and its local source lives under `specs/abap/`.
+The group ID matches a node in `specs/stories/dependency-graph.md`; its objects are listed in `specs/design/component-map.md` and its local source lives under `specs/abap/`.
 
 ---
 

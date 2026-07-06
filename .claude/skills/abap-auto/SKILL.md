@@ -38,7 +38,7 @@ Autonomous ABAP Cloud build loop implementing Karpathy's ratcheting pattern with
 Before `/abap-auto` can run, the following must exist:
 
 - `specs/stories/` — approved story files with 3–6 acceptance criteria, each `Readiness: ready`.
-- `specs/design/` — approved design artifacts: `object-contract.md`, `component-map.md` (a.k.a. `object-map.md`), `api-grounding.md`, `design-traces.json` (from `/abap-design`, which passed Gate 6 and the human design gate).
+- `specs/design/` — approved design artifacts: `object-contract.md`, `component-map.md`, `api-grounding.md`, `design-traces.json` (from `/abap-design`, which passed Gate 6 and the human design gate).
 - `features.json` — sprint contract / feature tracking (created by `/abap-spec`).
 - `specs/stories/dependency-graph.md` — group ordering and dependencies.
 - `specs/stories/epics.md` — epic index and story membership.

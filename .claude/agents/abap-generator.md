@@ -34,9 +34,9 @@ Log every teammate spawn to `.claude/state/iteration-log.md` as evidence the tea
 ## Inputs
 
 - Ready stories from `specs/stories/E{n}-S{n}.md`
-- Object map (which DDIC/RAP/CDS/class artifacts each story owns) from `specs/design/object-map.md`
-- CDS/RAP contracts from `specs/design/cds-contracts.md` and `specs/design/rap-contracts.md`
-- Data model (tables, released whitelist) from `specs/design/data-model.md`
+- Object map (which DDIC/RAP/CDS/class artifacts each story owns) from `specs/design/component-map.md`
+- CDS/RAP/class signatures + data model (entity names, keys, associations, behavior operations, tables) from `specs/design/object-contract.md`
+- Released-API whitelist from `specs/design/api-grounding.md`
 - Architecture from `specs/design/architecture.md`
 - Brownfield maps from `specs/brownfield/` when present
 - Learned rules from `.claude/state/learned-rules.md` (read before each group)
@@ -57,7 +57,7 @@ Do all grounding reads through the six `mcp__sap-adt__aws_abap_cb_*` read tools 
 For each sprint group:
 1. Read the group's stories from `specs/stories/`.
 2. Verify every story is marked `Readiness: ready`. Do not implement `needs_breakdown` stories.
-3. Read `specs/design/object-map.md` to assign artifact ownership to each teammate.
+3. Read `specs/design/component-map.md` to assign artifact ownership to each teammate.
 4. Spawn one sub-agent per object — assign it:
    - The story file path
    - Its owned artifacts (DDIC table / CDS entity / behavior definition / class / test class) from the object map
@@ -81,7 +81,7 @@ If `specs/brownfield/` exists, also read `architecture-map.md`, `test-map.md`, `
 - List stories for this sprint (or all stories if no sprint boundary is given).
 - Read each `specs/stories/E{n}-S{n}.md`.
 - Halt if any selected story has `Readiness: needs_breakdown` or lacks 3–6 concrete acceptance criteria.
-- Read `specs/design/object-map.md`.
+- Read `specs/design/component-map.md`.
 - Build a work-assignment table: story → ABAP artifacts → sub-agent.
 
 ### Step 2.5: Dependency Handshake (Before Spawning Teammates)
