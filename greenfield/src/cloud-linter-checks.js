@@ -62,6 +62,7 @@ export const SELECT_STAR_SPEC = { rule_id: "gf-cloud-select-star", severity: "wa
 export const SELECT_IN_LOOP_SPEC = { rule_id: "gf-perf-select-in-loop", severity: "warning", family: "performance", message: "SELECT inside a loop causes N+1 database round-trips; read the set once before the loop" };
 export const COMMIT_IN_LOOP_SPEC = { rule_id: "gf-inv-commit-in-loop", severity: "error", family: "invariant", message: "COMMIT WORK inside a loop breaks the logical unit of work; commit once after the loop" };
 export const AUTHCHECK_SPEC = { rule_id: "gf-inv-authcheck-no-subrc", severity: "warning", family: "invariant", message: "AUTHORITY-CHECK is not followed by an SY-SUBRC test — the authorization result is ignored (P4); test SY-SUBRC immediately after" };
+export const AUTHCHECK_AFTER_WRITE_SPEC = { rule_id: "gf-x-authcheck-subrc-after-write", severity: "error", family: "invariant", message: "the AUTHORITY-CHECK's SY-SUBRC is tested only AFTER a protected database write — the gate runs too late to stop the write (P4)" };
 export const RAP_DB_WRITE_SPEC = { rule_id: "gf-rap-direct-db-write", severity: "warning", family: "rap-odata", message: "direct database write to a persistent table — in RAP, persist through EML (MODIFY ENTITIES) so the behavior pool owns the data" };
 
 export const DECLARE_RE = /^(?:CLASS-)?DATA\s+(\w+)/i;
@@ -101,18 +102,27 @@ export function isSelectStar(text) {
 }
 
 /**
- * P4: an AUTHORITY-CHECK must be followed by an SY-SUBRC test. Scan the next two
- * real statements (comments/blank lines are not statement nodes) for an SY-SUBRC
- * reference; absence is the finding.
+ * P4 verdict for an AUTHORITY-CHECK, scanning forward within the method/window:
+ *  - "ok"          — an SY-SUBRC test appears before any protected DB write.
+ *  - "after-write" — a protected DB write (to a non-local, i.e. persistent target)
+ *                    appears BEFORE the SY-SUBRC test: the gate ran but its result
+ *                    is inspected too late — the write already fired.
+ *  - "missing"     — no SY-SUBRC test within the window.
  * @param {import("@abaplint/core").StatementNode[]} stmts
  * @param {number} i index of the AUTHORITY-CHECK statement
- * @returns {boolean}
+ * @param {Set<string>} declared local names in scope (an itab write is not persistence)
+ * @returns {"ok" | "after-write" | "missing"}
  */
-export function subrcCheckedAfter(stmts, i) {
-  for (let j = i + 1; j <= Math.min(stmts.length - 1, i + 2); j++) {
-    if (SUBRC_RE.test(stmts[j].concatTokens())) return true;
+export function authCheckVerdict(stmts, i, declared) {
+  const limit = Math.min(stmts.length - 1, i + 20);
+  for (let j = i + 1; j <= limit; j++) {
+    const kind = stmts[j].get()?.constructor?.name;
+    if (kind === "EndMethod" || kind === "EndForm") break;
+    const text = stmts[j].concatTokens();
+    if (SUBRC_RE.test(text)) return "ok";
+    if (DB_WRITE_STMTS.has(kind) && !isDeclaredLocal(text, declared)) return "after-write";
   }
-  return false;
+  return "missing";
 }
 
 /**

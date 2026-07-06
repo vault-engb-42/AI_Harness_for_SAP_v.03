@@ -3,8 +3,8 @@ import { parseAbap, objectsOf } from "./abap-parse.js";
 import {
   KIND_RULES, TEXT_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
-  AUTHCHECK_SPEC, RAP_DB_WRITE_SPEC,
-  lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, subrcCheckedAfter,
+  AUTHCHECK_SPEC, AUTHCHECK_AFTER_WRITE_SPEC, RAP_DB_WRITE_SPEC,
+  lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
   cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
 
@@ -73,7 +73,11 @@ function scanStatements(objName, objType, file, findings) {
     for (const tr of TEXT_RULES) if (tr.re.test(text)) emit(tr, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);
-    if (kind === "AuthorityCheck" && !subrcCheckedAfter(stmts, i)) emit(AUTHCHECK_SPEC, st);
+    if (kind === "AuthorityCheck") {
+      const verdict = authCheckVerdict(stmts, i, declared);
+      if (verdict === "after-write") emit(AUTHCHECK_AFTER_WRITE_SPEC, st);
+      else if (verdict === "missing") emit(AUTHCHECK_SPEC, st);
+    }
     if (DB_WRITE_STMTS.has(kind) && !isDeclaredLocal(text, declared)) emit(RAP_DB_WRITE_SPEC, st);
 
     // Loop-context rules test depth BEFORE this statement adjusts it, so a

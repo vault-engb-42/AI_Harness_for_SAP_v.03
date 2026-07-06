@@ -101,6 +101,26 @@ test("AUTHORITY-CHECK followed by IF sy-subrc is clean", () => {
   assert.equal(finding(res, "gf-inv-authcheck-no-subrc"), undefined);
 });
 
+test("gf-x-authcheck-subrc-after-write fires when SY-SUBRC is tested only AFTER a protected write (ordering)", () => {
+  const body = "    DATA ls TYPE vbak.\n    AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n    INSERT vbak FROM ls.\n    IF sy-subrc <> 0.\n      RETURN.\n    ENDIF.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
+  assert.equal(finding(res, "gf-x-authcheck-subrc-after-write")?.severity, "error");
+  assert.equal(finding(res, "gf-inv-authcheck-no-subrc"), undefined, "the ordering rule fires, not the presence rule");
+});
+
+test("AUTHORITY-CHECK with SY-SUBRC tested BEFORE the write is clean (correct gate order)", () => {
+  const body = "    DATA ls TYPE vbak.\n    AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n    IF sy-subrc <> 0.\n      RETURN.\n    ENDIF.\n    INSERT vbak FROM ls.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
+  assert.equal(finding(res, "gf-x-authcheck-subrc-after-write"), undefined);
+  assert.equal(finding(res, "gf-inv-authcheck-no-subrc"), undefined);
+});
+
+test("a MODIFY on a declared local internal table is not a 'protected write' for the ordering rule", () => {
+  const body = "    DATA lt TYPE TABLE OF string.\n    DATA ls TYPE string.\n    AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n    MODIFY TABLE lt FROM ls.\n    IF sy-subrc <> 0.\n      RETURN.\n    ENDIF.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
+  assert.equal(finding(res, "gf-x-authcheck-subrc-after-write"), undefined, "an itab MODIFY is not a persistence write; subrc-after is fine");
+});
+
 // ---------------------------------------------------------------- rap-odata
 
 test("gf-rap-direct-db-write fires on a direct INSERT to a DDIC table", () => {
