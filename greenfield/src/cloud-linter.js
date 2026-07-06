@@ -69,7 +69,7 @@ function scanStatements(objName, objType, file, findings) {
     if (decl) declared.add(decl[1].toUpperCase());
 
     const kindRule = KIND_RULES[kind];
-    if (kindRule && (!kindRule.guard || kindRule.guard.test(text))) emit(kindRule, st);
+    if (kindRule && (!kindRule.guard || kindRule.guard.test(text)) && (!kindRule.notGuard || !kindRule.notGuard.test(text))) emit(kindRule, st);
     for (const tr of TEXT_RULES) if (tr.re.test(text)) emit(tr, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);

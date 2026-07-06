@@ -42,6 +42,12 @@ export const KIND_RULES = {
   EnhancementPoint: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-POINT is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
   EnhancementSection: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-SECTION is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
   InterfaceDef: { rule_id: "gf-cloud-no-internal-badi", severity: "error", family: "clean-core", message: "implementing an SAP-internal BAdI (IF_EX_*INTERNAL*) is not a released extension point", guard: /IF_EX_\w*INTERNAL/i },
+  // Batch 3 — cloud-runtime + Clean-Core warnings. `notGuard` fires when the
+  // regex does NOT match (class not FINAL/ABSTRACT). Kinds probe-verified.
+  Message: { rule_id: "gf-cloud-message-type", severity: "warning", family: "abap-cloud", message: "MESSAGE … TYPE (dialog message) is not available in ABAP Cloud; surface messages through a released exception or the RAP message API", guard: /\bTYPE\s+'?[EAXIWS]'?/i },
+  ClassDefinition: { rule_id: "gf-cloud-class-not-final", severity: "warning", family: "abap-cloud", message: "a class should be FINAL (or ABSTRACT) in ABAP Cloud — avoid open inheritance", notGuard: /\b(?:FINAL|ABSTRACT|DEFERRED|FOR\s+TESTING)\b/i },
+  FieldSymbol: { rule_id: "gf-cloud-fs-type-any", severity: "warning", family: "abap-cloud", message: "FIELD-SYMBOLS TYPE ANY defeats static typing — type the field symbol explicitly", guard: /\bTYPE\s+ANY\b(?!\s+TABLE)/i },
+  Compute: { rule_id: "gf-cloud-no-compute", severity: "warning", family: "clean-abap", message: "COMPUTE is obsolete — use a plain assignment x = …" },
 };
 
 // Any-statement text rules — the construct is not a distinct parsed kind (or the
@@ -50,6 +56,13 @@ export const KIND_RULES = {
 export const TEXT_RULES = [
   { rule_id: "gf-cloud-no-classic-alv", severity: "error", family: "abap-cloud", message: "CL_SALV_TABLE=>FACTORY is the classic ALV — not available in ABAP Cloud; expose data through RAP/OData", re: /\bCL_SALV_TABLE\s*=>\s*FACTORY\b/i },
   { rule_id: "gf-cloud-no-using-client", severity: "error", family: "abap-cloud", message: "USING CLIENT cross-client access is forbidden in ABAP Cloud; operate in the current client only", re: /\bUSING\s+CLIENT\b/i },
+  // Batch 3 text rules — construct is not a distinct kind (SY-time read, ref to a
+  // legacy-UI / SEGW / BOPF class) or a definition prefix (user exit / CI include).
+  { rule_id: "gf-cloud-sy-time-direct", severity: "warning", family: "abap-cloud", message: "direct SY-UZEIT/DATUM/TIMLO/TZONE read is time-zone-unsafe in ABAP Cloud — use CL_ABAP_CONTEXT_INFO or a released time API", re: /\bSY-(?:UZEIT|DATUM|TIMLO|TZONE|ZONLO)\b/i },
+  { rule_id: "gf-cloud-no-user-exit", severity: "warning", family: "clean-core", message: "classic user/customer exit (USEREXIT_ / CUSTOMER_FUNCTION_) is not a released extension point — use a BAdI or RAP extension", re: /^(?:FORM\s+USEREXIT_|FUNCTION\s+CUSTOMER_FUNCTION_)/i },
+  { rule_id: "gf-cloud-legacy-ui", severity: "warning", family: "clean-core", message: "Web Dynpro / legacy-UI reference (IF_WD_*/CL_WD_*/IWCI_*) — build a Fiori/RAP UI instead", re: /\b(?:IF_WD_\w+|CL_WD_\w+|IWCI_\w+)\b/i },
+  { rule_id: "gf-cloud-ci-include", severity: "warning", family: "clean-core", message: "classic CI_ append-structure include — extend released structures through released extension points", re: /\bINCLUDE\s+STRUCTURE\s+CI_\w+/i },
+  { rule_id: "gf-cloud-segw-bopf", severity: "warning", family: "clean-core", message: "SEGW/BOPF reference (/IWBEP/ or /BOBF/) — model OData through RAP service definitions/bindings", re: /\/(?:IWBEP|BOBF)\/(?:CL|IF)_\w+/i },
 ];
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);

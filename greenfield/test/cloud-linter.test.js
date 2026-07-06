@@ -301,8 +301,56 @@ test("Batch-1 guards hold: local PERFORM, normal INTERFACES, lines( ) raise noth
   const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
   assert.equal(finding(res, "gf-cloud-no-perform-sap"), undefined, "local PERFORM (no IN PROGRAM) must not fire");
   assert.equal(finding(res, "gf-cloud-no-describe-lines"), undefined, "lines( ) is not DESCRIBE");
-  const norm = "CLASS zcl_n DEFINITION PUBLIC.\n  PUBLIC SECTION.\n    INTERFACES if_my_normal.\nENDCLASS.\nCLASS zcl_n IMPLEMENTATION.\nENDCLASS.";
+  const norm = "CLASS zcl_n DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    INTERFACES if_my_normal.\nENDCLASS.\nCLASS zcl_n IMPLEMENTATION.\nENDCLASS.";
   assert.equal(finding(lintAbapCloud([{ filename: "zcl_n.clas.abap", source: norm }]), "gf-cloud-no-internal-badi"), undefined, "a normal INTERFACES must not fire internal-badi");
+});
+
+// ---------------------------------------------------------------- Batch 3: cloud-runtime + Clean-Core warnings
+
+test("gf-cloud-message-type fires on MESSAGE … TYPE (CLOUD-004)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    MESSAGE 'hi' TYPE 'E'.") }]);
+  assert.equal(finding(res, "gf-cloud-message-type")?.severity, "warning");
+});
+
+test("gf-cloud-class-not-final fires on a non-FINAL/ABSTRACT class (CLOUD-005), FINAL is clean", () => {
+  const nf = "CLASS zcl_a DEFINITION PUBLIC.\n  PUBLIC SECTION.\nENDCLASS.\nCLASS zcl_a IMPLEMENTATION.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_a.clas.abap", source: nf }]), "gf-cloud-class-not-final")?.severity, "warning");
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("") }]), "gf-cloud-class-not-final"), undefined, "a FINAL class is clean");
+});
+
+test("gf-cloud-fs-type-any fires on FIELD-SYMBOLS TYPE ANY but not TYPE ANY TABLE (CLOUD-007)", () => {
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    FIELD-SYMBOLS <fs> TYPE any.") }]), "gf-cloud-fs-type-any")?.severity, "warning");
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    FIELD-SYMBOLS <ft> TYPE ANY TABLE.") }]), "gf-cloud-fs-type-any"), undefined);
+});
+
+test("gf-cloud-no-compute fires on COMPUTE (CLOUD-017)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lv TYPE i.\n    COMPUTE lv = 1 + 2.") }]);
+  assert.equal(finding(res, "gf-cloud-no-compute")?.severity, "warning");
+});
+
+test("gf-cloud-sy-time-direct fires on a direct SY-UZEIT read (CLOUD-016)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lv TYPE t.\n    lv = sy-uzeit.") }]);
+  assert.equal(finding(res, "gf-cloud-sy-time-direct")?.severity, "warning");
+});
+
+test("gf-cloud-no-user-exit fires on FORM USEREXIT_ (CLOUD-027)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nFORM userexit_save.\nENDFORM." }]);
+  assert.equal(finding(res, "gf-cloud-no-user-exit")?.severity, "warning");
+});
+
+test("gf-cloud-legacy-ui fires on a Web Dynpro reference (CLOUD-028)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO if_wd_component.") }]);
+  assert.equal(finding(res, "gf-cloud-legacy-ui")?.severity, "warning");
+});
+
+test("gf-cloud-ci-include fires on INCLUDE STRUCTURE CI_ (CLOUD-029)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  INCLUDE STRUCTURE ci_cobl." }]);
+  assert.equal(finding(res, "gf-cloud-ci-include")?.severity, "warning");
+});
+
+test("gf-cloud-segw-bopf fires on a /IWBEP/ reference (CLOUD-030)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO /iwbep/cl_mgw_abs_data.") }]);
+  assert.equal(finding(res, "gf-cloud-segw-bopf")?.severity, "warning");
 });
 
 // ---------------------------------------------------------------- result shape + counts
