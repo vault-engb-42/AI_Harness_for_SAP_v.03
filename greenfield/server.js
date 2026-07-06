@@ -1,10 +1,11 @@
 // The greenfield MCP: a stdio JSON-RPC 2.0 server exposing greenfield's own
 // build tooling. GF-1: `ground_released_apis` (pre-generation released-API
-// grounding over the bundled SAP cloudification registry). Offline, read-only
-// — no SAP connection, no analyser. GF-2 will add the ABAP-Cloud lint tool.
+// grounding over the bundled SAP cloudification registry). GF-2: `lint_abap_cloud`
+// (post-generation ABAP-Cloud linter). Offline, read-only — no SAP, no analyser.
 import { createInterface } from "node:readline";
 import { GREENFIELD_TOOLS, GREENFIELD_TOOL_NAMES } from "./tools.js";
 import { harvestRefs, groundReleasedApis, renderGroundingPack } from "./src/released-api-grounding.js";
+import { lintAbapCloud, formatViolationsForRepair } from "./src/cloud-linter.js";
 
 const SERVER_INFO = { name: "greenfield", version: "1.0.0" };
 const PROTOCOL_VERSION = "2024-11-05";
@@ -24,10 +25,16 @@ function toolText(id, payload, isError = false) {
 
 /** @param {string} name @param {object} args @returns {string} */
 function runTool(name, args) {
-  if (name !== "ground_released_apis") throw new Error(`unhandled tool ${name}`);
-  const refs = Array.isArray(args.refs) && args.refs.length ? args.refs : harvestRefs(args.text ?? "");
-  const grounded = groundReleasedApis(refs);
-  return JSON.stringify({ pack: renderGroundingPack(grounded), counts: grounded.counts, refs: grounded.refs });
+  if (name === "ground_released_apis") {
+    const refs = Array.isArray(args.refs) && args.refs.length ? args.refs : harvestRefs(args.text ?? "");
+    const grounded = groundReleasedApis(refs);
+    return JSON.stringify({ pack: renderGroundingPack(grounded), counts: grounded.counts, refs: grounded.refs });
+  }
+  if (name === "lint_abap_cloud") {
+    const result = lintAbapCloud(Array.isArray(args.files) ? args.files : []);
+    return JSON.stringify({ ...result, repair: formatViolationsForRepair(result.findings) });
+  }
+  throw new Error(`unhandled tool ${name}`);
 }
 
 function handleCall(id, params) {

@@ -81,6 +81,26 @@ test("ground_released_apis harvests refs from design text when refs omitted", as
   assert.equal(payload.counts.deprecated, 1);
 });
 
+test("greenfield MCP lists the lint_abap_cloud tool", async () => {
+  const srv = startServer();
+  after(() => srv.close());
+  await srv.request("initialize", {});
+  const list = await srv.request("tools/list", {});
+  assert.ok(list.result.tools.some((t) => t.name === "lint_abap_cloud"));
+});
+
+test("lint_abap_cloud parses real ABAP and returns blocking findings + a repair brief", async () => {
+  const srv = startServer();
+  after(() => srv.close());
+  await srv.request("initialize", {});
+  const source = "REPORT zr_x.\nSTART-OF-SELECTION.\n  WRITE 'x'.\n  CALL FUNCTION 'Z_FM'.";
+  const res = await srv.request("tools/call", { name: "lint_abap_cloud", arguments: { files: [{ filename: "zr_x.prog.abap", source }] } });
+  const payload = JSON.parse(res.result.content[0].text);
+  assert.ok(payload.errorCount >= 1, "WRITE is a blocking error");
+  assert.ok(payload.findings.some((f) => f.rule_id === "gf-cloud-no-write"));
+  assert.match(payload.repair, /gf-cloud-no-write/);
+});
+
 test("an unknown tool is a JSON-RPC error", async () => {
   const srv = startServer();
   after(() => srv.close());

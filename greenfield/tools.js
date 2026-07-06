@@ -1,5 +1,5 @@
-// Tool definitions for the greenfield MCP. GF-1 exposes pre-generation
-// grounding; GF-2 will add the ABAP-Cloud generation linter to the same server.
+// Tool definitions for the greenfield MCP. GF-1 exposes PRE-generation
+// grounding; GF-2 adds the POST-generation ABAP-Cloud linter on the same server.
 
 export const GREENFIELD_TOOLS = [
   {
@@ -18,6 +18,31 @@ export const GREENFIELD_TOOLS = [
         text: {
           type: "string",
           description: "design/spec text to harvest candidate SAP object refs from (used when `refs` is omitted).",
+        },
+      },
+    },
+  },
+  {
+    name: "lint_abap_cloud",
+    description:
+      "Greenfield POST-generation ABAP-Cloud linter. Parses the generated ABAP source (@abaplint/core) and returns Clean-Core violations — CLOUD-forbidden statements (TABLES/WRITE/native SQL/Dynpro/CALL TRANSACTION/WITH HEADER LINE), the released-API grounding check (deprecated/notToBeReleased refs), immutable-invariant breaches (COMMIT-in-loop, AUTHORITY-CHECK without SY-SUBRC), RAP/CDS structural rules, HARDY assert-less tests, and performance smells. Blocks on `error`; `repair` is an injectable brief for the lint→regenerate loop. Offline, deterministic — no SAP, not the analyser.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["files"],
+      properties: {
+        files: {
+          type: "array",
+          description: "the generated ABAP artifacts to lint (RAP/CDS/class/test source).",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["filename", "source"],
+            properties: {
+              filename: { type: "string", description: "the object filename, e.g. zcl_order.clas.abap or zi_order.ddls.asddls (the extension selects the parser)." },
+              source: { type: "string", description: "the ABAP/CDS source text." },
+            },
+          },
         },
       },
     },
