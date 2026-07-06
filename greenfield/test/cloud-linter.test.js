@@ -353,6 +353,33 @@ test("gf-cloud-segw-bopf fires on a /IWBEP/ reference (CLOUD-030)", () => {
   assert.equal(finding(res, "gf-cloud-segw-bopf")?.severity, "warning");
 });
 
+// ---------------------------------------------------------------- Batch 4: Clean-ABAP style
+
+test("gf-clean-hungarian fires on a Hungarian-prefixed DATA name, not a content name (CLEAN-002)", () => {
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lt_foo TYPE i.") }]), "gf-clean-hungarian")?.severity, "warning");
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA orders TYPE i.") }]), "gf-clean-hungarian"), undefined);
+});
+
+test("gf-clean-standalone-data fires on standalone typed DATA, not on inline DATA( ) (CLEAN-003)", () => {
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA orders TYPE i.") }]), "gf-clean-standalone-data")?.severity, "warning");
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA(orders) = 1.") }]), "gf-clean-standalone-data"), undefined);
+});
+
+test("gf-clean-bool-literal fires on an 'X' boolean literal (CLEAN-005)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA flag TYPE abap_bool.\n    flag = 'X'.") }]);
+  assert.equal(finding(res, "gf-clean-bool-literal")?.severity, "warning");
+});
+
+test("gf-clean-raise-exc-type fires on RAISE EXCEPTION TYPE, not on RAISE EXCEPTION NEW (CLEAN-006)", () => {
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    RAISE EXCEPTION TYPE cx_sy_zerodivide.") }]), "gf-clean-raise-exc-type")?.severity, "warning");
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    RAISE EXCEPTION NEW cx_sy_zerodivide( ).") }]), "gf-clean-raise-exc-type"), undefined);
+});
+
+test("gf-clean-redundant-exporting fires on ( EXPORTING … ) in a call (CLEAN-009)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO zcl_x.\n    lo->run( EXPORTING iv = 1 ).") }]);
+  assert.equal(finding(res, "gf-clean-redundant-exporting")?.severity, "warning");
+});
+
 // ---------------------------------------------------------------- result shape + counts
 
 test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {

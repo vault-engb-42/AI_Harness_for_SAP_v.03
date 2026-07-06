@@ -63,6 +63,18 @@ export const TEXT_RULES = [
   { rule_id: "gf-cloud-legacy-ui", severity: "warning", family: "clean-core", message: "Web Dynpro / legacy-UI reference (IF_WD_*/CL_WD_*/IWCI_*) — build a Fiori/RAP UI instead", re: /\b(?:IF_WD_\w+|CL_WD_\w+|IWCI_\w+)\b/i },
   { rule_id: "gf-cloud-ci-include", severity: "warning", family: "clean-core", message: "classic CI_ append-structure include — extend released structures through released extension points", re: /\bINCLUDE\s+STRUCTURE\s+CI_\w+/i },
   { rule_id: "gf-cloud-segw-bopf", severity: "warning", family: "clean-core", message: "SEGW/BOPF reference (/IWBEP/ or /BOBF/) — model OData through RAP service definitions/bindings", re: /\/(?:IWBEP|BOBF)\/(?:CL|IF)_\w+/i },
+  // Batch 4 — Clean ABAP style
+  { rule_id: "gf-clean-bool-literal", severity: "warning", family: "clean-abap", message: "'X' / ' ' boolean literal — use abap_true / abap_false", re: /=\s*'[X ]'/ },
+];
+
+// Statement rules keyed by kind AND text — the flexible matcher for cases where
+// two rules share a kind (both gf-clean-hungarian and gf-clean-standalone-data
+// target `Data`), so KIND_RULES (one-per-kind) cannot express them.
+export const STMT_RULES = [
+  { rule_id: "gf-clean-hungarian", severity: "warning", family: "clean-abap", message: "Hungarian-notation prefix (lt_/gs_/mv_/lo_…) — Clean ABAP names describe content, not type or scope", kinds: new Set(["Data", "ClassData"]), re: /^(?:CLASS-)?DATA\s+[lgme][tvsoraixe]_/i },
+  { rule_id: "gf-clean-standalone-data", severity: "warning", family: "clean-abap", message: "standalone typed DATA declaration — prefer an inline DATA(x) at first assignment where practical", kinds: new Set(["Data"]), re: /^DATA\s+\w+\s+TYPE\b/i },
+  { rule_id: "gf-clean-raise-exc-type", severity: "warning", family: "clean-abap", message: "RAISE EXCEPTION TYPE — prefer RAISE EXCEPTION NEW zcx_…( ) to construct and raise in one step", kinds: new Set(["Raise"]), re: /\bTYPE\b/i },
+  { rule_id: "gf-clean-redundant-exporting", severity: "warning", family: "clean-abap", message: "redundant EXPORTING in a method call — omit the keyword for a single set of exporting parameters", kinds: new Set(["Call", "Move"]), re: /\(\s*EXPORTING\s+/i },
 ];
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);

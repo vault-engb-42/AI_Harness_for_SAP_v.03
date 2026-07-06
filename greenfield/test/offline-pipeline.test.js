@@ -73,14 +73,15 @@ CLASS zcl_approval IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.`;
 
-// After the lint->regenerate loop: released successor, no WRITE.
+// After the lint->regenerate loop: released successor, no WRITE, Clean-ABAP
+// (inline DATA(), FINAL class) so the regenerated source is genuinely violation-free.
 const FIXED_SOURCE = `CLASS zcl_approval DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     METHODS build RETURNING VALUE(rv) TYPE i.
 ENDCLASS.
 CLASS zcl_approval IMPLEMENTATION.
   METHOD build.
-    DATA lo TYPE REF TO cl_bcfg_cd_reuse_api_factory.
+    DATA(factory) = cl_bcfg_cd_reuse_api_factory=>get( ).
     rv = 1.
   ENDMETHOD.
 ENDCLASS.`;

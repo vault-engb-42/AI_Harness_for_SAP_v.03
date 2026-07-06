@@ -1,7 +1,7 @@
 import { ABAPObject } from "@abaplint/core";
 import { parseAbap, objectsOf } from "./abap-parse.js";
 import {
-  KIND_RULES, TEXT_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
+  KIND_RULES, TEXT_RULES, STMT_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
   AUTHCHECK_SPEC, AUTHCHECK_AFTER_WRITE_SPEC, RAP_DB_WRITE_SPEC,
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
@@ -71,6 +71,7 @@ function scanStatements(objName, objType, file, findings) {
     const kindRule = KIND_RULES[kind];
     if (kindRule && (!kindRule.guard || kindRule.guard.test(text)) && (!kindRule.notGuard || !kindRule.notGuard.test(text))) emit(kindRule, st);
     for (const tr of TEXT_RULES) if (tr.re.test(text)) emit(tr, st);
+    for (const sr of STMT_RULES) if (sr.kinds.has(kind) && sr.re.test(text) && (!sr.notRe || !sr.notRe.test(text))) emit(sr, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);
     if (kind === "AuthorityCheck") {
