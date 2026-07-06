@@ -40,7 +40,7 @@ Always pass a concrete goal. Without one, the skill ranks structural seams gener
 1. Suggest running `/abap-brownfield` first (or `/readiness` for a migration-only scan).
 2. Stop. **Do not** try to score seams from object names or memory. Every seam references the brownfield inventory — no inventory, no seam.
 
-There is **no `code-graph.json`, no coupling-report, no symbol-map** here — those are filesystem-AST artifacts with no ADT analogue (see `/abap-brownfield`). The dependency evidence lives inside `architecture-map.md` as a traceable edge list. The seam scorer is **not a script** — it is this `planner` fork reasoning over the explorer's source-evidenced maps. Do not reference or invent a scoring binary the substrate cannot produce.
+When `specs/brownfield/analyser-findings.json` is present (from `/abap-analyser`), its **code property graph** (`graph`, `blast_radius`) gives precise fan-in, cycle membership, and blast radius for the isolation scoring — more exact than hand-traced edges. When it is absent, the dependency evidence lives inside `architecture-map.md` as a traceable edge list. Either way the seam scorer is **not a script** — it is this `planner` fork reasoning over the graph and the explorer's source-evidenced extension points; do not invent a scoring binary. Note the analyser does **not** discover extension points (released BAdI / RAP-extension / CDS-extend) — those still come from the explorer's source reads in Step 2; the analyser only sharpens the *structural* (isolation/blast-radius) axis.
 
 Staleness check: if the brownfield maps predate the objects the goal touches, or omit them, **re-scope the explorer** in Step 2 onto the goal's surface rather than scoring a stale inventory.
 
@@ -95,7 +95,7 @@ For each candidate the explorer evidenced, this fork assigns the three scores fr
    - CDS `extend view entity` on a released base view entity → **0.8**.
    - Extension on a *custom* (Z) released seam → **0.6**.
    - Internal method / private helper / unreleased hook → **0.1** (not a contracted boundary).
-2. **`isolation_score`** — from the seam's fan-in and cycle membership in the traced edges: a low-fan-in, cycle-free extension point where the change lands without editing custom callers scores high; a hub or cycle member scores low.
+2. **`isolation_score`** — from the seam's fan-in and cycle membership: in **analyser mode** take these from the report's `graph` (incoming edges = fan-in, graph-pack cycle findings) and `blast_radius` (precise); in **crawl mode** from the explorer's traced edges. A low-fan-in, cycle-free extension point where the change lands without editing custom callers scores high; a hub or cycle member scores low.
 3. **`clean_core_score`** — from `get_migration_analysis`: **released** base + Level-A target posture → high; **unreleased** base → ~0 (P2 — it is not a sanctioned seam, no matter how convenient).
 4. **Goal-relevance bump** — candidates whose object/field/association matches the goal terms get a ×1.5 multiplier on `total_score`. Synonyms may miss — override manually if a high-relevance candidate is under-scored.
 5. **Rank descending** by `total_score`.
