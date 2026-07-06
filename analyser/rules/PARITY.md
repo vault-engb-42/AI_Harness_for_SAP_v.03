@@ -99,7 +99,7 @@ Where they live:
 The 8 packs added 2026-07-04 (ddic, rap-context, flow, clone, intf,
 test-quality, bf, srvb) were the least-vetted code in the build. An adversarial
 audit (parallel-agent workflow + a Node validation gate, findings verified by a
-default-refute pass) confirmed **16** real defects — 7 MEDIUM + 8 LOW accuracy
+default-refute pass) confirmed **16** real defects — 10 MEDIUM + 5 LOW accuracy
 issues (false positives/negatives) plus **1 P8 crash**: malformed abapGit TABL
 XML made abaplint's DDIC parser throw *outside* the rule-engine's isolation, so
 `loadRegistry` now drops only the objects that fail to parse (surfaced as a
