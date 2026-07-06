@@ -90,6 +90,11 @@ function applyFileByteCap(files, notes) {
   return admitted;
 }
 
+// Intra-object member nodes (a class's methods, a program's forms) carry their
+// owner's namespace but are not distinct repository objects — excluded so the
+// customer-vs-SAP breakdown counts objects, not members.
+const MEMBER_NODE_KINDS = new Set(["method", "form"]);
+
 /**
  * @param {object[]} nodes
  * @returns {object} namespace breakdown
@@ -97,6 +102,7 @@ function applyFileByteCap(files, notes) {
 function buildNamespaceSummary(nodes) {
   const counts = { Z: 0, Y: 0, registered: 0, sap: 0 };
   for (const n of nodes) {
+    if (MEMBER_NODE_KINDS.has(n.kind)) continue;
     if (counts[n.namespace] !== undefined) counts[n.namespace]++;
   }
   return {

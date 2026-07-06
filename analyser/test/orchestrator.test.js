@@ -74,6 +74,19 @@ test("namespace_summary counts customer vs SAP", () => {
   assert.ok(doc.namespace_summary.sap >= 2); // CL_A4C_BC_FACTORY + BAPIRET1
 });
 
+test("namespace_summary counts OBJECTS, not method/form member nodes", () => {
+  // Cross-object method calls materialize method nodes (ZCL_A.RUN, ZCL_B.DO_WORK,
+  // ...) which carry their owner's namespace. Those are members, not distinct
+  // repository objects, so they must not inflate the customer/SAP breakdown.
+  const files = [
+    { filename: "zcl_a.clas.abap", source: `CLASS zcl_a DEFINITION PUBLIC FINAL.\n  PUBLIC SECTION.\n    METHODS run.\n    DATA mo_b TYPE REF TO zcl_b.\nENDCLASS.\nCLASS zcl_a IMPLEMENTATION.\n  METHOD run.\n    mo_b->do_work( ).\n    mo_b->do_more( ).\n  ENDMETHOD.\nENDCLASS.` },
+    { filename: "zcl_b.clas.abap", source: `CLASS zcl_b DEFINITION PUBLIC FINAL.\n  PUBLIC SECTION.\n    METHODS do_work.\n    METHODS do_more.\nENDCLASS.\nCLASS zcl_b IMPLEMENTATION.\n  METHOD do_work.\n  ENDMETHOD.\n  METHOD do_more.\n  ENDMETHOD.\nENDCLASS.` },
+  ];
+  const doc = analyzePackage(files, OPTS);
+  assert.equal(doc.namespace_summary.Z, 2, "two customer OBJECTS (ZCL_A, ZCL_B), not their 3 method nodes");
+  assert.equal(doc.namespace_summary.customer_total, 2);
+});
+
 test("writeReport refuses a schema-invalid document (fail-closed)", () => {
   const bad = { package: "ZP" }; // missing required fields
   assert.throws(() => writeReport(bad, join(TMP, "never.json")), /schema-invalid/);
