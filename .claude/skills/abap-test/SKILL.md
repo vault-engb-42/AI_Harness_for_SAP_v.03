@@ -40,7 +40,7 @@ The engineering harness generates a test plan, cases, fixtures, and Playwright E
 **For a full run or `--e2e-only` (authoring + live-DEV run — after `/abap-implement`):**
 - `specs/stories/E{n}-S{n}.md` — the acceptance criteria the tests trace to.
 - `specs/abap/` — the generator's local source the `LTCL_*` classes target.
-- `specs/design/object-map.md` and the CDS/RAP contracts — the public interfaces the tests exercise.
+- `specs/design/component-map.md` and `specs/design/object-contract.md` — the public interfaces the tests exercise.
 - A registered **DEV** connection for `abap-evaluator` to push and run against (there is no PRD connection — P5).
 
 If a required prerequisite is missing, stop and report what is absent. Do not author tests against an interface that does not yet exist in the contract.
@@ -90,7 +90,7 @@ Create `specs/test-artefacts/` if it does not exist.
 **`specs/test-artefacts/test-data/`**
 - One `.md`/`.json` fixture file per domain entity (`sales-orders.md`, `travel.md`). Data must be domain-representative: real-looking keys, valid amounts as packed/`CURR`/`Decimal` (never a float for money), plausible dates.
 - Never `'foo'`, `1`, or `'TEST'` as a stand-in value. Fixtures feed the CDS/RAP test-double `insert_test_data` calls, not a live table write.
-- **In `--plan-only`, fixtures are contract-free:** `/abap-design` runs in parallel, so `specs/design/cds-contracts.md` may not exist yet. Derive field names from the AC text and reconcile against the contracts in Step 5 (or when `/abap-implement` begins) — field-name drift is expected until then and must be resolved before any `LTCL_*` uses them.
+- **In `--plan-only`, fixtures are contract-free:** `/abap-design` runs in parallel, so `specs/design/object-contract.md` may not exist yet. Derive field names from the AC text and reconcile against the contract in Step 5 (or when `/abap-implement` begins) — field-name drift is expected until then and must be resolved before any `LTCL_*` uses them.
 
 **`specs/test-artefacts/test-traces.json`** — the trace spine: one entry per test method, each tracing to the AC id(s) it verifies.
 ```json

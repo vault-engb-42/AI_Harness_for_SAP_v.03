@@ -56,7 +56,7 @@ Document this assessment before writing any code. A change with an unread call-s
 
 ### Step S3 — Consult Design Contracts
 
-Read `specs/design/` for the relevant contracts: `object-contract.md` (RAP/CDS/class signatures + the P4 authorization contract), `cds-contracts.md` / `rap-contracts.md`, and `api-grounding.md` (the released-API ledger). Confirm the planned change stays inside the ABAP Cloud model (P3) — CDS **view entity**, not legacy `DEFINE VIEW`; RAP behavior, not classic Dynpro; the change lands on the object that owns the behavior, not a new pass-through wrapper. If the change requires a *new* released-API dependency not in `api-grounding.md`, add a grounded row there first (P2). If the change reshapes the model beyond an operation tweak, stop and route to `/abap-design`.
+Read `specs/design/` for the relevant contracts: `object-contract.md` (RAP/CDS/class signatures + the P4 authorization contract) and `api-grounding.md` (the released-API ledger). Confirm the planned change stays inside the ABAP Cloud model (P3) — CDS **view entity**, not legacy `DEFINE VIEW`; RAP behavior, not classic Dynpro; the change lands on the object that owns the behavior, not a new pass-through wrapper. If the change requires a *new* released-API dependency not in `api-grounding.md`, add a grounded row there first (P2). If the change reshapes the model beyond an operation tweak, stop and route to `/abap-design`.
 
 ### Step S4 — Write the Failing ABAP Unit Test(s) First
 

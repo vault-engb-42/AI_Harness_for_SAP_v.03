@@ -5,8 +5,9 @@ import { normalizeS4Status, effortTierForStatus } from "./s4-status.js";
 
 /**
  * Cloudification Registry adapter — O(1) S/4HANA readiness lookup over the
- * bundled TALOS dataset (analyser/data/, Apache-2.0). Two source files are
- * merged into one name-keyed index:
+ * bundled TALOS dataset (the neutral top-level `data/`, Apache-2.0 — shared
+ * reference material for the analyser and greenfield, owned by neither). Two
+ * source files are merged into one name-keyed index:
  *   - objectReleaseInfoLatest.json  (authoritative release state; wins on conflict)
  *   - objectClassifications_SAP.json (classic-API classification; fills gaps)
  *
@@ -14,7 +15,7 @@ import { normalizeS4Status, effortTierForStatus } from "./s4-status.js";
  * to absent (=> classify -> unknown), never throws mid-analysis.
  */
 
-const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
 
 const SOURCES = [
   { file: "objectReleaseInfoLatest.json", key: "objectReleaseInfo", authoritative: true },

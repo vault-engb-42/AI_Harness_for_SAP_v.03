@@ -1,0 +1,216 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { lintAbapCloud, formatViolationsForRepair } from "../src/cloud-linter.js";
+
+// GF-2 — the dedicated ABAP-Cloud generation linter. Parser-based (@abaplint/core
+// library, greenfield's own loader), NOT the analyser. Every test lints REAL ABAP
+// source through the real parser — no mocks. One trigger + one clean sample per
+// rule proves the rule fires on the anti-pattern and stays silent on clean code.
+
+/** @returns {string[]} the distinct rule_ids present in a lint result */
+function ruleIds(res) {
+  return [...new Set(res.findings.map((f) => f.rule_id))];
+}
+/** @returns {object|undefined} the first finding for a rule_id */
+function finding(res, ruleId) {
+  return res.findings.find((f) => f.rule_id === ruleId);
+}
+
+// ---------------------------------------------------------------- CLOUD-forbidden
+
+test("gf-cloud-no-tables fires on a TABLES declaration", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nTABLES vbak." }]);
+  const f = finding(res, "gf-cloud-no-tables");
+  assert.ok(f, "TABLES must be flagged");
+  assert.equal(f.severity, "error");
+  assert.equal(f.family, "abap-cloud");
+});
+
+test("gf-cloud-no-write fires on WRITE list output", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  WRITE 'hi'." }]);
+  assert.equal(finding(res, "gf-cloud-no-write")?.severity, "error");
+});
+
+test("gf-cloud-no-native-sql fires on EXEC SQL", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  EXEC SQL.\n  ENDEXEC." }]);
+  assert.equal(finding(res, "gf-cloud-no-native-sql")?.severity, "error");
+});
+
+test("gf-cloud-no-dynpro fires on CALL SCREEN and SET SCREEN", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  CALL SCREEN 100.\n  SET SCREEN 200." }]);
+  assert.equal(finding(res, "gf-cloud-no-dynpro")?.severity, "error");
+});
+
+test("gf-cloud-no-call-transaction fires on CALL TRANSACTION", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  CALL TRANSACTION 'VA01'." }]);
+  assert.equal(finding(res, "gf-cloud-no-call-transaction")?.severity, "error");
+});
+
+test("gf-cloud-call-function is a WARNING on CALL FUNCTION", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  CALL FUNCTION 'Z_FM'." }]);
+  assert.equal(finding(res, "gf-cloud-call-function")?.severity, "warning");
+});
+
+test("gf-cloud-with-header-line fires on WITH HEADER LINE", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nDATA itab TYPE TABLE OF string WITH HEADER LINE." }]);
+  assert.equal(finding(res, "gf-cloud-with-header-line")?.severity, "error");
+});
+
+test("clean ABAP-Cloud class raises no CLOUD-forbidden finding", () => {
+  const src = "CLASS zcl_ok DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run RETURNING VALUE(rv) TYPE i.\nENDCLASS.\nCLASS zcl_ok IMPLEMENTATION.\n  METHOD run.\n    rv = 1.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_ok.clas.abap", source: src }]);
+  const forbidden = ["gf-cloud-no-tables", "gf-cloud-no-write", "gf-cloud-no-native-sql", "gf-cloud-no-dynpro", "gf-cloud-no-call-transaction", "gf-cloud-with-header-line"];
+  assert.deepEqual(ruleIds(res).filter((r) => forbidden.includes(r)), []);
+});
+
+// ---------------------------------------------------------------- performance / loop
+
+test("gf-cloud-select-star fires on SELECT *", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  SELECT SINGLE * FROM vbak INTO @DATA(ls) WHERE vbeln = '1'." }]);
+  assert.equal(finding(res, "gf-cloud-select-star")?.severity, "warning");
+});
+
+test("gf-perf-select-in-loop fires on SELECT inside LOOP", () => {
+  const src = "REPORT zr_x.\nDATA lt TYPE TABLE OF string.\nSTART-OF-SELECTION.\n  LOOP AT lt INTO DATA(w).\n    SELECT SINGLE vbeln FROM vbak INTO @DATA(v) WHERE vbeln = @w.\n  ENDLOOP.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  assert.equal(finding(res, "gf-perf-select-in-loop")?.severity, "warning");
+});
+
+test("a SELECT outside any loop does NOT raise select-in-loop", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  SELECT SINGLE vbeln FROM vbak INTO @DATA(v) WHERE vbeln = '1'." }]);
+  assert.equal(finding(res, "gf-perf-select-in-loop"), undefined);
+});
+
+// ---------------------------------------------------------------- invariant
+
+test("gf-inv-commit-in-loop fires on COMMIT WORK inside LOOP", () => {
+  const src = "REPORT zr_x.\nDATA lt TYPE TABLE OF string.\nSTART-OF-SELECTION.\n  LOOP AT lt INTO DATA(w).\n    COMMIT WORK.\n  ENDLOOP.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  assert.equal(finding(res, "gf-inv-commit-in-loop")?.severity, "error");
+});
+
+test("gf-inv-authcheck-no-subrc fires when SY-SUBRC is not checked", () => {
+  const src = "REPORT zr_x.\nSTART-OF-SELECTION.\n  AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n  WRITE 'ok'.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  assert.equal(finding(res, "gf-inv-authcheck-no-subrc")?.severity, "warning");
+});
+
+test("AUTHORITY-CHECK followed by IF sy-subrc is clean", () => {
+  const src = "REPORT zr_x.\nSTART-OF-SELECTION.\n  AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n  IF sy-subrc <> 0.\n    RETURN.\n  ENDIF.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  assert.equal(finding(res, "gf-inv-authcheck-no-subrc"), undefined);
+});
+
+// ---------------------------------------------------------------- rap-odata
+
+test("gf-rap-direct-db-write fires on a direct INSERT to a DDIC table", () => {
+  const src = "CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS save.\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD save.\n    DATA ls TYPE vbak.\n    INSERT vbak FROM ls.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-rap-direct-db-write")?.severity, "warning");
+});
+
+test("a MODIFY on a declared local internal table is NOT a direct DB write", () => {
+  const src = "CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS save.\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD save.\n    DATA lt TYPE TABLE OF string.\n    DATA ls TYPE string.\n    MODIFY TABLE lt FROM ls.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-rap-direct-db-write"), undefined);
+});
+
+// ---------------------------------------------------------------- cds
+
+test("gf-cds-classic-view fires on DEFINE VIEW without ENTITY", () => {
+  const res = lintAbapCloud([{ filename: "zi_v.ddls.asddls", source: "define view zi_v as select from vbak { key vbeln }" }]);
+  assert.equal(finding(res, "gf-cds-classic-view")?.severity, "error");
+});
+
+test("a CDS view ENTITY is clean", () => {
+  const res = lintAbapCloud([{ filename: "zi_v.ddls.asddls", source: "define view entity zi_v as select from vbak { key vbeln }" }]);
+  assert.equal(finding(res, "gf-cds-classic-view"), undefined);
+});
+
+// ---------------------------------------------------------------- anti-pattern (HARDY)
+
+test("gf-hardy-test-no-assert fires on a FOR TESTING method with no assertion", () => {
+  const main = "CLASS zcl_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS add RETURNING VALUE(rv) TYPE i.\nENDCLASS.\nCLASS zcl_calc IMPLEMENTATION.\n  METHOD add.\n    rv = 2.\n  ENDMETHOD.\nENDCLASS.";
+  const testcls = "CLASS ltc_calc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc_calc IMPLEMENTATION.\n  METHOD t1.\n    DATA(x) = 1 + 1.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([
+    { filename: "zcl_calc.clas.abap", source: main },
+    { filename: "zcl_calc.clas.testclasses.abap", source: testcls },
+  ]);
+  assert.equal(finding(res, "gf-hardy-test-no-assert")?.severity, "warning");
+});
+
+test("a FOR TESTING method that asserts is clean", () => {
+  const main = "CLASS zcl_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS add RETURNING VALUE(rv) TYPE i.\nENDCLASS.\nCLASS zcl_calc IMPLEMENTATION.\n  METHOD add.\n    rv = 2.\n  ENDMETHOD.\nENDCLASS.";
+  const testcls = "CLASS ltc_calc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc_calc IMPLEMENTATION.\n  METHOD t1.\n    cl_abap_unit_assert=>assert_equals( act = 2 exp = 2 ).\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([
+    { filename: "zcl_calc.clas.abap", source: main },
+    { filename: "zcl_calc.clas.testclasses.abap", source: testcls },
+  ]);
+  assert.equal(finding(res, "gf-hardy-test-no-assert"), undefined);
+});
+
+// ---------------------------------------------------------------- released-api (GF-1 link)
+
+test("gf-ground-deprecated fires on a deprecated SAP ref and names the successor", () => {
+  const src = "CLASS zcl_g DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_g IMPLEMENTATION.\n  METHOD run.\n    DATA lo TYPE REF TO cl_a4c_bc_factory.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_g.clas.abap", source: src }]);
+  const f = finding(res, "gf-ground-deprecated");
+  assert.equal(f?.severity, "error");
+  assert.match(f.message, /CL_BCFG_CD_REUSE_API_FACTORY/);
+});
+
+test("gf-ground-not-released fires on a notToBeReleased SAP ref", () => {
+  const src = "CLASS zcl_g DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_g IMPLEMENTATION.\n  METHOD run.\n    DATA lv TYPE ci_dcls_chk.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_g.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-ground-not-released")?.severity, "error");
+});
+
+// ---------------------------------------------------------------- result shape + counts
+
+test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {
+  const src = "REPORT zr_x.\nSTART-OF-SELECTION.\n  WRITE 'x'.\n  CALL FUNCTION 'Z_FM'.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  assert.equal(res.errorCount, res.findings.filter((f) => f.severity === "error").length);
+  assert.equal(res.warningCount, res.findings.filter((f) => f.severity === "warning").length);
+  assert.ok(res.errorCount >= 1 && res.warningCount >= 1);
+});
+
+test("every finding carries the mandatory shape", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  WRITE 'x'." }]);
+  for (const f of res.findings) {
+    for (const k of ["rule_id", "severity", "object", "file", "line", "message", "family"]) {
+      assert.ok(k in f, `finding missing ${k}`);
+    }
+    assert.ok(Number.isInteger(f.line) && f.line >= 1);
+  }
+});
+
+// ---------------------------------------------------------------- P8 robustness
+
+test("a malformed generated object degrades without crashing the lint gate (P8)", () => {
+  const badTabl = {
+    filename: "zt_bad.tabl.xml",
+    source: `<?xml version="1.0"?><abapGit><asx:abap><asx:values><DD02V><TABNAME>ZT_BAD</TABNAME></DD02V></asx:values></asx:abap></abapGit>`,
+  };
+  const good = { filename: "zr_ok.prog.abap", source: "REPORT zr_ok.\nSTART-OF-SELECTION.\n  WRITE 'x'." };
+  let res;
+  assert.doesNotThrow(() => {
+    res = lintAbapCloud([badTabl, good]);
+  });
+  assert.ok(finding(res, "gf-cloud-no-write"), "healthy object still linted after a malformed sibling");
+});
+
+// ---------------------------------------------------------------- repair formatting
+
+test("formatViolationsForRepair separates blocking errors from warnings", () => {
+  const src = "REPORT zr_x.\nSTART-OF-SELECTION.\n  WRITE 'x'.\n  CALL FUNCTION 'Z_FM'.";
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
+  const text = formatViolationsForRepair(res.findings);
+  assert.match(text, /gf-cloud-no-write/);
+  assert.match(text, /ERROR/i);
+  assert.match(text, /gf-cloud-call-function/);
+});
+
+test("formatViolationsForRepair on no findings states the source is clean", () => {
+  assert.match(formatViolationsForRepair([]), /no .*violation/i);
+});

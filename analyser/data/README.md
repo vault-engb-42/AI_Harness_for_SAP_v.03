@@ -1,30 +1,14 @@
-# Bundled Cloudification Registry
+# Analyser bundled data
 
-The analyser ships an offline copy of SAP's cloudification / API-release
-classification so S/4HANA readiness works with no network and no external
-dependency (the portable-plugin requirement).
+## Cloudification registry — moved
 
-## Files
+The shared SAP cloudification / API-release dataset (`objectReleaseInfoLatest.json`,
+`objectClassifications_SAP.json`, `CLOUDIFICATION_LICENSE`) now lives in the
+neutral top-level [`data/`](../../data/) dir — it is shared reference material for
+both the analyser and greenfield, owned by neither. The analyser reads it via
+[`../src/cloudification.js`](../src/cloudification.js). See [`../../data/README.md`](../../data/README.md).
 
-| File | Entries | Purpose |
-|---|---|---|
-| `objectReleaseInfoLatest.json` | 34,675 | Authoritative release state per object: `released` / `deprecated` / `notToBeReleased`, plus `successors[]`. |
-| `objectClassifications_SAP.json` | 8,479 | Classic-API classification (`classicAPI` / `noAPI`) for objects not in the release file. |
-| `CLOUDIFICATION_LICENSE` | — | Apache-2.0 license governing the two datasets. |
-
-Merged and indexed by [`../src/cloudification.js`](../src/cloudification.js)
-(release info wins on name conflicts; classifications fill the gaps).
-
-## Provenance
-
-Copied verbatim from the TALOS accelerator's
-`backend/src/data/sap_cloudification/` bundle (Apache-2.0). TALOS is used here
-as a **reference only** — this harness has no runtime dependency on it. To
-refresh the bundle from a newer TALOS checkout, re-copy the two JSONs and the
-`LICENSE` into this directory; the loader is schema-tolerant to the documented
-entry shape (`{ tadirObjName, objectType, state, successors[] }`).
-
-## Business-function datasets (`business-functions/`)
+## Business-function datasets (`business-functions/`) — analyser-only
 
 | File | Purpose |
 |---|---|
@@ -34,13 +18,12 @@ entry shape (`{ tadirObjName, objectType, state, successors[] }`).
 
 Copied verbatim from the TALOS reference (`backend/src/data/sap_business_functions/`);
 consumed by [`../src/business-functions.js`](../src/business-functions.js) for the
-CLOUD-34 rules (bf-pack). The underlying SAP Notes are login-walled; the JSONs
-are a curated community cross-walk — refresh them when SAP updates the notes.
+CLOUD-34 rules (bf-pack). The underlying SAP Notes are login-walled; the JSONs are
+a curated community cross-walk — refresh them when SAP updates the notes.
 
 ## Security
 
-Ingested as data, not code. Scanned before bundling: 0 prompt-injection
-markers, 0 unicode anomalies, 0 oversized strings (cloudification: 43,154
-entries; business functions: 3 small curated JSONs, injection-scanned clean).
-Treated as untrusted per harness rule P8 — values are used for classification
-lookups only, never interpolated into instructions or tool-call arguments.
+Ingested as data, not code. The business-function JSONs are 3 small curated files,
+injection-scanned clean (0 markers, 0 unicode anomalies). Treated as untrusted per
+harness rule P8 — used for classification lookups only, never interpolated into
+instructions or tool-call arguments.

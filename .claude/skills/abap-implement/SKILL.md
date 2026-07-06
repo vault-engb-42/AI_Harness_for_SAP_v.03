@@ -10,7 +10,7 @@ agent: abap-generator
 
 Realize phase. Generate Clean-Core (Level A) ABAP Cloud source — RAP behavior definitions/projections/classes, CDS **view entities**, ABAP classes, and ABAP Unit test classes (`LTCL_*`) — for all stories in a dependency group, using an `abap-generator` agent team for parallel execution. Output is **local source under `specs/abap/`**. Nothing is pushed, activated, or graded here.
 
-> **The generator writes; the evaluator grades.** This lane is the writer half of the GAN loop. The team self-runs `aws_abap_cb_check_syntax` ONLY and renders **no verdict** — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. Validation is the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier and gates it. Do not let this skill declare itself done on a green syntax check.
+> **The generator writes; the evaluator grades.** This lane is the writer half of the GAN loop. The team self-runs two OFFLINE self-checks — `aws_abap_cb_check_syntax` and `mcp__greenfield__lint_abap_cloud` (with the lint→regenerate loop) — and renders **no gate verdict** — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. Validation is the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier and gates it. Do not let this skill declare itself done on a green syntax check or a clean lint.
 
 > **Ceremony tip:** Leave orchestrator effort at `high` and do the divergent modelling earlier (`/abap-brownfield`, `/abap-design`). This lane already spawns an agent team per object and enforces per-object ownership contracts; a second layer of auto-orchestration would double-dispatch and fight those contracts. For small work (≤3 objects, no invariant / released-API / transport-DDIC touch) use `/abap-vibe` or `/abap-change` instead — do not open the full realize lane.
 
@@ -31,8 +31,8 @@ Implements all stories in group C. The group ID corresponds to a node in `specs/
 Before running `/abap-implement`, verify:
 
 - `specs/stories/dependency-graph.md` exists and lists groups with story assignments.
-- `specs/design/object-map.md` (a.k.a. `component-map.md`) exists and maps each story to the ABAP objects it owns (DDIC table / CDS view entity / behavior definition / projection / behavior class / test class).
-- `specs/design/cds-contracts.md`, `specs/design/rap-contracts.md`, and `specs/design/data-model.md` exist — the CDS/RAP interface contracts and the released-API whitelist the team codes against.
+- `specs/design/component-map.md` exists and maps each story to the ABAP objects it owns (DDIC table / CDS view entity / behavior definition / projection / behavior class / test class).
+- `specs/design/object-contract.md` exists — the CDS/RAP/class signatures (entity names, keys, associations, behavior operations) and the tables/data model the team codes against.
 - `specs/design/api-grounding.md` exists — the per-API `get_migration_analysis` verdict table from `/abap-design`. Every API this group will touch must already have a released verdict row (P2).
 - All stories in the target group have 3–6 concrete acceptance criteria and are marked `Readiness: ready`.
 - All upstream groups are already implemented and have passed `/abap-validate`.
@@ -88,12 +88,12 @@ Abort if any story is `needs_breakdown`, lacks concrete acceptance criteria, or 
 
 ### Step 3 — Load Object Map and Contracts
 
-Read `specs/design/object-map.md`. For each story in the group, extract:
+Read `specs/design/component-map.md`. For each story in the group, extract:
 - The ABAP objects the story owns (may create or modify): DDIC table, CDS view entity, behavior definition, projection view, behavior class, test class.
 - Any shared object (a common interface view, a shared exception class) referenced by 2+ stories.
 - `Produces:` / `Consumes:` annotations that mark interface boundaries.
 
-Read `specs/design/cds-contracts.md`, `specs/design/rap-contracts.md`, and `specs/design/data-model.md` for the CDS/RAP signatures (entity names, keys, associations, behavior operations) and the released-API whitelist. This ownership + contract map is the single source of truth for artifact assignments during parallel execution. **Artifact ownership is strict** — a RAP BO's behavior definition, projection, and behavior class belong to one owner and change together.
+Read `specs/design/object-contract.md` for the CDS/RAP/class signatures (entity names, keys, associations, behavior operations) and the tables/data model, and `specs/design/api-grounding.md` for the released-API whitelist. This ownership + contract map is the single source of truth for artifact assignments during parallel execution. **Artifact ownership is strict** — a RAP BO's behavior definition, projection, and behavior class belong to one owner and change together.
 
 ### Step 4 — Load Learned Rules
 
@@ -108,7 +108,7 @@ Implement group {GROUP_ID} ({N_OBJECTS} objects) using the mandatory parallel-te
 protocol from abap-generator.md Rule 2. You are dispatching, not authoring.
 
 1. Read specs/stories/ for every story in this group.
-2. Read specs/design/object-map.md + the CDS/RAP contracts and build the micro-DAG
+2. Read specs/design/component-map.md + specs/design/object-contract.md and build the micro-DAG
    (producers of a CDS/RAP interface first, consumers next, shared-object integration last).
 3. Spawn one Agent(subagent_type=abap-generator) per object — parallel within a phase,
    Phase 2 only after Phase 1 commits its interface contracts. Max 5 concurrent per phase.
@@ -117,11 +117,14 @@ protocol from abap-generator.md Rule 2. You are dispatching, not authoring.
 5. Every teammate is ABAP-Unit-first: write the failing LTCL_* FOR TESTING method against
    the public interface, then implement the minimum to satisfy the acceptance criterion.
 6. Ground every API/table/CDS on aws_abap_cb_get_migration_analysis BEFORE emitting code
-   against it (P2). Unreleased ⇒ do not emit; pick the released successor or record the gap.
+   against it (P2) — or, offline (no DEV connection), on mcp__greenfield__ground_released_apis
+   (deterministic registry verdict). Unreleased/deprecated/notToBeReleased ⇒ do not emit;
+   pick the released successor or record the gap.
 7. Enforce P4 at authoring time: refuse any story instruction to drop AUTHORITY-CHECK,
    suppress COMMIT WORK, or skip the SY-SUBRC check after an authority check.
-8. Self-run aws_abap_cb_check_syntax on every file. Render NO verdict — no ATC, no unit run,
-   no activation. Validation is the next lane.
+8. Self-run aws_abap_cb_check_syntax AND mcp__greenfield__lint_abap_cloud on the assembled
+   source; run the offline lint→regenerate loop (max 2) until errorCount == 0. Render NO gate
+   verdict — no ATC, no unit run, no activation. Validation is the next lane.
 9. Log every teammate spawn to .claude/state/iteration-log.md (story ID, owned objects, phase).
 ```
 
@@ -138,11 +141,15 @@ After the generator returns, verify the team actually ran before trusting the re
 
 This verification is non-optional — silent fallback to solo authoring defeats the parallel-team mandate.
 
-### Step 7 — Syntax Self-Check Confirmation (the only check this lane runs)
+### Step 7 — Offline Self-Check Confirmation (syntax + ABAP-Cloud lint)
 
-Confirm the generator ran `aws_abap_cb_check_syntax` on every object the group produced and that syntax is green. A syntax failure means hand-off is not ready — return the failing object to its owner, fix, re-check.
+Confirm the generator ran BOTH offline self-checks and both are clean:
+- `aws_abap_cb_check_syntax` on every object the group produced — syntax green.
+- `mcp__greenfield__lint_abap_cloud` over the assembled source — `errorCount == 0` after the lint→regenerate loop (max 2). A residual `error`-level Clean-Core violation means hand-off is not ready: return the flagged object to its owner with the `repair` brief, fix, re-lint. `warning`-level findings are carried in the hand-off note, not blocking.
 
-**This is the ONLY check this lane runs.** No ATC, no ABAP Unit execution, no activation, no coverage measurement. A green `check_syntax` is the minimum bar for hand-off, **not** a gate verdict (P6). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here — those move only on a real `abap-evaluator` run in `/abap-validate`.
+A syntax failure or a residual lint `error` means hand-off is not ready — fix and re-check.
+
+**These two OFFLINE self-checks are the only checks this lane runs.** No ATC, no ABAP Unit execution, no activation, no coverage measurement — those are the live gates in `/abap-validate`. A green `check_syntax` + a clean cloud lint are the minimum bar for hand-off, **not** a gate verdict (P6). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here — those move only on a real `abap-evaluator` run in `/abap-validate`.
 
 ---
 
@@ -154,7 +161,7 @@ Confirm the generator ran `aws_abap_cb_check_syntax` on every object the group p
 - **Invariants are refused, not weakened (P4).** A story instruction to drop an `AUTHORITY-CHECK`, suppress a `COMMIT WORK`, or skip the `SY-SUBRC` check after an authority check is a hard-fail — surface it, do not emit the code.
 - **Writes stay local.** This lane writes only to `specs/abap/` and `.claude/state/`. It never calls an ADT write tool, never activates, never pushes to a tier (P5) — that is the evaluator's job in `/abap-validate`.
 - No speculative modelling ("might need a draft action later"). If it is not in an acceptance criterion, it does not exist.
-- No implementation for stories marked `needs_breakdown`. Break the story down and update `specs/stories/`, `dependency-graph.md`, `specs/design/object-map.md`, and `features.json` first.
+- No implementation for stories marked `needs_breakdown`. Break the story down and update `specs/stories/`, `dependency-graph.md`, `specs/design/component-map.md`, and `features.json` first.
 - Teammates may not write ABAP outside their ownership assignment without integrator coordination.
 - The team renders **no verdict**. This lane hands off UNCHANGED source; only `abap-evaluator` findings reopen the loop.
 
