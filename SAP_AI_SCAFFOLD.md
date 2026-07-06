@@ -1,5 +1,17 @@
 ﻿# SAP AI Scaffold — a Claude Code plugin for accelerated SAP SDLC/PDLC
 
+> **⚠️ Superseded architecture note (2026-07-06).** This is an early design/vision
+> doc and predates a key decision: the harness no longer **reuses the TALOS
+> substrate** at runtime. **TALOS is reference-only** (read to learn *what* to
+> build, never called). The harness now ships its **own** local substrate — a
+> ported MCP-ADT sidecar (`sap-adt-sidecar/`) and a **standalone `@abaplint/core`
+> analyser** (`analyser/`, full TALOS rule parity, its own `abap-analyser` MCP
+> emitting `specs/brownfield/analyser-findings.json`). So references below to
+> "no backend of its own" and "reusing the TALOS Analyser / Apache AGE / GraphRAG
+> as MCP servers" describe the abandoned plan, not the built system. See
+> `CLAUDE.md` and `analyser/rules/PARITY.md` for the current architecture; this
+> doc awaits a full rewrite.
+
 The **SAP AI Scaffold** is a loadable Claude Code plugin — prompts, hooks, templates, and settings, with **no backend of its own** — modelled one-to-one on the engineering harness at `C:/Users/panag/claude_harness_eng_v5`. It copies that harness's anatomy (the `CLAUDE.md` spine, the GAN generator/evaluator split, the 8-gate Karpathy ratchet, the lane model, the `.mcp.json` substrate wiring) and retargets every component for **serious ABAP SDLC/PDLC against a live SAP system**. It is **not a product and it does not replace Forge**: Forge keeps generating ABAP through its FastAPI pipeline; this scaffold is a *developer-side harness* that drives Claude Code against SAP, reusing the existing **TALOS substrate** — the live **MCP-ADT** sidecar and the **Analyser** (scanner + Apache AGE code graph + GraphRAG + Cloudification Registry) — **as MCP servers** rather than re-implementing any of it. Its entire value is *discipline*: an agent team that cannot grade its own work, lanes that enforce fit-to-standard-first and the DEV→QA→PRD landscape, model tiers that spend Opus where a defect is expensive, and hooks that make Clean Core and the immutable ABAP invariants impossible to violate in real time.
 
 ## 0. What a scaffold is (the model this copies)
