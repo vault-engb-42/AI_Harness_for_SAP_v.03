@@ -10,7 +10,7 @@ agent: abap-generator
 
 Realize phase. Generate Clean-Core (Level A) ABAP Cloud source — RAP behavior definitions/projections/classes, CDS **view entities**, ABAP classes, and ABAP Unit test classes (`LTCL_*`) — for all stories in a dependency group, using an `abap-generator` agent team for parallel execution. Output is **local source under `specs/abap/`**. Nothing is pushed, activated, or graded here.
 
-> **The generator writes; the evaluator grades.** This lane is the writer half of the GAN loop. The team self-runs `aws_abap_cb_check_syntax` ONLY and renders **no verdict** — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. Validation is the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier and gates it. Do not let this skill declare itself done on a green syntax check.
+> **The generator writes; the evaluator grades.** This lane is the writer half of the GAN loop. The team self-runs two OFFLINE self-checks — `aws_abap_cb_check_syntax` and `mcp__greenfield__lint_abap_cloud` (with the lint→regenerate loop) — and renders **no gate verdict** — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. Validation is the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier and gates it. Do not let this skill declare itself done on a green syntax check or a clean lint.
 
 > **Ceremony tip:** Leave orchestrator effort at `high` and do the divergent modelling earlier (`/abap-brownfield`, `/abap-design`). This lane already spawns an agent team per object and enforces per-object ownership contracts; a second layer of auto-orchestration would double-dispatch and fight those contracts. For small work (≤3 objects, no invariant / released-API / transport-DDIC touch) use `/abap-vibe` or `/abap-change` instead — do not open the full realize lane.
 
@@ -117,11 +117,14 @@ protocol from abap-generator.md Rule 2. You are dispatching, not authoring.
 5. Every teammate is ABAP-Unit-first: write the failing LTCL_* FOR TESTING method against
    the public interface, then implement the minimum to satisfy the acceptance criterion.
 6. Ground every API/table/CDS on aws_abap_cb_get_migration_analysis BEFORE emitting code
-   against it (P2). Unreleased ⇒ do not emit; pick the released successor or record the gap.
+   against it (P2) — or, offline (no DEV connection), on mcp__greenfield__ground_released_apis
+   (deterministic registry verdict). Unreleased/deprecated/notToBeReleased ⇒ do not emit;
+   pick the released successor or record the gap.
 7. Enforce P4 at authoring time: refuse any story instruction to drop AUTHORITY-CHECK,
    suppress COMMIT WORK, or skip the SY-SUBRC check after an authority check.
-8. Self-run aws_abap_cb_check_syntax on every file. Render NO verdict — no ATC, no unit run,
-   no activation. Validation is the next lane.
+8. Self-run aws_abap_cb_check_syntax AND mcp__greenfield__lint_abap_cloud on the assembled
+   source; run the offline lint→regenerate loop (max 2) until errorCount == 0. Render NO gate
+   verdict — no ATC, no unit run, no activation. Validation is the next lane.
 9. Log every teammate spawn to .claude/state/iteration-log.md (story ID, owned objects, phase).
 ```
 
@@ -138,11 +141,15 @@ After the generator returns, verify the team actually ran before trusting the re
 
 This verification is non-optional — silent fallback to solo authoring defeats the parallel-team mandate.
 
-### Step 7 — Syntax Self-Check Confirmation (the only check this lane runs)
+### Step 7 — Offline Self-Check Confirmation (syntax + ABAP-Cloud lint)
 
-Confirm the generator ran `aws_abap_cb_check_syntax` on every object the group produced and that syntax is green. A syntax failure means hand-off is not ready — return the failing object to its owner, fix, re-check.
+Confirm the generator ran BOTH offline self-checks and both are clean:
+- `aws_abap_cb_check_syntax` on every object the group produced — syntax green.
+- `mcp__greenfield__lint_abap_cloud` over the assembled source — `errorCount == 0` after the lint→regenerate loop (max 2). A residual `error`-level Clean-Core violation means hand-off is not ready: return the flagged object to its owner with the `repair` brief, fix, re-lint. `warning`-level findings are carried in the hand-off note, not blocking.
 
-**This is the ONLY check this lane runs.** No ATC, no ABAP Unit execution, no activation, no coverage measurement. A green `check_syntax` is the minimum bar for hand-off, **not** a gate verdict (P6). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here — those move only on a real `abap-evaluator` run in `/abap-validate`.
+A syntax failure or a residual lint `error` means hand-off is not ready — fix and re-check.
+
+**These two OFFLINE self-checks are the only checks this lane runs.** No ATC, no ABAP Unit execution, no activation, no coverage measurement — those are the live gates in `/abap-validate`. A green `check_syntax` + a clean cloud lint are the minimum bar for hand-off, **not** a gate verdict (P6). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here — those move only on a real `abap-evaluator` run in `/abap-validate`.
 
 ---
 

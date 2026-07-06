@@ -65,3 +65,26 @@ test("the produced design artifacts are actually consumed by the realize lanes",
     assert.ok(implement.text.includes(artifact), `abap-implement must consume produced artifact '${artifact}'`);
   }
 });
+
+// GF-3c: an agent can only call an MCP tool that its frontmatter grants. These
+// assertions lock the greenfield grounding/lint wiring so a frontmatter edit can
+// never silently strip an agent's ability to ground offline or run the cloud lint.
+const GREENFIELD_WIRING = [
+  { file: "agents/abap-generator.md", tools: ["mcp__greenfield__ground_released_apis", "mcp__greenfield__lint_abap_cloud"] },
+  { file: "agents/planner.md", tools: ["mcp__greenfield__ground_released_apis"] },
+  { file: "agents/abap-design-critic.md", tools: ["mcp__greenfield__ground_released_apis"] },
+];
+
+test("greenfield MCP tools are granted in the frontmatter of the agents that must call them", () => {
+  for (const { file, tools } of GREENFIELD_WIRING) {
+    const frontmatter = readFileSync(join(CLAUDE, file), "utf8").split(/^---$/m)[1] ?? "";
+    for (const tool of tools) {
+      assert.ok(frontmatter.includes(tool), `${file} frontmatter must grant ${tool}`);
+    }
+  }
+});
+
+test("the greenfield MCP server backing those tools is declared in .mcp.json", () => {
+  const mcp = JSON.parse(readFileSync(join(CLAUDE, "..", ".mcp.json"), "utf8"));
+  assert.ok(mcp.mcpServers?.greenfield, ".mcp.json must declare the greenfield MCP server");
+});

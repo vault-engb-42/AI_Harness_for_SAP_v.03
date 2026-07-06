@@ -9,7 +9,7 @@ context: fork
 
 Realize the **quality gate**. This lane runs the 8 SAP-native ratchet gates on a completed story group by spawning five judgment agents concurrently against the generator's UNCHANGED source in `specs/abap/`, then applying the canonical BLOCK/WARN/PASS semantics. It is the pipeline's keystone gate — the first place a real verdict is rendered (ATC + ABAP Unit + activation on a live DEV tier).
 
-> **The generator writes; this lane grades.** `/abap-implement` handed off local source that self-passed `check_syntax` ONLY — no ATC, no unit run, no activation, no verdict (P6). This lane is where that source is pushed to DEV, activated, ATC-checked, unit-run, and cold-read. Nothing here edits the generator's ABAP; a BLOCK sends the object back to `/abap-implement`, it does not get patched by a reviewer. That is the GAN separation.
+> **The generator writes; this lane grades.** `/abap-implement` handed off local source that self-passed the offline checks ONLY (`check_syntax` + `lint_abap_cloud`) — no ATC, no unit run, no activation, no gate verdict (P6). This lane runs a cheap offline lint pre-flight (Step 1.5) to fail fast, then pushes that source to DEV, activates, ATC-checks, unit-runs, and cold-reads. Nothing here edits the generator's ABAP; a BLOCK sends the object back to `/abap-implement`, it does not get patched by a reviewer. That is the GAN separation.
 
 > **Ceremony tip:** Leave orchestrator effort at `high`. This lane already fans out five judgment agents against one group; a second layer of auto-orchestration would double-dispatch the gates and fight the ratchet loop. Do the divergent thinking earlier (`/abap-design` with ultracode on), then run this lane at `high`. For a ≤3-object change with no invariant / released-API / transport-DDIC touch, `/abap-vibe` or `/abap-change` runs a trimmed gate set instead — do not open the full validate lane.
 
@@ -66,6 +66,15 @@ Gates 1/3/5 are the `abap-evaluator`'s three layers (push+activate · ATC · ABA
 Read `specs/design/component-map.md` for the group's objects and their ownership, and `.claude/state/atc-baseline.json` + `.claude/state/abapunit-baseline.json` for the ratchet floors. Derive the changed-file set from `specs/abap/` (or `git diff --name-only` over the generator's local source). Every object the group produced is in scope for every agent — never pass a subset to one reviewer to dodge a finding.
 
 Establish the baseline for the invariant/security diff: if `specs/baseline/` staged the pre-change source, point the security reviewer at it; otherwise it pulls the pre-change version via `aws_abap_cb_get_source`. Without a baseline the security reviewer cannot certify INV-1/INV-2 were not weakened — that is a FAIL for the object, not a pass.
+
+### Step 1.5 — Offline ABAP-Cloud lint pre-flight (fail fast before the live cycle)
+
+Before spending a live DEV activation, screen the change set offline with `mcp__greenfield__lint_abap_cloud` (`files: [{filename, source}, …]` read from `specs/abap/`). It returns `{findings, errorCount, warningCount, repair}` — CLOUD-forbidden statements, deprecated/notToBeReleased released-API refs, invariant breaches (COMMIT-in-loop, AUTHORITY-CHECK without SY-SUBRC), and RAP/CDS structural rules — all offline, no SAP.
+
+- **`errorCount > 0` ⇒ fast BLOCK.** Do **not** spawn the live agents — an error-level Clean-Core violation will fail Gate 5 (ATC) anyway, so catching it offline saves the DEV cycle. Route the flagged objects back to `/abap-implement` with the `repair` brief (the Step 4 heal loop), then re-enter this lane. Record the pre-flight result in `specs/reviews/sap-verdict.json` under a `cloud_lint_preflight` note.
+- **`errorCount == 0` ⇒ proceed to Step 2.** The offline lint is a **pre-screen, not the gate** (P6): a clean lint never substitutes for the live ATC / activation / ABAP-Unit gates. `warning`-level findings are carried forward for the reviewers, not blocking.
+
+This is the only automated screen available when no DEV connection is reachable (greenfield offline); it never certifies the group — the live gates still decide (and fail closed with `atc-unavailable` = BLOCK when DEV is down, per Step 3), and the human still releases the transport on the live proof.
 
 ### Step 2 — Spawn the five judgment agents CONCURRENTLY
 
