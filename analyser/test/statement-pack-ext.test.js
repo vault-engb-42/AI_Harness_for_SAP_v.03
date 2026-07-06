@@ -303,6 +303,30 @@ ENDCLASS.`,
   assert.ok(!run("amount").includes("talos-fae-nonpk-where-prefix"), "heuristic suppressed when real DDIC is present");
 });
 
+test("SELECT SINGLE constraining only part of an in-bundle table key is flagged (PERF-58 partial-key)", async () => {
+  const { field, tabl } = await import("./helpers/abapgit-xml.js");
+  // ZVBAP key = MANDT + VBELN + POSNR (two non-client key fields).
+  const table = tabl("ZVBAP", { fields: [field("MANDT", true, "MANDT"), field("VBELN", true), field("POSNR", true), field("MATNR", false)] });
+  const clas = (where) => ({
+    filename: "zcl_ss.clas.abap",
+    source: `CLASS zcl_ss DEFINITION PUBLIC FINAL.
+  PUBLIC SECTION.
+    METHODS run.
+ENDCLASS.
+CLASS zcl_ss IMPLEMENTATION.
+  METHOD run.
+    SELECT SINGLE * FROM zvbap INTO @DATA(ls) WHERE ${where}.
+  ENDMETHOD.
+ENDCLASS.`,
+  });
+  const run = (where) => statementPack.check({ reg: loadRegistry([table, clas(where)]) }).map((x) => x.rule_id);
+
+  assert.ok(run("vbeln = @lv").includes("talos-select-single-partial-key"), "only VBELN of VBELN+POSNR constrained -> partial key");
+  assert.ok(!run("vbeln = @lv AND posnr = @lv2").includes("talos-select-single-partial-key"), "full key passes");
+  // Not in bundle -> cannot judge the key, so no partial-key finding.
+  assert.ok(!statementPack.check({ reg: loadRegistry([clas("vbeln = @lv")]) }).map((x) => x.rule_id).includes("talos-select-single-partial-key"), "out-of-bundle table stays silent");
+});
+
 test("a BAPI call inside an ENHANCEMENT block is flagged (S4-2)", () => {
   const src = `REPORT zr_enh.
 ENHANCEMENT 1 zenh_impl.
