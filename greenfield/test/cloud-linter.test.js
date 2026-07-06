@@ -216,6 +216,75 @@ test("modern ABAP (NEW, string template, =, direct call) raises no Batch-2 findi
   assert.deepEqual(ruleIds(res).filter((r) => batch2.includes(r)), [], "plain '=' (kind Move) and direct call (kind Call) must not over-fire");
 });
 
+// ---------------------------------------------------------------- Batch 1: restricted-ABAP + Clean-Core hard blockers
+
+test("gf-cloud-no-describe-lines fires on DESCRIBE TABLE … LINES (CLOUD-008)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lt TYPE STANDARD TABLE OF string.\n    DATA lv TYPE i.\n    DESCRIBE TABLE lt LINES lv.") }]);
+  assert.equal(finding(res, "gf-cloud-no-describe-lines")?.severity, "error");
+});
+
+test("gf-cloud-no-get-reference fires on GET REFERENCE OF (CLOUD-009)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lv TYPE i.\n    DATA lo TYPE REF TO data.\n    GET REFERENCE OF lv INTO lo.") }]);
+  assert.equal(finding(res, "gf-cloud-no-get-reference")?.severity, "error");
+});
+
+test("gf-cloud-no-read-report fires on READ REPORT (CLOUD-010)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nDATA lt TYPE STANDARD TABLE OF string.\nSTART-OF-SELECTION.\n  READ REPORT 'ZR_Y' INTO lt." }]);
+  assert.equal(finding(res, "gf-cloud-no-read-report")?.severity, "error");
+});
+
+test("gf-cloud-no-break-point fires on BREAK-POINT (CLOUD-011)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    BREAK-POINT.") }]);
+  assert.equal(finding(res, "gf-cloud-no-break-point")?.severity, "error");
+});
+
+test("gf-cloud-no-using-client fires on USING CLIENT (CLOUD-013)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  DELETE FROM t000 USING CLIENT '100' WHERE mandt = '100'." }]);
+  assert.equal(finding(res, "gf-cloud-no-using-client")?.severity, "error");
+});
+
+test("gf-cloud-no-classic-alv fires on CL_SALV_TABLE=>FACTORY (CLOUD-015)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    cl_salv_table=>factory( ).") }]);
+  assert.equal(finding(res, "gf-cloud-no-classic-alv")?.severity, "error");
+});
+
+test("gf-cloud-no-enhancement-point fires on ENHANCEMENT-POINT and -SECTION (CLOUD-019)", () => {
+  const p = lintAbapCloud([{ filename: "zr_p.prog.abap", source: "REPORT zr_p.\nENHANCEMENT-POINT zx SPOTS zz." }]);
+  assert.equal(finding(p, "gf-cloud-no-enhancement-point")?.severity, "error");
+  const s = lintAbapCloud([{ filename: "zr_s.prog.abap", source: "REPORT zr_s.\nENHANCEMENT-SECTION zs SPOTS zz.\nEND-ENHANCEMENT-SECTION." }]);
+  assert.ok(finding(s, "gf-cloud-no-enhancement-point"), "ENHANCEMENT-SECTION also flagged by the same rule");
+});
+
+test("gf-cloud-no-mod-marker fires on a SAP modification marker (CLOUD-020)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\n*$*$-Start: (1)---------------\nSTART-OF-SELECTION." }]);
+  assert.equal(finding(res, "gf-cloud-no-mod-marker")?.severity, "error");
+});
+
+test("gf-cloud-no-perform-sap fires on PERFORM … IN PROGRAM (CLOUD-022)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    PERFORM foo IN PROGRAM saplzx.") }]);
+  assert.equal(finding(res, "gf-cloud-no-perform-sap")?.severity, "error");
+});
+
+test("gf-cloud-no-internal-badi fires on INTERFACES IF_EX_*INTERNAL* (CLOUD-026)", () => {
+  const src = "CLASS zcl_b DEFINITION PUBLIC.\n  PUBLIC SECTION.\n    INTERFACES if_ex_sap_internal_badi.\nENDCLASS.\nCLASS zcl_b IMPLEMENTATION.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_b.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-cloud-no-internal-badi")?.severity, "error");
+});
+
+test("gf-cloud-no-leave fires on LEAVE PROGRAM (classic program flow)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nSTART-OF-SELECTION.\n  LEAVE PROGRAM." }]);
+  assert.equal(finding(res, "gf-cloud-no-leave")?.severity, "error");
+});
+
+test("Batch-1 guards hold: local PERFORM, normal INTERFACES, lines( ) raise nothing", () => {
+  const body = "    DATA lt TYPE STANDARD TABLE OF string.\n    DATA lv TYPE i.\n    lv = lines( lt ).\n    PERFORM foo.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
+  assert.equal(finding(res, "gf-cloud-no-perform-sap"), undefined, "local PERFORM (no IN PROGRAM) must not fire");
+  assert.equal(finding(res, "gf-cloud-no-describe-lines"), undefined, "lines( ) is not DESCRIBE");
+  const norm = "CLASS zcl_n DEFINITION PUBLIC.\n  PUBLIC SECTION.\n    INTERFACES if_my_normal.\nENDCLASS.\nCLASS zcl_n IMPLEMENTATION.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_n.clas.abap", source: norm }]), "gf-cloud-no-internal-badi"), undefined, "a normal INTERFACES must not fire internal-badi");
+});
+
 // ---------------------------------------------------------------- result shape + counts
 
 test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {

@@ -31,7 +31,26 @@ export const KIND_RULES = {
   Move: { rule_id: "gf-clean-no-move-to", severity: "error", family: "clean-abap", message: "MOVE … TO is obsolete — use the assignment operator =", guard: /^MOVE\b/i },
   Call: { rule_id: "gf-clean-no-call-method", severity: "error", family: "clean-abap", message: "CALL METHOD is obsolete — call the method directly: obj->method( )", guard: /^CALL\s+METHOD\b/i },
   Form: { rule_id: "gf-clean-no-form", severity: "error", family: "clean-abap", message: "FORM subroutines are not available in ABAP Cloud — use a class method" },
+  // Batch 1 — restricted-ABAP + Clean-Core hard blockers (mirrors TALOS
+  // CLOUD-008/009/010/011/019/022/026 + LEAVE flow). Kinds probe-verified.
+  Describe: { rule_id: "gf-cloud-no-describe-lines", severity: "error", family: "abap-cloud", message: "DESCRIBE TABLE … LINES is obsolete — use lines( itab )", guard: /\bLINES\b/i },
+  GetReference: { rule_id: "gf-cloud-no-get-reference", severity: "error", family: "abap-cloud", message: "GET REFERENCE OF is not available in ABAP Cloud — use REF #( ) or a data reference obtained through released APIs" },
+  ReadReport: { rule_id: "gf-cloud-no-read-report", severity: "error", family: "abap-cloud", message: "READ REPORT reads program source at runtime — not available in ABAP Cloud" },
+  Break: { rule_id: "gf-cloud-no-break-point", severity: "error", family: "abap-cloud", message: "BREAK-POINT / BREAK is a debug statement — remove it; it is not permitted in ABAP Cloud" },
+  Leave: { rule_id: "gf-cloud-no-leave", severity: "error", family: "abap-cloud", message: "LEAVE (SCREEN / PROGRAM / LIST-PROCESSING / TO TRANSACTION) is classic program flow — not available in ABAP Cloud" },
+  Perform: { rule_id: "gf-cloud-no-perform-sap", severity: "error", family: "clean-core", message: "PERFORM … IN PROGRAM calls another program's subroutine — not available in ABAP Cloud; call a released API or class method", guard: /\bIN\s+PROGRAM\b/i },
+  EnhancementPoint: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-POINT is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
+  EnhancementSection: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-SECTION is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
+  InterfaceDef: { rule_id: "gf-cloud-no-internal-badi", severity: "error", family: "clean-core", message: "implementing an SAP-internal BAdI (IF_EX_*INTERNAL*) is not a released extension point", guard: /IF_EX_\w*INTERNAL/i },
 };
+
+// Any-statement text rules — the construct is not a distinct parsed kind (or the
+// kind is shared, e.g. CL_SALV_TABLE=>FACTORY parses as a generic `Call`), so
+// match the statement text directly. Mirrors TALOS CLOUD-013/015.
+export const TEXT_RULES = [
+  { rule_id: "gf-cloud-no-classic-alv", severity: "error", family: "abap-cloud", message: "CL_SALV_TABLE=>FACTORY is the classic ALV — not available in ABAP Cloud; expose data through RAP/OData", re: /\bCL_SALV_TABLE\s*=>\s*FACTORY\b/i },
+  { rule_id: "gf-cloud-no-using-client", severity: "error", family: "abap-cloud", message: "USING CLIENT cross-client access is forbidden in ABAP Cloud; operate in the current client only", re: /\bUSING\s+CLIENT\b/i },
+];
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);
 export const LOOP_CLOSE = new Set(["EndLoop", "EndWhile", "EndDo", "EndSelect"]);
@@ -111,6 +130,27 @@ export function cdsClassicViewFindings(files) {
     const idx = lines.findIndex((l) => DEFINE_VIEW_RE.test(l));
     if (idx >= 0) {
       findings.push({ rule_id: "gf-cds-classic-view", severity: "error", object: objNameOf(f.filename), object_type: "DDLS", file: f.filename, line: idx + 1, message: "classic DEFINE VIEW is not Clean-Core; generate a CDS view entity (DEFINE VIEW ENTITY)", family: "cds" });
+    }
+  }
+  return findings;
+}
+
+const MOD_MARKER_RE = /\*\$\*\$-(?:Start|End):/;
+
+/**
+ * gf-cloud-no-mod-marker (CLOUD-020) — an SAP source-modification marker
+ * (`*$*$-Start/End:`) lives in a comment, so it is not a parsed statement; scan
+ * the raw source. One finding per file (the first marker) is enough to block.
+ * @param {Array<{filename: string, source: string}>} files
+ * @returns {object[]}
+ */
+export function modMarkerFindings(files) {
+  const findings = [];
+  for (const f of files) {
+    const lines = String(f.source ?? "").split(/\r?\n/);
+    const idx = lines.findIndex((l) => MOD_MARKER_RE.test(l));
+    if (idx >= 0) {
+      findings.push({ rule_id: "gf-cloud-no-mod-marker", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line: idx + 1, message: "SAP source-modification marker (*$*$) — modifying SAP source is not Clean-Core; extend via BAdI/RAP/CDS-extend", family: "clean-core" });
     }
   }
   return findings;

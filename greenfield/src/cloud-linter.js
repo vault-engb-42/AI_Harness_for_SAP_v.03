@@ -1,11 +1,11 @@
 import { ABAPObject } from "@abaplint/core";
 import { parseAbap, objectsOf } from "./abap-parse.js";
 import {
-  KIND_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
+  KIND_RULES, TEXT_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
   AUTHCHECK_SPEC, RAP_DB_WRITE_SPEC,
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, subrcCheckedAfter,
-  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings,
+  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
 
 /**
@@ -35,6 +35,7 @@ export function lintAbapCloud(files) {
 
   // Raw-source rules read the original files directly (parse-independent).
   findings.push(...cdsClassicViewFindings(list));
+  findings.push(...modMarkerFindings(list));
   findings.push(...releasedApiFindings(list));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;
@@ -69,6 +70,7 @@ function scanStatements(objName, objType, file, findings) {
 
     const kindRule = KIND_RULES[kind];
     if (kindRule && (!kindRule.guard || kindRule.guard.test(text))) emit(kindRule, st);
+    for (const tr of TEXT_RULES) if (tr.re.test(text)) emit(tr, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);
     if (kind === "AuthorityCheck" && !subrcCheckedAfter(stmts, i)) emit(AUTHCHECK_SPEC, st);
