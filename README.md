@@ -42,11 +42,12 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 
 ## Build status
 
-**Built and verified** — `npm test` → **31/31 green**, all TDD red→green (6 check-library + 14 hooks + 6 model-tier + 5 bridge):
+**Built and verified** — `npm test` → **345/345 green**, all TDD red→green (6 check-library + 14 hooks + 6 model-tier + 5 bridge + 296 analyser + 18 sidecar):
 - `CLAUDE.md` spine (P1–P8), `.claude/.claude-plugin/plugin.json`, `.mcp.json`, `package.json`
-- **MCP-ADT bridge** (`mcp-adt-bridge/`) — MCP stdio to ADT REST, 17 tools, writes fail-closed (P5)
+- **Standalone analyser** (`analyser/`) — `@abaplint/core` code property graph + 16 rule packs at full TALOS parity → S/4 readiness + blast radius + `analyser-findings.json`; its own `abap-analyser` MCP (analyse_bundle / analyse_source_system / analyse_via_adt / get_report)
+- **MCP-ADT bridge** (`mcp-adt-bridge/`) + **ported ADT sidecar** (`sap-adt-sidecar/`) — MCP stdio to ADT REST, 17 tools, real writes fail-closed (P5)
 - **9 agents** (`.claude/agents/`) — planner, abap-generator, abap-evaluator, abap-design-critic, abap-security-reviewer, abap-diff-reviewer, clean-core-reviewer, abap-explorer, transport-manager
-- **21 skills/lanes** (`.claude/skills/`) — fit-to-standard, abap-brownfield, readiness, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + 6 behaviour-preservation sub-skills
+- **22 skills/lanes** (`.claude/skills/`) — abap-analyser (analyser producer), fit-to-standard, abap-brownfield, readiness, seam-finder, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + behaviour-preservation sub-skills
 - **Enforcement hooks + settings** (`.claude/hooks/`, `.claude/settings.json`) — pre-write-gate, adt-write-guard, artifact-guard over a unit-tested check library
 - **model-tier.js** (cost/balanced/max-quality), **templates** (RAP BO, CDS view entity, ABAP Unit, ATC variant, transport-evidence + claude-md/mcp-config stamps), **scaffold-abap** command, **state seeds**
 
