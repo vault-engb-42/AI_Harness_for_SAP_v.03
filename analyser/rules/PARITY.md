@@ -59,11 +59,31 @@ Where they live:
   reuse hint) — the "hot SELECT projection" and "same label" halves need
   usage/catalog data the bundle does not carry.
 - **PERF-5**: threshold-calibrated (8 arithmetic assignments per loop) at
-  priority-3 to avoid drowning the report; PERF-31 fires only on unfiltered
-  SELECTs inside `*get_entityset*` methods.
+  priority-3 to avoid drowning the report; only *spaced* arithmetic operators
+  count (an unspaced `struct-comp` field selector and `/`/`-` inside string
+  literals do not). PERF-31 fires only on unfiltered SELECTs inside
+  `*get_entityset*` methods. CLOUD-28 (legacy-UI rollup) aggregates per object
+  across includes; the PERF-34 lock window and HARDY-6 dangling-field-symbol
+  checks reset at method boundaries, and HARDY-6 treats `IS [NOT] ASSIGNED` /
+  `IS BOUND` as a defensive guard.
 - **PERF-21/30, CC-3/4, PERF-71/72, PERF-10**: cross-artifact rules judge only
   when the joined artifact is IN the bundle; incomplete chains stay silent
-  rather than guessing.
+  rather than guessing. PERF-10 excludes inherently-bounded reads (SELECT SINGLE,
+  FOR ALL ENTRIES); the SRVB→SRVD join matches the exact `<SRVD_NAME>` element
+  (not a raw substring) and resolves the CDS by both DDLS source name and
+  view-entity name; the BDEF identifier captures accept `/NS/` namespaced names.
+- **PERF-55**: fires only when the whole primary key is client-only (MANDT); a
+  key `.INCLUDE` hides the included structure's key fields, so the rule stays
+  silent rather than mis-prove the key client-only.
+- **PERF-47**: the paging-parameter test scans only the parameter region (the
+  `METHODS <name>` keyword+name are stripped first) so a table reader named
+  `*_top_*` / `*_max_*` is not falsely exempted; recall is still limited to bare
+  `STANDARD/SORTED/HASHED TABLE` return types.
+- **CLEAN-015/019**: driven off the parsed statement stream of the test include,
+  so colon-chained `METHODS:` declarations are handled; an assertion delegated
+  to a same-class helper counts (no false "assert-less"); CLEAN-019 uses
+  abaplint's numeric `visibility` enum so only genuinely-public methods are
+  reported.
 - **CLOUD-34**: grounded on a community cross-walk of login-walled SAP Notes
   (see the dataset provenance headers) — refresh the JSONs when SAP updates
   the notes. Owned-object detection (`talos-bf-owned-object-ref`) fires only for
@@ -73,6 +93,22 @@ Where they live:
   call-function edge carries the function-MODULE name), so function-group
   ownership is not yet edge-detectable; it needs an FM→function-group map the
   offline bundle does not carry. The rows are retained for that future path.
+
+## Audit remediation (2026-07-06)
+
+The 8 packs added 2026-07-04 (ddic, rap-context, flow, clone, intf,
+test-quality, bf, srvb) were the least-vetted code in the build. An adversarial
+audit (parallel-agent workflow + a Node validation gate, findings verified by a
+default-refute pass) confirmed **16** real defects — 7 MEDIUM + 8 LOW accuracy
+issues (false positives/negatives) plus **1 P8 crash**: malformed abapGit TABL
+XML made abaplint's DDIC parser throw *outside* the rule-engine's isolation, so
+`loadRegistry` now drops only the objects that fail to parse (surfaced as a
+`coverage_note`) and never crashes the run. `schema-conformance` came back clean
+(no pack emits an out-of-schema field), now locked by a golden additionalProperties
+guard. All 16 are remediated with TDD; new golden coverage runs every new pack
+end-to-end through `analyzePackage` and new robustness coverage feeds
+malformed/hostile DDIC + service XML. See the accuracy refinements folded into
+the approximations above.
 
 ## Regression protocol
 
