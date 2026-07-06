@@ -44,9 +44,11 @@ Where they live:
 
 ## Known approximations (updated 2026-07-04, documented rather than over-claimed)
 
-- **PERF-58**: detects only SELECT SINGLE with NO WHERE clause; the
-  partial-key refinement is possible for in-bundle tables via ddic-pack data
-  but is not yet wired.
+- **PERF-58**: the base rule (`talos-select-single-no-where`) flags SELECT
+  SINGLE with NO WHERE; the partial-key refinement
+  (`talos-select-single-partial-key`) fires for in-bundle tables when the WHERE
+  constrains at least one but not all non-client key fields. Out-of-bundle
+  tables, single-field keys, and key-`.INCLUDE` tables stay silent (never guess).
 - **PERF-14**: allowlist heuristic ONLY when the target table is not in the
   bundle; in-bundle tables get the precise PERF-51 key/index check.
 - **PERF-41**: BDEF grammar has no payload-cap syntax; the rule flags

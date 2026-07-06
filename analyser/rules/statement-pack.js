@@ -154,6 +154,7 @@ function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   if (name === "Select" || name === "SelectLoop") {
     checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
     checkFaePrefix(text, obj, file, stmts[i], findings, ctx.fileState.ddic);
+    checkSelectSinglePartialKey(text, obj, file, stmts[i], findings, ctx.fileState.ddic);
     countSelectSingle(text, stmts[i], ctx.fileState.selectSingles);
     trackSelect(text, stmts[i], ctx.fileState);
   }
@@ -272,6 +273,29 @@ function checkFaePrefix(text, obj, file, st, findings, ddic) {
     file,
     st,
   );
+}
+
+/**
+ * PERF-58 (partial-key refinement): a SELECT SINGLE whose WHERE constrains only
+ * PART of the target's primary key still returns an arbitrary matching row.
+ * Fires only when the table is in the bundle (real key known) and at least one
+ * — but not all — of its non-client key fields appears in the WHERE, so it
+ * never guesses (out-of-bundle tables and single-field keys stay silent; the
+ * base no-WHERE case is the data-row rule talos-select-single-no-where).
+ */
+function checkSelectSinglePartialKey(text, obj, file, st, findings, ddic) {
+  if (!/^SELECT\s+SINGLE\b/i.test(text) || !/\bWHERE\b/i.test(text)) return;
+  const tableName = /\bFROM\s+(?!@)(\w+)/i.exec(text)?.[1]?.toUpperCase();
+  const info = tableName ? ddic?.get(tableName) : undefined;
+  if (!info || info.keys.has(".INCLUDE")) return; // not in bundle, or key hidden by an include
+  const realKeys = [...info.keys].filter((k) => k !== "MANDT" && k !== "CLIENT");
+  if (realKeys.length < 2) return; // a single-field key cannot be partially constrained
+  const where = text.slice(text.search(/\bWHERE\b/i));
+  const present = realKeys.filter((k) => new RegExp(`(?<![\\w~])${k}(?![\\w~])`, "i").test(where));
+  if (present.length > 0 && present.length < realKeys.length) {
+    const missing = realKeys.filter((k) => !present.includes(k));
+    push(findings, { id: "talos-select-single-partial-key", family: "performance", severity: "priority-2", message: `SELECT SINGLE on ${tableName} constrains only part of the primary key (missing ${missing.join(", ")}) — it returns an arbitrary matching row; constrain the full key (ABAP-PERF-58)` }, obj, file, st);
+  }
 }
 
 /** PERF-3: SORT <itab> right after a SELECT ... INTO TABLE <itab> lacking ORDER BY. */
