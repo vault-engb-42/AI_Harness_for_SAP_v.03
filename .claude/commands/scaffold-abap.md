@@ -28,7 +28,7 @@ Wait for the answer. It goes verbatim into the stamped `CLAUDE.md` and drives th
 Apply these rules. Be explicit and conservative — when the description is ambiguous, pick the safer middle option (the user sees and can change everything in 1.C).
 
 **Delivery shape (drives which lane leads and the design-critic posture):**
-- "new" · "greenfield" · "RAP app" · "Fiori app" · "build a … from scratch" → **A New RAP build** (full pipeline: `/fit-to-standard` → `/abap-design` → `/abap-implement` → `/abap-validate` → `/abap-transport`).
+- "new" · "greenfield" · "RAP app" · "Fiori app" · "build a … from scratch" → **A New RAP build** — lead with `/greenfield` (the net-new entry over the full pipeline: `/fit-to-standard` → `/abap-design` → `/abap-implement` → `/abap-validate` → `/abap-transport`; grounds + lints OFFLINE until the live gate).
 - "change" · "fix" · "add a field/action" · "modify existing Z…" · names an existing custom object → **B Brownfield change** (`/abap-brownfield` → `/abap-change` → `/abap-validate` → `/abap-transport`).
 - "readiness" · "assessment" · "S/4 conversion scan" · "how clean-core is …" · "custom-code analysis" → **C Readiness-only** (`/abap-brownfield` + `/readiness` — a disposable lane, no build pipeline).
 - Otherwise → **A New RAP build** (most common).

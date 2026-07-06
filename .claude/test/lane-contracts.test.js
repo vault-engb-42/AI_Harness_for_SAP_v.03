@@ -88,3 +88,13 @@ test("the greenfield MCP server backing those tools is declared in .mcp.json", (
   const mcp = JSON.parse(readFileSync(join(CLAUDE, "..", ".mcp.json"), "utf8"));
   assert.ok(mcp.mcpServers?.greenfield, ".mcp.json must declare the greenfield MCP server");
 });
+
+// GF-3d: the /greenfield entry-point must exist and stay a thin router over
+// /abap-build (delegation, not a duplicated pipeline).
+test("the /greenfield entry-point exists and delegates to /abap-build", () => {
+  const skill = readFileSync(join(CLAUDE, "skills", "greenfield", "SKILL.md"), "utf8");
+  assert.match(skill, /^name:\s*greenfield\s*$/m, "greenfield SKILL.md must declare name: greenfield");
+  assert.match(skill, /\/abap-build/, "greenfield must delegate to /abap-build (thin router)");
+  assert.match(skill, /lint_abap_cloud/, "greenfield must document the offline cloud-lint path");
+  assert.match(skill, /ground_released_apis/, "greenfield must document the offline grounding path");
+});
