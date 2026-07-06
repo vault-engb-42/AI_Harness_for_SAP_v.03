@@ -16,10 +16,11 @@ import { dirname, join } from "node:path";
  * with greenfield's own lightweight loader.
  */
 
-// Shared SAP cloudification reference dataset (released-API state). Foundational
-// data used by both the analyser (readiness) and greenfield grounding; read
-// here with greenfield's own loader, not via analyser code.
-const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "analyser", "data");
+// Shared SAP cloudification reference dataset (released-API state) in the neutral
+// top-level `data/` dir — foundational data used by both the analyser (readiness)
+// and greenfield grounding, owned by neither. Read here with greenfield's own
+// loader, not via analyser code (greenfield no longer reaches into analyser/data/).
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
 
 const SOURCES = [
   { file: "objectReleaseInfoLatest.json", key: "objectReleaseInfo", authoritative: true },
