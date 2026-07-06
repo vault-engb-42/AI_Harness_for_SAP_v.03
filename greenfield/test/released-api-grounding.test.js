@@ -50,3 +50,28 @@ test("an empty ref list renders a valid, benign pack", () => {
   const pack = renderGroundingPack(groundReleasedApis([]));
   assert.match(pack, /Released-API Grounding/);
 });
+
+// Registry extension: classicAPI (Level B) and noAPI (no released API) are real
+// states in objectClassifications_SAP.json — surface them in the grounding counts
+// and pack so greenfield does not silently treat a Level-B classic API as safe.
+
+test("classifyRef surfaces classicAPI and noAPI states from the classification dataset", () => {
+  assert.equal(classifyRef("CLG_BSP_CALL").state, "classicAPI");
+  assert.equal(classifyRef("CF_REBD_BUILDING").state, "noAPI");
+});
+
+test("groundReleasedApis counts classicAPI and noAPI as their own buckets, not unknown", () => {
+  const g = groundReleasedApis(["CLG_BSP_CALL", "CF_REBD_BUILDING", "ACTVT", "ZCL_NEW"]);
+  assert.equal(g.counts.classicAPI, 1);
+  assert.equal(g.counts.noAPI, 1);
+  assert.equal(g.counts.released, 1);
+  assert.equal(g.counts.unknown, 1, "a custom name is still unknown, not miscounted as classic/noAPI");
+});
+
+test("renderGroundingPack surfaces classicAPI and noAPI as actionable, not 'not in registry'", () => {
+  const pack = renderGroundingPack(groundReleasedApis(["CLG_BSP_CALL", "CF_REBD_BUILDING"]));
+  assert.match(pack, /CLG_BSP_CALL/);
+  assert.match(pack, /classic/i);
+  assert.match(pack, /CF_REBD_BUILDING/);
+  assert.match(pack, /no released API|noAPI/i);
+});

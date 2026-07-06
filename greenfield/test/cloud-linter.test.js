@@ -165,6 +165,18 @@ test("gf-ground-not-released fires on a notToBeReleased SAP ref", () => {
   assert.equal(finding(res, "gf-ground-not-released")?.severity, "error");
 });
 
+test("gf-ground-no-api fires (error) on a noAPI SAP ref", () => {
+  const src = "CLASS zcl_g DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_g IMPLEMENTATION.\n  METHOD run.\n    DATA lo TYPE REF TO cf_rebd_building.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_g.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-ground-no-api")?.severity, "error");
+});
+
+test("gf-ground-classic-api fires (info) on a classicAPI SAP ref", () => {
+  const src = "CLASS zcl_g DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_g IMPLEMENTATION.\n  METHOD run.\n    DATA lo TYPE REF TO clg_bsp_call.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_g.clas.abap", source: src }]);
+  assert.equal(finding(res, "gf-ground-classic-api")?.severity, "info");
+});
+
 // ---------------------------------------------------------------- result shape + counts
 
 test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {

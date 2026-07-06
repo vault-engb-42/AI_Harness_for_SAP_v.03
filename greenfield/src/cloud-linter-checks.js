@@ -107,13 +107,24 @@ export function cdsClassicViewFindings(files) {
 }
 
 /**
- * gf-ground-deprecated / gf-ground-not-released — the GF-1↔GF-2 link. Harvest
- * SAP object refs from each generated source (raw text, so a parse-dropped file
- * is still covered) and classify them against the released-API registry; a
- * deprecated ref (with its successor) or a notToBeReleased ref blocks.
+ * The GF-1↔GF-2 link. Harvest SAP object refs from each generated source (raw
+ * text, so a parse-dropped file is still covered) and classify them against the
+ * released-API registry. Four actionable verdicts: gf-ground-deprecated (with
+ * successor, error), gf-ground-not-released (notToBeReleased, error),
+ * gf-ground-no-api (noAPI, error), gf-ground-classic-api (classicAPI, info).
  * @param {Array<{filename: string, source: string}>} files
  * @returns {object[]}
  */
+// released-API verdict -> finding spec. Only these four states are actionable;
+// `released`/`unknown` produce no finding. classifyRef surfaces classicAPI/noAPI
+// straight from objectClassifications_SAP.json.
+const GROUND_SPECS = {
+  deprecated: (ref, c) => ({ rule_id: "gf-ground-deprecated", severity: "error", message: `${ref} is DEPRECATED — replace with released successor ${c.successor ?? "(none published — find a released alternative)"}` }),
+  notToBeReleased: (ref) => ({ rule_id: "gf-ground-not-released", severity: "error", message: `${ref} is NOT released for ABAP Cloud (notToBeReleased) — model a released alternative` }),
+  noAPI: (ref) => ({ rule_id: "gf-ground-no-api", severity: "error", message: `${ref} has NO released API (noAPI) — there is no Cloud-released way to consume it; model a released alternative` }),
+  classicAPI: (ref, c) => ({ rule_id: "gf-ground-classic-api", severity: "info", message: `${ref} is a CLASSIC API (Level B, not Clean-Core Level A)${c.successor ? ` — prefer released successor ${c.successor}` : " — prefer a released successor"}` }),
+};
+
 export function releasedApiFindings(files) {
   const findings = [];
   for (const f of files) {
@@ -121,13 +132,11 @@ export function releasedApiFindings(files) {
     const upperLines = source.split(/\r?\n/).map((l) => l.toUpperCase());
     for (const ref of harvestRefs(source)) {
       const c = classifyRef(ref);
-      if (c.state !== "deprecated" && c.state !== "notToBeReleased") continue;
+      const spec = GROUND_SPECS[c.state];
+      if (!spec) continue;
       const line = upperLines.findIndex((l) => new RegExp(`(?<![\\w~])${ref}(?![\\w~])`).test(l)) + 1 || 1;
-      findings.push(
-        c.state === "deprecated"
-          ? { rule_id: "gf-ground-deprecated", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: `${ref} is DEPRECATED — replace with released successor ${c.successor ?? "(none published — find a released alternative)"}`, family: "released-api" }
-          : { rule_id: "gf-ground-not-released", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: `${ref} is NOT released for ABAP Cloud (notToBeReleased) — model a released alternative`, family: "released-api" },
-      );
+      const s = spec(ref, c);
+      findings.push({ rule_id: s.rule_id, severity: s.severity, object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: s.message, family: "released-api" });
     }
   }
   return findings;
