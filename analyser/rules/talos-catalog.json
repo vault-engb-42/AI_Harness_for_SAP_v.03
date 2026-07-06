@@ -1,0 +1,3559 @@
+{
+  "totals": {
+    "all": 352,
+    "yes": 258,
+    "maybe": 39,
+    "groups": [
+      {
+        "group": "quality_registry",
+        "count": 223
+      },
+      {
+        "group": "perf-contract",
+        "count": 23
+      },
+      {
+        "group": "intelligence",
+        "count": 20
+      },
+      {
+        "group": "perf-standards-rapodata",
+        "count": 31
+      },
+      {
+        "group": "perf-iter-pushdown-outbound-base",
+        "count": 31
+      },
+      {
+        "group": "security-antipatterns",
+        "count": 20
+      },
+      {
+        "group": "cloud-business",
+        "count": 4
+      }
+    ]
+  },
+  "rules": [
+    {
+      "name": "ABAP-N1",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT / SELECT SINGLE inside LOOP AT without a prior batch load (N+1 DB round-trips)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (abaplint has no in-loop SELECT rule)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-OB1",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT in a sorted/BINARY SEARCH context without ORDER BY",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-01",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT * when only a subset of fields is consumed downstream",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "select_star (partial)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-02",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SUM/COUNT/GROUP BY aggregation done in ABAP loop instead of pushed to CDS",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-03",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Client-side SORT / DELETE ADJACENT DUPLICATES after a SELECT that could ORDER BY / DISTINCT",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-04",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Multiple ABAP-side SELECTs joined in code where one CDS view JOIN suffices",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-05",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Heavy in-loop calculation over result set that should be AMDP / table function",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-06",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "READ TABLE WITH KEY against a STANDARD table inside a loop (should be HASHED/SORTED)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-07",
+      "family": "performance",
+      "severity": "info",
+      "detects": "LOOP over SORTED/HASHED table with no keyed WHERE (sequential scan wastes key maintenance)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-08",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "LOOP ... INTO ls_row doing a per-row structural copy where FIELD-SYMBOL/REFERENCE INTO avoids it",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-09",
+      "family": "performance",
+      "severity": "info",
+      "detects": "APPEND in tight loop without explicit STANDARD table type discipline",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-10",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "RAP read-list reads entire root collection without TOP/SKIP paging",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-11",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "MODIFY ENTITIES / EXECUTE WRITE inside a per-row LOOP in a RAP behavior",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-12",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP MODIFY ENTITIES missing IS NOT INITIAL guard on input collection",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-13",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT ... FOR ALL ENTRIES without preceding IS NOT INITIAL guard on driver table",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-14",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "FOR ALL ENTRIES driver columns not aligned with target primary-key prefix",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-15",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Migration output replaced a set-based FAE read with per-row SELECT in a LOOP (regression)",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-16",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Synchronous cl_http_client request inside LOOP without async dispatch",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-17",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Synchronous Event Mesh send (cl_em_client) where async at-least-once is eligible",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-18",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Retryable outbound CALL FUNCTION invoked directly without bgRFC scheduler",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-19",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT against config/customising table (T*, V_*) inside LOOP without hoisting",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-20",
+      "family": "performance",
+      "severity": "info",
+      "detects": "CLEAR/FREE inside tight loop where REFRESH or scoped decl would suffice",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-21",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "OData service binding (SRVB) exposes entity set with no $top/paging policy",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-22",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "CDS $expand-able association with unbounded/high (>100) target cardinality",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-23",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP draft with shared edit but no optimistic-concurrency (lockingMode/ETag)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-24",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Analytical-list-page CDS view missing @Analytics.dataCategory/dataExtraction",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-25",
+      "family": "rap-odata",
+      "severity": "info",
+      "detects": "High-cost @ObjectModel.virtualElement that breaks server-side filtering",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-26",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "CDS view over stable source without @AbapCatalog buffering directive",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-27",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "CDS element typed via DDIC ref where CDS-typed element with semantics exists",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-28",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Currency/quantity CDS field missing reference association to currency/UoM master",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-29",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "CDS authorizationCheck #CHECK forces filter-after-fetch instead of DCL pushdown",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-30",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "High-volume entity set uses $skip offset paging instead of $skiptoken cursor",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-31",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Custom OData provider handles $filter in ABAP after fetch instead of SQL WHERE",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-32",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP draft entity with pessimistic lock but no @Locking.timeoutSeconds",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-33",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION 'ENQUEUE_*' without bounded _WAIT (infinite lock wait)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-34",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "ENQUEUE/RAP lock held across CALL FUNCTION / SELECT loops / external calls",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-35",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "HANA scalar fn (CURRENCY_CONVERSION etc.) reimplemented row-by-row in ABAP loop",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-36",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "ABAP loop computes RANK/ROW_NUMBER/LAG/LEAD/running-total (SQL window candidate)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-37",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "COLLECT into a STANDARD table (O(n) scan per insert)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-38",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "LOOP AT ... WHERE on STANDARD table with no SECONDARY KEY in hot path",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-39",
+      "family": "performance",
+      "severity": "info",
+      "detects": "Internal table declared with >3 SECONDARY KEYs (write-path overhead)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-40",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Early numbering on a create-heavy RAP entity (should be late numbering)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-41",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP deep-create (cba_create) on child with no cardinality cap",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-42",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "Same business object mixes managed and unmanaged RAP behavior types",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-43",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "cl_http_client_factory=>create_by_url with hardcoded URL instead of Destination service",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-44",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Repeated outbound HTTP without a shared communication arrangement",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-45",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "FREE on large internal table inside a hot loop (realloc churn; use REFRESH)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-46",
+      "family": "performance",
+      "severity": "info",
+      "detects": "ASSIGN COMPONENT (dynamic FIELD-SYMBOL) in tight loop instead of static binding",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-47",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "INTF read-list method (returns table) without paging parameter (TOP/SKIP/LIMIT)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-48",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "INTF per-row method (get_one/save_one) with no batch sibling (get_many/save_many)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-49",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "DTEL with CONVERSION_EXIT used in a hot SELECT projection (breaks pushdown)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-50",
+      "family": "clean-core",
+      "severity": "info",
+      "detects": "Custom DTEL duplicating a SAP-delivered data element (same domain/length/label)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-51",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "TABL is FAE target on a non-key field with no secondary index on that field",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-52",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "TABL buffering mode mismatched with the table's mutation rate",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-53",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "TABL declared as Cluster (E) or Pool (P) table category (deprecated for cloud)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-54",
+      "family": "performance",
+      "severity": "info",
+      "detects": "TABL field order suboptimal for HANA columnar layout (NULL-heavy/varlen first)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-55",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "TABL primary key too low-cardinality, forcing table-level lock escalation",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-56",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT ... ENDSELECT loop without PACKAGE SIZE (single-row round-trips)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "select_performance (endSelect)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-57",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Method parameter declared VALUE() but never mutated (needless copy)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "slow_parameter_passing",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-58",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT SINGLE without full primary key in WHERE (non-deterministic row)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "select_single_full_key",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-59",
+      "family": "performance",
+      "severity": "info",
+      "detects": "DDIC secondary index whose columns are a strict prefix of another index",
+      "mechanism": "metadata",
+      "abaplint_overlap": "index_completely_contained",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-60",
+      "family": "deprecation",
+      "severity": "info",
+      "detects": "DDIC table missing explicit enhancement category ('not classified')",
+      "mechanism": "metadata",
+      "abaplint_overlap": "tabl_enhancement_category",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-61",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "CDS field order: keys not first or associations interleaved (VDM convention)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "cds_field_order (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-62",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "ABAP SQL WHERE compares column to host variable of different type (row-level cast)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "sql_value_conversion",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-63",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "Internal table declared WITH DEFAULT KEY (implicit key composition)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "avoid_use (default_key) / prefer_xsdbool-adjacent; likely abaplint has no exact — none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-64",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "APPEND TO itab in non-loop context where INSERT INTO TABLE is type-agnostic",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_insert_into_table (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-65",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "READ TABLE TRANSPORTING NO FIELDS + sy-subrc for existence check (use line_exists)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_line_exists (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-66",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Full-table MODIFY/SORT/DELETE inside a LOOP (O(n^2) cost)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-67",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Business logic (CASE/COND/IF chains) in a CDS view projection",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-68",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Composite/projection CDS view selects directly from a DDIC table (no Basic view)",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-69",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "DB INSERT/UPDATE/DELETE/MODIFY inside a LOOP (per-row write)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "db_operation_in_loop (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-70",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP draft action declared without the 'optimized' addition",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-71",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "BDEF declares direct 'create' on a child entity in a draft-enabled BO (unsupported)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-72",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "Late-numbering RAP draft with no DRAFTUUID raw(16) key on draft table",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-73",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "EML LOCAL MODE (bypasses auth) used outside test code",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-74",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "EML COMMIT/ROLLBACK ENTITIES inside a RAP handler/saver method",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-75",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "COMMIT WORK / ROLLBACK WORK inside a RAP handler/saver method",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-76",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "SUBMIT ... AND RETURN inside a RAP handler/saver method",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-77",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL SCREEN/SET SCREEN/MESSAGE/CALL DIALOG/CALL TRANSACTION inside RAP handler/saver",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-78",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "EML MODIFY ENTITIES inside a read-only RAP handler (FOR READ/GET)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-79",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION IN UPDATE TASK inside late save phase (ADJUST_NUMBERS/SAVE)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-80",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION IN BACKGROUND UNIT inside late save phase",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-81",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "CDS view (or hierarchy) joins >100 distinct underlying DB tables",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-82",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Service quality #A CDS view with >3 underlying tables",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-83",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Service quality #B CDS view with >5 underlying tables",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-84",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Non-private CDS view missing serviceQuality/sizeCategory/dataClass annotations",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-85",
+      "family": "performance",
+      "severity": "info",
+      "detects": "LEFT OUTER JOIN without MANY TO ONE where cardinality is 1:1 (join not prunable)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-86",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "WHERE clause filters on a calculated field (CONCAT/SUBSTRING/CASE/cast)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-87",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "JOIN ON clause references a calculated field instead of base columns",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-88",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Not-NULL-preserving CASE...ELSE constant in CDS view blocks CASE/join swap",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-89",
+      "family": "performance",
+      "severity": "info",
+      "detects": "Constant literal in JOIN ON condition (should be WHERE)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-90",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Cyclic JOIN graph in CDS view hierarchy (forces row-engine materialisation)",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-91",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Non-equi JOIN (BETWEEN/</>/LIKE) in CDS view ON clause",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-92",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "GROUP BY in a re-used/interface CDS view (forces materialisation per consumer)",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-93",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Calculated field on the right side of a LEFT OUTER JOIN (blocks filter push-through)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-94",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Aggregate wraps a per-row function call e.g. SUM(ROUND(x)) instead of ROUND(SUM(x))",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-95",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Interface/reuse CDS view defines a calculated/derived field",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "ABAP-PERF-96",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "UP TO N ROWS / SELECT SINGLE used as a filter substitute without selective WHERE",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-001",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Direct access to classic tables T001/T005/MARA (use CDS View Entity)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-002",
+      "family": "deprecation",
+      "severity": "info",
+      "detects": "CALL FUNCTION 'BAPI_*' inside an enhancement (migrate to RAP Action + EML)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-003",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Classic list output WRITE/FORMAT COLOR (migrate to ALV/Fiori)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-004",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "SET SCREEN / CALL SCREEN screen-flow statement (no Dynpro in S/4 Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-005",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Web Dynpro references IF_WD_*/WD_* (WDYN sunset in S/4HANA 2027)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-006",
+      "family": "deprecation",
+      "severity": "info",
+      "detects": "Direct config table access T001/T005/T006 (use CDS I_CompanyCode/I_UoM)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-007",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "MATNR-shaped field hardcoded LENGTH 18 (S/4 extends to 40)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-008",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Direct access to table VBUK (removed in S/4HANA)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-009",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Direct access to table VBUP (removed in S/4HANA)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-010",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "VBFA access not accounting for extended VBTYP_N/VBTYP_V (1→4 char)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-011",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Direct access to KONV (replaced by PRCD_ELEMENTS in S/4)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-012",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "BSEG access ignoring renamed/type-extended G/L fields (ACDOCA)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-013",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "VBTYP treated as 1-char; S/4 extends to VBTYPL 4-char",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-014",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Amount field hardcoded TYPE p LENGTH 11 (S/4 extends amounts to 13)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-015",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Stock/requirement quantity field hardcoded shorter than extended S/4 length",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "S4-016",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Season/Theme/Collection (FMS/FMSL) field hardcoded shorter than extended length",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-02",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Copy-paste duplication: >=6 identical consecutive lines",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (abaplint has no clone detector)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-03",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "Nesting depth > 5 levels",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "max_nesting",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-04",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Direct access to S/4-deprecated tables (BSEG, KONV, etc.)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-06",
+      "family": "invariant",
+      "severity": "priority-2",
+      "detects": "ASSIGN to a field symbol that persists beyond its loop scope (dangling)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-07",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "IS INITIAL check on an IMPORTING parameter (possible type mismatch)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-08",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "READ TABLE TRANSPORTING NO FIELDS then work-area field access (stale read)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-09",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "Hardcoded class name in CREATE OBJECT / CALL METHOD (no DI/factory)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-10",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Class without a FOR TESTING companion / test-method references",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-11",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Config-table access without buffering where single-record buffering expected",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "HARDY-12",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "ALV setup code mixed with business logic (separation of concerns)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-001",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION in generated cloud code (forbidden in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (cloudApi-adjacent)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-002",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "TABLES parameters (forbidden in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-004",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "MESSAGE ... TYPE statement (use CX_* exception classes in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-005",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "CLASS definition without FINAL or ABSTRACT (required in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-006",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "WRITE statement (classic list processor; forbidden in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-007",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "FIELD-SYMBOLS TYPE ANY (defeats type safety; restricted in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-008",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "DESCRIBE TABLE ... LINES (use lines() in Cloud LV5)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_returning_to_exporting-adjacent / describe_by_lines (if present)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-009",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "GET REFERENCE OF (use REF #() constructor in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-010",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "READ REPORT statement (direct repo access forbidden; use XCO)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-011",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "BREAK-POINT statement in shipped Cloud code",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "contains_break_point (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-012",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "EXEC SQL ... ENDEXEC native SQL block (forbidden in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "exec_sql (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-013",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "USING CLIENT addition on ABAP SQL (forbidden in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-014",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Classic Dynpro statements CALL/SET SCREEN, LEAVE PROGRAM/SCREEN",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-015",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "CL_SALV_TABLE classic ALV factory (not released in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "cloud_api (partial, if API list loaded)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-016",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Direct SY-UZEIT/SY-DATUM/SY-TIMLO read (use XCO timezone lib in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-017",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "COMPUTE statement (obsolete; drop in Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "obsolete_statement (COMPUTE)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-018",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "DATA ... WITH HEADER LINE (forbidden in ABAP Cloud)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "avoid_use (with_header_line) / obsolete_statement",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-019",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Source-code plug-in ENHANCEMENT-POINT/SECTION (only BAdI allowed)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-020",
+      "family": "modification",
+      "severity": "priority-1",
+      "detects": "Modification of an SAP-delivered object (CI_SEARCH_CUST_MODIFICATIONS)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-021",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Direct INSERT/UPDATE/DELETE/MODIFY on a non-released SAP DB table",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-022",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "PERFORM ... IN PROGRAM 'SAPM*/SAPL*/RV*/RM*' (SAP-internal subroutine)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-023",
+      "family": "released-api",
+      "severity": "priority-1",
+      "detects": "Reference to SAP object classified noAPI/notToBeReleased in cloudification registry",
+      "mechanism": "metadata",
+      "abaplint_overlap": "cloud_api (partial)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-024",
+      "family": "released-api",
+      "severity": "info",
+      "detects": "Reference to SAP object classified 'deprecated' in cloudification registry",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-025",
+      "family": "released-api",
+      "severity": "info",
+      "detects": "Reference to SAP object classified 'classicAPI' (not for ABAP Cloud)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "cloud_api (partial)",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-026",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "BAdI implementation extends an SAP-internal-flagged BAdI",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-027",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "USEREXIT_*/CUSTOMER_FUNCTION_*/FORM userexit_* implementation in SAP program",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-028",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Custom app using legacy UI (WRITE/ALV grid, Web Dynpro, Dynpro) not RAP/Fiori",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-029",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Custom field via classic APPEND (CI_ include) on SAP DDIC table",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-030",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Custom Fiori app via SEGW/BOPF/UI5 freestyle instead of RAP",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-033",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Switch Framework business-function state-probe (cl_sfw_bf_status_check etc.) in Cloud code",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-034",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Reference to object owned by a deprecated/not-permitted business function",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-031",
+      "family": "released-api",
+      "severity": "priority-2",
+      "detects": "Reference to SAP-internal API by naming marker (cl_*_internal_*, *_internal_api)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLOUD-032",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Direct SELECT/READ on a SAP-namespace DDIC table (not via released CDS/BAPI)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-001",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "EXEC SQL with && / string-concat (SQL injection)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-002",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "OPEN DATASET with a variable (non-literal) file path (path traversal)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-003",
+      "family": "dynamic-sql",
+      "severity": "priority-1",
+      "detects": "INSERT REPORT / GENERATE SUBROUTINE POOL dynamic code gen (RCE)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-004",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "CALL TRANSACTION with a non-literal t-code (bypasses static auth)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-005",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "Hardcoded credential literal (password/api_key/secret/token) in source",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-006",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "cl_abap_browser=>show_html with concatenated unescaped user input (XSS)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-007",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "CALL 'SYSTEM' / CALL 'C_*' direct kernel call (bypasses auth)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-008",
+      "family": "invariant",
+      "severity": "priority-1",
+      "detects": "AUTHORITY-CHECK not followed by sy-subrc check (decorative auth gate)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-009",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "CALL FUNCTION ... DESTINATION with a variable destination (SSRF-analogue)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SEC-010",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "HTTP redirect (Location header) to a user-supplied URL (open redirect)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-001",
+      "family": "anti-pattern",
+      "severity": "priority-1",
+      "detects": "CREATE OBJECT statement (use NEW operator)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_inline / use_new (obsolete CREATE OBJECT)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-002",
+      "family": "naming",
+      "severity": "priority-2",
+      "detects": "Hungarian notation prefixes (lv_/lt_/ls_/lo_/gv_ ...) in declarations",
+      "mechanism": "regex",
+      "abaplint_overlap": "none (abaplint enforces prefixes, opposite stance)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-003",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Standalone DATA declaration where inline DATA() at first use is preferable",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "prefer_inline",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-004",
+      "family": "anti-pattern",
+      "severity": "priority-1",
+      "detects": "CONCATENATE statement (use |{ }| string templates)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_string_template / obsolete",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-005",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Boolean 'X'/SPACE literals instead of abap_bool/abap_true/abap_false",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_xsdbool-adjacent / use_bool_expression",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-006",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "RAISE EXCEPTION TYPE instead of RAISE EXCEPTION NEW",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-007",
+      "family": "anti-pattern",
+      "severity": "priority-1",
+      "detects": "MOVE ... TO statement (use = assignment)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "obsolete_statement (MOVE)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-008",
+      "family": "anti-pattern",
+      "severity": "priority-1",
+      "detects": "CALL METHOD statement (use direct method-call syntax)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "obsolete_statement (CALL METHOD) / avoid_use",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-009",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Explicit EXPORTING keyword in method calls where it can be omitted",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-010",
+      "family": "anti-pattern",
+      "severity": "priority-1",
+      "detects": "FORM/PERFORM routines (use class methods)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "avoid_use (FORM) / obsolete",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-011",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "Method body exceeds statement threshold (>40 warn, >80 block)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "method_length",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-012",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "IMPORTING parameter count exceeds threshold (>3 warn, >6 block)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "max_number_parameters",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-013",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "Method cyclomatic complexity exceeds threshold (>10 warn, >20 block)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "cyclomatic_complexity (if present)",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-014",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "Control-structure nesting exceeds threshold (>4 warn, >6 block)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "max_nesting",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-015",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Test method with no cl_abap_unit_assert calls",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-016",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Test instantiates production class directly instead of test double injection",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-017",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Test method has multiple production calls (should be one WHEN)",
+      "mechanism": "cfg-dfg",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-018",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Test method assertion count exceeds threshold (>3 warn, >6 block)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-019",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Public method with no corresponding test method in local test class",
+      "mechanism": "graph",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CLEAN-020",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Test class uses FRIENDS to access private members",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CC-001",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Obsolete MOVE/COMPUTE/ADD/SUBTRACT/MULTIPLY/DIVIDE at strict-mode >=1",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "obsolete_statement",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CC-002",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Implicit DATA declarations at strict-mode >=2",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "prefer_inline",
+      "port_worth": "maybe",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CC-003",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "CALL TRANSACTION at strict-mode >=2 (no classic BAPIs in RAP handlers)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "CC-004",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "Direct DB access at strict-mode 3 (must use CDS/EML)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "RAP-SEC-001",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "EML operation in LOCAL MODE bypassing authorization outside test code",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "RAP-SEC-002",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "RAP root entity with no DCL access control defined (all data exposed)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "RAP-SEC-003",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "Draft-enabled entity without authorization_master (draft data unprotected)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "RAP-SEC-004",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "BDEF without global authorization (no admin controls)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "RAP-SEC-005",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "Custom RAP action without an authorization check (privilege escalation)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-001",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "Java @Autowired field injection (use constructor injection) — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java, out of scope)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-002",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java service write method missing @Transactional — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-003",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "Java catch(Exception e) too broad — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-004",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java System.out.println in production — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-005",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java JPA N+1 query (missing @BatchSize/join fetch) — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "SPRING-006",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java non-final injected field — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-001",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java multi-line concat should use text blocks — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-002",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java POJO should be a record — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-003",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java abstract class should be sealed — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-004",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java instanceof+cast should use pattern matching — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-005",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java switch statement should be switch expression — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-006",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java explicit type should use var — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-007",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java Collectors.toList() should be Stream.toList() — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "JVER-008",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Java index for-loop should be enhanced for/Stream — non-ABAP",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none (Java)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BTP-001",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "pom.xml missing SAP Cloud SDK parent/BOM — non-ABAP descriptor",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none (Java/descriptor)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BTP-002",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "Missing mta.yaml for CF deployment — non-ABAP descriptor",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BTP-003",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Missing xs-security.json (XSUAA scopes/roles) — non-ABAP descriptor",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BTP-004",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "Hardcoded credentials in application.yml — non-ABAP descriptor",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BTP-005",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "pom.xml missing explicit java.version property — non-ABAP descriptor",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BPMN-001",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "BPMN source not well-formed BPMN 2.0 XML — non-ABAP",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BPMN-002",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "BPMN tasks missing name/documentation — non-ABAP",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BPMN-003",
+      "family": "other",
+      "severity": "priority-1",
+      "detects": "BPMN disconnected/unreachable nodes — non-ABAP",
+      "mechanism": "graph",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BPMN-004",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "BPMN execution path with no end event — non-ABAP",
+      "mechanism": "graph",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BSTYLE-001",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "BPMN process name not PascalCase — non-ABAP",
+      "mechanism": "regex",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BSTYLE-002",
+      "family": "other",
+      "severity": "priority-2",
+      "detects": "BPMN lane without meaningful name — non-ABAP",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BSTYLE-003",
+      "family": "other",
+      "severity": "info",
+      "detects": "BPMN complex gateway without annotation — non-ABAP",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "BSTYLE-004",
+      "family": "other",
+      "severity": "info",
+      "detects": "BPMN data object not camelCase — non-ABAP",
+      "mechanism": "regex",
+      "abaplint_overlap": "none (BPMN)",
+      "port_worth": "no",
+      "group": "quality_registry"
+    },
+    {
+      "name": "detect_eml_commit_rollback_in_handler (ABAP-PERF-74)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "EML COMMIT/ROLLBACK ENTITIES inside a RAP handler/saver method (framework owns the LUW)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_commit_work_in_handler (ABAP-PERF-75)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "COMMIT WORK / ROLLBACK WORK inside a RAP handler/saver (short-circuits the controlled SAP LUW)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_submit_in_handler (ABAP-PERF-76)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "SUBMIT ... AND RETURN inside a RAP handler/saver (bypasses RAP transactional buffer)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_screen_call_in_handler (ABAP-PERF-77)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL SCREEN / SET SCREEN / CALL DIALOG / CALL TRANSACTION / MESSAGE-with-UI inside a RAP handler/saver (RAP has no Dynpro session)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_modify_in_read_handler (ABAP-PERF-78)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "EML MODIFY ENTITIES inside a FOR READ handler (read path mutates buffer state)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_update_task_in_late_save (ABAP-PERF-79)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION ... IN UPDATE TASK inside the late RAP save/adjust_numbers phase (queues work past LUW boundary)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_bg_unit_in_late_save (ABAP-PERF-80)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION ... IN BACKGROUND UNIT inside the late RAP save phase (bgRFC binds to wrong LUW)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_too_many_tables (ABAP-PERF-81)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "CDS view entity joining >100 distinct underlying tables (HANA plan-stability collapse)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_service_quality_a_too_many (ABAP-PERF-82)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "@ObjectModel serviceQuality:A CDS view with >3 underlying tables (breaks A plan-stability budget)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_service_quality_b_too_many (ABAP-PERF-83)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "@ObjectModel serviceQuality:B CDS view with >5 underlying tables (breaks B plan-stability budget)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_missing_usage_type (ABAP-PERF-84)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Non-private CDS view missing @ObjectModel.usageType serviceQuality/sizeCategory/dataClass annotations",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_left_outer_no_many_to_one (ABAP-PERF-85)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "LEFT OUTER JOIN in a CDS view without a MANY TO ONE cardinality qualifier (HANA cannot prune join)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_calc_field_in_where (ABAP-PERF-86)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Calculated CDS field (concat/case/cast/coalesce/substring) referenced in the WHERE clause (blocks filter push-down)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_calc_field_in_join (ABAP-PERF-87)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Calculated CDS field used in a JOIN ON condition (blocks predicate push-down)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_case_else_constant (ABAP-PERF-88)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "CASE...ELSE <constant>...END in a CDS view is not NULL-preserving (blocks CASE/LEFT-OUTER-JOIN swap)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_constant_in_join (ABAP-PERF-89)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "Literal constant (=/<>) in a CDS JOIN ON clause (triggers engine switch + materialisation)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_cyclic_join (ABAP-PERF-90)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Same table appears >=3 times across FROM+JOIN clauses (cyclic-looking CDS join graph)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_non_equi_join (ABAP-PERF-91)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Non-equi CDS JOIN (BETWEEN, LIKE, <, >, <=, >= in ON) forcing engine switch/materialisation",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_group_by_in_interface (ABAP-PERF-92)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "GROUP BY in an interface/reused CDS view (I_ prefix or @VDM.viewType BASIC/COMPOSITE) forcing per-consumer materialisation",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_calc_field_right_of_left_outer (ABAP-PERF-93)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "CDS view exposes a calculated field AND contains a LEFT OUTER JOIN (optimiser cannot push filters through)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_aggregation_wraps_function (ABAP-PERF-94)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Aggregate wrapping a per-row function: SUM/AVG/MIN/MAX(ROUND/CONVERT_CURRENCY/CAST/COALESCE(...))",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_cds_calc_field_in_interface (ABAP-PERF-95)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Interface CDS view (I_ prefix or @VDM.viewType BASIC/COMPOSITE) defines a calculated field",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "detect_limit_without_filter (ABAP-PERF-96)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT ... UP TO N ROWS / SELECT SINGLE without a selective (=) WHERE clause (LIMIT applied late, no cost reduction)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-contract"
+    },
+    {
+      "name": "ABAP-N1 (detect_n1_queries)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT / SELECT SINGLE statement executed inside a LOOP AT ... ENDLOOP block (N+1 database round-trip anti-pattern)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "select_in_loop",
+      "port_worth": "maybe",
+      "group": "intelligence"
+    },
+    {
+      "name": "ABAP-OB1 (detect_missing_order_by)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT ... INTO TABLE without an ORDER BY clause (implicit sort order not guaranteed on HANA)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-001",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Direct SELECT ... FROM classic transparent table T001 / T005 / MARA (should use CDS view entity)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-002",
+      "family": "clean-core",
+      "severity": "info",
+      "detects": "BAPI_* CALL FUNCTION inside an ENHANCEMENT (migrate to RAP Action + EML)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-003",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "Classic list output statements WRITE: / FORMAT COLOR (no runtime in S/4HANA Cloud; migrate to ALV/Fiori)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-004",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Dynpro screen flow SET SCREEN / CALL SCREEN (Dynpro runtime absent in S/4HANA Cloud; migrate to Fiori Elements)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-005",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "Web Dynpro interface usage (IF_WD_* / WD_* identifiers) — WDYN sunset in S/4HANA 2027",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "S4-006",
+      "family": "deprecation",
+      "severity": "info",
+      "detects": "Direct FROM T001 / T005 / T006 table access (use released CDS views I_CompanyCode / I_UoM)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "_DEPRECATED_API_PATTERN (compute_s4_readiness legacy regex)",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "CALL FUNCTION to deprecated FMs (CONVERSION_EXIT_*, NUMBER_GET_NEXT, POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY*)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "_DEPRECATED_TABLES regex (BSIS/BSAS FROM)",
+      "family": "deprecation",
+      "severity": "priority-2",
+      "detects": "SELECT FROM deprecated FI secondary-index tables BSIS / BSAS (replaced by ACDOCA in S/4HANA)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "Cloudification registry table lookup (compute_s4_readiness)",
+      "family": "released-api",
+      "severity": "priority-1",
+      "detects": "Table reference whose SAP Cloudification-registry state is deprecated / notToBeReleased (with released-successor lookup)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "Cloudification registry FM lookup (compute_s4_readiness)",
+      "family": "released-api",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION whose SAP Cloudification-registry state is deprecated / notToBeReleased (unreleased function module)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "Cloudification registry class lookup (compute_s4_readiness)",
+      "family": "released-api",
+      "severity": "priority-1",
+      "detects": "CL_* class reference (CREATE OBJECT / TYPE REF TO / =>) whose registry state is deprecated / notToBeReleased",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "Cloudification classicAPI classification (compute_s4_readiness)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "CL_* class classified as classicAPI (Clean Core Level B/C rather than released Level A API)",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "intelligence"
+    },
+    {
+      "name": "compute_semantic_metrics (cyclomatic/nesting/dynamic-call/unused-var/comment ratios)",
+      "family": "complexity",
+      "severity": "info",
+      "detects": "Per-file metrics: cyclomatic complexity (IF/ELSEIF/CASE/WHEN/LOOP/DO/WHILE count), max nesting depth, dynamic vs static CALL FUNCTION ratio, unused DATA declaration ratio, comment ratio, statement count — thresholds later feed migration_complexity/effort scoring, no standalone finding",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "cyclomatic_complexity",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "classify_namespace / compute_namespace_summary",
+      "family": "other",
+      "severity": "info",
+      "detects": "Classifies objects as customer (Z*/Y*/ /ns/ /#ns#) vs sap_standard and flags mixed-namespace scan — scoping metadata, not an anti-pattern finding",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "extract_authority_checks",
+      "family": "security",
+      "severity": "info",
+      "detects": "Extracts AUTHORITY-CHECK OBJECT statements with ID/FIELD pairs into auth_object boundary nodes — graph enrichment, does not itself flag missing checks",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "resolve_select_tables / _parse_select_columns",
+      "family": "other",
+      "severity": "info",
+      "detects": "Builds uses_table edges (table names + referenced columns) from SELECT/INSERT/MODIFY/DELETE/UPDATE — graph infrastructure, no finding",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "enrich_node_metadata (migration_complexity / effort_tier / modernization_target)",
+      "family": "s4-migration",
+      "severity": "info",
+      "detects": "Derives SAP module, modernization target (RAP/Fiori/CDS by object type), effort tier, priority rank, and a 0-5 migration_complexity score from thresholds on dynamic-call ratio, cyclomatic, nesting, debt, and legacy object type",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "compute_compound_debt (three-pillar score)",
+      "family": "complexity",
+      "severity": "info",
+      "detects": "Aggregates Clarity/Stability/Performance compound debt score from comment ratio, S4-* hit count, ABAP-N1/OB1 hits, and dynamic-call ratio — scoring rollup, not a discrete finding",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "intelligence"
+    },
+    {
+      "name": "detect_endselect_no_package_size (ABAP-PERF-56)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT ... ENDSELECT loop with no PACKAGE SIZE (single-row DB round-trips).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_slow_value_pass (ABAP-PERF-57)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "IMPORTING VALUE(param) that is never mutated — pass-by-value copy cost.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_select_single_partial_key (ABAP-PERF-58)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SELECT SINGLE whose WHERE clause does not constrain the full primary key.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_cds_field_order (ABAP-PERF-61)",
+      "family": "rap-odata",
+      "severity": "info",
+      "detects": "CDS view with a key field after a non-key field, or a regular field after an association.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_sql_host_type_mismatch (ABAP-PERF-62)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "WHERE compares a char-suffixed column (_id/_key/_code/_nr/_text) to a bare numeric literal — implicit type-cast cost.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_default_key (ABAP-PERF-63)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "Internal table declared WITH DEFAULT KEY (implicit key composition).",
+      "mechanism": "regex",
+      "abaplint_overlap": "avoid_default_key",
+      "port_worth": "no",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_append_vs_insert (ABAP-PERF-64)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "Standalone APPEND (outside a LOOP) where INSERT INTO TABLE would be table-type-agnostic.",
+      "mechanism": "regex",
+      "abaplint_overlap": "prefer_insert_into_table",
+      "port_worth": "no",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_read_table_existence (ABAP-PERF-65)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "READ TABLE ... TRANSPORTING NO FIELDS used for an existence check instead of line_exists().",
+      "mechanism": "regex",
+      "abaplint_overlap": "use_line_exists",
+      "port_worth": "no",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_whole_table_modify_in_loop (ABAP-PERF-66)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Whole-table SORT / DELETE ... WHERE / MODIFY ... TRANSPORTING inside a LOOP body.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_business_logic_in_cds (ABAP-PERF-67)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "CDS projection carrying >=3 CASE expressions — business logic pushed into the data layer.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_upper_cds_direct_ddic (ABAP-PERF-68)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Composite/consumption/transactional CDS view selecting directly from a DDIC table instead of a Basic (I_*/A_*) view.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_db_write_in_loop (ABAP-PERF-69)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "DB INSERT/UPDATE/DELETE/MODIFY (non-EML, non-itab) inside a LOOP — per-row write round-trips.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_draft_action_no_optimized (ABAP-PERF-70)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "BDEF draft action declared without the 'optimized' addition.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_direct_child_create_in_draft (ABAP-PERF-71)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "Draft-enabled child entity behavior declaring direct 'create;' instead of deep create via the parent (cba).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_eml_local_mode_outside_test (ABAP-PERF-73)",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE outside a FOR TESTING class — authorization bypass.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_unbounded_rap_read_list (ABAP-PERF-10)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "RAP read-list/get_entity_set/read_entities method with no TOP/SKIP/paging bound.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_sync_db_in_rap_loop (ABAP-PERF-11)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "MODIFY ENTITIES / EXECUTE WRITE inside a per-row LOOP — defeats RAP batching.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_rap_missing_initial_guard (ABAP-PERF-12)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "MODIFY ENTITIES OF ... FIELDS with no IS NOT INITIAL / LINES() short-circuit guard on the input.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_rap_early_numbering (ABAP-PERF-40)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP BDEF declares 'numbering :: early' on a create-heavy entity (should be late).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_rap_deep_create_unbounded (ABAP-PERF-41)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "RAP deep-create create(cba::child) with no nearby cardinality cap (max:).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_rap_mixed_managed_unmanaged (ABAP-PERF-42)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "Same BDEF declares both 'managed implementation' and 'unmanaged implementation'.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_odata_no_paging_policy (ABAP-PERF-21)",
+      "family": "rap-odata",
+      "severity": "priority-1",
+      "detects": "Service binding (SRVB) exposes an entity set with no paging / $top / max-page-size policy.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_expand_high_cardinality (ABAP-PERF-22)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "$expand-able association / composition [0..*] in CDS with no maxItems cardinality cap.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_draft_no_optimistic_lock (ABAP-PERF-23)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Draft-enabled CDS/BDEF entity with no optimistic locking mode / ETag (systemDate.lastChangedAt).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_missing_analytical_annotation (ABAP-PERF-24)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Analytical Fiori consumer (AnalyticalListPage/@UI.headerInfo) CDS view lacking @Analytics.dataCategory/dataExtraction.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_high_cost_virtual_element (ABAP-PERF-25)",
+      "family": "rap-odata",
+      "severity": "info",
+      "detects": "@ObjectModel.virtualElement in CDS — per-row fetch-time calc that breaks server-side filtering.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_skip_pagination_large_set (ABAP-PERF-30)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Service binding uses $skip-style paging instead of cursor-based $skiptoken on a large set.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_filter_not_delegated (ABAP-PERF-31)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Custom OData provider get_entityset method with no WHERE/SADL pushdown — $filter handled in ABAP.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_long_lock_duration (ABAP-PERF-32)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "Pessimistic draft lock (BDEF) with no @Locking.timeoutSeconds.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_enqueue_no_timeout (ABAP-PERF-33)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION 'ENQUEUE_*' with no _WAIT parameter — unbounded lock wait / dispatcher hang.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_lock_spans_long_work (ABAP-PERF-34)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "ENQUEUE_* lock held across an unrelated CALL FUNCTION before the DEQUEUE_*.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-standards-rapodata"
+    },
+    {
+      "name": "detect_standard_for_keyed_lookup (ABAP-PERF-06)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "READ TABLE ... WITH KEY against a STANDARD internal table (linear keyed lookup); suggests HASHED/SORTED.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_sorted_for_sequential_scan (ABAP-PERF-07)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "SORTED/HASHED table only ever scanned sequentially (LOOP AT without WHERE/USING KEY); suggests STANDARD.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_internal_table_copy_on_assign (ABAP-PERF-08)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "LOOP AT ... INTO work-area copies each row by value instead of ASSIGNING FIELD-SYMBOL/REFERENCE INTO.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_append_in_tight_loop (ABAP-PERF-09)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "APPEND inside a LOOP with no nearby TYPE STANDARD TABLE guard (append-cost heuristic).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_repeated_config_read_in_loop (ABAP-PERF-19)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT from a config table (T*/V_*/TVAR*) inside a LOOP; hoist read out of loop.",
+      "mechanism": "regex",
+      "abaplint_overlap": "db_operation_in_loop",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_clear_vs_refresh_discipline (ABAP-PERF-20)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "CLEAR on a table-typed variable inside a loop where REFRESH would preserve capacity.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_collect_into_standard (ABAP-PERF-37)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "COLLECT into a STANDARD table (O(n) per insert); suggests HASHED with UNIQUE KEY.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_loop_where_no_secondary_key (ABAP-PERF-38)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "LOOP AT ... WHERE on a STANDARD table with no SECONDARY KEY (full scan per outer iteration).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_excessive_secondary_keys (ABAP-PERF-39)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "Internal table declares more than 3 SECONDARY KEYs (write cost scales with key count).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_free_in_loop (ABAP-PERF-45)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "FREE on an internal table inside a hot loop deallocates capacity each iteration; use REFRESH.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_dynamic_field_symbol_in_loop (ABAP-PERF-46)",
+      "family": "performance",
+      "severity": "info",
+      "detects": "ASSIGN COMPONENT inside a tight loop causing per-iteration RTTI lookup.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_select_star_unused (ABAP-PERF-01)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT * (or SELECT SINGLE *) fetching all columns where a projection would suffice.",
+      "mechanism": "regex",
+      "abaplint_overlap": "select_performance",
+      "port_worth": "no",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_aggregation_in_loop (ABAP-PERF-02)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "SUM/COUNT/GROUP BY computed in an ABAP LOOP instead of pushed to a CDS view.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_client_sort (ABAP-PERF-03)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Client-side SORT after a SELECT lacking ORDER BY (could sort/DISTINCT at DB).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_cds_join_candidate (ABAP-PERF-04)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "3+ SELECT ... FROM statements in one source that should be one CDS view join.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_amdp_candidate (ABAP-PERF-05)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Complex per-row calculation (CASE/COND/IF-ELSEIF) in a loop; AMDP/table-function candidate.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_missing_cds_buffering (ABAP-PERF-26)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "CDS DDL define view without @AbapCatalog.viewEnhancementCategory / buffering directive.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_ddic_type_cast (ABAP-PERF-27)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "CDS cast to DDIC primitive (abap.char/numc/dec/int4/int8) losing semantic annotations.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_currency_no_ref (ABAP-PERF-28)",
+      "family": "rap-odata",
+      "severity": "priority-2",
+      "detects": "CDS @Semantics.amount.currencyCode/quantity.unitOfMeasure field with no reference association.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_authority_filter_after_fetch (ABAP-PERF-29)",
+      "family": "security",
+      "severity": "info",
+      "detects": "CDS @AccessControl.authorizationCheck:#CHECK with no DCL/#PRIVILEGED_ONLY pushdown (app-side filter).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_scalar_function_in_loop (ABAP-PERF-35)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "HANA scalar function (currency/unit/fiscal/CONVERT_*) called per-row via CALL FUNCTION in a loop.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_window_function_candidate (ABAP-PERF-36)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "ABAP loop computing rank/row_number/running-total/previous-row (SQL window-function candidate).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_fae_missing_initial_guard (ABAP-PERF-13)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT ... FOR ALL ENTRIES with no preceding IS NOT INITIAL / LINES()>0 guard on the driver (empty driver = full scan).",
+      "mechanism": "regex",
+      "abaplint_overlap": "select_performance",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_fae_no_pk_prefix (ABAP-PERF-14)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "FOR ALL ENTRIES WHERE clause leads with a non-primary-key field (index-prefix misalignment).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_set_based_regression (ABAP-PERF-15)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "SELECT (SINGLE) from a known transaction table (MARA/VBAK/EKKO/BSEG...) inside a LOOP; set-based read regression.",
+      "mechanism": "regex",
+      "abaplint_overlap": "db_operation_in_loop",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_sync_http_in_loop (ABAP-PERF-16)",
+      "family": "performance",
+      "severity": "priority-1",
+      "detects": "Synchronous cl_http_client send/receive/execute inside a LOOP; move to async/batch.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_sync_event_mesh (ABAP-PERF-17)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Synchronous cl_em_client/cl_event_mesh send/publish (no 'async' nearby).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_bgrfc_missing (ABAP-PERF-18)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "CALL FUNCTION ... DESTINATION without bgRFC unit scheduling nearby (no retry/persistence).",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_direct_http_url (ABAP-PERF-43)",
+      "family": "clean-core",
+      "severity": "priority-1",
+      "detects": "cl_http_client_factory=>create_by_url bypassing the BTP Destination service.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "detect_comm_arrangement_missing (ABAP-PERF-44)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "cl_http_destination_provider=>create_by_url instead of create_by_comm_arrangement.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "run_abap_performance_detectors / register_detector / dispatcher (abap_performance.py)",
+      "family": "other",
+      "severity": "info",
+      "detects": "Dispatcher + registry only (domain filtering, sub-module import, per-detector try/except). No standalone check.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "no",
+      "group": "perf-iter-pushdown-outbound-base"
+    },
+    {
+      "name": "SEC-001",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "EXEC SQL ... ENDEXEC block containing the && concat operator (dynamic Native SQL = SQL injection)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-002",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "OPEN DATASET with a non-literal (variable) path — path-traversal vector",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-003",
+      "family": "dynamic-sql",
+      "severity": "priority-1",
+      "detects": "INSERT REPORT / GENERATE SUBROUTINE POOL — dynamic ABAP source generation (RCE)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-004",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "CALL TRANSACTION with a variable t-code (unquoted) — bypasses static S_TCODE/SU24 auth",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-005",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "Hardcoded credential literal (password/api_key/secret/token/bearer = '...'), excluding placeholders",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-006",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "cl_abap_browser=>show_html( ) called with && string concatenation — XSS",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-007",
+      "family": "security",
+      "severity": "priority-1",
+      "detects": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' — bypasses ABAP authority concept, forbidden in Cloud",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-008",
+      "family": "invariant",
+      "severity": "priority-1",
+      "detects": "AUTHORITY-CHECK with no sy-subrc test within 6 following lines — decorative auth gate (P4 invariant)",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-009",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "CALL FUNCTION ... DESTINATION with a variable (unquoted) destination — RFC routing controlled by data",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "SEC-010",
+      "family": "security",
+      "severity": "priority-2",
+      "detects": "HTTP Location header (set_header_field) set from a non-literal value — open-redirect",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-02 (detect_copy_paste)",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "Duplicate sequence of >=6 identical (stripped) source lines within a file",
+      "mechanism": "regex",
+      "abaplint_overlap": "cyclomatic_complexity (partial); no direct duplicate-block rule",
+      "port_worth": "maybe",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-03 (detect_scope_surprise)",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "DATA declared inside an IF/LOOP/DO/WHILE/CASE block (misleading — ABAP gives it method/file-wide scope)",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-04 (detect_deprecated_tables)",
+      "family": "deprecation",
+      "severity": "priority-1",
+      "detects": "SELECT ... FROM a deprecated FI/SD table (BSIS/BSAS/BSID/BSAD/BSIK/BSAK/KONV/VBFA) removed in S/4HANA",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-06 (detect_field_symbol_persistence)",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "ASSIGN followed by an sy-subrc check within 5 lines but no UNASSIGN — stale field-symbol on failure path",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-07 (detect_type_mismatch_initial)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "IF <p> IS INITIAL where <p> is an IMPORTING parameter — possible type-compatibility surprise",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-08 (detect_contradiction)",
+      "family": "anti-pattern",
+      "severity": "priority-2",
+      "detects": "READ TABLE ... TRANSPORTING NO FIELDS then work-area component access (wa-field) in next 3 lines",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-09 (detect_hardcoded_dependency)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "NEW/CREATE OBJECT of a custom class (z*/y*//ns/) — hardcoded dependency, no factory/DI",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-10 (detect_test_coverage_gap)",
+      "family": "anti-pattern",
+      "severity": "info",
+      "detects": "File with >=2 public METHODS declarations and no FOR TESTING class present",
+      "mechanism": "statement-ast",
+      "abaplint_overlap": "none",
+      "port_worth": "maybe",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-11 (detect_buffering_antipattern)",
+      "family": "performance",
+      "severity": "priority-2",
+      "detects": "Identical SELECT SINGLE statement repeated >=3 times in a file without caching",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "HARDY-12 (detect_alv_scope_creep)",
+      "family": "complexity",
+      "severity": "priority-2",
+      "detects": "ALV USER_COMMAND handler block exceeding 30 non-comment lines — extract validation logic",
+      "mechanism": "regex",
+      "abaplint_overlap": "cyclomatic_complexity (partial, method-level only)",
+      "port_worth": "maybe",
+      "group": "security-antipatterns"
+    },
+    {
+      "name": "CLOUD-031 (_detect_cloud_031_internal_api)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "Reference to an SAP-internal-marked API by naming convention: cl_*_internal*, if_*_internal*, sap_*_internal*, or /ns/cl_*_internal* class/interface/FM names.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "cloud-business"
+    },
+    {
+      "name": "CLOUD-032 (_detect_cloud_032_ddic_table_read)",
+      "family": "clean-core",
+      "severity": "priority-2",
+      "detects": "SELECT / READ TABLE ... FROM a SAP-namespace DDIC table (name not starting Z/Y/Q or /ns/, and not a released I_/C_/P_ CDS view alias) — direct DDIC read instead of released CDS view.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "cloud-business"
+    },
+    {
+      "name": "CLOUD-033 (_detect_sfw_probe / extract_sfw_probes)",
+      "family": "business-function",
+      "severity": "priority-1",
+      "detects": "Any Switch Framework state-probe in ABAP: cl_sfw_bf_status_check=>is_active(), cl_fdt_environment=>is_business_function_active(), CALL FUNCTION 'SFW_BF_GET_BFS', or SELECT FROM sfw_bf_users_new — forbidden in ABAP Cloud where BF state is fixed per release.",
+      "mechanism": "regex",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "cloud-business"
+    },
+    {
+      "name": "CLOUD-034 (_detect_business_function_deprecated_ref)",
+      "family": "business-function",
+      "severity": "priority-1",
+      "detects": "CALL FUNCTION 'FM' or SELECT/JOIN FROM table whose owning business function is classified ALWAYS_OFF / NOT_PERMITTED / DEPRECATED for the target S/4 release via BusinessFunctionRegistry cross-walk.",
+      "mechanism": "metadata",
+      "abaplint_overlap": "none",
+      "port_worth": "yes",
+      "group": "cloud-business"
+    }
+  ]
+}

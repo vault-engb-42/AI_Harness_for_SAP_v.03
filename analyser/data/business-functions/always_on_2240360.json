@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source": "SAP Note 2240360 (always-on business functions in S/4HANA) — cross-walked via community-published list (login-walled note)",
+  "license": "Curated reference data; underlying SAP Note is © SAP SE",
+  "target_releases": {
+    "2023": [
+      "FIN_GL_CI_1",
+      "FIN_AA_PARALLEL_VAL",
+      "LOG_MM_CI_1",
+      "LOG_MMCS_CI_2",
+      "FIN_REP_SIMPL_2",
+      "FIN_GL_RECON_AC",
+      "LOG_MM_SIMPLIFICATION_1",
+      "LOG_MM_SIMPLIFICATION_2",
+      "LOG_TM_OR_INT_1",
+      "FIN_AP_VENDOR_PAYMENTS_1",
+      "FIN_AR_CUSTOMER_INVOICES_1"
+    ],
+    "2024": [
+      "FIN_GL_CI_1",
+      "FIN_AA_PARALLEL_VAL",
+      "LOG_MM_CI_1",
+      "LOG_MMCS_CI_2",
+      "FIN_REP_SIMPL_2",
+      "FIN_GL_RECON_AC",
+      "LOG_MM_SIMPLIFICATION_1",
+      "LOG_MM_SIMPLIFICATION_2",
+      "LOG_TM_OR_INT_1",
+      "FIN_AP_VENDOR_PAYMENTS_1",
+      "FIN_AR_CUSTOMER_INVOICES_1",
+      "FIN_GL_LEDGER_GROUP_DEFAULT",
+      "LOG_MM_VENDOR_HIERARCHY"
+    ],
+    "2025": [
+      "FIN_GL_CI_1",
+      "FIN_AA_PARALLEL_VAL",
+      "LOG_MM_CI_1",
+      "LOG_MMCS_CI_2",
+      "FIN_REP_SIMPL_2",
+      "FIN_GL_RECON_AC",
+      "LOG_MM_SIMPLIFICATION_1",
+      "LOG_MM_SIMPLIFICATION_2",
+      "LOG_TM_OR_INT_1",
+      "FIN_AP_VENDOR_PAYMENTS_1",
+      "FIN_AR_CUSTOMER_INVOICES_1",
+      "FIN_GL_LEDGER_GROUP_DEFAULT",
+      "LOG_MM_VENDOR_HIERARCHY",
+      "FIN_AA_DEPRECIATION_2025"
+    ]
+  }
+}

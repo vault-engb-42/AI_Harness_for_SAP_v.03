@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "source": "SAP Note 2240359 (always-off / not-permitted business functions in S/4HANA) — cross-walked via community-published list (login-walled note)",
+  "license": "Curated reference data; underlying SAP Note is © SAP SE",
+  "target_releases": {
+    "2023": [
+      "LOG_TM_OBD_BSPL",
+      "LOG_PP_AFS_PROD_HU_CI_1",
+      "ISH_NOT_TO_USE",
+      "PSM_FA_FUND_LOAN",
+      "LOG_PP_DOCS_LEGACY",
+      "LOG_MM_VENDOR_CONS_LEGACY",
+      "FIN_FSCM_INTEGR_LEGACY"
+    ],
+    "2024": [
+      "LOG_TM_OBD_BSPL",
+      "LOG_PP_AFS_PROD_HU_CI_1",
+      "ISH_NOT_TO_USE",
+      "PSM_FA_FUND_LOAN",
+      "LOG_PP_DOCS_LEGACY",
+      "LOG_MM_VENDOR_CONS_LEGACY",
+      "FIN_FSCM_INTEGR_LEGACY",
+      "LOG_GRC_ACCESSCTRL_2"
+    ],
+    "2025": [
+      "LOG_TM_OBD_BSPL",
+      "LOG_PP_AFS_PROD_HU_CI_1",
+      "ISH_NOT_TO_USE",
+      "PSM_FA_FUND_LOAN",
+      "LOG_PP_DOCS_LEGACY",
+      "LOG_MM_VENDOR_CONS_LEGACY",
+      "FIN_FSCM_INTEGR_LEGACY",
+      "LOG_GRC_ACCESSCTRL_2",
+      "ISR_RT_RETAIL_LEGACY"
+    ]
+  }
+}

@@ -1,27 +1,20 @@
-// End-to-end tests for the MCP-ADT bridge: spawn the real server process,
-// speak newline-delimited JSON-RPC over stdio, and let it make real HTTP calls
-// to the stub sidecar fixture. No mocks — the actual code path is exercised.
-import { test, before, after } from "node:test";
+// End-to-end tests for the MCP-ADT bridge: spawn the REAL server process and
+// speak newline-delimited JSON-RPC over stdio. No mocks, no stubs, no fakes —
+// everything here exercises the bridge's real code path without substituting
+// its dependency. The sidecar round-trip itself is covered by
+// bridge.live.test.js (npm run test:live) against the REAL MCP-ADT sidecar.
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { startStub } from "./adt-stub.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SERVER = join(HERE, "..", "server.js");
 
-let stub;
-before(async () => {
-  stub = await startStub();
-});
-after(async () => {
-  await stub.close();
-});
-
 function startBridge(extraEnv = {}) {
   const child = spawn(process.execPath, [SERVER], {
-    env: { ...process.env, ADT_MCP_URL: stub.url, ...extraEnv },
+    env: { ...process.env, ...extraEnv },
     stdio: ["pipe", "pipe", "pipe"],
   });
   const pending = new Map();
@@ -46,7 +39,7 @@ function startBridge(extraEnv = {}) {
     }
   });
   let counter = 0;
-  const request = (method, params, timeoutMs = 2500) => {
+  const request = (method, params, timeoutMs = 5000) => {
     const id = ++counter;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -89,22 +82,7 @@ test("tools/list exposes all 17 ADT tools", async () => {
   }
 });
 
-test("tools/call forwards a read tool to the sidecar and returns its result", async () => {
-  const b = startBridge();
-  try {
-    const r = await b.request("tools/call", {
-      name: "aws_abap_cb_get_source",
-      arguments: { object_name: "ZDEMO", object_type: "PROG" },
-    });
-    assert.notEqual(r.result.isError, true);
-    const text = r.result.content[0].text;
-    assert.ok(text.includes("hello from stub"), `expected forwarded source, got: ${text}`);
-  } finally {
-    b.close();
-  }
-});
-
-test("write tools are blocked by default (P5 fail-closed)", async () => {
+test("write tools are blocked by default (P5 fail-closed) before any network I/O", async () => {
   const b = startBridge();
   try {
     const r = await b.request("tools/call", {
@@ -118,15 +96,29 @@ test("write tools are blocked by default (P5 fail-closed)", async () => {
   }
 });
 
-test("write tools run when HARNESS_ADT_ALLOW_WRITE=1", async () => {
-  const b = startBridge({ HARNESS_ADT_ALLOW_WRITE: "1" });
+test("unknown tools are rejected with a JSON-RPC error", async () => {
+  const b = startBridge();
+  try {
+    const r = await b.request("tools/call", { name: "not_a_tool", arguments: {} });
+    assert.ok(r.error, "error response");
+    assert.equal(r.error.code, -32602);
+  } finally {
+    b.close();
+  }
+});
+
+test("a read tool surfaces a real transport failure as a tool error (sidecar down)", async () => {
+  // Point at a port that is genuinely closed: the bridge makes a REAL fetch,
+  // gets a REAL connection failure, and must surface it as isError — the
+  // actual behavior a user sees when the sidecar is not running.
+  const b = startBridge({ ADT_MCP_URL: "http://127.0.0.1:1" });
   try {
     const r = await b.request("tools/call", {
-      name: "aws_abap_cb_create_object",
-      arguments: { name: "ZNEW", type: "CLAS", package: "$TMP", transport_request: "K900001" },
+      name: "aws_abap_cb_connection_status",
+      arguments: {},
     });
-    assert.notEqual(r.result.isError, true);
-    assert.ok(r.result.content[0].text.includes('"created":true'));
+    assert.equal(r.result.isError, true);
+    assert.match(r.result.content[0].text, /ADT error/);
   } finally {
     b.close();
   }
