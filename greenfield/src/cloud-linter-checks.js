@@ -65,6 +65,8 @@ export const TEXT_RULES = [
   { rule_id: "gf-cloud-segw-bopf", severity: "warning", family: "clean-core", message: "SEGW/BOPF reference (/IWBEP/ or /BOBF/) — model OData through RAP service definitions/bindings", re: /\/(?:IWBEP|BOBF)\/(?:CL|IF)_\w+/i },
   // Batch 4 — Clean ABAP style
   { rule_id: "gf-clean-bool-literal", severity: "warning", family: "clean-abap", message: "'X' / ' ' boolean literal — use abap_true / abap_false", re: /=\s*'[X ]'/ },
+  // Batch 5 — LOCAL FRIENDS exposes production internals to a local test class (CLEAN-020)
+  { rule_id: "gf-test-friends-reach", severity: "warning", family: "test-quality", message: "LOCAL FRIENDS exposes production internals to the test — test through the public contract, not private structure", re: /\bLOCAL\s+FRIENDS\b/i },
 ];
 
 // Statement rules keyed by kind AND text — the flexible matcher for cases where

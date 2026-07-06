@@ -7,6 +7,7 @@ import {
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
   cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
+import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
 /**
  * GF-2 — the dedicated ABAP-Cloud generation linter. Post-generation validation
@@ -30,7 +31,9 @@ export function lintAbapCloud(files) {
     for (const file of obj.getABAPFiles()) {
       scanStatements(obj.getName(), obj.getType(), file, findings);
       findings.push(...testNoAssertFindings(obj.getName(), file));
+      findings.push(...complexityFindings(obj.getName(), obj.getType(), file));
     }
+    findings.push(...publicCoverageFindings(obj));
   }
 
   // Raw-source rules read the original files directly (parse-independent).

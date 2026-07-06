@@ -380,6 +380,78 @@ test("gf-clean-redundant-exporting fires on ( EXPORTING … ) in a call (CLEAN-0
   assert.equal(finding(res, "gf-clean-redundant-exporting")?.severity, "warning");
 });
 
+// ---------------------------------------------------------------- Batch 5: complexity + test-quality
+
+/** class with a single `run` method (signature + body configurable) */
+function methodClass(body, sig = "METHODS run.") {
+  return `CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    ${sig}\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n${body}\n  ENDMETHOD.\nENDCLASS.`;
+}
+/** a CLAS main + its testclasses include, as the two files of one object */
+function classWithTest(mainBody, testBody, pubSig = "METHODS run.") {
+  return [
+    { filename: "zcl_calc.clas.abap", source: `CLASS zcl_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    ${pubSig}\nENDCLASS.\nCLASS zcl_calc IMPLEMENTATION.\n${mainBody}\nENDCLASS.` },
+    { filename: "zcl_calc.clas.testclasses.abap", source: `CLASS ltc_calc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc_calc IMPLEMENTATION.\n  METHOD t1.\n${testBody}\n  ENDMETHOD.\nENDCLASS.` },
+  ];
+}
+
+test("gf-cx-method-length fires on a >40-statement method (CLEAN-011)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: methodClass(Array(41).fill("    rv = 1.").join("\n"), "METHODS run RETURNING VALUE(rv) TYPE i.") }]);
+  assert.equal(finding(res, "gf-cx-method-length")?.severity, "warning");
+});
+
+test("gf-cx-param-count fires on a method with >3 IMPORTING params (CLEAN-012)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: methodClass("    rv = ia.", "METHODS run IMPORTING ia TYPE i ib TYPE i ic TYPE i id TYPE i RETURNING VALUE(rv) TYPE i.") }]);
+  assert.equal(finding(res, "gf-cx-param-count")?.severity, "warning");
+});
+
+test("gf-cx-cyclomatic fires on a method with >10 decision points (CLEAN-013)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: methodClass(Array(11).fill("    IF rv > 0.\n    ENDIF.").join("\n"), "METHODS run RETURNING VALUE(rv) TYPE i.") }]);
+  assert.equal(finding(res, "gf-cx-cyclomatic")?.severity, "warning");
+});
+
+test("gf-cx-nesting-depth fires on >4 nested blocks (CLEAN-014)", () => {
+  const body = Array(5).fill("    IF rv > 0.").join("\n") + "\n    rv = 1.\n" + Array(5).fill("    ENDIF.").join("\n");
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: methodClass(body, "METHODS run RETURNING VALUE(rv) TYPE i.") }]);
+  assert.equal(finding(res, "gf-cx-nesting-depth")?.severity, "warning");
+});
+
+test("a small, flat method raises no complexity finding", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: methodClass("    rv = 1.", "METHODS run RETURNING VALUE(rv) TYPE i.") }]);
+  for (const r of ["gf-cx-method-length", "gf-cx-param-count", "gf-cx-cyclomatic", "gf-cx-nesting-depth"]) assert.equal(finding(res, r), undefined);
+});
+
+test("gf-test-assert-count fires on a test method with >3 assertions (CLEAN-018)", () => {
+  const asserts = Array(4).fill("    cl_abap_unit_assert=>assert_equals( act = 1 exp = 1 ).").join("\n");
+  const res = lintAbapCloud(classWithTest("  METHOD run.\n    rv = 1.\n  ENDMETHOD.", asserts, "METHODS run RETURNING VALUE(rv) TYPE i."));
+  assert.equal(finding(res, "gf-test-assert-count")?.severity, "warning");
+});
+
+test("gf-test-too-many-calls fires on a test with >3 production calls (CLEAN-017)", () => {
+  const body = "    DATA(lo) = NEW zcl_calc( ).\n    lo->run( ).\n    lo->run( ).\n    lo->run( ).\n    lo->run( ).";
+  const res = lintAbapCloud(classWithTest("  METHOD run.\n    rv = 1.\n  ENDMETHOD.", body, "METHODS run RETURNING VALUE(rv) TYPE i."));
+  assert.equal(finding(res, "gf-test-too-many-calls")?.severity, "warning");
+});
+
+test("gf-test-instantiates-prod fires when a test does NEW zcl_… (CLEAN-016)", () => {
+  const body = "    cl_abap_unit_assert=>assert_equals( act = NEW zcl_calc( )->run( ) exp = 1 ).";
+  const res = lintAbapCloud(classWithTest("  METHOD run.\n    rv = 1.\n  ENDMETHOD.", body, "METHODS run RETURNING VALUE(rv) TYPE i."));
+  assert.equal(finding(res, "gf-test-instantiates-prod")?.severity, "warning");
+});
+
+test("gf-test-public-untested flags a public method the test never references (CLEAN-019)", () => {
+  const main = "  METHOD add.\n    rv = 1.\n  ENDMETHOD.\n  METHOD subtract.\n    rv = 1.\n  ENDMETHOD.";
+  const test = "    cl_abap_unit_assert=>assert_equals( act = NEW zcl_calc( )->add( ) exp = 1 ).";
+  const res = lintAbapCloud(classWithTest(main, test, "METHODS add RETURNING VALUE(rv) TYPE i.\n    METHODS subtract RETURNING VALUE(rv) TYPE i."));
+  const f = finding(res, "gf-test-public-untested");
+  assert.equal(f?.severity, "warning");
+  assert.match(f.message, /SUBTRACT/);
+});
+
+test("gf-test-friends-reach fires on LOCAL FRIENDS (CLEAN-020)", () => {
+  const src = "CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_x DEFINITION LOCAL FRIENDS ltc_x.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n  ENDMETHOD.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]), "gf-test-friends-reach")?.severity, "warning");
+});
+
 // ---------------------------------------------------------------- result shape + counts
 
 test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {
