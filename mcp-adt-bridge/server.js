@@ -1,7 +1,8 @@
 // MCP stdio server fronting the MCP-ADT REST sidecar.
 // Speaks newline-delimited JSON-RPC 2.0 on stdin/stdout (MCP stdio transport)
-// and forwards tools/call to the sidecar's POST /mcp endpoint. This is the only
-// substrate the SAP ABAP harness talks to; there is no other backend.
+// and forwards tools/call to the sidecar's POST /mcp endpoint. This is the
+// harness's live-SAP substrate; the standalone analyser (abap-analyser MCP) is
+// the separate offline-diagnosis substrate.
 import { createInterface } from "node:readline";
 import { ADT_TOOLS, WRITE_TOOLS, TOOL_NAMES } from "./adt-tools.js";
 import { callAdtTool } from "./adt-client.js";
