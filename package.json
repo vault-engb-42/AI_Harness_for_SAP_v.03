@@ -5,11 +5,12 @@
   "type": "module",
   "description": "SAP ABAP Claude Code harness — MCP-ADT bridge + hooks",
   "scripts": {
-    "test": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js .claude/scripts/test/model-tier.test.js mcp-adt-bridge/test/bridge.test.js \"analyser/test/*.test.js\" \"sap-adt-sidecar/test/lib.test.js\" \"sap-adt-sidecar/test/server.test.js\"",
+    "test": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js .claude/scripts/test/model-tier.test.js mcp-adt-bridge/test/bridge.test.js \"analyser/test/*.test.js\" \"greenfield/test/*.test.js\" \"sap-adt-sidecar/test/lib.test.js\" \"sap-adt-sidecar/test/server.test.js\"",
     "test:bridge": "node --test mcp-adt-bridge/test/bridge.test.js",
     "test:hooks": "node --test .claude/hooks/test/abap-checks.test.js .claude/hooks/test/hooks.test.js",
     "test:scripts": "node --test .claude/scripts/test/model-tier.test.js",
     "test:analyser": "node --test \"analyser/test/*.test.js\"",
+    "test:greenfield": "node --test \"greenfield/test/*.test.js\"",
     "test:sidecar": "node --test sap-adt-sidecar/test/lib.test.js sap-adt-sidecar/test/server.test.js",
     "test:live": "node --test mcp-adt-bridge/test/bridge.live.test.js sap-adt-sidecar/test/sidecar.live.test.js analyser/test/live/analyser.live.test.js",
     "test:live:write": "node --test sap-adt-sidecar/test/sidecar.write.live.test.js"
