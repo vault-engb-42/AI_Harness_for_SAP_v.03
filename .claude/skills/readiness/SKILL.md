@@ -12,6 +12,8 @@ Use `/readiness` in the **Prepare** phase, against an existing SAP package or `Z
 
 This lane is the ABAP analogue of the engineering harness's brownfield risk-map, narrowed to the migration question. It writes only local `specs/readiness/` artifacts and **does not change any SAP object** (P5).
 
+Readiness runs in **two modes**. **Analyser mode (preferred):** when `specs/brownfield/analyser-findings.json` is present (from `/abap-analyser`), the analyser already computed S/4 readiness, a per-object **effort tier** (`retire` / `re-platform` / `keep-and-clean` / `unknown`), named modernization targets, and the finding backlog — this lane *consumes* them and adds only the live usage/mod/transport signals the offline analyser cannot see. **ADT-crawl mode (fallback):** when no report exists, run the `abap-explorer` migration sweep.
+
 > **Disposable analysis lane.** Readiness is diagnosis, not a build. It does **not** run through the GAN gates — there is no ATC verdict, no ABAP Unit run, no activation on a Markdown backlog. `artifact-guard` fences `specs/readiness/` off the implementation pipeline. The output feeds `/fit-to-standard` and `/abap-design`; it never asserts an object "passes."
 
 ---
@@ -49,7 +51,23 @@ Write these files under `specs/readiness/`:
 
 ---
 
-## Step 2 — Spawn `abap-explorer` Focused on Migration Analysis
+## Step 2 — Acquire readiness: analyser mode, else ADT crawl
+
+**Check for `specs/brownfield/analyser-findings.json` first.** If present, work in **analyser mode**; if absent and a bundle or live source is available, prefer running `/abap-analyser` first. Only fall back to the crawl when no report exists.
+
+### Mode A — consume the analyser report (preferred)
+
+Read the report (`abap-analyser` MCP `get_report` tool or the Read tool) and distil it into the readiness artifacts — the analyser already answered the migration question:
+
+- **Inventory + posture** ← `graph.nodes` (each node's `namespace`, `clean_core_posture`, and `object`) → `inventory.md`.
+- **Migration analysis** ← `s4_readiness` (released / deprecated / not-released counts + percentage) and the deprecated nodes' `modernization_target` (named successor) → `migration-analysis.md`.
+- **Tiering** ← each node's `effort_tier` (`retire` / `re-platform` / `keep-and-clean` / `unknown`) is the Step-4 backlog tier — read it, do not re-derive. Cross-check against `findings` for the driver evidence.
+- **Blockers** ← `findings` (unreleased-API, classic-UI, dynamic-SQL, missing-test-class, invariant) and `blast_radius` (top blockers by impact) → the risk/blocker detail and Step-5 rollup.
+- **Coverage** ← honour `coverage_note`: any skipped/malformed object is **not covered** — record it as Unknown, never as clean or `retire`.
+
+Then spawn `abap-explorer` **only for the live usage / modification / transport signals** (`query_scmon_usage`, `query_smodilog_modifications`, `get_transport_requests`) — the offline analyser does not have them, and they gate the `retire` tier (Step 3). Skip to Step 3.
+
+### Mode B — ADT crawl (fallback, no analyser report)
 
 Spawn Agent with `subagent_type="abap-explorer"`. Brief it to run a **readiness-focused** sweep — the migration question is primary, not a full architecture map:
 
@@ -75,7 +93,7 @@ Do not let a stubbed tool flip a `live/unknown` object into a `retired` one. Thi
 
 ## Step 4 — Tier the Remediation Backlog (retire / re-platform / keep-and-clean)
 
-Write `specs/readiness/remediation-backlog.md`. Assign **each custom object exactly one tier**, with the evidence read and the branch reason:
+Write `specs/readiness/remediation-backlog.md`. Assign **each custom object exactly one tier**, with the evidence read and the branch reason. In **analyser mode**, seed the tier from the node's `effort_tier`, then apply the safety rules below — crucially, an object may be tiered **`retire` only with the Step-3 live-usage confirmation**, never from `effort_tier` alone (the offline analyser cannot see usage). In **crawl mode**, assign the tier from the migration verdicts and source reads:
 
 | Tier | When | Effort signal |
 |---|---|---|
