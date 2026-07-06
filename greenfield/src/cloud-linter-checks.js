@@ -21,6 +21,16 @@ export const KIND_RULES = {
   SetScreen: { rule_id: "gf-cloud-no-dynpro", severity: "error", family: "abap-cloud", message: "SET SCREEN drives a classic Dynpro — not available in ABAP Cloud; build a RAP/Fiori UI" },
   CallTransaction: { rule_id: "gf-cloud-no-call-transaction", severity: "error", family: "abap-cloud", message: "CALL TRANSACTION invokes a classic SAP GUI transaction — forbidden in ABAP Cloud; call a released API or RAP action" },
   CallFunction: { rule_id: "gf-cloud-call-function", severity: "warning", family: "abap-cloud", message: "CALL FUNCTION — only released, Cloud-enabled function modules are permitted; prefer a released class method or RAP EML" },
+  // Batch 2 — obsolete syntax (mirrors TALOS CLEAN-001/004/007/008/010). `guard`
+  // narrows a SHARED statement kind by text: abaplint parses a plain assignment
+  // `a = b` as `Move` and a direct call `o->m( )` as `Call`, so these two rules
+  // MUST also match the obsolete keyword form or they over-fire on every
+  // assignment/call (probe-verified).
+  CreateObject: { rule_id: "gf-clean-no-create-object", severity: "error", family: "clean-abap", message: "CREATE OBJECT is obsolete — use the NEW constructor operator" },
+  Concatenate: { rule_id: "gf-clean-no-concatenate", severity: "error", family: "clean-abap", message: "CONCATENATE is obsolete — use a string template |{ a }{ b }| or the && operator" },
+  Move: { rule_id: "gf-clean-no-move-to", severity: "error", family: "clean-abap", message: "MOVE … TO is obsolete — use the assignment operator =", guard: /^MOVE\b/i },
+  Call: { rule_id: "gf-clean-no-call-method", severity: "error", family: "clean-abap", message: "CALL METHOD is obsolete — call the method directly: obj->method( )", guard: /^CALL\s+METHOD\b/i },
+  Form: { rule_id: "gf-clean-no-form", severity: "error", family: "clean-abap", message: "FORM subroutines are not available in ABAP Cloud — use a class method" },
 };
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);

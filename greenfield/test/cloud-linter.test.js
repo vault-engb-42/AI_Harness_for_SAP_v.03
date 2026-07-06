@@ -177,6 +177,45 @@ test("gf-ground-classic-api fires (info) on a classicAPI SAP ref", () => {
   assert.equal(finding(res, "gf-ground-classic-api")?.severity, "info");
 });
 
+// ---------------------------------------------------------------- Batch 2: obsolete syntax
+
+/** wrap method-body statements in a minimal valid ABAP-Cloud class */
+function clazz(body) {
+  return `CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n${body}\n  ENDMETHOD.\nENDCLASS.`;
+}
+
+test("gf-clean-no-create-object fires on CREATE OBJECT (CLEAN-001)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO object.\n    CREATE OBJECT lo.") }]);
+  assert.equal(finding(res, "gf-clean-no-create-object")?.severity, "error");
+});
+
+test("gf-clean-no-concatenate fires on CONCATENATE (CLEAN-004)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lv TYPE string.\n    CONCATENATE 'a' 'b' INTO lv.") }]);
+  assert.equal(finding(res, "gf-clean-no-concatenate")?.severity, "error");
+});
+
+test("gf-clean-no-move-to fires on MOVE … TO (CLEAN-007)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lv TYPE string.\n    DATA lv2 TYPE string.\n    MOVE lv TO lv2.") }]);
+  assert.equal(finding(res, "gf-clean-no-move-to")?.severity, "error");
+});
+
+test("gf-clean-no-call-method fires on CALL METHOD (CLEAN-008)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO zcl_x.\n    CALL METHOD lo->run( ).") }]);
+  assert.equal(finding(res, "gf-clean-no-call-method")?.severity, "error");
+});
+
+test("gf-clean-no-form fires on a FORM subroutine (CLEAN-010)", () => {
+  const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nFORM foo.\nENDFORM." }]);
+  assert.equal(finding(res, "gf-clean-no-form")?.severity, "error");
+});
+
+test("modern ABAP (NEW, string template, =, direct call) raises no Batch-2 finding — guards hold", () => {
+  const body = "    DATA lo TYPE REF TO zcl_x.\n    DATA lv TYPE string.\n    DATA lv2 TYPE string.\n    lo = NEW #( ).\n    lv = |{ lv2 }|.\n    lv2 = lv.\n    lo->run( ).";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz(body) }]);
+  const batch2 = ["gf-clean-no-create-object", "gf-clean-no-concatenate", "gf-clean-no-move-to", "gf-clean-no-call-method", "gf-clean-no-form"];
+  assert.deepEqual(ruleIds(res).filter((r) => batch2.includes(r)), [], "plain '=' (kind Move) and direct call (kind Call) must not over-fire");
+});
+
 // ---------------------------------------------------------------- result shape + counts
 
 test("lintAbapCloud tallies errorCount and warningCount from the findings", () => {

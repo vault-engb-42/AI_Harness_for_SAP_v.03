@@ -67,7 +67,8 @@ function scanStatements(objName, objType, file, findings) {
     const decl = DECLARE_RE.exec(text);
     if (decl) declared.add(decl[1].toUpperCase());
 
-    if (KIND_RULES[kind]) emit(KIND_RULES[kind], st);
+    const kindRule = KIND_RULES[kind];
+    if (kindRule && (!kindRule.guard || kindRule.guard.test(text))) emit(kindRule, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);
     if (kind === "AuthorityCheck" && !subrcCheckedAfter(stmts, i)) emit(AUTHCHECK_SPEC, st);
