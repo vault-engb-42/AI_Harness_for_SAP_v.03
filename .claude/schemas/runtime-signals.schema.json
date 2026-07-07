@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "runtime-signals.schema.json",
+  "title": "Harness offline runtime-signal dataset",
+  "description": "GAP#3a canonical shape. An adapter (integrations/, outside the harness core) maps a vendor export (SCMON / UPL / Custom-Code-Migration app) into this shape; sap-adt-sidecar/lib/usage-signal.js validates and serves it through the query_scmon_usage / query_smodilog_modifications tools. The runtime validator is validateRuntimeSignals() in that file — this JSON-Schema is the companion contract, not the enforcer.",
+  "type": "object",
+  "required": ["schema_version", "system", "generated_at"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "system": { "type": "string", "description": "SAP system id the signal was measured on (e.g. S4D)" },
+    "generated_at": { "type": "string", "description": "ISO timestamp the export was produced" },
+    "usage": { "$ref": "#/$defs/usageSection" },
+    "modifications": { "$ref": "#/$defs/modSection" }
+  },
+  "$defs": {
+    "signalSource": { "enum": ["scmon", "upl", "ccm-app", "smodilog"] },
+    "usageSection": {
+      "type": "object",
+      "required": ["rows"],
+      "additionalProperties": true,
+      "properties": {
+        "source": { "$ref": "#/$defs/signalSource" },
+        "window_days": { "type": "number", "description": "Measured look-back window in days" },
+        "measurement_start": { "type": "string" },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/usageRow" } }
+      }
+    },
+    "usageRow": {
+      "type": "object",
+      "required": ["object_type", "object_name", "exec_count"],
+      "additionalProperties": true,
+      "properties": {
+        "object_type": { "type": "string" },
+        "object_name": { "type": "string" },
+        "package": { "type": "string" },
+        "exec_count": { "type": "number", "minimum": 0 },
+        "last_used": { "type": ["string", "null"], "description": "ISO date of last observed execution, or null if unknown" },
+        "first_seen": { "type": "string" },
+        "callers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "modSection": {
+      "type": "object",
+      "required": ["rows"],
+      "additionalProperties": true,
+      "properties": {
+        "source": { "$ref": "#/$defs/signalSource" },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/modRow" } }
+      }
+    },
+    "modRow": {
+      "type": "object",
+      "required": ["object_name", "object_type", "modified_by", "modified_on"],
+      "additionalProperties": true,
+      "properties": {
+        "object_name": { "type": "string" },
+        "object_type": { "type": "string" },
+        "package": { "type": "string" },
+        "modified_by": { "type": "string" },
+        "modified_on": { "type": "string", "description": "ISO date of the modification" },
+        "mod_type": { "type": "string" }
+      }
+    }
+  }
+}

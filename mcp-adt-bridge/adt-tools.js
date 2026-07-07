@@ -155,13 +155,13 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_query_scmon_usage",
     readOnly: true,
-    description: "Query ABAP Call Monitor usage (upstream returns data_available=false until SCMON is wired; never infer retirement from a missing signal).",
+    description: "Query ABAP Call Monitor usage. Serves a validated offline usage dataset when present (GAP#3a), else data_available=false; never infer retirement from a missing signal.",
     inputSchema: obj({ window_days: int("Look-back window in days"), package_name: str("Package scope") }),
   },
   {
     name: "aws_abap_cb_query_smodilog_modifications",
     readOnly: true,
-    description: "Query SAP-standard modification log (upstream returns data_available=false until SMODILOG is wired; never infer cleanliness from a missing signal).",
+    description: "Query SAP-standard modification log. Serves a validated offline modification dataset when present (GAP#3a), else data_available=false; never infer cleanliness from a missing signal.",
     inputSchema: obj({ package_name: str("Package scope"), date_from: str("ISO date lower bound") }),
   },
 ];

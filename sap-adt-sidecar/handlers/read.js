@@ -1,5 +1,6 @@
 import { parseAdtXml, findAll, attr } from "../lib/adt-xml.js";
 import { SOURCE_URI } from "../lib/adt-uris.js";
+import { usageResponse, modificationsResponse } from "../lib/usage-signal.js";
 
 /**
  * Read-only ADT tools (real SAP calls, ported per the spec's per-tool table).
@@ -151,29 +152,20 @@ export async function getTransportRequests(session, { username } = {}) {
 }
 
 /**
- * SCMON / SMODILOG: ADT exposes NO endpoint for these table-level signals
- * (they need an RFC/table gateway). Reporting data_available:false is the
- * truthful answer, with the reason stated — consumers must never read a
- * missing signal as "unused/unmodified" (schema coverage_note contract).
+ * SCMON / SMODILOG: ADT exposes NO REST endpoint for these table-level signals,
+ * so the live path has no data. When an OFFLINE canonical dataset is present
+ * (GAP#3a — an adapter-produced, schema-validated export), the same tool shape
+ * serves it; otherwise it degrades fail-closed to data_available:false with the
+ * reason stated. Consumers must never read a missing signal as "unused/
+ * unmodified" (schema coverage_note contract). All logic lives in the generic,
+ * schema-driven lib/usage-signal.js — nothing about a customer system here.
  */
-export async function queryScmonUsage(_session, { window_days } = {}) {
-  return {
-    executed_objects: [],
-    window_days: window_days ?? 90,
-    measurement_start: "",
-    data_available: false,
-    reason: "SCMON is not exposed via the ADT REST protocol; an RFC/table gateway is required",
-  };
+export async function queryScmonUsage(_session, params = {}) {
+  return usageResponse(params, new Date());
 }
 
-export async function querySmodilogModifications(_session, { package_name, date_from } = {}) {
-  return {
-    modifications: [],
-    data_available: false,
-    package_name: package_name ?? "",
-    date_from: date_from ?? "",
-    reason: "SMODILOG is not exposed via the ADT REST protocol; an RFC/table gateway is required",
-  };
+export async function querySmodilogModifications(_session, params = {}) {
+  return modificationsResponse(params);
 }
 
 /** First matching descendant's text (nodestructure rows are element-based). */
