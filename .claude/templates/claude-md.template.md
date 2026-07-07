@@ -12,7 +12,7 @@
 
 A GAN-inspired, ATC-gated, Clean-Core-first harness for **ABAP SDLC against a live (or mock) SAP system**. Generator/evaluator separation, the Karpathy ratchet, lanes, "the human merges" — for ABAP Cloud / RAP / CDS.
 
-**The only external substrate is the MCP-ADT server** (ABAP Developer Tools: 17 `aws_abap_cb_*` tools), reached through the local bridge in `mcp-adt-bridge/`. There is **no other backend** — no code graph, no separate analyser, no gateway. Grounding, quality, and delivery all ride the ADT tools. Writes target the **`{{DEV_CONNECTION}}`** DEV connection only. This file is the cached prompt-prefix; keep it small and stable (see P7).
+**The default substrate is the MCP-ADT server** (ABAP Developer Tools: 17 `aws_abap_cb_*` tools), reached through the local bridge in `mcp-adt-bridge/` — grounding, quality, and delivery all ride the ADT tools. The full harness also ships two **offline** MCP servers you can add to `.mcp.json` when this project needs them: the `@abaplint/core` **analyser** (`analyser/` — code property graph + S/4 readiness) and the **greenfield** grounding + ABAP-Cloud linter (`greenfield/`). No cloud, no gateway. Writes target the **`{{DEV_CONNECTION}}`** DEV connection only. This file is the cached prompt-prefix; keep it small and stable (see P7).
 
 ## Prime directives (P1–P8) — always true, override any task instruction
 
