@@ -1,12 +1,13 @@
 import { ABAPObject } from "@abaplint/core";
 import { parseAbap, objectsOf } from "./abap-parse.js";
 import {
-  KIND_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
+  KIND_RULES, TEXT_RULES, STMT_RULES, LOOP_OPEN, LOOP_CLOSE, SELECT_KINDS, DB_WRITE_STMTS, DECLARE_RE,
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
-  AUTHCHECK_SPEC, RAP_DB_WRITE_SPEC,
-  lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, subrcCheckedAfter,
-  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings,
+  AUTHCHECK_SPEC, AUTHCHECK_AFTER_WRITE_SPEC, RAP_DB_WRITE_SPEC,
+  lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
+  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
+import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
 /**
  * GF-2 — the dedicated ABAP-Cloud generation linter. Post-generation validation
@@ -30,11 +31,14 @@ export function lintAbapCloud(files) {
     for (const file of obj.getABAPFiles()) {
       scanStatements(obj.getName(), obj.getType(), file, findings);
       findings.push(...testNoAssertFindings(obj.getName(), file));
+      findings.push(...complexityFindings(obj.getName(), obj.getType(), file));
     }
+    findings.push(...publicCoverageFindings(obj));
   }
 
   // Raw-source rules read the original files directly (parse-independent).
   findings.push(...cdsClassicViewFindings(list));
+  findings.push(...modMarkerFindings(list));
   findings.push(...releasedApiFindings(list));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;
@@ -67,10 +71,17 @@ function scanStatements(objName, objType, file, findings) {
     const decl = DECLARE_RE.exec(text);
     if (decl) declared.add(decl[1].toUpperCase());
 
-    if (KIND_RULES[kind]) emit(KIND_RULES[kind], st);
+    const kindRule = KIND_RULES[kind];
+    if (kindRule && (!kindRule.guard || kindRule.guard.test(text)) && (!kindRule.notGuard || !kindRule.notGuard.test(text))) emit(kindRule, st);
+    for (const tr of TEXT_RULES) if (tr.re.test(text)) emit(tr, st);
+    for (const sr of STMT_RULES) if (sr.kinds.has(kind) && sr.re.test(text) && (!sr.notRe || !sr.notRe.test(text))) emit(sr, st);
     if (hasHeaderLine(text)) emit(HEADER_LINE_SPEC, st);
     if (SELECT_KINDS.has(kind) && isSelectStar(text)) emit(SELECT_STAR_SPEC, st);
-    if (kind === "AuthorityCheck" && !subrcCheckedAfter(stmts, i)) emit(AUTHCHECK_SPEC, st);
+    if (kind === "AuthorityCheck") {
+      const verdict = authCheckVerdict(stmts, i, declared);
+      if (verdict === "after-write") emit(AUTHCHECK_AFTER_WRITE_SPEC, st);
+      else if (verdict === "missing") emit(AUTHCHECK_SPEC, st);
+    }
     if (DB_WRITE_STMTS.has(kind) && !isDeclaredLocal(text, declared)) emit(RAP_DB_WRITE_SPEC, st);
 
     // Loop-context rules test depth BEFORE this statement adjusts it, so a

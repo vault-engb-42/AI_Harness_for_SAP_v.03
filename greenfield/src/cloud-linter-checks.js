@@ -21,7 +21,63 @@ export const KIND_RULES = {
   SetScreen: { rule_id: "gf-cloud-no-dynpro", severity: "error", family: "abap-cloud", message: "SET SCREEN drives a classic Dynpro — not available in ABAP Cloud; build a RAP/Fiori UI" },
   CallTransaction: { rule_id: "gf-cloud-no-call-transaction", severity: "error", family: "abap-cloud", message: "CALL TRANSACTION invokes a classic SAP GUI transaction — forbidden in ABAP Cloud; call a released API or RAP action" },
   CallFunction: { rule_id: "gf-cloud-call-function", severity: "warning", family: "abap-cloud", message: "CALL FUNCTION — only released, Cloud-enabled function modules are permitted; prefer a released class method or RAP EML" },
+  // Batch 2 — obsolete syntax (mirrors TALOS CLEAN-001/004/007/008/010). `guard`
+  // narrows a SHARED statement kind by text: abaplint parses a plain assignment
+  // `a = b` as `Move` and a direct call `o->m( )` as `Call`, so these two rules
+  // MUST also match the obsolete keyword form or they over-fire on every
+  // assignment/call (probe-verified).
+  CreateObject: { rule_id: "gf-clean-no-create-object", severity: "error", family: "clean-abap", message: "CREATE OBJECT is obsolete — use the NEW constructor operator" },
+  Concatenate: { rule_id: "gf-clean-no-concatenate", severity: "error", family: "clean-abap", message: "CONCATENATE is obsolete — use a string template |{ a }{ b }| or the && operator" },
+  Move: { rule_id: "gf-clean-no-move-to", severity: "error", family: "clean-abap", message: "MOVE … TO is obsolete — use the assignment operator =", guard: /^MOVE\b/i },
+  Call: { rule_id: "gf-clean-no-call-method", severity: "error", family: "clean-abap", message: "CALL METHOD is obsolete — call the method directly: obj->method( )", guard: /^CALL\s+METHOD\b/i },
+  Form: { rule_id: "gf-clean-no-form", severity: "error", family: "clean-abap", message: "FORM subroutines are not available in ABAP Cloud — use a class method" },
+  // Batch 1 — restricted-ABAP + Clean-Core hard blockers (mirrors TALOS
+  // CLOUD-008/009/010/011/019/022/026 + LEAVE flow). Kinds probe-verified.
+  Describe: { rule_id: "gf-cloud-no-describe-lines", severity: "error", family: "abap-cloud", message: "DESCRIBE TABLE … LINES is obsolete — use lines( itab )", guard: /\bLINES\b/i },
+  GetReference: { rule_id: "gf-cloud-no-get-reference", severity: "error", family: "abap-cloud", message: "GET REFERENCE OF is not available in ABAP Cloud — use REF #( ) or a data reference obtained through released APIs" },
+  ReadReport: { rule_id: "gf-cloud-no-read-report", severity: "error", family: "abap-cloud", message: "READ REPORT reads program source at runtime — not available in ABAP Cloud" },
+  Break: { rule_id: "gf-cloud-no-break-point", severity: "error", family: "abap-cloud", message: "BREAK-POINT / BREAK is a debug statement — remove it; it is not permitted in ABAP Cloud" },
+  Leave: { rule_id: "gf-cloud-no-leave", severity: "error", family: "abap-cloud", message: "LEAVE (SCREEN / PROGRAM / LIST-PROCESSING / TO TRANSACTION) is classic program flow — not available in ABAP Cloud" },
+  Perform: { rule_id: "gf-cloud-no-perform-sap", severity: "error", family: "clean-core", message: "PERFORM … IN PROGRAM calls another program's subroutine — not available in ABAP Cloud; call a released API or class method", guard: /\bIN\s+PROGRAM\b/i },
+  EnhancementPoint: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-POINT is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
+  EnhancementSection: { rule_id: "gf-cloud-no-enhancement-point", severity: "error", family: "clean-core", message: "ENHANCEMENT-SECTION is a source plug-in — not Clean-Core; extend via BAdI/RAP/CDS-extend" },
+  InterfaceDef: { rule_id: "gf-cloud-no-internal-badi", severity: "error", family: "clean-core", message: "implementing an SAP-internal BAdI (IF_EX_*INTERNAL*) is not a released extension point", guard: /IF_EX_\w*INTERNAL/i },
+  // Batch 3 — cloud-runtime + Clean-Core warnings. `notGuard` fires when the
+  // regex does NOT match (class not FINAL/ABSTRACT). Kinds probe-verified.
+  Message: { rule_id: "gf-cloud-message-type", severity: "warning", family: "abap-cloud", message: "MESSAGE … TYPE (dialog message) is not available in ABAP Cloud; surface messages through a released exception or the RAP message API", guard: /\bTYPE\s+'?[EAXIWS]'?/i },
+  ClassDefinition: { rule_id: "gf-cloud-class-not-final", severity: "warning", family: "abap-cloud", message: "a class should be FINAL (or ABSTRACT) in ABAP Cloud — avoid open inheritance", notGuard: /\b(?:FINAL|ABSTRACT|DEFERRED|FOR\s+TESTING)\b/i },
+  FieldSymbol: { rule_id: "gf-cloud-fs-type-any", severity: "warning", family: "abap-cloud", message: "FIELD-SYMBOLS TYPE ANY defeats static typing — type the field symbol explicitly", guard: /\bTYPE\s+ANY\b(?!\s+TABLE)/i },
+  Compute: { rule_id: "gf-cloud-no-compute", severity: "warning", family: "clean-abap", message: "COMPUTE is obsolete — use a plain assignment x = …" },
 };
+
+// Any-statement text rules — the construct is not a distinct parsed kind (or the
+// kind is shared, e.g. CL_SALV_TABLE=>FACTORY parses as a generic `Call`), so
+// match the statement text directly. Mirrors TALOS CLOUD-013/015.
+export const TEXT_RULES = [
+  { rule_id: "gf-cloud-no-classic-alv", severity: "error", family: "abap-cloud", message: "CL_SALV_TABLE=>FACTORY is the classic ALV — not available in ABAP Cloud; expose data through RAP/OData", re: /\bCL_SALV_TABLE\s*=>\s*FACTORY\b/i },
+  { rule_id: "gf-cloud-no-using-client", severity: "error", family: "abap-cloud", message: "USING CLIENT cross-client access is forbidden in ABAP Cloud; operate in the current client only", re: /\bUSING\s+CLIENT\b/i },
+  // Batch 3 text rules — construct is not a distinct kind (SY-time read, ref to a
+  // legacy-UI / SEGW / BOPF class) or a definition prefix (user exit / CI include).
+  { rule_id: "gf-cloud-sy-time-direct", severity: "warning", family: "abap-cloud", message: "direct SY-UZEIT/DATUM/TIMLO/TZONE read is time-zone-unsafe in ABAP Cloud — use CL_ABAP_CONTEXT_INFO or a released time API", re: /\bSY-(?:UZEIT|DATUM|TIMLO|TZONE|ZONLO)\b/i },
+  { rule_id: "gf-cloud-no-user-exit", severity: "warning", family: "clean-core", message: "classic user/customer exit (USEREXIT_ / CUSTOMER_FUNCTION_) is not a released extension point — use a BAdI or RAP extension", re: /^(?:FORM\s+USEREXIT_|FUNCTION\s+CUSTOMER_FUNCTION_)/i },
+  { rule_id: "gf-cloud-legacy-ui", severity: "warning", family: "clean-core", message: "Web Dynpro / legacy-UI reference (IF_WD_*/CL_WD_*/IWCI_*) — build a Fiori/RAP UI instead", re: /\b(?:IF_WD_\w+|CL_WD_\w+|IWCI_\w+)\b/i },
+  { rule_id: "gf-cloud-ci-include", severity: "warning", family: "clean-core", message: "classic CI_ append-structure include — extend released structures through released extension points", re: /\bINCLUDE\s+STRUCTURE\s+CI_\w+/i },
+  { rule_id: "gf-cloud-segw-bopf", severity: "warning", family: "clean-core", message: "SEGW/BOPF reference (/IWBEP/ or /BOBF/) — model OData through RAP service definitions/bindings", re: /\/(?:IWBEP|BOBF)\/(?:CL|IF)_\w+/i },
+  // Batch 4 — Clean ABAP style
+  { rule_id: "gf-clean-bool-literal", severity: "warning", family: "clean-abap", message: "'X' / ' ' boolean literal — use abap_true / abap_false", re: /=\s*'[X ]'/ },
+  // Batch 5 — LOCAL FRIENDS exposes production internals to a local test class (CLEAN-020)
+  { rule_id: "gf-test-friends-reach", severity: "warning", family: "test-quality", message: "LOCAL FRIENDS exposes production internals to the test — test through the public contract, not private structure", re: /\bLOCAL\s+FRIENDS\b/i },
+];
+
+// Statement rules keyed by kind AND text — the flexible matcher for cases where
+// two rules share a kind (both gf-clean-hungarian and gf-clean-standalone-data
+// target `Data`), so KIND_RULES (one-per-kind) cannot express them.
+export const STMT_RULES = [
+  { rule_id: "gf-clean-hungarian", severity: "warning", family: "clean-abap", message: "Hungarian-notation prefix (lt_/gs_/mv_/lo_…) — Clean ABAP names describe content, not type or scope", kinds: new Set(["Data", "ClassData"]), re: /^(?:CLASS-)?DATA\s+[lgme][tvsoraixe]_/i },
+  { rule_id: "gf-clean-standalone-data", severity: "warning", family: "clean-abap", message: "standalone typed DATA declaration — prefer an inline DATA(x) at first assignment where practical", kinds: new Set(["Data"]), re: /^DATA\s+\w+\s+TYPE\b/i },
+  { rule_id: "gf-clean-raise-exc-type", severity: "warning", family: "clean-abap", message: "RAISE EXCEPTION TYPE — prefer RAISE EXCEPTION NEW zcx_…( ) to construct and raise in one step", kinds: new Set(["Raise"]), re: /\bTYPE\b/i },
+  { rule_id: "gf-clean-redundant-exporting", severity: "warning", family: "clean-abap", message: "redundant EXPORTING in a method call — omit the keyword for a single set of exporting parameters", kinds: new Set(["Call", "Move"]), re: /\(\s*EXPORTING\s+/i },
+];
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);
 export const LOOP_CLOSE = new Set(["EndLoop", "EndWhile", "EndDo", "EndSelect"]);
@@ -33,6 +89,7 @@ export const SELECT_STAR_SPEC = { rule_id: "gf-cloud-select-star", severity: "wa
 export const SELECT_IN_LOOP_SPEC = { rule_id: "gf-perf-select-in-loop", severity: "warning", family: "performance", message: "SELECT inside a loop causes N+1 database round-trips; read the set once before the loop" };
 export const COMMIT_IN_LOOP_SPEC = { rule_id: "gf-inv-commit-in-loop", severity: "error", family: "invariant", message: "COMMIT WORK inside a loop breaks the logical unit of work; commit once after the loop" };
 export const AUTHCHECK_SPEC = { rule_id: "gf-inv-authcheck-no-subrc", severity: "warning", family: "invariant", message: "AUTHORITY-CHECK is not followed by an SY-SUBRC test — the authorization result is ignored (P4); test SY-SUBRC immediately after" };
+export const AUTHCHECK_AFTER_WRITE_SPEC = { rule_id: "gf-x-authcheck-subrc-after-write", severity: "error", family: "invariant", message: "the AUTHORITY-CHECK's SY-SUBRC is tested only AFTER a protected database write — the gate runs too late to stop the write (P4)" };
 export const RAP_DB_WRITE_SPEC = { rule_id: "gf-rap-direct-db-write", severity: "warning", family: "rap-odata", message: "direct database write to a persistent table — in RAP, persist through EML (MODIFY ENTITIES) so the behavior pool owns the data" };
 
 export const DECLARE_RE = /^(?:CLASS-)?DATA\s+(\w+)/i;
@@ -72,18 +129,27 @@ export function isSelectStar(text) {
 }
 
 /**
- * P4: an AUTHORITY-CHECK must be followed by an SY-SUBRC test. Scan the next two
- * real statements (comments/blank lines are not statement nodes) for an SY-SUBRC
- * reference; absence is the finding.
+ * P4 verdict for an AUTHORITY-CHECK, scanning forward within the method/window:
+ *  - "ok"          — an SY-SUBRC test appears before any protected DB write.
+ *  - "after-write" — a protected DB write (to a non-local, i.e. persistent target)
+ *                    appears BEFORE the SY-SUBRC test: the gate ran but its result
+ *                    is inspected too late — the write already fired.
+ *  - "missing"     — no SY-SUBRC test within the window.
  * @param {import("@abaplint/core").StatementNode[]} stmts
  * @param {number} i index of the AUTHORITY-CHECK statement
- * @returns {boolean}
+ * @param {Set<string>} declared local names in scope (an itab write is not persistence)
+ * @returns {"ok" | "after-write" | "missing"}
  */
-export function subrcCheckedAfter(stmts, i) {
-  for (let j = i + 1; j <= Math.min(stmts.length - 1, i + 2); j++) {
-    if (SUBRC_RE.test(stmts[j].concatTokens())) return true;
+export function authCheckVerdict(stmts, i, declared) {
+  const limit = Math.min(stmts.length - 1, i + 20);
+  for (let j = i + 1; j <= limit; j++) {
+    const kind = stmts[j].get()?.constructor?.name;
+    if (kind === "EndMethod" || kind === "EndForm") break;
+    const text = stmts[j].concatTokens();
+    if (SUBRC_RE.test(text)) return "ok";
+    if (DB_WRITE_STMTS.has(kind) && !isDeclaredLocal(text, declared)) return "after-write";
   }
-  return false;
+  return "missing";
 }
 
 /**
@@ -106,14 +172,46 @@ export function cdsClassicViewFindings(files) {
   return findings;
 }
 
+const MOD_MARKER_RE = /\*\$\*\$-(?:Start|End):/;
+
 /**
- * gf-ground-deprecated / gf-ground-not-released — the GF-1↔GF-2 link. Harvest
- * SAP object refs from each generated source (raw text, so a parse-dropped file
- * is still covered) and classify them against the released-API registry; a
- * deprecated ref (with its successor) or a notToBeReleased ref blocks.
+ * gf-cloud-no-mod-marker (CLOUD-020) — an SAP source-modification marker
+ * (`*$*$-Start/End:`) lives in a comment, so it is not a parsed statement; scan
+ * the raw source. One finding per file (the first marker) is enough to block.
  * @param {Array<{filename: string, source: string}>} files
  * @returns {object[]}
  */
+export function modMarkerFindings(files) {
+  const findings = [];
+  for (const f of files) {
+    const lines = String(f.source ?? "").split(/\r?\n/);
+    const idx = lines.findIndex((l) => MOD_MARKER_RE.test(l));
+    if (idx >= 0) {
+      findings.push({ rule_id: "gf-cloud-no-mod-marker", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line: idx + 1, message: "SAP source-modification marker (*$*$) — modifying SAP source is not Clean-Core; extend via BAdI/RAP/CDS-extend", family: "clean-core" });
+    }
+  }
+  return findings;
+}
+
+/**
+ * The GF-1↔GF-2 link. Harvest SAP object refs from each generated source (raw
+ * text, so a parse-dropped file is still covered) and classify them against the
+ * released-API registry. Four actionable verdicts: gf-ground-deprecated (with
+ * successor, error), gf-ground-not-released (notToBeReleased, error),
+ * gf-ground-no-api (noAPI, error), gf-ground-classic-api (classicAPI, info).
+ * @param {Array<{filename: string, source: string}>} files
+ * @returns {object[]}
+ */
+// released-API verdict -> finding spec. Only these four states are actionable;
+// `released`/`unknown` produce no finding. classifyRef surfaces classicAPI/noAPI
+// straight from objectClassifications_SAP.json.
+const GROUND_SPECS = {
+  deprecated: (ref, c) => ({ rule_id: "gf-ground-deprecated", severity: "error", message: `${ref} is DEPRECATED — replace with released successor ${c.successor ?? "(none published — find a released alternative)"}` }),
+  notToBeReleased: (ref) => ({ rule_id: "gf-ground-not-released", severity: "error", message: `${ref} is NOT released for ABAP Cloud (notToBeReleased) — model a released alternative` }),
+  noAPI: (ref) => ({ rule_id: "gf-ground-no-api", severity: "error", message: `${ref} has NO released API (noAPI) — there is no Cloud-released way to consume it; model a released alternative` }),
+  classicAPI: (ref, c) => ({ rule_id: "gf-ground-classic-api", severity: "info", message: `${ref} is a CLASSIC API (Level B, not Clean-Core Level A)${c.successor ? ` — prefer released successor ${c.successor}` : " — prefer a released successor"}` }),
+};
+
 export function releasedApiFindings(files) {
   const findings = [];
   for (const f of files) {
@@ -121,13 +219,11 @@ export function releasedApiFindings(files) {
     const upperLines = source.split(/\r?\n/).map((l) => l.toUpperCase());
     for (const ref of harvestRefs(source)) {
       const c = classifyRef(ref);
-      if (c.state !== "deprecated" && c.state !== "notToBeReleased") continue;
+      const spec = GROUND_SPECS[c.state];
+      if (!spec) continue;
       const line = upperLines.findIndex((l) => new RegExp(`(?<![\\w~])${ref}(?![\\w~])`).test(l)) + 1 || 1;
-      findings.push(
-        c.state === "deprecated"
-          ? { rule_id: "gf-ground-deprecated", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: `${ref} is DEPRECATED — replace with released successor ${c.successor ?? "(none published — find a released alternative)"}`, family: "released-api" }
-          : { rule_id: "gf-ground-not-released", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: `${ref} is NOT released for ABAP Cloud (notToBeReleased) — model a released alternative`, family: "released-api" },
-      );
+      const s = spec(ref, c);
+      findings.push({ rule_id: s.rule_id, severity: s.severity, object: objNameOf(f.filename), object_type: undefined, file: f.filename, line, message: s.message, family: "released-api" });
     }
   }
   return findings;

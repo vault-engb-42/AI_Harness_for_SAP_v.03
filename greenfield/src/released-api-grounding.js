@@ -101,7 +101,7 @@ export function harvestRefs(text) {
  * @returns {{refs: Array<{name, state, successor}>, counts: {released, deprecated, notToBeReleased, unknown}}}
  */
 export function groundReleasedApis(refs) {
-  const counts = { released: 0, deprecated: 0, notToBeReleased: 0, unknown: 0 };
+  const counts = { released: 0, deprecated: 0, notToBeReleased: 0, classicAPI: 0, noAPI: 0, unknown: 0 };
   const classified = [...new Set((refs ?? []).map((r) => String(r ?? "").toUpperCase()))].filter(Boolean).map((name) => {
     const c = classifyRef(name);
     counts[c.state in counts ? c.state : "unknown"]++;
@@ -126,6 +126,10 @@ export function renderGroundingPack(grounded) {
       lines.push(`- ${r.name} — DEPRECATED → replace with released successor ${r.successor ?? "(none published — find a released alternative)"}`);
     } else if (r.state === "notToBeReleased") {
       lines.push(`- ${r.name} — NOT TO BE RELEASED → do not use; model a released alternative`);
+    } else if (r.state === "noAPI") {
+      lines.push(`- ${r.name} — NO released API (noAPI) → there is no Cloud-released way to consume this; model a released alternative`);
+    } else if (r.state === "classicAPI") {
+      lines.push(`- ${r.name} — CLASSIC API (Level B, not Clean-Core Level A)${r.successor ? ` → prefer released successor ${r.successor}` : " → prefer a released successor"}`);
     } else {
       lines.push(`- ${r.name} — not in the released registry (custom/new, or an unlisted SAP object — do NOT assume released)`);
     }
