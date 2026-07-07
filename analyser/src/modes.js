@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { callAdtTool } from "../../mcp-adt-bridge/adt-client.js";
 
@@ -29,25 +29,34 @@ const TYPE_TO_SUFFIX = {
 };
 
 /**
- * Read all analysable source files from a flat bundle directory.
+ * Read all analysable source files from a bundle directory, recursing into
+ * subfolders (abapGit bundles nest source under src/ and per-subpackage dirs,
+ * e.g. src/btc/ — a flat read silently under-covers them).
  * @param {string} dirPath
  * @returns {Array<{filename: string, source: string}>}
  */
 export function filesFromBundle(dirPath) {
+  const files = [];
+  walkBundle(dirPath, files, true);
+  return files;
+}
+
+/** @param {boolean} isRoot only the root's unreadability is an error; skip unreadable subdirs. */
+function walkBundle(dir, files, isRoot) {
   let entries;
   try {
-    entries = readdirSync(dirPath);
+    entries = readdirSync(dir, { withFileTypes: true });
   } catch (e) {
-    throw new Error(`bundle path not readable: ${dirPath} (${e.message}) — pass a directory containing *.abap / *.ddls.asddls / *.bdef.asbdef files`);
+    if (isRoot) throw new Error(`bundle path not readable: ${dir} (${e.message}) — pass a directory containing *.abap / *.ddls.asddls / *.bdef.asbdef files`);
+    return;
   }
-  const files = [];
-  for (const name of entries) {
-    const full = join(dirPath, name);
-    if (!statSync(full).isFile()) continue;
-    if (!BUNDLE_EXTENSIONS.some((ext) => name.endsWith(ext))) continue;
-    files.push({ filename: name, source: readFileSync(full, "utf8") });
+  for (const ent of entries) {
+    const full = join(dir, ent.name);
+    if (ent.isDirectory()) walkBundle(full, files, false);
+    else if (ent.isFile() && BUNDLE_EXTENSIONS.some((ext) => ent.name.endsWith(ext))) {
+      files.push({ filename: ent.name, source: readFileSync(full, "utf8") });
+    }
   }
-  return files;
 }
 
 /**
