@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "system": "S4F",
+  "generated_at": "2026-07-07T15:21:31.719Z",
+  "usage": {
+    "source": "scmon",
+    "window_days": 730,
+    "measurement_start": "2024-07-01",
+    "rows": [
+      {
+        "object_type": "PROG",
+        "object_name": "ZFI_RGGBS000",
+        "package": "ZFICO",
+        "exec_count": 2450118,
+        "last_used": "2026-07-06",
+        "first_seen": "2024-07-01",
+        "callers": []
+      },
+      {
+        "object_type": "PROG",
+        "object_name": "ZFI_RGGBR000",
+        "package": "ZFICO",
+        "exec_count": 2449902,
+        "last_used": "2026-07-06",
+        "first_seen": "2024-07-01",
+        "callers": []
+      },
+      {
+        "object_type": "FUNC",
+        "object_name": "ZFI_PROCESS_00001120",
+        "package": "ZFICO",
+        "exec_count": 2450120,
+        "last_used": "2026-07-06",
+        "first_seen": "2024-07-01",
+        "callers": []
+      },
+      {
+        "object_type": "FUNC",
+        "object_name": "ZFI_PROCESS_00002040",
+        "package": "ZFICO",
+        "exec_count": 880344,
+        "last_used": "2026-07-05",
+        "first_seen": "2024-07-01",
+        "callers": []
+      },
+      {
+        "object_type": "FUNC",
+        "object_name": "ZFI_PROCESS_00002050",
+        "package": "ZFICO",
+        "exec_count": 12004,
+        "last_used": "2026-06-30",
+        "first_seen": "2024-07-03",
+        "callers": []
+      },
+      {
+        "object_type": "CLAS",
+        "object_name": "ZFICO_FUNCTIONS",
+        "package": "ZFICO",
+        "exec_count": 45220,
+        "last_used": "2026-06-10",
+        "first_seen": "2024-07-02",
+        "callers": []
+      },
+      {
+        "object_type": "TRAN",
+        "object_name": "Y_BS1_59000002",
+        "package": "ZFICO",
+        "exec_count": 312,
+        "last_used": "2026-04-10",
+        "first_seen": "2024-07-15",
+        "callers": []
+      },
+      {
+        "object_type": "PROG",
+        "object_name": "ZCREATE_ASSET",
+        "package": "ZFICO",
+        "exec_count": 240,
+        "last_used": "2025-12-15",
+        "first_seen": "2024-08-08",
+        "callers": []
+      },
+      {
+        "object_type": "PROG",
+        "object_name": "ZFI_FIELDSTATUS_ANALYZE",
+        "package": "ZFICO",
+        "exec_count": 42,
+        "last_used": "2025-11-20",
+        "first_seen": "2024-10-02",
+        "callers": []
+      },
+      {
+        "object_type": "TRAN",
+        "object_name": "Y_BS1_59000003",
+        "package": "ZFICO",
+        "exec_count": 4,
+        "last_used": "2025-01-15",
+        "first_seen": "2024-09-20",
+        "callers": []
+      },
+      {
+        "object_type": "PROG",
+        "object_name": "ZFICO_BTC_CSV_GL",
+        "package": "ZFICO_BTC",
+        "exec_count": 6,
+        "last_used": "2024-09-02",
+        "first_seen": "2024-07-11",
+        "callers": []
+      }
+    ]
+  },
+  "modifications": {
+    "source": "smodilog",
+    "rows": [
+      {
+        "object_name": "SAPMF05A",
+        "object_type": "PROG",
+        "package": "FBAS",
+        "modified_by": "DEVFI01",
+        "modified_on": "2025-03-10",
+        "mod_type": "MODIFICATION"
+      },
+      {
+        "object_name": "RGGBS000",
+        "object_type": "PROG",
+        "package": "SAPB",
+        "modified_by": "DEVFI02",
+        "modified_on": "2024-01-18",
+        "mod_type": "MODIFICATION"
+      }
+    ]
+  }
+}
