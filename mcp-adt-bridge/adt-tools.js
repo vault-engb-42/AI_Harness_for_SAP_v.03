@@ -140,7 +140,7 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_get_transport_requests",
     readOnly: true,
-    description: "List transport requests/change orders (upstream implementation pending — returns an empty list today).",
+    description: "List transport requests / change orders owned by a user, read from CTS via ADT.",
     inputSchema: obj({ username: str("Owner to filter by") }),
   },
   {
