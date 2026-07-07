@@ -204,7 +204,7 @@ To change a project's cost posture later, re-run that command with a different p
 
 ### Generate `.mcp.json` (the single substrate wiring)
 
-Copy the MCP config template to the project root. It wires exactly one server — `sap-adt` (the bridge) — with writes fail-closed. There is **no code graph, no browser, no gateway**; the ADT tools are the whole substrate:
+Copy the MCP config template to the project root. It wires the `sap-adt` bridge (writes fail-closed) as the **default** substrate. The full harness also ships two **offline** MCP servers — `abap-analyser` (`@abaplint/core` code property graph + S/4 readiness) and `greenfield` (released-API grounding + ABAP-Cloud linter) — add them to `.mcp.json` when the project needs offline analysis or greenfield linting (see the template's optional-servers note). No cloud, no gateway:
 
 ```bash
 cp "$PLUGIN_SOURCE/templates/mcp-config.template.json" .mcp.json

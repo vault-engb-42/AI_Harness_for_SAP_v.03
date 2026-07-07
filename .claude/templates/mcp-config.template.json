@@ -10,6 +10,6 @@
       },
       "_comment_env": "ADT_MCP_URL — URL of the MCP-ADT sidecar (default http://127.0.0.1:8090, loopback only). HARNESS_ADT_ALLOW_WRITE — write gate, default \"0\" = writes fail closed (P5, non-prod-only, human releases the transport). Set \"1\" ONLY against a non-production tier; never in a shared or prod context."
     },
-    "_comment_disabled_servers": "Extra MCP servers stay OUT of this template by default (mirrors the eng disabled-by-default convention). The sap-adt bridge is the only substrate this harness needs — no code graph, no browser. If you add a server, add it here explicitly with \"disabled\": true and enable it deliberately."
+    "_comment_optional_servers": "The sap-adt bridge is the default substrate this template wires. The full harness also ships two OFFLINE servers you can add here when the project needs them: abap-analyser (\"command\": \"node\", \"args\": [\"analyser/server.js\"]) — @abaplint/core code property graph + S/4 readiness; and greenfield (\"command\": \"node\", \"args\": [\"greenfield/server.js\"]) — released-API grounding + ABAP-Cloud linter. Add a server explicitly, enable it deliberately, and settle .mcp.json before any long /abap-auto run (P7 — editing it mid-run busts the prompt cache)."
   }
 }

@@ -89,10 +89,10 @@ test("gf-inv-commit-in-loop fires on COMMIT WORK inside LOOP", () => {
   assert.equal(finding(res, "gf-inv-commit-in-loop")?.severity, "error");
 });
 
-test("gf-inv-authcheck-no-subrc fires when SY-SUBRC is not checked", () => {
+test("gf-inv-authcheck-no-subrc is an ERROR when SY-SUBRC is not checked (P4(c) hard invariant)", () => {
   const src = "REPORT zr_x.\nSTART-OF-SELECTION.\n  AUTHORITY-CHECK OBJECT 'S_X' ID 'ACTVT' FIELD '03'.\n  WRITE 'ok'.";
   const res = lintAbapCloud([{ filename: "zr_x.prog.abap", source: src }]);
-  assert.equal(finding(res, "gf-inv-authcheck-no-subrc")?.severity, "warning");
+  assert.equal(finding(res, "gf-inv-authcheck-no-subrc")?.severity, "error");
 });
 
 test("AUTHORITY-CHECK followed by IF sy-subrc is clean", () => {

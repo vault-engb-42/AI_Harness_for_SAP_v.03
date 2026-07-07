@@ -1,6 +1,6 @@
 {
   "name": "sap-abap-harness",
   "version": "1.0.0",
-  "description": "GAN-inspired, ATC-gated, Clean-Core-first ABAP SDLC harness for Claude Code, grounded solely on the MCP-ADT (ABAP Developer Tools) substrate",
+  "description": "GAN-inspired, ATC-gated, Clean-Core-first ABAP SDLC harness for Claude Code over three local substrates — the MCP-ADT bridge (ABAP Developer Tools; live grounding/quality/delivery), the standalone @abaplint/core analyser, and the greenfield grounding + ABAP-Cloud linter",
   "author": { "name": "SAP ABAP Harness" }
 }

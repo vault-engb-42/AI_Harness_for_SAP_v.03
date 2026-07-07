@@ -3,6 +3,18 @@ import assert from "node:assert/strict";
 import { sanitizeError, classifyError } from "../lib/security.js";
 import { parseSetCookies, cookieHeader, isValidCsrfToken, buildBaseUrl, withSapClient } from "../lib/session-utils.js";
 import { escapeXml, parseAdtXml, findAll, attr } from "../lib/adt-xml.js";
+import { ATC_SOURCE_URI, SOURCE_URI, OBJECT_URI, ACTIVATION } from "../lib/adt-uris.js";
+
+// ---- ADT object-URI maps (adt-uris.js) ----
+
+test("SRVD is covered symmetrically across the object-URI maps", () => {
+  // SRVD is lock/update (OBJECT_URI), activatable (ACTIVATION) and readable
+  // (SOURCE_URI) — so it must also be single-object ATC-checkable. The ATC source
+  // URI is identical to the read source URI for every other type.
+  assert.ok(OBJECT_URI.SRVD && ACTIVATION.SRVD && SOURCE_URI.SRVD, "SRVD present in object/activation/source maps");
+  assert.ok(ATC_SOURCE_URI.SRVD, "SRVD must have an ATC source URI");
+  assert.equal(ATC_SOURCE_URI.SRVD("ZUI_X"), SOURCE_URI.SRVD("ZUI_X"), "ATC source URI matches the read source URI");
+});
 
 // ---- security (ported from adapter.py _sanitize_error/_classify_error) ----
 

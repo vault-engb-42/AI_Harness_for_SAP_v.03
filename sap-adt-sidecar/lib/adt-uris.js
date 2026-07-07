@@ -69,6 +69,7 @@ export const ATC_SOURCE_URI = {
   PROG: (n) => `/sap/bc/adt/programs/programs/${n.toLowerCase()}/source/main`,
   DDLS: (n) => `/sap/bc/adt/ddic/ddl/sources/${n.toLowerCase()}/source/main`,
   BDEF: (n) => `/sap/bc/adt/bo/behaviordefinitions/${n.toLowerCase()}/source/main`,
+  SRVD: (n) => `/sap/bc/adt/ddic/srvd/sources/${n.toLowerCase()}/source/main`,
 };
 
 /** Source-read URIs (spec: get_source resource discovery short-circuits). */
