@@ -24,6 +24,10 @@
 const REFERENCE_TYPE_TO_EDGE = {
   Method: "call-method",
   Form: "calls",
+  // `data-flow-use`/`data-flow-def` are RESERVED, not dead: their targets are
+  // local variables (not C1 object nodes), so semantic.js's targetNodeFor() drops
+  // them today. They stay in the enum/schema/validator as the pre-wired contract
+  // for the C2 local-variable phase — do not remove without changing the schema.
   "Read From": "data-flow-use",
   "Write To": "data-flow-def",
 };
