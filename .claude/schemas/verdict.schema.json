@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sap-abap-harness/schemas/verdict.schema.json",
+  "title": "Gate verdict files (specs/reviews/*-verdict.json)",
+  "description": "Strict shapes for the five gate-verdict files the /abap-validate lane produces. The file is selected by NAME (no cross-file discriminator): sap-verdict.json -> sapVerdict, clean-core-verdict.json -> cleanCoreVerdict, security-verdict.json -> securityVerdict, design-critique.json -> designCritique, diff-review-verdict.json -> diffReviewVerdict. Enforced by integrations/verdict-schema.js. Two idioms: sap/design key on a string verdict (PASS/WARN/BLOCK); clean-core/security/diff key on a boolean pass. Casing is per-file by design.",
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "level": { "enum": ["BLOCK", "WARN", "INFO"] },
+        "object": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": "integer" },
+        "description": { "type": "string" },
+        "fix": { "type": "string" }
+      }
+    },
+    "sapVerdict": {
+      "type": "object",
+      "required": ["verdict", "timestamp", "connection", "objects", "failure_layer", "activation", "atc", "abap_unit", "clean_core_level", "invariant_diff", "ratchet"],
+      "properties": {
+        "verdict": { "enum": ["PASS", "WARN", "BLOCK"] },
+        "timestamp": { "type": "string" },
+        "connection": { "type": "string" },
+        "objects": { "type": "array", "items": { "type": "string" } },
+        "failure_layer": { "type": ["string", "null"], "enum": ["activation", "atc", "atc-unavailable", "abapunit", "invariant", "infrastructure", null] },
+        "activation": { "type": "object", "properties": { "activated": { "type": "array" }, "errors": { "type": "array" } } },
+        "atc": { "type": "object", "properties": { "ran": { "type": "boolean" }, "variant": { "type": "string" }, "priority1": { "type": "array" }, "priority2_3": { "type": "array" } } },
+        "abap_unit": { "type": "object", "properties": { "ran": { "type": "boolean" }, "failed": { "type": "array" }, "coverage_pct": { "type": "number" }, "coverage_baseline_pct": { "type": "number" } } },
+        "clean_core_level": { "enum": ["A", "not-A"] },
+        "invariant_diff": { "type": "object", "required": ["authority_check_weakened", "commit_work_suppressed", "sy_subrc_check_dropped"], "properties": { "authority_check_weakened": { "type": "boolean" }, "commit_work_suppressed": { "type": "boolean" }, "sy_subrc_check_dropped": { "type": "boolean" } } },
+        "ratchet": { "type": "object", "properties": { "atc_regressed": { "type": "boolean" }, "coverage_regressed": { "type": "boolean" } } },
+        "notes": { "type": "string" }
+      }
+    },
+    "cleanCoreVerdict": {
+      "type": "object",
+      "required": ["gate", "pass", "atc", "grounding", "summary"],
+      "properties": {
+        "gate": { "const": "clean-core" },
+        "pass": { "type": "boolean" },
+        "atc": { "type": "object", "properties": { "variant": { "type": "string" }, "completed": { "type": "boolean" }, "priority_1": { "type": "integer" } } },
+        "grounding": { "type": "object" },
+        "summary": { "type": "object" },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+      }
+    },
+    "securityVerdict": {
+      "type": "object",
+      "required": ["gate", "pass", "invariants", "summary"],
+      "properties": {
+        "gate": { "const": "security" },
+        "pass": { "type": "boolean" },
+        "block_severities": { "type": "array", "items": { "type": "string" } },
+        "invariants": { "type": "object", "required": ["authority_check", "commit_work", "sy_subrc", "baseline_established"], "properties": { "authority_check": { "type": "string" }, "commit_work": { "type": "string" }, "sy_subrc": { "type": "string" }, "baseline_established": { "type": "boolean" } } },
+        "summary": { "type": "object" },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+      }
+    },
+    "designCritique": {
+      "type": "object",
+      "required": ["story_id", "iteration", "timestamp", "scores", "weighted_average", "threshold", "verdict", "failing_criteria", "grounding", "critique"],
+      "properties": {
+        "story_id": { "type": "string" },
+        "iteration": { "type": "integer" },
+        "timestamp": { "type": "string" },
+        "scores": { "type": "object", "required": ["cds_modelling", "rap_behavior", "extensibility_tier", "released_api", "namespace", "blast_radius"], "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 10 } },
+        "weighted_average": { "type": "number" },
+        "threshold": { "type": "number" },
+        "verdict": { "enum": ["PASS", "WARN", "BLOCK"] },
+        "failing_criteria": { "type": "array", "items": { "type": "string" } },
+        "grounding": { "type": "object" },
+        "critique": { "type": "string" }
+      }
+    },
+    "diffReviewVerdict": {
+      "type": "object",
+      "required": ["gate", "pass", "range", "acceptance_criteria_source", "summary"],
+      "properties": {
+        "gate": { "const": "abap-diff-review" },
+        "pass": { "type": "boolean" },
+        "range": { "type": "string" },
+        "acceptance_criteria_source": { "type": "string" },
+        "summary": { "type": "object" },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+      }
+    }
+  }
+}
