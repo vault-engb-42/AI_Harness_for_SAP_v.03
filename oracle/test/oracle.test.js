@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyName } from "../src/oracle.js";
+import { classifyName, gradeUsage, successorOf, debtScore, fixtureFor } from "../src/oracle.js";
 
 // The oracle is the shared clean-core classifier (arch spec §2 / §15.1): it maps
 // SAP's two published registries (data/) onto the A/B/C/D level spine with a
@@ -43,4 +43,35 @@ test("classifyName is case-insensitive and null-safe (boundary)", () => {
   assert.equal(classifyName(null).level, "unknown");
   assert.equal(classifyName(undefined).level, "unknown");
   assert.equal(classifyName("").level, "unknown");
+});
+
+test("gradeUsage applies the read/write split on non-released objects (§2 / §15.1)", () => {
+  // released object -> no access penalty
+  assert.deepEqual(gradeUsage("ACTVT", "read", "AUTH"), { level: "A", atc_priority: "none" });
+  // non-released: read -> C/P2, write -> D/P1
+  assert.deepEqual(gradeUsage("CI_DCLS_CHK", "read", "CHKO"), { level: "C", atc_priority: "P2" });
+  assert.deepEqual(gradeUsage("CI_DCLS_CHK", "write", "CHKO"), { level: "D", atc_priority: "P1" });
+  // an unknown access kind defaults to the (less severe) read grade
+  assert.deepEqual(gradeUsage("CI_DCLS_CHK", undefined, "CHKO"), { level: "C", atc_priority: "P2" });
+});
+
+test("successorOf returns the registry successor (mapping_kind null until curated, §2)", () => {
+  assert.deepEqual(successorOf("CL_A4C_BC_FACTORY", "CLAS"), {
+    successor: "CL_BCFG_CD_REUSE_API_FACTORY",
+    successor_kind: "CLAS",
+    mapping_kind: null,
+  });
+  assert.equal(successorOf("ZZ_NOT_A_REAL_OBJECT"), null);
+  assert.equal(successorOf(null), null);
+});
+
+test("debtScore is the Kernseife weighting 10·P1 + 5·P2 + 1·P3 (§2/§12)", () => {
+  assert.equal(debtScore({ p1: 2, p2: 3, p3: 4 }), 39);
+  assert.equal(debtScore({}), 0);
+  assert.equal(debtScore(), 0);
+});
+
+test("fixtureFor is total — null for every rule until curated fixtures are bundled (§2)", () => {
+  assert.equal(fixtureFor("released-api"), null);
+  assert.equal(fixtureFor("anything"), null);
 });

@@ -130,6 +130,63 @@ export function classifyName(name, tadirType) {
   };
 }
 
+/**
+ * Grade an SQL/RPC access to an object (§2 read/write split, §15.1). Released
+ * objects carry no access penalty; a non-released access is graded C/P2 for a
+ * read and D/P1 for a write (a write to non-released is the most conservative).
+ * @param {string} name
+ * @param {'read'|'write'} accessKind
+ * @param {string} [tadirType]
+ * @returns {{level: string, atc_priority: string}}
+ */
+export function gradeUsage(name, accessKind, tadirType) {
+  const c = classifyName(name, tadirType);
+  if (c.level === "A") return { level: "A", atc_priority: "none" };
+  return accessKind === "write"
+    ? { level: "D", atc_priority: "P1" }
+    : { level: "C", atc_priority: "P2" };
+}
+
+/**
+ * First registry successor for a deprecated/removed object (§15.1). `mapping_kind`
+ * stays null until the net-new CURATED successor registry (§2) is bundled — the
+ * shipped registries carry the successor name + TADIR type, not the mapping kind.
+ * @param {string} name
+ * @param {string} [tadirType]
+ * @returns {{successor: string, successor_kind: string, mapping_kind: string|null}|null}
+ */
+export function successorOf(name, tadirType) {
+  const norm = String(name ?? "").toUpperCase();
+  if (!norm) return null;
+  const { full, byName } = loadIndex();
+  const rec = tadirType ? full.get(`${String(tadirType).toUpperCase()}|${norm}`) : byName.get(norm);
+  const s = rec?.successors[0];
+  if (!s) return null;
+  return { successor: s.name, successor_kind: s.type, mapping_kind: null };
+}
+
+/**
+ * Clean-core debt score (§2/§12 — Clean Core Extensibility guide, Project
+ * Kernseife weighting): 10·P1 + 5·P2 + 1·P3.
+ * @param {{p1?: number, p2?: number, p3?: number}} [counts]
+ * @returns {number}
+ */
+export function debtScore(counts = {}) {
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  return 10 * n(counts.p1) + 5 * n(counts.p2) + 1 * n(counts.p3);
+}
+
+/**
+ * Remediation fixture for a rule (§15.1). The net-new curated bad->good fixtures
+ * (§2) are not bundled yet, so this is null for every rule until that SHA-pinned
+ * data file lands — total by construction.
+ * @param {string} _ruleId
+ * @returns {null}
+ */
+export function fixtureFor(_ruleId) {
+  return null;
+}
+
 /** Test seam: drop the lazy cache so a fresh load can be forced. */
 export function _resetCache() {
   _index = null;
