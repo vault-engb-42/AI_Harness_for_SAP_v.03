@@ -11,6 +11,7 @@ import { enrichNodes } from "./enrich.js";
 import { computeReadiness } from "./s4-readiness.js";
 import { collectBlastRadius } from "./blast-radius-report.js";
 import { canonicalizeFiles } from "./modes.js";
+import { sourceHash, configHash, runId, SCHEMA_VERSION } from "./run-identity.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -27,7 +28,8 @@ export function analyzePackage(files, opts = {}) {
   // Canonicalize at the pure-function boundary (arch spec §3.A/A1): line-ending
   // normalize + stable-sort by filename so the report is byte-identical
   // regardless of how the caller acquired or ordered the files.
-  const admitted = applyFileByteCap(canonicalizeFiles(files), notes);
+  const canon = canonicalizeFiles(files);
+  const admitted = applyFileByteCap(canon, notes);
 
   // ABAPLINT_TIMEOUT_MS is a SOFT budget: abaplint's parse() is synchronous
   // and cannot be preempted without worker isolation, so an overrun is
@@ -71,10 +73,19 @@ export function analyzePackage(files, opts = {}) {
   g.nodes.sort(byJson);
   g.edges.sort(byJson);
 
+  // Run identity (§7): source_hash over the canonical source, config_hash over
+  // the pinned config, run_id = hash(both). Deterministic — same input yields
+  // the same run_id in every process (the offline provenance + cache key).
+  const source_hash = sourceHash(canon);
+  const config_hash = configHash({ target_release: opts.target_release });
   const doc = {
+    schema_version: SCHEMA_VERSION,
     source_system: opts.source_system ?? "unknown",
     package: opts.package ?? "unknown",
     generated_at: opts.generated_at ?? new Date().toISOString(),
+    source_hash,
+    config_hash,
+    run_id: runId(source_hash, config_hash),
     findings,
     s4_readiness,
     graph: g,

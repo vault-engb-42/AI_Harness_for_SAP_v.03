@@ -13,6 +13,10 @@
     },
     "package": { "type": "string", "description": "The custom-code package scanned." },
     "generated_at": { "type": "string", "description": "ISO-8601 UTC timestamp the analyser wrote this artifact." },
+    "schema_version": { "type": "string", "description": "Semver of the emitted document shape (§15.5). Consumers fail-closed (INDETERMINATE) on an unknown major." },
+    "source_hash": { "type": "string", "description": "Run identity (§7): SHA-256 hex over the canonical (sorted, line-ending-normalized) source set." },
+    "config_hash": { "type": "string", "description": "Run identity (§7): SHA-256 hex over target_release + registry SHAs + rule-pack version + exact @abaplint/core version + policy." },
+    "run_id": { "type": "string", "description": "Run identity (§7): SHA-256 hex of source_hash + config_hash — the offline provenance + idempotent-cache key. Displayed truncated." },
     "coverage_note": {
       "type": "string",
       "description": "What the scan could and could not establish; note any object skipped or any ADT signal that came back data_available:false (never assume retirement from a missing signal)."
