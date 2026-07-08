@@ -37,7 +37,10 @@
           "line": { "type": "integer" },
           "message": { "type": "string" },
           "suggestion": { "type": "string" },
-          "family": { "type": "string", "description": "e.g. released-api, modification, invariant, performance, dynamic-sql." }
+          "family": { "type": "string", "description": "e.g. released-api, modification, invariant, performance, dynamic-sql." },
+          "enclosing_unit": { "type": "string", "description": "Smallest containing METHOD/FORM/FUNCTION/MODULE (else the compilation-unit object) — the line-resilient anchor scope (conv #10)." },
+          "normalized_snippet": { "type": "string", "description": "Normalized flagged-statement text: whitespace-collapsed, keywords upper-cased, string literals verbatim (conv #10)." },
+          "finding_id": { "type": "string", "description": "Run identity (§7): SHA-256 hex of rule_id + object + enclosing_unit + normalized_snippet — the line-resilient exemption/ratchet anchor." }
         }
       }
     },
