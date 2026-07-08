@@ -10,6 +10,7 @@ import * as cloud from "./cloudification.js";
 import { enrichNodes } from "./enrich.js";
 import { computeReadiness } from "./s4-readiness.js";
 import { collectBlastRadius } from "./blast-radius-report.js";
+import { canonicalizeFiles } from "./modes.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -23,7 +24,10 @@ import { collectBlastRadius } from "./blast-radius-report.js";
  */
 export function analyzePackage(files, opts = {}) {
   const notes = opts.coverage_note ? [opts.coverage_note] : [];
-  const admitted = applyFileByteCap(files, notes);
+  // Canonicalize at the pure-function boundary (arch spec §3.A/A1): line-ending
+  // normalize + stable-sort by filename so the report is byte-identical
+  // regardless of how the caller acquired or ordered the files.
+  const admitted = applyFileByteCap(canonicalizeFiles(files), notes);
 
   // ABAPLINT_TIMEOUT_MS is a SOFT budget: abaplint's parse() is synchronous
   // and cannot be preempted without worker isolation, so an overrun is
@@ -39,7 +43,9 @@ export function analyzePackage(files, opts = {}) {
   const graph = analyzeRegistry(reg, { maxNodes: Number.isFinite(maxNodes) ? maxNodes : undefined });
   const elapsed = Date.now() - started;
   if (Number.isFinite(budget) && budget > 0 && elapsed > budget) {
-    notes.push(`parse+graph took ${elapsed}ms, exceeding the ABAPLINT_TIMEOUT_MS soft budget of ${budget}ms`);
+    // A4: no volatile timing in the note — the exact ms is run-dependent and
+    // would break the determinism contract; the budget (config) is enough.
+    notes.push(`parse+graph exceeded the ABAPLINT_TIMEOUT_MS soft budget of ${budget}ms`);
   }
   if (graph.truncated) {
     notes.push(`graph truncated at MAX_GRAPH_NODES=${maxNodes}; dependency coverage is partial — raise the cap or narrow the package`);
@@ -54,6 +60,16 @@ export function analyzePackage(files, opts = {}) {
   const s4_readiness = computeReadiness(graph, cloud);
   const blast_radius = collectBlastRadius(graph, cloud, opts.depth ?? 3);
   const g = graph.toGraphJSON();
+  // A5: stable total-order sort of every graph emit (nodes/edges come from Maps
+  // in insertion order) so the emitted graph is byte-identical regardless of
+  // processing order. Runs after enrich/readiness/blast, which use `graph` (not
+  // `g`), so reordering the emit does not affect any computation.
+  const byJson = (a, b) => {
+    const sa = JSON.stringify(a), sb = JSON.stringify(b);
+    return sa < sb ? -1 : sa > sb ? 1 : 0;
+  };
+  g.nodes.sort(byJson);
+  g.edges.sort(byJson);
 
   const doc = {
     source_system: opts.source_system ?? "unknown",

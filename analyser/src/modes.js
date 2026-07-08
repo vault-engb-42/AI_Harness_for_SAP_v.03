@@ -18,6 +18,20 @@ import { callAdtTool } from "../../mcp-adt-bridge/adt-client.js";
 /** Source-file extensions the Registry can type from the filename. */
 const BUNDLE_EXTENSIONS = [".abap", ".asddls", ".asbdef", ".acds"];
 
+/**
+ * Canonicalize a source-file list for deterministic analysis (arch spec §3.A/A1):
+ * normalize line endings (CRLF / lone CR -> LF) so byte-identical logic yields a
+ * byte-identical report, and stable-sort by filename so acquisition order (bundle
+ * readdir vs live-pull) can never change the output. Pure — no I/O.
+ * @param {Array<{filename: string, source: string}>} files
+ * @returns {Array<{filename: string, source: string}>}
+ */
+export function canonicalizeFiles(files) {
+  return files
+    .map((f) => ({ ...f, source: String(f.source ?? "").replace(/\r\n?/g, "\n") }))
+    .sort((a, b) => (a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0));
+}
+
 /** ADT object type -> abapGit filename suffix for locally-parsed live pulls. */
 const TYPE_TO_SUFFIX = {
   CLAS: ".clas.abap",
@@ -38,7 +52,7 @@ const TYPE_TO_SUFFIX = {
 export function filesFromBundle(dirPath) {
   const files = [];
   walkBundle(dirPath, files, true);
-  return files;
+  return canonicalizeFiles(files);
 }
 
 /** @param {boolean} isRoot only the root's unreadability is an error; skip unreadable subdirs. */
@@ -89,7 +103,7 @@ export async function filesFromLiveSystem(env, packageName) {
     const base = obj.name.toLowerCase().replace(/\//g, "#");
     files.push({ filename: `${base}${suffix}`, source });
   }
-  return { files, skipped };
+  return { files: canonicalizeFiles(files), skipped: [...skipped].sort() };
 }
 
 /**

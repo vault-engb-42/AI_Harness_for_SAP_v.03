@@ -45,5 +45,10 @@ export function collectBlastRadius(graph, cloud, maxDepth = 3) {
       highest_impact: br.highest_impact,
     });
   }
-  return entries.sort((a, b) => b.affected_program_count - a.affected_program_count);
+  // A3: primary by impact (desc), secondary by object name (asc) — a total
+  // order so tied entries never reorder run-to-run (determinism, arch §3.A).
+  return entries.sort((a, b) =>
+    b.affected_program_count - a.affected_program_count ||
+    (String(a.object) < String(b.object) ? -1 : String(a.object) > String(b.object) ? 1 : 0),
+  );
 }
