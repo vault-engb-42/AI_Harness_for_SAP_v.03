@@ -54,12 +54,43 @@ test("renderHtml loads no external resources (self-contained file://)", () => {
 test("renderHtml HTML-escapes untrusted finding-derived text (P8)", () => {
   const hostile = {
     ...DOC,
-    findings: [{ rule_id: "x", severity: "info", object: "<img src=x onerror=alert(1)>", message: "<script>alert('xss')</script>" }],
+    findings: [{ rule_id: "x", severity: "info", family: "abaplint", object: "<img src=x onerror=alert(1)>", message: "<script>alert('xss')</script>" }],
   };
   const html = renderHtml(hostile);
   assert.ok(!html.includes("<script>alert('xss')</script>"), "raw script payload not present");
   assert.ok(!html.includes("<img src=x onerror"), "raw img payload not present");
-  assert.ok(html.includes("&lt;script&gt;"), "payload is entity-escaped");
+  // The findings island unicode-escapes < > &; tag renders (summary/recs) entity-escape.
+  // Either way the raw payload must be neutralised while still present in an encoded form.
+  assert.ok(html.includes("\\u003cscript") || html.includes("&lt;script&gt;"), "message payload is encoded, not raw");
+  assert.ok(html.includes("\\u003cimg") || html.includes("&lt;img"), "object payload is encoded, not raw");
+});
+
+test("Graph tab is an interactive SVG (pan/zoom scaffold + highlightable nodes/edges)", () => {
+  const html = renderHtml(DOC);
+  assert.ok(html.includes('id="gsvg"') && html.includes('id="gv"'), "pannable svg + transform group");
+  assert.ok(/class="gn" data-id=/.test(html), "nodes carry data-id for click-highlight");
+  assert.ok(/class="ge" data-src=/.test(html), "edges carry endpoints for adjacency highlight");
+  assert.ok(html.includes("gReset"), "reset-view control present");
+});
+
+test("SARIF tab is a summary panel + export pointer, NOT the embedded raw document", () => {
+  const html = renderHtml(DOC);
+  assert.ok(html.includes("SARIF 2.1.0 export"), "explains it is an export");
+  assert.ok(html.includes("--sarif"), "points to the CLI export flag");
+  assert.ok(/Results<\/span>/.test(html), "shows a result-count summary card");
+  // The heavy machine artifact must NOT be baked into the human report.
+  assert.ok(!html.includes('id="sdata"'), "no SARIF JSON island in the HTML");
+  assert.ok(!html.includes('"version":"2.1.0"'), "no raw SARIF document embedded");
+});
+
+test("Findings tab virtualizes via a JSON island (not one card per finding)", () => {
+  const many = { ...DOC, findings: Array.from({ length: 40 }, (_, i) => ({ rule_id: "R" + i, severity: "priority-2", family: "performance", object: "ZO" + i, file: "f.abap", line: i, message: "m" + i })) };
+  const html = renderHtml(many);
+  assert.ok(html.includes('id="fdata"'), "findings data island present");
+  assert.ok(html.includes('type="application/json"'), "island is inert JSON, not markup");
+  assert.ok(html.includes('id="fPrev"') && html.includes('id="fNext"'), "pagination controls");
+  // Virtualized: messages are in the island, not pre-rendered as 40 separate cards.
+  assert.ok((html.match(/class="rec sev-/g) ?? []).length < 5, "cards are rendered client-side, not baked in");
 });
 
 test("renderHtml is deterministic", () => {

@@ -1,4 +1,5 @@
 import { toSarif } from "./sarif.js";
+import { CSS, APP_JS } from "./html-assets.js";
 
 /**
  * §3.E self-contained HTML report — the analyser's OWN renderer (never
@@ -32,16 +33,23 @@ export function renderHtml(doc, opts = {}) {
   const panels = tabs.map(([id, , body], i) => `<section class="panel${i ? "" : " on"}" id="p-${id}">${body}</section>`).join("");
   const inner = `<style>${CSS}</style>
 <header><h1>Analyse — ${esc(doc.package ?? "package")}</h1><span class="chip">${(doc.graph?.nodes?.length ?? 0)} nodes · ${(doc.graph?.edges?.length ?? 0)} edges · ${(doc.findings ?? []).length} findings · S/4 ${num(doc.s4_readiness?.s4_readiness_pct)}% · run ${esc(String(doc.run_id ?? "").slice(0, 10))}</span></header>
-<nav class="tabs">${nav}</nav>${panels}<script>${JS}</script>`;
+<nav class="tabs">${nav}</nav>${panels}<script>${APP_JS}</script>`;
   if (opts.fragment) return inner;
   return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>Analyse — ${esc(doc.package ?? "package")}</title></head><body>${inner}</body></html>`;
 }
 
 /** HTML-entity escape — the single P8 defence for all doc-derived text. */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+/**
+ * Embed untrusted data as an inert <script type="application/json"> island (P8):
+ * < > & are unicode-escaped so the payload can neither close the script tag nor be
+ * parsed as HTML; the client reads it with JSON.parse + textContent, never innerHTML.
+ */
+const jsonIsland = (id, data) =>
+  `<script id="${id}" type="application/json">${JSON.stringify(data).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026")}</script>`;
 const num = (v) => (typeof v === "number" ? v : 0);
 const round = (v) => (typeof v === "number" ? Math.round(v * 1000) / 1000 : 0);
-const sortedByJson = (arr) => [...arr].sort((a, b) => (JSON.stringify(a) < JSON.stringify(b) ? -1 : 1));
 
 function bar(label, pct) {
   const p = Math.max(0, Math.min(100, num(pct)));
@@ -133,18 +141,51 @@ function codeHealthTab(doc) {
   return `<h2>Code Health — grade ${esc(ch.clean_core_grade ?? "?")}</h2>${rows}`;
 }
 
+// Interactive dependency graph: a deterministic 3-column layered layout computed
+// here (entry -> internal -> data, rows by importance), rendered as inline SVG with
+// client-side pan/zoom/click-highlight (html-assets GRAPH_JS). No vendored library;
+// positions are a pure function of the sorted nodes + layers, so bytes stay stable.
+const GRAPH_NS_COLOR = { Z: "#0ea5a4", Y: "#0ea5a4", sap: "#94a3b8", registered: "#d97706" };
+const GRAPH_COL_X = { entry: 170, internal: 520, data: 870 };
+const MAX_GRAPH_RENDER = 300;
+
 function graphTab(doc) {
-  const nodes = sortedByJson(doc.graph?.nodes ?? []);
-  const edges = doc.graph?.edges ?? [];
-  const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length || 1)));
-  const gap = 150;
+  const all = doc.graph?.nodes ?? [];
+  const totalEdges = (doc.graph?.edges ?? []).length;
+  const byRank = (a, b) => num(b.rank) - num(a.rank) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  // Cap large graphs to the most important nodes — never silently (note it).
+  const nodes = [...all].sort(byRank).slice(0, MAX_GRAPH_RENDER);
+  const shown = new Set(nodes.map((n) => n.id));
+  const edges = (doc.graph?.edges ?? []).filter((e) => shown.has(e.source) && shown.has(e.target));
+  const truncated = all.length > nodes.length;
+
+  const col = layerColumns(doc.layers ?? {});
+  const groups = { entry: [], internal: [], data: [] };
+  for (const n of nodes) groups[col.get(n.id) ?? "entry"].push(n);
   const pos = new Map();
-  nodes.forEach((n, i) => pos.set(n.id, { x: 40 + (i % cols) * gap, y: 50 + Math.floor(i / cols) * 70 }));
-  const color = { Z: "#0ea5a4", Y: "#0ea5a4", sap: "#94a3b8", registered: "#d97706" };
-  const w = 40 + cols * gap, h = 90 + Math.ceil((nodes.length || 1) / cols) * 70;
-  const lines = edges.map((e) => { const a = pos.get(e.source), b = pos.get(e.target); return a && b ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#cbd5e1"/>` : ""; }).join("");
-  const dots = nodes.map((n) => { const p = pos.get(n.id); return `<g><circle cx="${p.x}" cy="${p.y}" r="${n.kind === "table" ? 10 : 8}" fill="${color[n.namespace] ?? "#64748b"}"><title>${esc(n.id)} (${esc(n.kind)})</title></circle><text x="${p.x}" y="${p.y - 12}" font-size="9" text-anchor="middle">${esc(String(n.object).slice(0, 16))}</text></g>`; }).join("");
-  return `<h2>Dependency Graph — ${nodes.length} nodes / ${edges.length} edges</h2><p class="muted">Deterministic grid layout (Cytoscape is the Phase-3 upgrade). Teal = customer · grey = SAP · amber = vendor.</p><div class="scroll"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${lines}${dots}</svg></div>`;
+  let rows = 1;
+  for (const [layer, list] of Object.entries(groups)) {
+    list.sort(byRank);
+    list.forEach((n, i) => pos.set(n.id, { x: GRAPH_COL_X[layer], y: 40 + i * 26 }));
+    rows = Math.max(rows, list.length);
+  }
+  const w = 1080, h = 40 + rows * 26 + 20;
+  const lines = edges.map((e) => { const a = pos.get(e.source), b = pos.get(e.target); return a && b ? `<line class="ge" data-src="${esc(e.source)}" data-tgt="${esc(e.target)}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>` : ""; }).join("");
+  const dots = nodes.map((n) => { const p = pos.get(n.id); const r = 5 + Math.round(num(n.rank) * 9); return `<g class="gn" data-id="${esc(n.id)}"><circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${GRAPH_NS_COLOR[n.namespace] ?? "#64748b"}"><title>${esc(n.id)} (${esc(n.kind)} · rank ${round(n.rank)})</title></circle><text x="${p.x + r + 3}" y="${p.y + 3}">${esc(String(n.object).slice(0, 16))}</text></g>`; }).join("");
+  const note = truncated ? `<b>Showing the top ${nodes.length} of ${all.length} nodes by importance.</b> ` : "";
+  return `<h2>Dependency Graph — ${all.length} nodes / ${totalEdges} edges</h2>
+<p class="muted">${note}Columns: entry → internal → data. Node size = importance (PageRank). Teal = customer · grey = SAP · amber = vendor.</p>
+<div class="scroll gwrap"><svg id="gsvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><g id="gv">${lines}${dots}</g></svg></div>
+<div class="ghint">Scroll to zoom · drag to pan · click a node to highlight its dependencies · <button type="button" onclick="gReset()">reset view</button></div>`;
+}
+
+/** node id -> layer column ("entry"/"internal"/"data") from doc.layers (keyed by id). */
+function layerColumns(layers) {
+  const m = new Map();
+  for (const id of layers.entry ?? []) m.set(id, "entry");
+  for (const id of layers.internal ?? []) m.set(id, "internal");
+  for (const id of layers.data ?? []) m.set(id, "data");
+  return m;
 }
 
 function boundariesTab(doc) {
@@ -166,10 +207,22 @@ function debtTab(doc) {
   return `<h2>Technical Debt <span class="muted">(avg ${round(doc.debt?.avg_score)} · max ${round(doc.debt?.max_score)} · ${doc.debt?.hotspot_count ?? 0} hotspots)</span></h2><table><thead><tr><th>Symbol</th><th>Score</th><th>Signals</th></tr></thead><tbody>${rows || "<tr><td colspan=3><i>none</i></td></tr>"}</tbody></table>`;
 }
 
+// Findings virtualization: emit the findings ONCE as a compact inert JSON island;
+// the client (html-assets FINDINGS_JS) filters + paginates (50/page) into #recs via
+// DOM APIs. Keeps the file small and fast even on 100K-LOC repos (the §3.C NFR).
 function findingsTab(doc) {
-  const cards = (doc.findings ?? []).map((f) => `<div class="rec sev-${esc(f.severity)}" data-fam="${esc(f.family ?? "")}" data-sev="${esc(f.severity ?? "")}"><div><code>${esc(f.rule_id)}</code> <span class="pill">${esc(f.severity)}</span> <span class="muted">${esc(f.family ?? "")}</span></div><div>${esc(f.message)}</div>${f.suggestion ? `<div class="fix">Fix: ${esc(f.suggestion)}</div>` : ""}<div class="muted small">${esc(f.object)} · ${esc(f.file ?? "")}:${num(f.line)}</div></div>`).join("");
-  const fams = [...new Set((doc.findings ?? []).map((f) => f.family ?? ""))].sort();
-  return `<h2>Findings — technical detail (${(doc.findings ?? []).length})</h2><div class="filters"><select id="fFam" onchange="filterRecs()">${["", ...fams].map((v) => `<option value="${esc(v)}">${esc(v || "all families")}</option>`).join("")}</select><select id="fSev" onchange="filterRecs()">${["", "priority-1", "priority-2", "priority-3", "info"].map((s) => `<option value="${s}">${s || "all severities"}</option>`).join("")}</select></div><div id="recs">${cards || "<i>none</i>"}</div>`;
+  const findings = doc.findings ?? [];
+  const fams = [...new Set(findings.map((f) => f.family ?? ""))].sort();
+  const island = jsonIsland(
+    "fdata",
+    findings.map((f) => ({ rule_id: f.rule_id, severity: f.severity, family: f.family ?? "", message: f.message, object: f.object, file: f.file ?? "", line: num(f.line), suggestion: f.suggestion ?? "" })),
+  );
+  const opt = (v, label) => `<option value="${esc(v)}">${esc(label)}</option>`;
+  return `<h2>Findings — technical detail (${findings.length})</h2>
+<div class="filters"><select id="fFam">${["", ...fams].map((v) => opt(v, v || "all families")).join("")}</select><select id="fSev">${["", "priority-1", "priority-2", "priority-3", "info"].map((s) => opt(s, s || "all severities")).join("")}</select><span class="muted" id="fInfo"></span></div>
+<div id="recs"></div>
+<div class="pager"><button type="button" id="fPrev">‹ Prev</button><button type="button" id="fNext">Next ›</button></div>
+${island}`;
 }
 
 function cloudTab(doc) {
@@ -178,16 +231,25 @@ function cloudTab(doc) {
 <div class="cards"><div class="card"><b class="hot">${cr.blockers?.findings ?? 0}</b><span>Blockers (D)</span></div><div class="card"><b>${cr.warnings?.findings ?? 0}</b><span>Warnings (C)</span></div><div class="card"><b>${cr.advisories?.findings ?? 0}</b><span>Advisories (B)</span></div><div class="card"><b>${cr.needs_review?.findings ?? 0}</b><span>Needs review</span></div></div>`;
 }
 
+// SARIF tab: a summary panel, NOT the raw document (operator-confirmed 2026-07-09).
+// SARIF is a MACHINE interchange format — no human reads raw SARIF JSON, and baking
+// it in bloats the human report (it was 51% of the bytes) and duplicates
+// analyser-findings.json. The full document is exported standalone via the CLI's
+// `--sarif <file>`; here we just surface that it exists + a level breakdown. Humans
+// read findings in the Findings tab.
 function sarifTab(doc) {
-  let sarif;
+  let results = [];
   try {
-    sarif = JSON.stringify(toSarif(doc), null, 2);
+    results = toSarif(doc).runs?.[0]?.results ?? [];
   } catch {
-    sarif = "(SARIF unavailable)";
+    results = [];
   }
-  return `<h2>SARIF 2.1.0</h2><pre class="scroll">${esc(sarif)}</pre>`;
+  const byLevel = { error: 0, warning: 0, note: 0 };
+  for (const r of results) if (byLevel[r.level] !== undefined) byLevel[r.level] += 1;
+  const cards = [["Results", results.length, false], ["Errors", byLevel.error, true], ["Warnings", byLevel.warning, false], ["Notes", byLevel.note, false]]
+    .map(([l, v, hot]) => `<div class="card"><b class="${hot && v ? "hot" : ""}">${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("");
+  return `<h2>SARIF 2.1.0 export — ${results.length} results</h2>
+<p class="muted">SARIF (Static Analysis Results Interchange Format) is the OASIS-standard JSON for static-analysis findings — a <b>machine</b> artifact, consumed by GitHub code scanning, CI, IDE SARIF viewers, and the moderniser, not read by hand. Browse findings in the <b>Findings</b> tab; export the standard file for tools.</p>
+<div class="cards">${cards}</div>
+<p class="muted small">Export the full document: run the analyser with <code>--sarif &lt;file&gt;.sarif</code>. Each finding becomes a <code>result</code> (ruleId · level · location · message); each distinct rule a <code>reportingDescriptor</code>.</p>`;
 }
-
-const CSS = `*{box-sizing:border-box}body{font:14px/1.5 system-ui,sans-serif;margin:0;color:#0f172a;background:#f8fafc}header{padding:16px 24px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}h1{font-size:18px;margin:0}h2{font-size:16px;margin:16px 0 8px}h3{font-size:13px;text-transform:uppercase;color:#64748b;margin:16px 0 6px}.chip{font-size:12px;color:#64748b}.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 24px;background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0}.tab{border:0;background:0;padding:6px 12px;cursor:pointer;border-radius:6px;font:inherit;color:#475569}.tab.on{background:#0ea5a4;color:#fff}.panel{display:none;padding:16px 24px;max-width:1100px}.panel.on{display:block}.cards{display:flex;flex-wrap:wrap;gap:10px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;min-width:120px}.card b{font-size:22px;display:block}.card span{font-size:12px;color:#64748b}.bar{display:flex;align-items:center;gap:10px;margin:4px 0}.bar span{width:110px;font-size:12px}.track{flex:1;height:10px;background:#e2e8f0;border-radius:6px;overflow:hidden}.track i{display:block;height:100%}.track .g{background:#16a34a}.track .a{background:#d97706}.track .r{background:#dc2626}.bar b{width:40px;text-align:right;font-size:12px}.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.tag{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:14px;padding:2px 10px;font-size:12px}table{border-collapse:collapse;width:100%;background:#fff;font-size:13px}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid #eef2f7;vertical-align:top}.muted{color:#64748b}.small{font-size:11px}.hot{color:#dc2626}.layer{margin:10px 0}.rec{background:#fff;border:1px solid #e2e8f0;border-left:4px solid #94a3b8;border-radius:6px;padding:12px 14px;margin:8px 0}.rec.sev-priority-1,.rec.impact-H{border-left-color:#dc2626}.rec.sev-priority-2{border-left-color:#d97706}.rec.sev-priority-3,.rec.impact-M{border-left-color:#0ea5a4}.rt{font-weight:600;font-size:15px}.ri{font-size:12px;color:#b45309;margin:2px 0 6px}.act{margin:6px 0}.ex{margin:6px 0;font-size:12px;color:#334155}.pill{font-size:11px;background:#f1f5f9;border-radius:10px;padding:1px 8px;font-weight:400}.fix{color:#166534;font-size:12px}.filters{display:flex;gap:8px;margin:8px 0}.filters select{padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px}.risks li,.ex li{margin:4px 0}code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px}.scroll{overflow-x:auto}pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;font-size:11px}@media(prefers-color-scheme:dark){body{background:#0f172a;color:#e2e8f0}header,.tabs,.card,table,.rec{background:#1e293b;border-color:#334155}.tag,.pill,code{background:#334155;border-color:#475569}}`;
-
-const JS = `document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(e=>e.classList.remove('on'));t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on')});function filterRecs(){var f=document.getElementById('fFam').value,s=document.getElementById('fSev').value;document.querySelectorAll('#recs .rec').forEach(function(r){r.style.display=((!f||r.dataset.fam===f)&&(!s||r.dataset.sev===s))?'':'none'})}`;

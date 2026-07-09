@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -64,6 +64,20 @@ test("CLI runs a bundle end to end and renders the report (exit 0)", () => {
     const stdout = execFileSync(process.execPath, [CLI, dir, "--package", "ZDEMO", "--out", out], { encoding: "utf8" });
     assert.match(stdout, /Code graph:/);
     assert.match(stdout, /Full report written to:/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI --sarif exports a standalone SARIF 2.1.0 document (machine artifact, not in HTML)", () => {
+  const dir = bundleDir();
+  const out = join(dir, "report.json");
+  const sarif = join(dir, "out.sarif");
+  try {
+    const stdout = execFileSync(process.execPath, [CLI, dir, "--package", "ZDEMO", "--out", out, "--sarif", sarif], { encoding: "utf8" });
+    assert.match(stdout, /SARIF 2\.1\.0 export:/);
+    const doc = JSON.parse(readFileSync(sarif, "utf8"));
+    assert.equal(doc.version, "2.1.0");
+    assert.ok(Array.isArray(doc.runs?.[0]?.results), "runs[0].results present");
+    assert.equal(doc.runs[0].tool.driver.name, "sap-abap-harness-analyser");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

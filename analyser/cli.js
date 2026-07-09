@@ -1,14 +1,15 @@
 // Local CLI entry for the standalone analyser — the no-MCP way to run a scan and
 // read the result in one command:  node analyser/cli.js <bundle-dir> [--package N]
-// [--out file] [--json]. Uses the SAME analyzePackage/writeReport pipeline the
-// abap-analyser MCP uses; this just renders the report to the terminal so the
-// analysis can be produced and read here, without wiring the MCP server.
+// [--out file] [--html file] [--sarif file] [--json]. Uses the SAME
+// analyzePackage/writeReport pipeline the abap-analyser MCP uses; this just renders
+// the report to the terminal so the analysis can be produced and read here.
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
 import { filesFromBundle } from "./src/modes.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
 import { renderHtml } from "./src/html-report.js";
+import { toSarif } from "./src/sarif.js";
 
 const DEFAULT_OUT = "specs/brownfield/analyser-findings.json";
 
@@ -20,6 +21,7 @@ function parseArgs(argv) {
     if (a === "--package") opts.package = argv[++i];
     else if (a === "--out") opts.out = argv[++i];
     else if (a === "--html") opts.html = argv[++i];
+    else if (a === "--sarif") opts.sarif = argv[++i];
     else if (a === "--json") opts.json = true;
     else rest.push(a);
   }
@@ -67,7 +69,7 @@ export function renderReport(doc, fileCount, outPath) {
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (!opts.path) {
-    process.stderr.write("usage: node analyser/cli.js <bundle-dir> [--package NAME] [--out file] [--json]\n");
+    process.stderr.write("usage: node analyser/cli.js <bundle-dir> [--package NAME] [--out file] [--html file] [--sarif file] [--json]\n");
     process.exit(2);
   }
   const files = filesFromBundle(opts.path);
@@ -77,13 +79,20 @@ function main() {
   }
   const doc = analyzePackage(files, { package: opts.package, source_system: `bundle:${opts.path}` });
   const outPath = writeReport(doc, opts.out);
-  let htmlNote = "";
+  let sideNotes = "";
   if (opts.html) {
     const htmlPath = resolve(opts.html);
     writeFileSync(htmlPath, renderHtml(doc), "utf8");
-    htmlNote = `\nInteractive HTML report: ${htmlPath}`;
+    sideNotes += `\nInteractive HTML report: ${htmlPath}`;
   }
-  process.stdout.write((opts.json ? JSON.stringify(doc, null, 2) : renderReport(doc, files.length, outPath) + htmlNote) + "\n");
+  if (opts.sarif) {
+    // Standalone SARIF 2.1.0 export — the machine artifact for GitHub code
+    // scanning / CI / the moderniser (kept OUT of the human HTML report).
+    const sarifPath = resolve(opts.sarif);
+    writeFileSync(sarifPath, JSON.stringify(toSarif(doc), null, 2), "utf8");
+    sideNotes += `\nSARIF 2.1.0 export: ${sarifPath}`;
+  }
+  process.stdout.write((opts.json ? JSON.stringify(doc, null, 2) : renderReport(doc, files.length, outPath) + sideNotes) + "\n");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
