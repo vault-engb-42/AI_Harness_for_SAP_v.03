@@ -68,10 +68,8 @@ const GRAPH_JS = `(function(){
   function clr(){nodes.forEach(function(n){n.classList.remove('sel','dim');});edges.forEach(function(e){e.classList.remove('adj','dim');});}
   nodes.forEach(function(n){n.addEventListener('click',function(ev){ev.stopPropagation();if(moved){moved=false;return;}var id=n.dataset.id,keep={};keep[id]=1;clr();edges.forEach(function(e){if(e.dataset.src===id||e.dataset.tgt===id){e.classList.add('adj');keep[e.dataset.src]=1;keep[e.dataset.tgt]=1;}else{e.classList.add('dim');}});nodes.forEach(function(m){if(keep[m.dataset.id]){if(m.dataset.id===id)m.classList.add('sel');}else{m.classList.add('dim');}});});});
   svg.addEventListener('click',function(){clr();});
-  // Respect the server's default view: animate only if the SVG is the one showing
-  // (big apps default to the matrix, which needs no JS).
-  var sw0=document.getElementById('gsvgwrap');
-  if(!sw0||sw0.style.display!=='none') window.gLayout('force');
+  // Default view is the STATIC hierarchical layout the server already rendered (no
+  // JS needed on load). Force / Layered / Matrix are opt-in via the buttons.
 })();`;
 
 // Findings virtualization: parse the inert JSON island, filter by family/severity,
