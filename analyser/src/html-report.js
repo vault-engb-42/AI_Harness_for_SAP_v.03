@@ -18,6 +18,7 @@ export function renderHtml(doc, opts = {}) {
   const tabs = [
     ["summary", "Summary", summaryTab(doc)],
     ["recs", "Recommendations", recommendationsTab(doc)],
+    ["plan", "Plan", planTab(doc)],
     ["health", "Code Health", codeHealthTab(doc)],
     ["debt", "Tech Debt", debtTab(doc)],
     ["cloud", "Cloud Readiness", cloudTab(doc)],
@@ -82,6 +83,25 @@ function recommendationsTab(doc) {
     return `<div class="rec impact-${m.impact[0]}"><div class="rt">${esc(m.t)} <span class="pill">${g.count} findings · ${g.objs.size} objects</span></div><div class="ri">${esc(m.impact)}</div><p>${esc(m.why)}</p><p class="act"><b>What to do:</b> ${esc(m.act)}</p>${ex ? `<ul class="ex">${ex}</ul>` : ""}<div class="tags">${objs}</div></div>`;
   }).join("");
   return `<h2>Recommendations</h2><p class="muted">Plain-language, prioritised by business impact. Technical detail is in the Findings tab.</p>${cards || "<i>No findings — nothing to remediate.</i>"}`;
+}
+
+// ── Modernization Plan (§3.D): what to modernize, in what order, at what cost ──
+const EFFORT_LABEL = { XL: "extra-large", L: "large", M: "medium", S: "small" };
+function planTab(doc) {
+  const p = doc.modernization_plan ?? { objects: [], summary: {} };
+  const s = p.summary ?? {};
+  const eff = s.by_effort ?? {};
+  const pri = s.by_priority ?? {};
+  const cards = [
+    ["Objects", s.total_objects ?? 0, false],
+    ["XL effort", eff.XL ?? 0, true], ["L", eff.L ?? 0, false], ["M", eff.M ?? 0, false], ["S", eff.S ?? 0, false],
+    ["P1 priority", pri.P1 ?? 0, true], ["P2", pri.P2 ?? 0, false], ["P3", pri.P3 ?? 0, false],
+  ].map(([l, v, hot]) => `<div class="card"><b class="${hot && v ? "hot" : ""}">${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("");
+  const rows = (p.objects ?? []).map((o, i) => `<tr><td class="muted">${i + 1}</td><td>${esc(o.object)}</td><td class="muted small">${esc(o.kind)}</td><td>${esc(o.modernization_target)}</td><td><span class="pill" title="${esc(EFFORT_LABEL[o.effort_tier] ?? "")}">${esc(o.effort_tier)}</span></td><td><span class="pill">${esc(o.priority_rank)}</span></td><td>${num(o.migration_complexity)}/5</td><td>${num(o.transformation_count)}</td></tr>`).join("");
+  return `<h2>Modernization Plan <span class="muted">(${s.total_objects ?? 0} customer objects, transport-ordered)</span></h2>
+<p class="muted">Per customer object: the target artifact, effort (by debt + size), priority (by importance/PageRank), migration complexity (0–5), and the number of modernization steps. Rows are in safe transport-release order (CDS → interfaces → classes → behaviour → the rest).</p>
+<div class="cards">${cards}</div>
+<table><thead><tr><th>#</th><th>Object</th><th>Kind</th><th>Target</th><th>Effort</th><th>Priority</th><th>Complexity</th><th>Steps</th></tr></thead><tbody>${rows || "<tr><td colspan=8><i>no customer objects to modernize</i></td></tr>"}</tbody></table>`;
 }
 
 function summaryTab(doc) {

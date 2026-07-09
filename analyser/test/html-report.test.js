@@ -21,16 +21,28 @@ const DOC = {
   layers: { entry: ["ZR"], internal: [], data: ["T001"] },
   boundaries: [{ name: "ZR", kind: "report", direction: "inbound" }],
   graph: { nodes: [{ id: "ZR", kind: "report", object: "ZR", namespace: "Z", rank: 1 }, { id: "T001", kind: "table", object: "T001", namespace: "sap", rank: 0.2 }], edges: [{ source: "ZR", target: "T001", kind: "uses-table" }] },
+  modernization_plan: {
+    objects: [
+      { object: "ZR", kind: "report", modernization_target: "Fiori Elements App", effort_tier: "M", priority_rank: "P2", migration_complexity: 2, transformation_count: 1, transformations: [{ kind: "released-api", rule_id: "S4-001", why: "uses non-released T001", fix: "replace T001 with I_COMPANYCODE", released_successor: "I_COMPANYCODE" }] },
+    ],
+    summary: { total_objects: 1, by_effort: { S: 0, M: 1, L: 0, XL: 0 }, by_priority: { P1: 0, P2: 1, P3: 0 }, transport_order: ["ZR"] },
+  },
   namespace_summary: { Z: 1, Y: 0, registered: 0, sap: 1, customer_total: 1, sap_total: 1 },
 };
 
-const TABS = ["Summary", "Recommendations", "Code Health", "Tech Debt", "Cloud Readiness", "Graph", "Boundaries", "Layers", "Findings", "SARIF"];
+const TABS = ["Summary", "Recommendations", "Plan", "Code Health", "Tech Debt", "Cloud Readiness", "Graph", "Boundaries", "Layers", "Findings", "SARIF"];
 
-test("renderHtml emits a self-contained document with all 9 tabs", () => {
+test("renderHtml emits a self-contained document with all tabs", () => {
   const html = renderHtml(DOC);
   assert.match(html, /^<!doctype html>/i);
   for (const tab of TABS) assert.ok(html.includes(tab), `tab present: ${tab}`);
   assert.ok(html.includes("77") && html.includes("ZR"), "code_health + object data rendered");
+});
+
+test("renderHtml renders the modernization Plan tab (target + transport order)", () => {
+  const html = renderHtml(DOC);
+  assert.ok(html.includes("Modernization Plan"), "plan heading present");
+  assert.ok(html.includes("Fiori Elements App"), "modernization target rendered");
 });
 
 test("renderHtml loads no external resources (self-contained file://)", () => {
