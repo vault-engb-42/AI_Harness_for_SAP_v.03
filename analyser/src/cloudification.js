@@ -71,17 +71,22 @@ function ingest(map, src) {
 
 /**
  * @param {string|null|undefined} name object name
- * @returns {{release_state: string, raw_state: string|undefined, successors: Array<{name: string, type: string}>, object_type: string|undefined}}
+ * @returns {{release_state: string, raw_state: string|undefined, oracle_state: string, successors: Array<{name: string, type: string}>, object_type: string|undefined}}
  */
 export function classify(name) {
   const rec = loadIndex().get(String(name ?? "").toUpperCase());
   // §3.F: release_state from the oracle Level (weakest-wins), not the single
   // release-wins state; successors + object_type stay from the registry read.
-  const release_state = RELEASE_STATE_FOR_LEVEL[classifyName(name).level];
-  if (!rec) return { release_state, raw_state: undefined, successors: [], object_type: undefined };
+  // oracle_state is the oracle's clean state word (classicAPI/deprecated/removed/…)
+  // — the ACCURATE label for messages; raw_state is the release-wins registry state
+  // (which for a released↔classicAPI conflict object misleadingly reads "released").
+  const oracle = classifyName(name);
+  const release_state = RELEASE_STATE_FOR_LEVEL[oracle.level];
+  if (!rec) return { release_state, raw_state: undefined, oracle_state: oracle.state, successors: [], object_type: undefined };
   return {
     release_state,
     raw_state: rec.state,
+    oracle_state: oracle.state,
     successors: rec.successors,
     object_type: rec.objectType,
   };

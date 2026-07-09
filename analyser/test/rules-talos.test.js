@@ -35,6 +35,17 @@ test("released-api suggests the released successor when the dataset has one", ()
   assert.ok(f.suggestion?.includes("CL_BCFG_CD_REUSE_API_FACTORY"), "successor suggested");
 });
 
+test("released-api message shows the accurate oracle state, never a contradictory bare '(released)'", () => {
+  // The old message printed raw_state, which for a released↔classicAPI conflict read
+  // "(released)" while flagging the object as non-released — self-contradictory. It
+  // now prints oracle_state. BAPIRET1 is genuinely deprecated (policy-independent).
+  const g = graphWith([{ source: "ZCL_X", target: "BAPIRET1", kind: "uses-table" }]);
+  const [f] = releasedApiRule.check({ graph: g, cloud });
+  assert.match(f.message, /BAPIRET1 \(deprecated\)/, "shows the accurate oracle state");
+  assert.match(f.message, /not released for ABAP Cloud/);
+  assert.doesNotMatch(f.message, /\(released\)/, "never the self-contradictory raw 'released'");
+});
+
 test("released-api does NOT flag a released target", () => {
   const g = graphWith([{ source: "ZCL_X", target: "/ATL/BLART_RANGE", kind: "uses-table" }]);
   assert.deepEqual(releasedApiRule.check({ graph: g, cloud }), []);

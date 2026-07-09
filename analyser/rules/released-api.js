@@ -45,8 +45,12 @@ export const releasedApiRule = {
         object: edge.source,
         // the referenced SAP object — curation grades this via the oracle (conv #17)
         referenced_object: edge.target,
+        // oracle_state (classicAPI/deprecated/removed) is the accurate label — NOT
+        // raw_state, which for a released↔classicAPI conflict reads "released" and
+        // contradicts the finding. A classicAPI object runs on S/4 on-prem but is
+        // not released for ABAP Cloud; deprecated/removed are gone in S/4 too.
         message:
-          `uses non-released API ${edge.target} (${c.raw_state})` +
+          `uses ${edge.target} (${c.oracle_state}) — not released for ABAP Cloud` +
           (successor ? `; released successor ${successor}` : "; no released successor"),
         suggestion: successor ? `replace ${edge.target} with ${successor}` : undefined,
         family: "released-api",

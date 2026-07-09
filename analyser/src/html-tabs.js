@@ -8,7 +8,7 @@ import { esc, num, round, bar } from "./html-util.js";
 
 // ── Business recommendations: findings -> plain-language themes ──────────────
 const THEME = {
-  "released-api": { t: "Uses SAP objects retired in S/4HANA", why: "Your code directly reads SAP tables / calls APIs that SAP is replacing in S/4HANA — they stop working after migration.", act: "Switch each to its released successor (CDS view / released API).", impact: "High — blocks S/4HANA & Cloud" },
+  "released-api": { t: "Uses SAP objects not released for ABAP Cloud", why: "Your code depends on SAP APIs/tables that are not released for ABAP Cloud — some are deprecated or removed in S/4HANA, others are classic APIs that still run on S/4 on-prem but block the move to ABAP Cloud.", act: "Switch each to its released successor (released API / CDS view / RAP).", impact: "High — blocks ABAP Cloud (deprecated/removed also block S/4)" },
   deprecation: { t: "Deprecated SAP objects in use", why: "Objects SAP has flagged for removal are still used.", act: "Move to the released replacement before it is withdrawn.", impact: "High — future breakage" },
   "clean-core": { t: "Not Clean-Core compliant", why: "Uses patterns forbidden in ABAP Cloud (classic function calls, classic ALV/Dynpro UI).", act: "Rebuild on released APIs + RAP/Fiori.", impact: "High — blocks ABAP Cloud" },
   performance: { t: "Performance risks on HANA", why: "Query/loop patterns (SELECT *, DB access in loops) that are slow or unsafe on the HANA database.", act: "Use explicit field lists, set-based operations, and CDS pushdown.", impact: "Medium — slowness / timeouts" },

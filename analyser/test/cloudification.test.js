@@ -28,6 +28,16 @@ test("a classicAPI object (from classifications file) is not released and re-pla
   assert.equal(effortTier("/AIF/CL_BGRFC_CLEANUP_UTIL"), "re-platform");
 });
 
+test("released↔classicAPI conflict: raw_state is the release-wins 'released', oracle_state the accurate 'classicAPI'", () => {
+  // CX_STATIC_CHECK is in BOTH datasets: release-info says released (wins the index
+  // -> raw_state), classifications say classicAPI (weakest-wins -> oracle). classify
+  // exposes BOTH so messages can show the accurate label, never the contradictory
+  // raw 'released'. (Whether this SHOULD flag at all is the open weakest-wins policy.)
+  const c = classify("CX_STATIC_CHECK");
+  assert.equal(c.raw_state, "released", "index keeps the authoritative release-info state");
+  assert.equal(c.oracle_state, "classicAPI", "oracle weakest-wins reports classicAPI");
+});
+
 test("lookup is case-insensitive", () => {
   assert.equal(classify("abap_cloud_development_3tier").raw_state, "deprecated");
 });
