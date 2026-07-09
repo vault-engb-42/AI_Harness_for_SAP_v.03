@@ -21,6 +21,10 @@ const byObjectThen = (key) => (a, b) =>
  * Cleanup, EndAt, Loop}; DO and DATA are NOT branches. abaplint reports methods
  * only (not FORMs / event blocks), a limitation we inherit deliberately.
  *
+ * FOR TESTING methods (the .clas.testclasses include) are excluded so this axis
+ * measures the same production population as classCohesion — otherwise trivial
+ * ABAP Unit tests would dilute a complex method's penalty and inflate clarity.
+ *
  * @param {import("@abaplint/core").Registry} reg
  * @returns {Array<{object: string, method: string, cyclomatic: number}>} sorted (object, method)
  */
@@ -28,9 +32,11 @@ export function methodCyclomatic(reg) {
   const out = [];
   for (const obj of objectsOf(reg)) {
     const object = nameOf(obj);
+    const testFile = obj.getTestclassFile?.()?.getFilename();
     // CyclomaticComplexityStats.run guards `instanceof ABAPObject` and returns []
     // for DDIC/CDS objects, so no type check is needed here.
     for (const s of CyclomaticComplexityStats.run(obj)) {
+      if (testFile && s.file?.getFilename?.() === testFile) continue;
       out.push({ object, method: String(s.name ?? "").toUpperCase(), cyclomatic: s.count + 1 });
     }
   }

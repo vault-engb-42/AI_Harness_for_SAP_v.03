@@ -99,6 +99,34 @@ test("classCohesion excludes test classes (FOR TESTING) from the cohesion signal
   assert.deepEqual(coh.map((c) => c.object), ["ZCL_PROD"]);
 });
 
+test("methodCyclomatic excludes FOR TESTING methods (same production population as classCohesion)", () => {
+  // Regression guard: without this, adding trivial ABAP Unit tests dilutes the
+  // clarity cyclomatic penalty and inflates the health score (adversarial review
+  // F-1, 2026-07-09). Both clarity sub-axes must measure production code only.
+  const main = [
+    "CLASS zcl_prod DEFINITION PUBLIC.",
+    "  PUBLIC SECTION. METHODS big.",
+    "  PRIVATE SECTION. DATA mv TYPE i.",
+    "ENDCLASS.",
+    "CLASS zcl_prod IMPLEMENTATION.",
+    "  METHOD big. IF mv > 0. mv = 1. ENDIF. ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const testclasses = [
+    "CLASS lcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.",
+    "  PRIVATE SECTION. METHODS t1 FOR TESTING.",
+    "ENDCLASS.",
+    "CLASS lcl_test IMPLEMENTATION.",
+    "  METHOD t1. cl_abap_unit_assert=>assert_equals( act = 1 exp = 1 ). ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const reg = loadRegistry([
+    { filename: "zcl_prod.clas.abap", source: main },
+    { filename: "zcl_prod.clas.testclasses.abap", source: testclasses },
+  ]);
+  assert.deepEqual(methodCyclomatic(reg).map((m) => m.method), ["BIG"], "T1 (FOR TESTING) is excluded");
+});
+
 test("metrics are total on a package with no methods/classes (empty arrays, no throw)", () => {
   const reg = loadRegistry([{ filename: "zr_x.prog.abap", source: "REPORT zr_x.\nWRITE 'hi'." }]);
   assert.deepEqual(methodCyclomatic(reg), []);

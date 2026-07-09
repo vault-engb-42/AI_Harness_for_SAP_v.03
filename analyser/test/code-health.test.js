@@ -99,6 +99,45 @@ test("all scores are integers in [0,100]", () => {
   }
 });
 
+test("clarity does not inflate when ABAP Unit tests are added (test code excluded from both sub-axes)", () => {
+  // Adversarial review F-1 (2026-07-09): a complex production method must not have
+  // its cyclomatic penalty diluted by trivial FOR TESTING methods. Same production
+  // code + a testclasses include -> identical clarity.
+  const branches = Array.from({ length: 14 }, (_, i) => `    IF mv = ${i}. mv = ${i + 1}. ENDIF.`).join("\n");
+  const heavy = [
+    "CLASS zcl_heavy DEFINITION PUBLIC.",
+    "  PUBLIC SECTION. METHODS big.",
+    "  PRIVATE SECTION. DATA mv TYPE i.",
+    "ENDCLASS.",
+    "CLASS zcl_heavy IMPLEMENTATION.",
+    "  METHOD big.",
+    branches,
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const testclasses = [
+    "CLASS lcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.",
+    "  PRIVATE SECTION.",
+    Array.from({ length: 9 }, (_, i) => `    METHODS t${i} FOR TESTING.`).join("\n"),
+    "ENDCLASS.",
+    "CLASS lcl_test IMPLEMENTATION.",
+    Array.from({ length: 9 }, (_, i) => `  METHOD t${i}. cl_abap_unit_assert=>assert_true( abap_true ). ENDMETHOD.`).join("\n"),
+    "ENDCLASS.",
+  ].join("\n");
+  const g = { nodes: [{ id: "ZCL_HEAVY", kind: "class", object: "ZCL_HEAVY" }], edges: [] };
+  const noTests = codeHealth(g, [], loadRegistry([{ filename: "zcl_heavy.clas.abap", source: heavy }]));
+  const withTests = codeHealth(
+    g,
+    [],
+    loadRegistry([
+      { filename: "zcl_heavy.clas.abap", source: heavy },
+      { filename: "zcl_heavy.clas.testclasses.abap", source: testclasses },
+    ]),
+  );
+  assert.ok(noTests.clarity < 100, "the heavy production method genuinely lowers clarity");
+  assert.equal(withTests.clarity, noTests.clarity, "adding tests must not change clarity");
+});
+
 test("analyzePackage emits a schema-valid code_health block (real end-to-end wiring)", () => {
   const doc = analyzePackage([{ filename: "zcl_calc.clas.abap", source: CALC }], { package: "ZX", generated_at: FIXED });
   assert.ok(doc.code_health, "code_health is present on the emitted document");
