@@ -14,7 +14,7 @@ const DOC = {
   findings: [
     { rule_id: "S4-001", severity: "priority-1", grade: "blocker", family: "released-api", object: "ZR", referenced_object: "T001", suggestion: "replace T001 with I_COMPANYCODE", file: "zr.prog.abap", line: 3, message: "uses non-released T001" },
   ],
-  s4_readiness: { s4_readiness_pct: 40, cloud_readiness_pct: 20, released_hits: 1, classic_api_hits: 0, deprecated_hits: 1, not_released_hits: 0, total_api_calls: 2 },
+  s4_readiness: { s4_readiness_pct: 50, cloud_readiness_pct: 25, total_objects: 4, s4_blocked_objects: 2, cloud_blocked_objects: 3, s4_blocker_findings: 5, cloud_blocker_findings: 9, released_hits: 1, classic_api_hits: 0, deprecated_hits: 1, not_released_hits: 0, total_api_calls: 2 },
   blast_radius: [{ object: "T001", affected_program_count: 2, successor_kind: "CDS_STOB", highest_impact: "high" }],
   code_health: { clean_core_grade: "C", clarity: 61, stability: 60, performance: 90, compound: 70, clarity_breakdown: { cyclomatic: 83, length: 62, nesting: 96, lcom: null }, by_object: [{ object: "ZR", kind: "report", cyclomatic: 12, max_routine_loc: 171, nesting: 4, lcom: null, perf_findings: 1, grade: "C", penalty: 0.81 }] },
   metrics: { total_loc: 1234, file_count: 3, object_count: 2, by_kind: { report: 1, table: 1 }, customer_loc: 1000, sap_loc: 234, size_class: "S", avg_cyclomatic: 4, max_cyclomatic: 12, max_nesting: 3, duplication_findings: 1, comment_ratio: 0.1, maintainability_index: 65 },
@@ -63,6 +63,14 @@ test("Code Health tab renders the clarity breakdown + per-object drill-down", ()
   assert.ok(html.includes("By object"), "per-object section present");
   assert.ok(/<th>Max cyclomatic<\/th>/.test(html) && /Longest routine/.test(html), "cyclomatic + length columns");
   assert.ok(/<th>Clarity penalty<\/th>/.test(html), "penalty column surfaces the worst attribute");
+});
+
+test("Readiness is presented object-level with blocker context + dependency hygiene labelled secondary", () => {
+  const html = renderHtml(DOC);
+  assert.ok(html.includes("share of the 4 customer objects") || html.includes("Share of 4 customer objects"), "object-level basis stated");
+  assert.ok(html.includes("Cloud-blocked") || html.includes("Cloud blocker"), "blocker context surfaced");
+  assert.ok(html.includes("dependency hygiene") && html.includes("NOT the readiness denominator"), "dependency counts demoted to secondary");
+  assert.ok(html.includes("Legacy debt"), "legacy debt surfaced in the summary");
 });
 
 test("Cloud tab surfaces blast radius, successor map, and grade distribution (previously hidden)", () => {

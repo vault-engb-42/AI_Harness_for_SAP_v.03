@@ -120,8 +120,11 @@ const IMPACT_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
 export function cloudTab(doc) {
   const cr = doc.cloud_readiness ?? {};
   const s4 = doc.s4_readiness ?? {};
-  return `<h2>Cloud Readiness</h2>${bar("S/4HANA Ready", s4.s4_readiness_pct)}${bar("Cloud Ready", s4.cloud_readiness_pct)}
-<p class="muted small">S/4-ready = released + classic-API objects; Cloud-ready = released only. ${num(s4.released_hits)} released · ${num(s4.classic_api_hits)} classic-API · ${num(s4.deprecated_hits)} deprecated · ${num(s4.not_released_hits)} removed, of ${num(s4.total_api_calls)} classifiable API uses.</p>
+  const t = num(s4.total_objects);
+  return `<h2>S/4HANA &amp; Cloud Readiness</h2>${bar("S/4HANA-ready", s4.s4_readiness_pct)}${bar("ABAP Cloud-ready", s4.cloud_readiness_pct)}
+<p class="muted small"><b>Readiness = share of the ${t} customer objects with no blocking finding</b>, over ALL checks (not just registry dependencies). ${num(s4.cloud_blocked_objects)}/${t} objects are Cloud-blocked by ${num(s4.cloud_blocker_findings)} findings; ${num(s4.s4_blocked_objects)}/${t} S/4-blocked by ${num(s4.s4_blocker_findings)}. Cloud is stricter: deprecated/removed deps + modifications break S/4, and clean-core patterns (CALL FUNCTION, classic ALV/Dynpro) + security patterns (kernel calls, dynamic code gen) additionally block ABAP Cloud though they still run on S/4 on-prem.</p>
+<h3>API dependency hygiene <span class="muted">(secondary — which SAP deps you use, by release state)</span></h3>
+<p class="muted small">${num(s4.released_hits)} released · ${num(s4.classic_api_hits)} classic-API · ${num(s4.deprecated_hits)} deprecated · ${num(s4.not_released_hits)} removed, of ${num(s4.total_api_calls)} classifiable SAP-API dependency edges. (This is dependency hygiene, NOT the readiness denominator.)</p>
 <h3>Clean-Core grade distribution</h3>${gradeDistribution(doc.graph?.nodes)}
 <h3>Findings by clean-core bucket</h3><div class="cards"><div class="card"><b class="hot">${cr.blockers?.findings ?? 0}</b><span>Blockers (D)</span></div><div class="card"><b>${cr.warnings?.findings ?? 0}</b><span>Warnings (C)</span></div><div class="card"><b>${cr.advisories?.findings ?? 0}</b><span>Advisories (B)</span></div><div class="card"><b>${cr.needs_review?.findings ?? 0}</b><span>Needs review</span></div></div>
 <h3>Blast radius <span class="muted">(deprecated SAP objects, most-affected first)</span></h3>${blastRadiusTable(doc.blast_radius)}

@@ -75,7 +75,7 @@ export function analyzePackage(files, opts = {}) {
   );
 
   enrichNodes(graph, cloud); // mutates node records in place
-  const s4_readiness = computeReadiness(graph, cloud);
+  const s4_readiness = computeReadiness(graph, findings, cloud);
   const blast_radius = collectBlastRadius(graph, cloud, opts.depth ?? 3);
   const g = graph.toGraphJSON();
   // PageRank importance (§3.C top_objects / §3.D priority_rank), normalized so the

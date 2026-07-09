@@ -94,9 +94,32 @@ export function summaryTab(doc) {
   const top = themes(doc).slice(0, 3).map(([fam, g]) => `<li><b>${esc(THEME[fam].t)}</b> — ${g.count} findings across ${g.objs.size} objects (${esc(THEME[fam].impact)})</li>`).join("");
   return `<h2>Executive Summary — ${esc(doc.package ?? "")}</h2><div class="cards">${cards}</div>
 ${codebaseSection(doc.metrics)}
-<h3>Readiness</h3>${bar("S/4HANA", doc.s4_readiness?.s4_readiness_pct)}${bar("Cloud", doc.s4_readiness?.cloud_readiness_pct)}
+${readinessSection(doc.s4_readiness)}
+${legacyDebtSection(doc.debt)}
 <h3>Code health (${esc(ch.clean_core_grade ?? "?")})</h3>${bar("Clarity", ch.clarity)}${bar("Stability", ch.stability)}${bar("Performance", ch.performance)}${bar("Compound", ch.compound)}
 <h3>Top risks</h3><ol class="risks">${top || "<li>none</li>"}</ol>`;
+}
+
+/** S/4HANA + Cloud readiness — object-level, with the blocker context that drives it. */
+function readinessSection(s4) {
+  if (!s4) return "";
+  const t = num(s4.total_objects);
+  return `<h3>S/4HANA &amp; ABAP Cloud readiness</h3>${bar("S/4HANA-ready", s4.s4_readiness_pct)}${bar("ABAP Cloud-ready", s4.cloud_readiness_pct)}
+<p class="muted small">Share of ${t} customer objects with no blocker. <b class="${num(s4.cloud_blocked_objects) ? "hot" : ""}">${num(s4.cloud_blocked_objects)}/${t}</b> have a Cloud blocker (${num(s4.cloud_blocker_findings)} findings), <b class="${num(s4.s4_blocked_objects) ? "hot" : ""}">${num(s4.s4_blocked_objects)}/${t}</b> an S/4 blocker (${num(s4.s4_blocker_findings)}). Cloud is stricter — classic patterns (CALL FUNCTION, ALV, kernel calls) run on S/4 on-prem but block ABAP Cloud. Dependency hygiene: ${num(s4.released_hits)} released · ${num(s4.classic_api_hits)} classic-API · ${num(s4.deprecated_hits)} deprecated · ${num(s4.not_released_hits)} removed of ${num(s4.total_api_calls)} classifiable SAP deps.</p>`;
+}
+
+/** Legacy debt — the tech-debt composite as a headline (higher score = more debt). */
+function legacyDebtSection(debt) {
+  if (!debt) return "";
+  const avg = Math.round(num(debt.avg_score) * 100);
+  const max = Math.round(num(debt.max_score) * 100);
+  const cards = [
+    card("Avg debt", avg + "%", avg >= 50),
+    card("Worst object", max + "%", max >= 50),
+    card("Hotspots", num(debt.hotspot_count), num(debt.hotspot_count) > 0),
+  ].join("");
+  return `<h3>Legacy debt <span class="muted">(size · complexity · coupling · duplication · cohesion)</span></h3><div class="cards">${cards}</div>
+<p class="muted small">Per-object 0–100% debt composite; a hotspot is an object over 50%. Full breakdown in the Tech Debt tab.</p>`;
 }
 
 /** Codebase-scale metrics (§ metrics block): the "how big / how maintainable" view. */

@@ -53,15 +53,20 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["s4_readiness_pct", "released_hits", "deprecated_hits"],
-      "description": "S/4HANA / Clean-Core readiness, grounded on aws_abap_cb_get_migration_analysis per referenced object. Models TALOS S4ReadinessSummary.",
+      "description": "S/4HANA + ABAP Cloud readiness measured at the OBJECT level over ALL the analyser's checks: an object is ready for a target when it carries NO blocking finding; readiness_pct = share of customer objects with no blocker. S/4 blockers = deprecated/removed SAP objects + modifications; Cloud blockers = those PLUS non-cloud code patterns (clean-core, security). The registry API-dependency counts are retained as secondary dependency-hygiene detail.",
       "properties": {
-        "s4_readiness_pct": { "type": "number", "description": "% S/4-ready = (released A + classicAPI B) / total; classicAPI runs on S/4 on-prem. Empty -> 100 (nothing to migrate)." },
-        "cloud_readiness_pct": { "type": "number", "description": "% Cloud-ready = released A / total; only cloud-released APIs count. Empty -> 0 (nothing cloud-released). DISTINCT from s4_readiness_pct." },
-        "released_hits": { "type": "integer", "description": "Level A (released) API dependency count." },
-        "classic_api_hits": { "type": "integer", "description": "Level B (classicAPI) count — S/4-ready but not cloud-released." },
-        "deprecated_hits": { "type": "integer", "description": "Level C (deprecated) count." },
-        "not_released_hits": { "type": "integer", "description": "Level D (removed / notToBeReleased) count." },
-        "total_api_calls": { "type": "integer" }
+        "s4_readiness_pct": { "type": "number", "description": "% of customer objects free of S/4HANA-blocking findings (deprecated/removed SAP objects + modifications). Empty -> 100." },
+        "cloud_readiness_pct": { "type": "number", "description": "% of customer objects free of ABAP-Cloud-blocking findings (S/4 blockers + clean-core + security patterns). Empty -> 100. Stricter than, and DISTINCT from, s4_readiness_pct." },
+        "total_objects": { "type": "integer", "description": "Customer compilation-unit objects assessed (the readiness denominator)." },
+        "s4_blocked_objects": { "type": "integer", "description": "Objects with >=1 S/4-blocking finding." },
+        "cloud_blocked_objects": { "type": "integer", "description": "Objects with >=1 Cloud-blocking finding." },
+        "s4_blocker_findings": { "type": "integer", "description": "Total S/4-blocking findings." },
+        "cloud_blocker_findings": { "type": "integer", "description": "Total Cloud-blocking findings." },
+        "released_hits": { "type": "integer", "description": "Dependency hygiene: Level A (released) SAP-API dependency count." },
+        "classic_api_hits": { "type": "integer", "description": "Dependency hygiene: Level B (classicAPI) count — runs on S/4 on-prem, not cloud-released." },
+        "deprecated_hits": { "type": "integer", "description": "Dependency hygiene: Level C (deprecated) count." },
+        "not_released_hits": { "type": "integer", "description": "Dependency hygiene: Level D (removed / notToBeReleased) count." },
+        "total_api_calls": { "type": "integer", "description": "Dependency hygiene: classifiable SAP-API dependency edges (NOT the readiness denominator)." }
       }
     },
     "metrics": {
