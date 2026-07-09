@@ -63,6 +63,17 @@
         "total_api_calls": { "type": "integer" }
       }
     },
+    "cloud_readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Findings bucketed by clean-core grade (§3.C): blockers=D, warnings=C, advisories=B, needs_review=unknown. Per-finding detail stays in `findings` (join by grade).",
+      "properties": {
+        "blockers": { "type": "object", "additionalProperties": false, "properties": { "findings": { "type": "integer" }, "distinct_rules": { "type": "integer" } } },
+        "warnings": { "type": "object", "additionalProperties": false, "properties": { "findings": { "type": "integer" }, "distinct_rules": { "type": "integer" } } },
+        "advisories": { "type": "object", "additionalProperties": false, "properties": { "findings": { "type": "integer" }, "distinct_rules": { "type": "integer" } } },
+        "needs_review": { "type": "object", "additionalProperties": false, "properties": { "findings": { "type": "integer" }, "distinct_rules": { "type": "integer" } } }
+      }
+    },
     "graph": {
       "type": "object",
       "additionalProperties": false,

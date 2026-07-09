@@ -14,6 +14,7 @@ import { canonicalizeFiles } from "./modes.js";
 import { sourceHash, configHash, runId, SCHEMA_VERSION } from "./run-identity.js";
 import { attachFindingIdentity, sortFindings } from "./finding-identity.js";
 import { curateFindings } from "./curation.js";
+import { cloudReadiness } from "./cloud-readiness.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -97,6 +98,7 @@ export function analyzePackage(files, opts = {}) {
     run_id: runId(source_hash, config_hash),
     findings,
     s4_readiness,
+    cloud_readiness: cloudReadiness(findings),
     graph: g,
     blast_radius,
     namespace_summary: buildNamespaceSummary(g.nodes),
