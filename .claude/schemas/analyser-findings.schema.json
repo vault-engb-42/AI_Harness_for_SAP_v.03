@@ -74,6 +74,30 @@
         "needs_review": { "type": "object", "additionalProperties": false, "properties": { "findings": { "type": "integer" }, "distinct_rules": { "type": "integer" } } }
       }
     },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Topological layering of CPG nodes (§3.C): entry (no incoming dependency), internal (called), data (tables).",
+      "properties": {
+        "entry": { "type": "array", "items": { "type": "string" } },
+        "internal": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "description": "Inbound system boundaries (§3.C): compilation-unit objects called into from a different object.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "direction"],
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "type": "string" },
+          "direction": { "type": "string", "enum": ["inbound", "outbound"] }
+        }
+      }
+    },
     "graph": {
       "type": "object",
       "additionalProperties": false,

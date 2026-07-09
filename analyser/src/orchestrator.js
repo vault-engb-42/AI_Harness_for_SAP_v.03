@@ -15,6 +15,7 @@ import { sourceHash, configHash, runId, SCHEMA_VERSION } from "./run-identity.js
 import { attachFindingIdentity, sortFindings } from "./finding-identity.js";
 import { curateFindings } from "./curation.js";
 import { cloudReadiness } from "./cloud-readiness.js";
+import { layers, boundaries } from "./graph-dimensions.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -99,6 +100,8 @@ export function analyzePackage(files, opts = {}) {
     findings,
     s4_readiness,
     cloud_readiness: cloudReadiness(findings),
+    layers: layers(g),
+    boundaries: boundaries(g),
     graph: g,
     blast_radius,
     namespace_summary: buildNamespaceSummary(g.nodes),
