@@ -1,18 +1,7 @@
 import { CSS, APP_JS } from "./html-assets.js";
 import { esc, num } from "./html-util.js";
-import {
-  summaryTab,
-  recommendationsTab,
-  planTab,
-  codeHealthTab,
-  debtTab,
-  cloudTab,
-  graphTab,
-  boundariesTab,
-  layersTab,
-  findingsTab,
-  sarifTab,
-} from "./html-tabs.js";
+import { summaryTab, recommendationsTab, planTab, codeHealthTab } from "./html-tabs.js";
+import { debtTab, cloudTab, graphTab, boundariesTab, layersTab, findingsTab, sarifTab } from "./html-tabs-detail.js";
 
 /**
  * §3.E self-contained HTML report — the analyser's OWN renderer (never
