@@ -80,7 +80,8 @@
               "kind": { "type": "string", "enum": ["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"], "description": "canonical CPG node kind (matches the analyser NodeKind union in docs/ANALYSER_ARCHITECTURE.md #3 C2)" },
               "object": { "type": "string" },
               "namespace": { "type": "string", "enum": ["Z", "Y", "registered", "sap"], "description": "Z/Y = customer; registered = /NS/ vendor namespace; sap = SAP standard." },
-              "clean_core_posture": { "type": "string", "enum": ["level-a", "brownfield-mixed", "classic", "unknown"] },
+              "clean_core_posture": { "type": "string", "enum": ["level-a", "brownfield-mixed", "classic", "unknown"], "description": "DUAL-EMITTED (§15.5) from clean_core_grade via the crosswalk A->level-a, B/C->brownfield-mixed, D->classic; retained one minor for back-compat, then cutover." },
+              "clean_core_grade": { "type": "string", "enum": ["A", "B", "C", "D", "unknown"], "description": "Oracle clean-core Level (§15.5, replaces clean_core_posture): SAP nodes = own Level; customer nodes = weakest dependency Level (§2 cap); unknown for registry gaps." },
               "modernization_target": { "type": "string" },
               "effort_tier": { "type": "string", "enum": ["retire", "re-platform", "keep-and-clean", "unknown"] }
             }

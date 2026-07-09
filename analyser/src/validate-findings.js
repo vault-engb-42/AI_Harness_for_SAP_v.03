@@ -10,6 +10,7 @@ const NODE_KIND = new Set(["class", "method", "function", "report", "cds", "beha
 const EDGE_KIND = new Set(["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"]);
 const NAMESPACE = new Set(["Z", "Y", "registered", "sap"]);
 const POSTURE = new Set(["level-a", "brownfield-mixed", "classic", "unknown"]);
+const GRADE = new Set(["A", "B", "C", "D", "unknown"]);
 const TIER = new Set(["retire", "re-platform", "keep-and-clean", "unknown"]);
 const IMPACT = new Set(["low", "medium", "high", "critical"]);
 
@@ -53,6 +54,7 @@ function validateGraph(graph, errors) {
     if (badEnum(n, "kind", NODE_KIND)) errors.push(`nodes[${i}] bad kind: ${n.kind}`);
     if (badEnum(n, "namespace", NAMESPACE)) errors.push(`nodes[${i}] bad namespace: ${n.namespace}`);
     if (badEnum(n, "clean_core_posture", POSTURE)) errors.push(`nodes[${i}] bad clean_core_posture: ${n.clean_core_posture}`);
+    if (badEnum(n, "clean_core_grade", GRADE)) errors.push(`nodes[${i}] bad clean_core_grade: ${n.clean_core_grade}`);
     if (badEnum(n, "effort_tier", TIER)) errors.push(`nodes[${i}] bad effort_tier: ${n.effort_tier}`);
   });
   graph.edges.forEach((e, i) => {

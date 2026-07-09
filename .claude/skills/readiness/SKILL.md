@@ -59,9 +59,9 @@ Write these files under `specs/readiness/`:
 
 Read the report (`abap-analyser` MCP `get_report` tool or the Read tool) and distil it into the readiness artifacts — the analyser already answered the migration question:
 
-- **Inventory + posture** ← `graph.nodes` (each node's `namespace`, `clean_core_posture`, and `object`) → `inventory.md`.
+- **Inventory + posture** ← `graph.nodes` (each node's `namespace`, `clean_core_grade` (A/B/C/D/unknown; `clean_core_posture` is the §15.5 dual-emit back-compat alias), and `object`) → `inventory.md`.
 - **Migration analysis** ← `s4_readiness` (released / deprecated / not-released counts + percentage) and the deprecated nodes' `modernization_target` (named successor) → `migration-analysis.md`.
-- **Tiering** ← **derive** each *custom* object's tier from its `clean_core_posture`, its `findings`, the readiness of the SAP APIs it depends on, and the Step-3 usage signal. Note `effort_tier` and `modernization_target` sit on the **SAP dependency** nodes (the successor path for each deprecated API), **not** on customer object nodes — use them as per-dependency evidence, not as the object's tier.
+- **Tiering** ← **derive** each *custom* object's tier from its `clean_core_grade` (the weakest-dependency Level, §2), its `findings`, the readiness of the SAP APIs it depends on, and the Step-3 usage signal. Note `effort_tier` and `modernization_target` sit on the **SAP dependency** nodes (the successor path for each deprecated API), **not** on customer object nodes — use them as per-dependency evidence, not as the object's tier.
 - **Blockers** ← `findings` (unreleased-API, classic-UI, dynamic-SQL, missing-test-class, invariant) and `blast_radius` (top blockers by impact) → the risk/blocker detail and Step-5 rollup.
 - **Coverage** ← honour `coverage_note`: any skipped/malformed object is **not covered** — record it as Unknown, never as clean or `retire`.
 
@@ -93,7 +93,7 @@ Do not let either path flip a `live/unknown` object into a `retired` one on abse
 
 ## Step 4 — Tier the Remediation Backlog (retire / re-platform / keep-and-clean)
 
-Write `specs/readiness/remediation-backlog.md`. Assign **each custom object exactly one tier**, with the evidence read and the branch reason. In **analyser mode**, derive each custom object's tier from its `clean_core_posture` + its `findings` + the readiness of the SAP APIs it depends on (those SAP dependency nodes carry `effort_tier`/`modernization_target` — the successor path), then apply the safety rules below — crucially, an object may be tiered **`retire` only with the Step-3 live-usage confirmation** (the offline analyser cannot see usage). In **crawl mode**, assign the tier from the migration verdicts and source reads:
+Write `specs/readiness/remediation-backlog.md`. Assign **each custom object exactly one tier**, with the evidence read and the branch reason. In **analyser mode**, derive each custom object's tier from its `clean_core_grade` + its `findings` + the readiness of the SAP APIs it depends on (those SAP dependency nodes carry `effort_tier`/`modernization_target` — the successor path), then apply the safety rules below — crucially, an object may be tiered **`retire` only with the Step-3 live-usage confirmation** (the offline analyser cannot see usage). In **crawl mode**, assign the tier from the migration verdicts and source reads:
 
 | Tier | When | Effort signal |
 |---|---|---|

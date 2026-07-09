@@ -63,8 +63,13 @@ test("nodes are enriched with modernization metadata", () => {
   const parent = doc.graph.nodes.find((n) => n.id === "CL_A4C_BC_FACTORY");
   assert.equal(parent.effort_tier, "re-platform");
   assert.equal(parent.modernization_target, "CL_BCFG_CD_REUSE_API_FACTORY");
-  assert.equal(parent.clean_core_posture, "classic");
+  // §15.5: clean_core_grade is the oracle Level (C=deprecated); posture is dual-
+  // emitted via the crosswalk C->brownfield-mixed (was "classic" pre-§15.5).
+  assert.equal(parent.clean_core_grade, "C");
+  assert.equal(parent.clean_core_posture, "brownfield-mixed");
   const customer = doc.graph.nodes.find((n) => n.id === "ZCL_SVC");
+  // customer node grade = weakest dependency Level (§2 cap): its deps are C -> C.
+  assert.equal(customer.clean_core_grade, "C");
   assert.equal(customer.clean_core_posture, "brownfield-mixed");
 });
 
