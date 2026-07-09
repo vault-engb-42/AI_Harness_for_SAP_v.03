@@ -102,13 +102,33 @@ test("renderHtml HTML-escapes untrusted finding-derived text (P8)", () => {
   assert.ok(html.includes("\\u003cimg") || html.includes("&lt;img"), "object payload is encoded, not raw");
 });
 
-test("Graph tab is a force-directed SVG with layered seed, controls, and highlightable nodes/edges", () => {
+test("Graph tab offers force-directed SVG + a dependency matrix (DSM) view", () => {
   const html = renderHtml(DOC);
   assert.ok(html.includes('id="gsvg"') && html.includes('id="gv"'), "svg + transform group");
   assert.ok(/class="gn" data-id="[^"]+" data-x="[^"]+" data-y=/.test(html), "nodes carry id + deterministic seed position");
-  assert.ok(/class="ge" data-src=/.test(html), "edges carry endpoints for the sim + highlight");
-  assert.ok(/onclick="gLayout\('force'\)"/.test(html) && /onclick="gLayout\('layered'\)"/.test(html), "Force/Layered toggle");
-  assert.ok(html.includes("gZoom") && html.includes("gFit") && html.includes("gReset"), "visible zoom/fit/reset controls");
+  assert.ok(/onclick="gLayout\('force'\)"/.test(html) && /onclick="gLayout\('matrix'\)"/.test(html), "Force + Matrix toggle");
+  assert.ok(html.includes("gZoom") && html.includes("gFit"), "zoom/fit controls");
+  // DSM: ZR depends on T001 -> a dependency cell in the object×object grid.
+  assert.ok(html.includes('id="gmatrix"') && html.includes('table class="mx"'), "dependency matrix rendered");
+  assert.ok(html.includes("mx-dep"), "the ZR→T001 dependency shows as a filled cell");
+});
+
+test("dependency matrix flags a circular dependency above the diagonal", () => {
+  const cyclic = {
+    ...DOC,
+    graph: {
+      nodes: [
+        { id: "ZCL_A", kind: "class", object: "ZCL_A", namespace: "Z", rank: 0.5 },
+        { id: "ZCL_B", kind: "class", object: "ZCL_B", namespace: "Z", rank: 0.4 },
+      ],
+      edges: [
+        { source: "ZCL_A", target: "ZCL_B", kind: "call-method" },
+        { source: "ZCL_B", target: "ZCL_A", kind: "call-method" },
+      ],
+    },
+  };
+  const html = renderHtml(cyclic);
+  assert.ok(html.includes("mx-cycle"), "the A↔B cycle is marked as a circular dependency");
 });
 
 test("SARIF tab is a summary panel + export pointer, NOT the embedded raw document", () => {
