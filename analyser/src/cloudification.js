@@ -92,6 +92,11 @@ export function isReleased(name) {
   return classify(name).release_state === "released";
 }
 
+/** @param {string} name @returns {string} oracle clean-core Level A|B|C|D|unknown (§3.F) — the classification authority the collapsed release_state is derived from. */
+export function level(name) {
+  return classifyName(name).level;
+}
+
 /** @param {string} name @returns {string|undefined} first released successor name */
 export function getSuccessor(name) {
   return classify(name).successors[0]?.name;

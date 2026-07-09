@@ -24,11 +24,12 @@ test("readiness tallies released / deprecated / removed API edges", () => {
   assert.equal(r.s4_readiness_pct, 33); // 1/3
 });
 
-test("no classifiable edges yields 100% (nothing at risk)", () => {
+test("no classifiable edges: S/4 100% (nothing at risk) but Cloud 0% (nothing cloud-released)", () => {
   const g = graphWith([{ source: "A", target: "A.M", kind: "call-method" }]);
   const r = computeReadiness(g, cloud);
   assert.equal(r.total_api_calls, 0);
-  assert.equal(r.s4_readiness_pct, 100);
+  assert.equal(r.s4_readiness_pct, 100, "empty = trivially S/4-ready");
+  assert.equal(r.cloud_readiness_pct, 0, "empty = nothing cloud-released (distinct sentinel from S/4)");
 });
 
 test("all-released package is 100% ready", () => {
@@ -47,4 +48,24 @@ test("a removed (noAPI) dependency lands in not_released_hits and dilutes readin
   assert.equal(r.not_released_hits, 1, "removed branch tallied");
   assert.equal(r.total_api_calls, 2);
   assert.equal(r.s4_readiness_pct, 50, "removed dilutes the percentage");
+});
+
+test("classicAPI (Level B) is S/4-ready but NOT Cloud-ready — the two percentages diverge", () => {
+  // The bug: release_state collapses Level B (classicAPI) into 'deprecated', so
+  // s4/cloud came out identical. Fix: classify by oracle Level — cloud-ready = A;
+  // S/4-ready = A + B (classicAPI runs on S/4 but is not cloud-released).
+  const g = graphWith([
+    { source: "ZCL_X", target: "/ATL/BLART_RANGE", kind: "uses-table" }, // A released
+    { source: "ZCL_X", target: "CL_ABAP_CHAR_UTILITIES", kind: "inherits" }, // B classicAPI
+    { source: "ZCL_X", target: "CF_REBD_BUILDING", kind: "call-function" }, // D removed
+  ]);
+  const r = computeReadiness(g, cloud);
+  // a=1, b=1, d=1, total=3.
+  assert.equal(r.classic_api_hits, 1, "classicAPI tallied separately, not folded into deprecated");
+  assert.equal(r.released_hits, 1);
+  assert.equal(r.not_released_hits, 1);
+  assert.equal(r.total_api_calls, 3);
+  assert.equal(r.cloud_readiness_pct, 33, "only released (A) is cloud-ready: 1/3");
+  assert.equal(r.s4_readiness_pct, 67, "released + classicAPI (A+B) run on S/4: 2/3");
+  assert.notEqual(r.s4_readiness_pct, r.cloud_readiness_pct, "S/4 and Cloud readiness are now distinct");
 });

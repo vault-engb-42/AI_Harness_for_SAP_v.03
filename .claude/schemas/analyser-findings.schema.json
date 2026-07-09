@@ -55,11 +55,12 @@
       "required": ["s4_readiness_pct", "released_hits", "deprecated_hits"],
       "description": "S/4HANA / Clean-Core readiness, grounded on aws_abap_cb_get_migration_analysis per referenced object. Models TALOS S4ReadinessSummary.",
       "properties": {
-        "s4_readiness_pct": { "type": "number" },
-        "cloud_readiness_pct": { "type": "number" },
-        "released_hits": { "type": "integer" },
-        "deprecated_hits": { "type": "integer" },
-        "not_released_hits": { "type": "integer" },
+        "s4_readiness_pct": { "type": "number", "description": "% S/4-ready = (released A + classicAPI B) / total; classicAPI runs on S/4 on-prem. Empty -> 100 (nothing to migrate)." },
+        "cloud_readiness_pct": { "type": "number", "description": "% Cloud-ready = released A / total; only cloud-released APIs count. Empty -> 0 (nothing cloud-released). DISTINCT from s4_readiness_pct." },
+        "released_hits": { "type": "integer", "description": "Level A (released) API dependency count." },
+        "classic_api_hits": { "type": "integer", "description": "Level B (classicAPI) count — S/4-ready but not cloud-released." },
+        "deprecated_hits": { "type": "integer", "description": "Level C (deprecated) count." },
+        "not_released_hits": { "type": "integer", "description": "Level D (removed / notToBeReleased) count." },
         "total_api_calls": { "type": "integer" }
       }
     },
