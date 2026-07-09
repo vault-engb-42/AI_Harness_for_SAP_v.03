@@ -13,6 +13,7 @@ import { collectBlastRadius } from "./blast-radius-report.js";
 import { canonicalizeFiles } from "./modes.js";
 import { sourceHash, configHash, runId, SCHEMA_VERSION } from "./run-identity.js";
 import { attachFindingIdentity, sortFindings } from "./finding-identity.js";
+import { curateFindings } from "./curation.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -54,13 +55,15 @@ export function analyzePackage(files, opts = {}) {
     notes.push(`graph truncated at MAX_GRAPH_NODES=${maxNodes}; dependency coverage is partial — raise the cap or narrow the package`);
   }
 
-  // Attach AST-unit identity (enclosing_unit + normalized_snippet + finding_id,
-  // conv #10/#11) over the canonical source, then stable total-order sort (A2) so
-  // finding order + ids are deterministic and line-resilient.
+  // Curate (§3.B, conv #17: source_category + family-routed grade + atc_priority
+  // + atcCheckId) -> attach AST-unit identity (finding_id, conv #10/#11) -> stable
+  // total-order sort (A2). Static-first: no usage-reachability drop yet.
   const findings = sortFindings(
-    attachFindingIdentity(
-      [...runAbaplintRules(reg), ...runRules(ALL_RULES, { graph, reg, cloud })],
-      canon,
+    curateFindings(
+      attachFindingIdentity(
+        [...runAbaplintRules(reg), ...runRules(ALL_RULES, { graph, reg, cloud })],
+        canon,
+      ),
     ),
   );
 

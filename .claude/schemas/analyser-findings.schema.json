@@ -40,7 +40,12 @@
           "family": { "type": "string", "description": "e.g. released-api, modification, invariant, performance, dynamic-sql." },
           "enclosing_unit": { "type": "string", "description": "Smallest containing METHOD/FORM/FUNCTION/MODULE (else the compilation-unit object) — the line-resilient anchor scope (conv #10)." },
           "normalized_snippet": { "type": "string", "description": "Normalized flagged-statement text: whitespace-collapsed, keywords upper-cased, string literals verbatim (conv #10)." },
-          "finding_id": { "type": "string", "description": "Run identity (§7): SHA-256 hex of rule_id + object + enclosing_unit + normalized_snippet — the line-resilient exemption/ratchet anchor." }
+          "finding_id": { "type": "string", "description": "Run identity (§7): SHA-256 hex of rule_id + object + enclosing_unit + normalized_snippet — the line-resilient exemption/ratchet anchor." },
+          "referenced_object": { "type": "string", "description": "For registry-family findings (e.g. released-api): the SAP object the finding references, graded via the oracle (conv #17)." },
+          "source_category": { "type": "string", "description": "The finding's native family/category, persisted for curation (§3.B)." },
+          "grade": { "type": "string", "enum": ["advisory", "warning", "blocker", "needs_review"], "description": "Clean-core grade, routed total+disjoint by family (conv #17): registry families grade via the oracle on referenced_object, all others via severity." },
+          "atc_priority": { "type": "string", "enum": ["P1", "P2", "P3", "none"], "description": "ATC priority derived from grade (blocker->P1, warning->P2, advisory->P3, needs_review->none)." },
+          "atcCheckId": { "type": "string", "description": "Nearest ATC check id (§15.7 family map)." }
         }
       }
     },

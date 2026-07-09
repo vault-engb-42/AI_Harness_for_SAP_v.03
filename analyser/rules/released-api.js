@@ -43,6 +43,8 @@ export const releasedApiRule = {
       findings.push({
         severity: c.release_state === "removed" ? "priority-1" : "priority-2",
         object: edge.source,
+        // the referenced SAP object — curation grades this via the oracle (conv #17)
+        referenced_object: edge.target,
         message:
           `uses non-released API ${edge.target} (${c.raw_state})` +
           (successor ? `; released successor ${successor}` : "; no released successor"),
