@@ -64,6 +64,26 @@
         "total_api_calls": { "type": "integer" }
       }
     },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Package-level codebase metrics for the Summary tab: LOC + object/file counts + customer-vs-SAP LOC split + TALOS size class + cyclomatic/nesting extremes + duplication + a Maintainability Index (SEI/Microsoft comment-adjusted formula over token-based Halstead volume, cyclomatic, LOC, comment ratio; bounded 0-100, analyser-defined UX score).",
+      "properties": {
+        "total_loc": { "type": "integer", "minimum": 0 },
+        "file_count": { "type": "integer", "minimum": 0 },
+        "object_count": { "type": "integer", "minimum": 0 },
+        "by_kind": { "type": "object", "additionalProperties": { "type": "integer" }, "description": "compilation-unit count by CPG node kind." },
+        "customer_loc": { "type": "integer", "minimum": 0 },
+        "sap_loc": { "type": "integer", "minimum": 0 },
+        "size_class": { "type": "string", "enum": ["S", "M", "L", "XL", "XXL"] },
+        "avg_cyclomatic": { "type": "number", "minimum": 0 },
+        "max_cyclomatic": { "type": "integer", "minimum": 0 },
+        "max_nesting": { "type": "integer", "minimum": 0 },
+        "duplication_findings": { "type": "integer", "minimum": 0 },
+        "comment_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maintainability_index": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
     "cloud_readiness": {
       "type": "object",
       "additionalProperties": false,

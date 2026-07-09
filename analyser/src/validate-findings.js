@@ -15,6 +15,7 @@ const TIER = new Set(["retire", "re-platform", "keep-and-clean", "unknown"]);
 const IMPACT = new Set(["low", "medium", "high", "critical"]);
 const EFFORT = new Set(["S", "M", "L", "XL"]); // §3.D plan effort_tier (distinct from node TIER)
 const PRIORITY = new Set(["P1", "P2", "P3"]); // §3.D plan priority_rank
+const SIZE_CLASS = new Set(["S", "M", "L", "XL", "XXL"]); // metrics size_class
 
 /**
  * @param {object} doc a produced analyser-findings document
@@ -37,6 +38,7 @@ export function validateFindings(doc) {
   validateCodeHealth(doc?.code_health, errors);
   validateDebt(doc?.debt, errors);
   validateModernizationPlan(doc?.modernization_plan, errors);
+  validateMetrics(doc?.metrics, errors);
   return { valid: errors.length === 0, errors };
 }
 
@@ -106,6 +108,17 @@ function validateModernizationPlan(plan, errors) {
     const c = o?.migration_complexity;
     if (!Number.isInteger(c) || c < 0 || c > 5) errors.push(`modernization_plan.objects[${i}].migration_complexity must be an integer 0-5: ${c}`);
   });
+}
+
+/** metrics is optional; when present, size_class must be a legal class and MI a 0-100 integer. */
+function validateMetrics(metrics, errors) {
+  if (metrics === undefined) return;
+  if (badEnum(metrics, "size_class", SIZE_CLASS)) errors.push(`metrics bad size_class: ${metrics.size_class}`);
+  const mi = metrics?.maintainability_index;
+  if (!Number.isInteger(mi) || mi < 0 || mi > 100) errors.push(`metrics.maintainability_index must be an integer 0-100: ${mi}`);
+  for (const k of ["total_loc", "object_count", "customer_loc", "sap_loc"]) {
+    if (metrics[k] !== undefined && (typeof metrics[k] !== "number" || metrics[k] < 0)) errors.push(`metrics.${k} must be a non-negative number: ${metrics[k]}`);
+  }
 }
 
 function validateBlastRadius(blast, errors) {

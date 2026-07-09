@@ -63,21 +63,42 @@ export function planTab(doc) {
 <table><thead><tr><th>#</th><th>Object</th><th>Kind</th><th>Target</th><th>Effort</th><th>Priority</th><th>Complexity</th><th>Steps</th></tr></thead><tbody>${rows || "<tr><td colspan=8><i>no customer objects to modernize</i></td></tr>"}</tbody></table>`;
 }
 
+const card = (label, value, hot) => `<div class="card"><b class="${hot && value ? "hot" : ""}">${esc(String(value))}</b><span>${esc(label)}</span></div>`;
+
 export function summaryTab(doc) {
   const ch = doc.code_health ?? {};
   const ns = doc.namespace_summary ?? {};
   const nodes = doc.graph?.nodes ?? [];
   const p1 = (doc.findings ?? []).filter((f) => f.severity === "priority-1").length;
   const cards = [
-    ["Objects", nodes.filter((n) => !["table", "method", "form"].includes(n.kind)).length],
-    ["Findings", (doc.findings ?? []).length], ["Priority-1", p1], ["Debt hotspots", doc.debt?.hotspot_count ?? 0],
-    ["Customer objects", num(ns.customer_total)], ["Clean-core grade", ch.clean_core_grade ?? "?"],
-  ].map(([l, v]) => `<div class="card"><b class="${l === "Priority-1" && v ? "hot" : ""}">${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("");
+    ["Objects", nodes.filter((n) => !["table", "method", "form"].includes(n.kind)).length, false],
+    ["Findings", (doc.findings ?? []).length, false], ["Priority-1", p1, true], ["Debt hotspots", doc.debt?.hotspot_count ?? 0, false],
+    ["Customer objects", num(ns.customer_total), false], ["Clean-core grade", ch.clean_core_grade ?? "?", false],
+  ].map(([l, v, hot]) => card(l, v, hot)).join("");
   const top = themes(doc).slice(0, 3).map(([fam, g]) => `<li><b>${esc(THEME[fam].t)}</b> — ${g.count} findings across ${g.objs.size} objects (${esc(THEME[fam].impact)})</li>`).join("");
   return `<h2>Executive Summary — ${esc(doc.package ?? "")}</h2><div class="cards">${cards}</div>
+${codebaseSection(doc.metrics)}
 <h3>Readiness</h3>${bar("S/4HANA", doc.s4_readiness?.s4_readiness_pct)}${bar("Cloud", doc.s4_readiness?.cloud_readiness_pct)}
 <h3>Code health (${esc(ch.clean_core_grade ?? "?")})</h3>${bar("Clarity", ch.clarity)}${bar("Stability", ch.stability)}${bar("Performance", ch.performance)}${bar("Compound", ch.compound)}
 <h3>Top risks</h3><ol class="risks">${top || "<li>none</li>"}</ol>`;
+}
+
+/** Codebase-scale metrics (§ metrics block): the "how big / how maintainable" view. */
+function codebaseSection(m) {
+  if (!m) return "";
+  const kinds = Object.entries(m.by_kind ?? {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} ${v}`).join(" · ") || "—";
+  const cards = [
+    card(`Total LOC`, num(m.total_loc).toLocaleString("en-US"), false),
+    card(`Files`, num(m.file_count), false),
+    card(`Objects`, num(m.object_count), false),
+    card(`Size class`, m.size_class ?? "?", false),
+    card(`Maintainability`, num(m.maintainability_index), num(m.maintainability_index) < 40),
+    card(`Max nesting`, num(m.max_nesting), num(m.max_nesting) > 5),
+    card(`Max cyclomatic`, num(m.max_cyclomatic), num(m.max_cyclomatic) > 20),
+    card(`Duplication`, num(m.duplication_findings), num(m.duplication_findings) > 0),
+  ].join("");
+  return `<h3>Codebase</h3><div class="cards">${cards}</div>
+<p class="muted small">${num(m.customer_loc).toLocaleString("en-US")} customer LOC · ${num(m.sap_loc).toLocaleString("en-US")} SAP LOC · ${Math.round(num(m.comment_ratio) * 100)}% comments · by kind: ${kinds}. Maintainability Index 0–100 (SEI/Microsoft, higher = easier to change; &lt;40 = hard).</p>`;
 }
 
 export function codeHealthTab(doc) {

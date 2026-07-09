@@ -20,6 +20,7 @@ import { codeHealth } from "./code-health.js";
 import { scoreDebt } from "./debt-scorer.js";
 import { normalizedRank } from "./pagerank.js";
 import { modernizationPlan } from "./modernization-plan.js";
+import { computeMetrics } from "./metrics.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -109,6 +110,7 @@ export function analyzePackage(files, opts = {}) {
     run_id: runId(source_hash, config_hash),
     findings,
     s4_readiness,
+    metrics: computeMetrics(findings, reg),
     cloud_readiness: cloudReadiness(findings),
     code_health: codeHealth(g, findings, reg),
     debt,
