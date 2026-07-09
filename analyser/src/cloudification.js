@@ -1,7 +1,15 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { normalizeS4Status, effortTierForStatus } from "./s4-status.js";
+import { classifyName } from "../../oracle/src/oracle.js";
+
+// §3.F oracle-adoption: the ORACLE Level (weakest-wins over both registries) is
+// the classification authority. release_state + effort_tier are derived from it,
+// replacing s4-status.js normalizeS4Status/effortTierForStatus. This is an
+// INTENDED migration — it changes s4_readiness_pct, node.effort_tier and the
+// released-api finding set for the conflict objects (see the before/after fixture).
+const RELEASE_STATE_FOR_LEVEL = { A: "released", B: "deprecated", C: "deprecated", D: "removed", unknown: "unknown" };
+const TIER_FOR_LEVEL = { A: "keep-and-clean", B: "re-platform", C: "re-platform", D: "retire", unknown: "unknown" };
 
 /**
  * Cloudification Registry adapter — O(1) S/4HANA readiness lookup over the
@@ -67,9 +75,12 @@ function ingest(map, src) {
  */
 export function classify(name) {
   const rec = loadIndex().get(String(name ?? "").toUpperCase());
-  if (!rec) return { release_state: "unknown", raw_state: undefined, successors: [], object_type: undefined };
+  // §3.F: release_state from the oracle Level (weakest-wins), not the single
+  // release-wins state; successors + object_type stay from the registry read.
+  const release_state = RELEASE_STATE_FOR_LEVEL[classifyName(name).level];
+  if (!rec) return { release_state, raw_state: undefined, successors: [], object_type: undefined };
   return {
-    release_state: normalizeS4Status(rec.state),
+    release_state,
     raw_state: rec.state,
     successors: rec.successors,
     object_type: rec.objectType,
@@ -86,9 +97,9 @@ export function getSuccessor(name) {
   return classify(name).successors[0]?.name;
 }
 
-/** @param {string} name @returns {string} schema effort_tier for the object's state */
+/** @param {string} name @returns {string} schema effort_tier from the oracle Level (§3.F) */
 export function effortTier(name) {
-  return effortTierForStatus(classify(name).raw_state);
+  return TIER_FOR_LEVEL[classifyName(name).level];
 }
 
 /** @returns {number} indexed object count (diagnostics) */
