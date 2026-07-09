@@ -207,10 +207,50 @@ export function findingsTab(doc) {
 ${island}`;
 }
 
+const IMPACT_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
 export function cloudTab(doc) {
   const cr = doc.cloud_readiness ?? {};
-  return `<h2>Cloud Readiness</h2>${bar("S/4HANA Ready", doc.s4_readiness?.s4_readiness_pct)}${bar("Cloud Ready", doc.s4_readiness?.cloud_readiness_pct)}
-<div class="cards"><div class="card"><b class="hot">${cr.blockers?.findings ?? 0}</b><span>Blockers (D)</span></div><div class="card"><b>${cr.warnings?.findings ?? 0}</b><span>Warnings (C)</span></div><div class="card"><b>${cr.advisories?.findings ?? 0}</b><span>Advisories (B)</span></div><div class="card"><b>${cr.needs_review?.findings ?? 0}</b><span>Needs review</span></div></div>`;
+  const s4 = doc.s4_readiness ?? {};
+  return `<h2>Cloud Readiness</h2>${bar("S/4HANA Ready", s4.s4_readiness_pct)}${bar("Cloud Ready", s4.cloud_readiness_pct)}
+<p class="muted small">S/4-ready = released + classic-API objects; Cloud-ready = released only. ${num(s4.released_hits)} released · ${num(s4.classic_api_hits)} classic-API · ${num(s4.deprecated_hits)} deprecated · ${num(s4.not_released_hits)} removed, of ${num(s4.total_api_calls)} classifiable API uses.</p>
+<h3>Clean-Core grade distribution</h3>${gradeDistribution(doc.graph?.nodes)}
+<h3>Findings by clean-core bucket</h3><div class="cards"><div class="card"><b class="hot">${cr.blockers?.findings ?? 0}</b><span>Blockers (D)</span></div><div class="card"><b>${cr.warnings?.findings ?? 0}</b><span>Warnings (C)</span></div><div class="card"><b>${cr.advisories?.findings ?? 0}</b><span>Advisories (B)</span></div><div class="card"><b>${cr.needs_review?.findings ?? 0}</b><span>Needs review</span></div></div>
+<h3>Blast radius <span class="muted">(deprecated SAP objects, most-affected first)</span></h3>${blastRadiusTable(doc.blast_radius)}
+<h3>Released-API successors <span class="muted">(what to replace, and who uses it)</span></h3>${successorTable(doc.findings)}`;
+}
+
+/** A/B/C/D/unknown object counts from the graph (deduped per object, not per member node). */
+function gradeDistribution(nodes) {
+  const byObject = new Map();
+  for (const n of nodes ?? []) if (n.object && !byObject.has(n.object)) byObject.set(n.object, n.clean_core_grade ?? "unknown");
+  const tally = { A: 0, B: 0, C: 0, D: 0, unknown: 0 };
+  for (const g of byObject.values()) tally[g in tally ? g : "unknown"] += 1;
+  const label = { A: "A · cloud-ready", B: "B · classic API", C: "C · deprecated", D: "D · blocker", unknown: "unknown" };
+  return `<div class="cards">${["D", "C", "B", "A", "unknown"].map((g) => `<div class="card"><b class="${(g === "D" || g === "C") && tally[g] ? "hot" : ""}">${tally[g]}</b><span>${esc(label[g])}</span></div>`).join("")}</div>`;
+}
+
+/** Blast-radius table (doc.blast_radius) — computed today, previously rendered nowhere in the HTML. */
+function blastRadiusTable(blast) {
+  const rows = [...(blast ?? [])]
+    .sort((a, b) => num(b.affected_program_count) - num(a.affected_program_count) || (IMPACT_RANK[a.highest_impact] ?? 9) - (IMPACT_RANK[b.highest_impact] ?? 9))
+    .map((b) => `<tr><td>${esc(b.object)}</td><td>${num(b.affected_program_count)}</td><td><span class="pill">${esc(b.highest_impact ?? "—")}</span></td><td class="muted small">${esc(b.successor_kind ?? "—")}</td></tr>`)
+    .join("");
+  return `<table><thead><tr><th>SAP object</th><th>Affected programs</th><th>Impact</th><th>Successor kind</th></tr></thead><tbody>${rows || "<tr><td colspan=4><i>no at-risk SAP dependencies</i></td></tr>"}</tbody></table>`;
+}
+
+/** Released-API successor map from the registry-family findings: SAP object -> fix -> customer users. */
+function successorTable(findings) {
+  const by = new Map();
+  for (const f of findings ?? []) {
+    if (!f.referenced_object || !f.suggestion) continue;
+    if (!by.has(f.referenced_object)) by.set(f.referenced_object, { fix: f.suggestion, users: new Set(), severity: f.severity });
+    if (f.object) by.get(f.referenced_object).users.add(f.object);
+  }
+  const rows = [...by.entries()]
+    .sort((a, b) => b[1].users.size - a[1].users.size || (a[0] < b[0] ? -1 : 1))
+    .map(([obj, e]) => `<tr><td>${esc(obj)}</td><td class="fix">${esc(e.fix)}</td><td>${e.users.size}</td><td><span class="pill">${esc(e.severity ?? "")}</span></td></tr>`)
+    .join("");
+  return `<table><thead><tr><th>SAP object</th><th>Recommended replacement</th><th>Customer objects using it</th><th>Severity</th></tr></thead><tbody>${rows || "<tr><td colspan=4><i>no released-API successors identified</i></td></tr>"}</tbody></table>`;
 }
 
 // SARIF tab: a summary panel, NOT the raw document (operator-confirmed 2026-07-09).
