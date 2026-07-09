@@ -265,6 +265,8 @@
               "effort_tier": { "type": "string", "enum": ["S", "M", "L", "XL"], "description": "XL if debt>0.7 or stmts>200; L if >0.5/>100; M if >0.3/>50; else S." },
               "priority_rank": { "type": "string", "enum": ["P1", "P2", "P3"], "description": "By normalized PageRank: P1>0.8, P2>0.5, else P3." },
               "migration_complexity": { "type": "integer", "minimum": 0, "maximum": 5, "description": "0-5: +1 each for dyn_call_ratio>0.3, cyclomatic>10, nesting>5, debt>0.6, and (no analogue in our node taxonomy) obj_type in {wdyn,wapa,enho}." },
+              "wave": { "type": "integer", "minimum": 0, "description": "Dependency-order batch: 0 = no plan dependencies (build first), N = 1 + max dependency wave. A preview; the moderniser refines it with SCC condensation." },
+              "dependencies": { "type": "array", "items": { "type": "string" }, "description": "Other customer plan objects this object depends on (customer→customer graph edges)." },
               "transformation_count": { "type": "integer" },
               "transformations": {
                 "type": "array",
@@ -289,6 +291,7 @@
           "additionalProperties": false,
           "properties": {
             "total_objects": { "type": "integer" },
+            "wave_count": { "type": "integer", "minimum": 0 },
             "by_effort": { "type": "object", "additionalProperties": { "type": "integer" } },
             "by_priority": { "type": "object", "additionalProperties": { "type": "integer" } },
             "transport_order": { "type": "array", "items": { "type": "string" }, "description": "Object names in transport-release order." }

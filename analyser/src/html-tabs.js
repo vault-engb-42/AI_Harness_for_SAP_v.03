@@ -43,22 +43,40 @@ export function recommendationsTab(doc) {
 }
 
 // ── Modernization Plan (§3.D): what to modernize, in what order, at what cost ──
-const EFFORT_LABEL = { XL: "extra-large", L: "large", M: "medium", S: "small" };
 export function planTab(doc) {
   const p = doc.modernization_plan ?? { objects: [], summary: {} };
   const s = p.summary ?? {};
   const eff = s.by_effort ?? {};
   const pri = s.by_priority ?? {};
   const cards = [
-    ["Objects", s.total_objects ?? 0, false],
+    ["Objects", s.total_objects ?? 0, false], ["Waves", s.wave_count ?? 0, false],
     ["XL effort", eff.XL ?? 0, true], ["L", eff.L ?? 0, false], ["M", eff.M ?? 0, false], ["S", eff.S ?? 0, false],
     ["P1 priority", pri.P1 ?? 0, true], ["P2", pri.P2 ?? 0, false], ["P3", pri.P3 ?? 0, false],
-  ].map(([l, v, hot]) => `<div class="card"><b class="${hot && v ? "hot" : ""}">${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("");
-  const rows = (p.objects ?? []).map((o, i) => `<tr><td class="muted">${i + 1}</td><td>${esc(o.object)}</td><td class="muted small">${esc(o.kind)}</td><td>${esc(o.modernization_target)}</td><td><span class="pill" title="${esc(EFFORT_LABEL[o.effort_tier] ?? "")}">${esc(o.effort_tier)}</span></td><td><span class="pill">${esc(o.priority_rank)}</span></td><td>${num(o.migration_complexity)}/5</td><td>${num(o.transformation_count)}</td></tr>`).join("");
-  return `<h2>Modernization Plan <span class="muted">(${s.total_objects ?? 0} customer objects, transport-ordered)</span></h2>
-<p class="muted">Per customer object: the target artifact, effort (by debt + size), priority (by importance/PageRank), migration complexity (0–5), and the number of modernization steps. Rows are in safe transport-release order (CDS → interfaces → classes → behaviour → the rest).</p>
+  ].map(([l, v, hot]) => card(l, v, hot)).join("");
+  const byWave = new Map();
+  for (const o of p.objects ?? []) {
+    if (!byWave.has(o.wave ?? 0)) byWave.set(o.wave ?? 0, []);
+    byWave.get(o.wave ?? 0).push(o);
+  }
+  const waves = [...byWave.keys()].sort((a, b) => a - b)
+    .map((w) => `<h3>Wave ${w} <span class="muted">— ${w === 0 ? "no dependencies, build first" : "depends on earlier waves"} (${byWave.get(w).length})</span></h3>${byWave.get(w).map(planObject).join("")}`)
+    .join("");
+  return `<h2>Modernization Plan <span class="muted">(${s.total_objects ?? 0} customer objects · ${s.wave_count ?? 0} waves · transport-ordered)</span></h2>
+<p class="muted">Per customer object: target artifact, effort (debt + size), priority (importance), migration complexity (0–5), and its modernization steps. Grouped into dependency waves — build wave 0 first; within a wave, transport-safe order (CDS → interfaces → classes → behaviour → the rest). Click an object for its steps.</p>
 <div class="cards">${cards}</div>
-<table><thead><tr><th>#</th><th>Object</th><th>Kind</th><th>Target</th><th>Effort</th><th>Priority</th><th>Complexity</th><th>Steps</th></tr></thead><tbody>${rows || "<tr><td colspan=8><i>no customer objects to modernize</i></td></tr>"}</tbody></table>`;
+${waves || "<i>no customer objects to modernize</i>"}`;
+}
+
+/** One plan object as an expandable row: summary line + dependencies + transformation steps. */
+function planObject(o) {
+  const deps = (o.dependencies ?? []).length
+    ? `<div class="muted small">Depends on: ${o.dependencies.map((d) => `<span class="tag">${esc(d)}</span>`).join("")}</div>`
+    : `<div class="muted small">No customer dependencies.</div>`;
+  const steps = (o.transformations ?? []).map((t) => `<tr><td class="muted small">${esc(t.kind)}</td><td>${esc(t.why ?? "")}</td><td class="fix">${esc(t.released_successor ?? t.fix ?? "")}</td></tr>`).join("");
+  const stepsTable = (o.transformations ?? []).length
+    ? `<table><thead><tr><th>Kind</th><th>Why</th><th>Fix / successor</th></tr></thead><tbody>${steps}</tbody></table>`
+    : `<p class="muted small">No modernization steps flagged — review for target-model fit.</p>`;
+  return `<details class="planobj"><summary><b>${esc(o.object)}</b> <span class="muted small">${esc(o.kind)}</span> → ${esc(o.modernization_target)} · <span class="pill">${esc(o.effort_tier)}</span> · <span class="pill">${esc(o.priority_rank)}</span> · cx ${num(o.migration_complexity)}/5 · ${num(o.transformation_count)} steps</summary><div class="pbody">${deps}${stepsTable}</div></details>`;
 }
 
 const card = (label, value, hot) => `<div class="card"><b class="${hot && value ? "hot" : ""}">${esc(String(value))}</b><span>${esc(label)}</span></div>`;

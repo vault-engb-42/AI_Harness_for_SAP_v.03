@@ -96,8 +96,13 @@ export function modernizationPlan(g, debt, findings, reg, cloud) {
   const cycloByObject = maxCyclomaticByObject(reg);
   const transformsByObject = groupTransformations(findings, cloud);
 
+  const units = customerUnits(g?.nodes ?? []);
+  const planObjects = new Set(units.map((u) => u.object));
+  const deps = dependenciesByObject(g, planObjects);
+  const waves = topologicalWaves(units, deps);
+
   const objects = [];
-  for (const { object, kind, rank } of customerUnits(g?.nodes ?? [])) {
+  for (const { object, kind, rank } of units) {
     const debtScore = debtByObject.get(object) ?? 0;
     const m = metricsByObject.get(object) ?? { stmts: 0, dyn_call_ratio: 0, nesting: 0 };
     const cyclomatic = cycloByObject.get(object) ?? 0;
@@ -109,13 +114,62 @@ export function modernizationPlan(g, debt, findings, reg, cloud) {
       effort_tier: effortTier(debtScore, m.stmts),
       priority_rank: priorityRank(rank),
       migration_complexity: migrationComplexity({ dyn_call_ratio: m.dyn_call_ratio, cyclomatic, nesting: m.nesting, debt: debtScore, kind }),
+      wave: waves.get(object) ?? 0,
+      dependencies: [...(deps.get(object) ?? [])].sort(),
       transformation_count: transformations.length,
       transformations,
     });
   }
   // Transport-safe order: stable sort by (transport rank, object name).
   objects.sort((a, b) => transportRank(a.kind) - transportRank(b.kind) || (a.object < b.object ? -1 : a.object > b.object ? 1 : 0));
-  return { objects, summary: summarize(objects) };
+  const wave_count = objects.reduce((mx, o) => Math.max(mx, o.wave + 1), 0);
+  return { objects, summary: { ...summarize(objects), wave_count } };
+}
+
+/**
+ * Per plan object, the OTHER plan objects it depends on (customer→customer edges).
+ * @param {{nodes?: object[], edges?: object[]}} g
+ * @param {Set<string>} planObjects
+ * @returns {Map<string, Set<string>>} object -> its plan-object dependencies
+ */
+function dependenciesByObject(g, planObjects) {
+  const owner = new Map((g?.nodes ?? []).map((n) => [n.id, n.object]));
+  const deps = new Map();
+  for (const e of g?.edges ?? []) {
+    const s = owner.get(e.source) ?? e.source;
+    const t = owner.get(e.target) ?? e.target;
+    if (s === t || !planObjects.has(s) || !planObjects.has(t)) continue;
+    if (!deps.has(s)) deps.set(s, new Set());
+    deps.get(s).add(t);
+  }
+  return deps;
+}
+
+/**
+ * Modernization waves — the dependency-order batching preview: wave 0 = objects
+ * with no plan dependencies (safe to build first), wave N = 1 + max dependency
+ * wave. Memoized DFS with a back-edge guard so a dependency cycle degrades to the
+ * leaf level rather than looping (the moderniser refines this with SCC condensation
+ * at execution). Deterministic over the pre-sorted unit order.
+ * @param {Array<{object: string}>} units
+ * @param {Map<string, Set<string>>} deps
+ * @returns {Map<string, number>} object -> wave index
+ */
+function topologicalWaves(units, deps) {
+  const wave = new Map();
+  const visiting = new Set();
+  const compute = (obj) => {
+    if (wave.has(obj)) return wave.get(obj);
+    if (visiting.has(obj)) return 0; // back-edge (cycle) — break rather than loop
+    visiting.add(obj);
+    let w = 0;
+    for (const d of deps.get(obj) ?? []) w = Math.max(w, compute(d) + 1);
+    visiting.delete(obj);
+    wave.set(obj, w);
+    return w;
+  };
+  for (const u of units) compute(u.object);
+  return wave;
 }
 
 /**

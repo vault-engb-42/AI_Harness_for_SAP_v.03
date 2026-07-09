@@ -90,6 +90,27 @@ test("assembler: only customer compilation units get a plan entry, sorted by tra
   assert.deepEqual(plan.summary.transport_order, ["ZCL_X", "ZR"]);
 });
 
+test("waves + dependencies: a dependent object builds in a later wave than its dependency", () => {
+  const reg = loadRegistry([
+    { filename: "zcl_x.clas.abap", source: "CLASS zcl_x DEFINITION PUBLIC. PUBLIC SECTION. METHODS m. ENDCLASS.\nCLASS zcl_x IMPLEMENTATION. METHOD m. WRITE 'a'. ENDMETHOD. ENDCLASS." },
+    { filename: "zr.prog.abap", source: "REPORT zr.\nSTART-OF-SELECTION.\n  WRITE 'a'." },
+  ]);
+  const g = {
+    nodes: [
+      { id: "ZCL_X", kind: "class", object: "ZCL_X", namespace: "Z", rank: 0.5 },
+      { id: "ZR", kind: "report", object: "ZR", namespace: "Z", rank: 0.4 },
+    ],
+    edges: [{ source: "ZR", target: "ZCL_X", kind: "call-method" }],
+  };
+  const plan = modernizationPlan(g, scoreDebt(g, [], reg), [], reg, cloud);
+  const byObj = Object.fromEntries(plan.objects.map((o) => [o.object, o]));
+  assert.equal(byObj.ZCL_X.wave, 0, "the dependency builds first");
+  assert.equal(byObj.ZR.wave, 1, "the dependent builds after");
+  assert.deepEqual(byObj.ZR.dependencies, ["ZCL_X"], "dependency recorded");
+  assert.deepEqual(byObj.ZCL_X.dependencies, [], "leaf has none");
+  assert.equal(plan.summary.wave_count, 2);
+});
+
 test("transformations: modernization-family findings join per object with released successor", () => {
   const reg = loadRegistry([{ filename: "zr.prog.abap", source: "REPORT zr.\nSTART-OF-SELECTION.\n  WRITE 'a'." }]);
   const g = { nodes: [{ id: "ZR", kind: "report", object: "ZR", namespace: "Z", rank: 0.4 }], edges: [] };
