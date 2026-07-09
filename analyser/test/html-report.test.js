@@ -15,7 +15,7 @@ const DOC = {
     { rule_id: "S4-001", severity: "priority-1", grade: "blocker", family: "released-api", object: "ZR", file: "zr.prog.abap", line: 3, message: "uses non-released T001" },
   ],
   s4_readiness: { s4_readiness_pct: 40, cloud_readiness_pct: 20, released_hits: 1, deprecated_hits: 1, not_released_hits: 0, total_api_calls: 2 },
-  code_health: { clean_core_grade: "C", clarity: 77, stability: 60, performance: 90, compound: 74 },
+  code_health: { clean_core_grade: "C", clarity: 61, stability: 60, performance: 90, compound: 70, clarity_breakdown: { cyclomatic: 83, length: 62, nesting: 96, lcom: null }, by_object: [{ object: "ZR", kind: "report", cyclomatic: 12, max_routine_loc: 171, nesting: 4, lcom: null, perf_findings: 1, grade: "C", penalty: 0.81 }] },
   metrics: { total_loc: 1234, file_count: 3, object_count: 2, by_kind: { report: 1, table: 1 }, customer_loc: 1000, sap_loc: 234, size_class: "S", avg_cyclomatic: 4, max_cyclomatic: 12, max_nesting: 3, duplication_findings: 1, comment_ratio: 0.1, maintainability_index: 65 },
   debt: { scores: [{ symbol: "ZR", score: 0.42, signals: { size_ratio: 0.5, complexity: 0.3 } }], avg_score: 0.42, max_score: 0.42, hotspot_count: 0 },
   cloud_readiness: { blockers: { findings: 1, distinct_rules: 1 }, warnings: { findings: 0, distinct_rules: 0 }, advisories: { findings: 0, distinct_rules: 0 }, needs_review: { findings: 0, distinct_rules: 0 } },
@@ -52,6 +52,14 @@ test("Summary renders the codebase metrics block (LOC, size class, Maintainabili
   assert.ok(html.includes("1,234"), "total LOC formatted");
   assert.ok(html.includes("Maintainability"), "MI surfaced");
   assert.ok(html.includes("Size class"), "size class surfaced");
+});
+
+test("Code Health tab renders the clarity breakdown + per-object drill-down", () => {
+  const html = renderHtml(DOC);
+  assert.ok(html.includes("Clarity breakdown"), "clarity sub-axes present");
+  assert.ok(html.includes("By object"), "per-object section present");
+  assert.ok(/<th>Max cyclomatic<\/th>/.test(html) && /Longest routine/.test(html), "cyclomatic + length columns");
+  assert.ok(/<th>Clarity penalty<\/th>/.test(html), "penalty column surfaces the worst attribute");
 });
 
 test("renderHtml loads no external resources (self-contained file://)", () => {

@@ -6,9 +6,10 @@ import { analyzePackage } from "../src/orchestrator.js";
 import { validateFindings } from "../src/validate-findings.js";
 
 // code_health dimension (arch spec §3.C). Real abaplint parse, no mocks.
-// clarity = mean of (100 - mean cyclomatic penalty over methods, anchored 10..20)
-//   and (100 - 100*mean LCOM* over classes);
-// stability = 100*(1 - mean Martin instability Ce/(Ca+Ce)) over compilation units;
+// clarity = 100*(1 - mean object penalty), each object penalized by its WORST
+//   readability attribute: max(cyclomatic 10..20, routine length 50..200, nesting
+//   3..8, LCOM*) — so a low branch count can't mask a 200-line routine;
+// stability = 100*(1 - mean Martin main-sequence distance) over the core;
 // performance = % of compilation-unit objects free of performance-family findings;
 // compound = mean(clarity, stability, performance);
 // clean_core_grade = weakest node grade (§2 weakest-wins).
@@ -42,15 +43,39 @@ const CALC = [
   "ENDCLASS.",
 ].join("\n");
 
-test("clarity = mean(cyclomatic sub, lcom sub): both methods cc<=10 -> cyclo 100; LCOM*=0.5 -> lcom 50; clarity 75", () => {
+test("clarity = 100*(1 - worst-attribute penalty): short simple methods, LCOM*=0.5 -> clarity 50", () => {
   const reg = loadRegistry([{ filename: "zcl_calc.clas.abap", source: CALC }]);
   // one isolated class: no coupling edges -> stability defaults to 100;
   // no performance findings on the only object -> performance 100.
+  // ZCL_CALC: cc<=3 (pen 0), short routines (pen 0), shallow nesting (pen 0),
+  // LCOM*=0.5 (pen 0.5) -> worst attribute 0.5 -> clarity 50. The breakdown shows
+  // WHICH axis: cohesion is the fault, not complexity/length.
   const ch = codeHealth({ nodes: [{ id: "ZCL_CALC", kind: "class", object: "ZCL_CALC" }], edges: [] }, [], reg);
-  assert.equal(ch.clarity, 75, "mean(100 cyclo, 50 lcom)");
+  assert.equal(ch.clarity, 50, "worst attribute is LCOM* 0.5");
+  assert.equal(ch.clarity_breakdown.lcom, 50, "lcom axis surfaces the cohesion fault");
+  assert.equal(ch.clarity_breakdown.cyclomatic, 100, "cyclomatic axis is clean");
   assert.equal(ch.stability, 100, "no coupling -> maximally stable");
   assert.equal(ch.performance, 100, "no performance findings");
-  assert.equal(ch.compound, Math.round((75 + 100 + 100) / 3), "compound = mean of the three");
+  assert.equal(ch.compound, Math.round((50 + 100 + 100) / 3), "compound = mean of the three");
+});
+
+test("clarity catches a long-but-simple routine that cyclomatic misses (the FORM/monolith fix)", () => {
+  // A 200-line method with ZERO branches: cyclomatic says pristine, but it reads
+  // terribly. The length axis must register it -> clarity near 0. This is the exact
+  // blind spot (op observation 1a) that cyclomatic+LCOM alone could not see.
+  const body = Array.from({ length: 200 }, (_, i) => `    mv = mv + ${i}.`).join("\n");
+  const big = [
+    "CLASS zcl_big DEFINITION PUBLIC. PUBLIC SECTION. METHODS long. PRIVATE SECTION. DATA mv TYPE i.",
+    "ENDCLASS.",
+    "CLASS zcl_big IMPLEMENTATION. METHOD long.",
+    body,
+    "ENDMETHOD. ENDCLASS.",
+  ].join("\n");
+  const reg = loadRegistry([{ filename: "zcl_big.clas.abap", source: big }]);
+  const ch = codeHealth({ nodes: [{ id: "ZCL_BIG", kind: "class", object: "ZCL_BIG" }], edges: [] }, [], reg);
+  assert.equal(ch.clarity_breakdown.cyclomatic, 100, "cyclomatic is blind to length (no branches)");
+  assert.ok(ch.clarity_breakdown.length <= 5, `length axis registers the monolith: ${ch.clarity_breakdown.length}`);
+  assert.ok(ch.clarity <= 5, `clarity reflects the 200-line routine, not the clean branch count: ${ch.clarity}`);
 });
 
 test("performance = share of compilation-unit objects free of performance-family findings", () => {

@@ -1,58 +1,166 @@
-import { methodCyclomatic, classCohesion, abstractnessByObject } from "./ast-metrics.js";
+import { routineComplexity, classCohesion, abstractnessByObject, sizeMetrics, routineLengths } from "./ast-metrics.js";
+import { modernizationMetrics } from "./modernization-metrics.js";
+import { objectsOf } from "./abaplint-loader.js";
 
 /**
  * code_health dimension (arch spec §3.C) — a package-level clean_core_grade plus
  * four 0-100 health scores, all deterministic functions of the enriched CPG
- * graph JSON, the curated findings, and the parsed registry. Only `clarity` is
- * spec-formulated (cyclomatic b+1 + LCOM); `stability`/`performance`/`compound`
- * are the analyser's own deterministic definitions (operator-approved 2026-07-09,
- * "faithful AST metrics"): the reference numbers are a UX target, not an oracle.
+ * graph JSON, the curated findings, and the parsed registry. `clarity` is a
+ * multi-factor readability score (cyclomatic + routine length + nesting + LCOM*);
+ * `stability`/`performance`/`compound` are the analyser's own deterministic
+ * definitions (operator-approved 2026-07-09): the numbers are a UX target, not an
+ * oracle.
  */
 
 /** Node kinds that are repository compilation units (the objects we score). */
 const COMPILATION_UNIT_KINDS = new Set(["class", "interface", "function", "report", "cds", "behavior", "form"]);
+/** abaplint object types that hold executable code (clarity's population). */
+const CODE_TYPES = new Set(["PROG", "CLAS", "FUGR", "FUNC", "INTF"]);
 /** Dependency edge kinds that count as coupling for Martin instability. */
 const COUPLING_KINDS = new Set(["calls", "call-function", "call-method", "inherits", "consumes-cds", "get-badi", "uses-table", "includes"]);
 /** Weakness rank (mirrors enrich.js): lower = weaker (D < C < B < A). */
 const LEVEL_RANK = { D: 0, C: 1, B: 2, A: 3 };
-/** Cyclomatic clarity anchors: <=10 is McCabe-clean, >=20 is abaplint's max. */
-const CC_LOW = 10;
-const CC_HIGH = 20;
+/** Clarity anchors — a penalty ramps linearly from LOW (clean) to HIGH (max). */
+const CC_LOW = 10; // cyclomatic: <=10 is McCabe-clean
+const CC_HIGH = 20; // >=20 is abaplint's max
+const LEN_LOW = 50; // avg routine length: <=50 lines reads cleanly
+const LEN_HIGH = 200; // >=200 lines is a monolith
+const NEST_LOW = 3; // control-flow nesting: <=3 is fine
+const NEST_HIGH = 8; // >=8 is deeply nested
 
 /**
  * @param {{nodes?: object[], edges?: object[]}} g the enriched CPG graph JSON
  * @param {object[]} findings the curated findings
  * @param {import("@abaplint/core").Registry} reg the parsed registry (for AST metrics)
- * @returns {{clean_core_grade: string, clarity: number, stability: number, performance: number, compound: number}}
+ * @returns {object} the code_health block
  */
 export function codeHealth(g, findings, reg) {
-  const clarity = clarityScore(reg);
+  const inputs = clarityInputs(reg);
+  const { clarity, clarity_breakdown } = clarityScore(inputs);
   const stability = stabilityScore(g, abstractnessByObject(reg));
   const performance = performanceScore(g, findings);
   const compound = Math.round((clarity + stability + performance) / 3);
-  return { clean_core_grade: aggregateGrade(g?.nodes ?? []), clarity, stability, performance, compound };
+  return {
+    clean_core_grade: aggregateGrade(g?.nodes ?? []),
+    clarity,
+    clarity_breakdown,
+    stability,
+    performance,
+    compound,
+    by_object: perObjectHealth(g, findings, inputs),
+  };
 }
 
 /**
- * Clarity = equal-weight mean of the two present sub-axes. Cyclomatic sub-axis:
- * each method penalized linearly from 0 at cc<=10 to 1 at cc>=20 (abaplint max),
- * score = 100*(1 - mean penalty). LCOM sub-axis: score = 100*(1 - mean LCOM*).
- * A package with neither methods nor classes scores 100 (no complexity to fault).
+ * Per code object (PROG/CLAS/FUGR/FUNC/INTF): the four readability inputs — worst
+ * routine cyclomatic, worst routine LENGTH (longest single method/FORM/FM; an
+ * event-block program with no routine structures uses its whole-program LOC), max
+ * control-flow nesting, and class LCOM*. Length is per-routine max, NOT a
+ * per-object average, so one 200-line monolith cannot hide among short routines.
  * @param {import("@abaplint/core").Registry} reg
- * @returns {number} 0-100
+ * @returns {Map<string, {maxCC: number, lengthLoc: number, nesting: number, lcom: number|null, hasCode: boolean}>}
  */
-function clarityScore(reg) {
-  const sub = [];
-  const ccs = methodCyclomatic(reg);
-  if (ccs.length) {
-    const penalties = ccs.map((m) => clamp01((m.cyclomatic - CC_LOW) / (CC_HIGH - CC_LOW)));
-    sub.push(100 * (1 - mean(penalties)));
+function clarityInputs(reg) {
+  const maxCC = new Map();
+  for (const r of routineComplexity(reg)) maxCC.set(r.object, Math.max(maxCC.get(r.object) ?? 0, r.cyclomatic));
+  const size = new Map(sizeMetrics(reg).map((s) => [s.object, s]));
+  const routineLen = routineLengths(reg);
+  const nesting = new Map(modernizationMetrics(reg).map((m) => [m.object, m.nesting]));
+  const lcom = new Map(classCohesion(reg).map((c) => [c.object, c.lcom]));
+  const out = new Map();
+  for (const obj of objectsOf(reg)) {
+    const type = obj.getType?.();
+    if (!CODE_TYPES.has(type)) continue;
+    const object = obj.getName();
+    const s = size.get(object) ?? { loc: 0, routines: 0 };
+    const rlen = routineLen.get(object) ?? { max: 0, sum: 0 };
+    // Length = worst reading unit: the longest routine OR, for a program, its
+    // event-block body (total LOC outside any routine) — whichever is bigger.
+    const eventBody = type === "PROG" ? Math.max(0, s.loc - rlen.sum) : 0;
+    out.set(object, {
+      maxCC: maxCC.get(object) ?? 0,
+      lengthLoc: Math.max(rlen.max, eventBody),
+      nesting: nesting.get(object) ?? 0,
+      lcom: lcom.has(object) ? lcom.get(object) : null,
+      hasCode: s.routines > 0 || type === "PROG",
+    });
   }
-  const cohesions = classCohesion(reg);
-  if (cohesions.length) {
-    sub.push(100 * (1 - mean(cohesions.map((c) => c.lcom))));
+  return out;
+}
+
+/** The four readability penalties (0-1) for one object; null where the dimension does not apply. */
+function penalties(x) {
+  return {
+    cyclomatic: x.maxCC > 0 ? clamp01((x.maxCC - CC_LOW) / (CC_HIGH - CC_LOW)) : null,
+    length: x.hasCode && x.lengthLoc > 0 ? clamp01((x.lengthLoc - LEN_LOW) / (LEN_HIGH - LEN_LOW)) : null,
+    nesting: x.hasCode ? clamp01((x.nesting - NEST_LOW) / (NEST_HIGH - NEST_LOW)) : null,
+    lcom: x.lcom == null ? null : clamp01(x.lcom),
+  };
+}
+
+/** The MAX of an object's applicable penalties — its worst readability attribute. */
+function objectPenalty(x) {
+  const present = Object.values(penalties(x)).filter((v) => v != null);
+  return present.length ? Math.max(...present) : null;
+}
+
+/**
+ * Clarity = 100*(1 - mean object penalty), each object penalized by its WORST
+ * readability attribute (max of cyclomatic / routine length / nesting / LCOM*), so
+ * a low branch count cannot mask a 200-line routine (op observation 1a). The
+ * clarity_breakdown reports each dimension's mean penalty as a 0-100 axis so the
+ * score is explainable. Empty population scores 100.
+ * @param {Map<string, object>} inputs
+ * @returns {{clarity: number, clarity_breakdown: object}}
+ */
+function clarityScore(inputs) {
+  const objectPenalties = [];
+  const dim = { cyclomatic: [], length: [], nesting: [], lcom: [] };
+  for (const x of inputs.values()) {
+    const p = penalties(x);
+    for (const k of Object.keys(dim)) if (p[k] != null) dim[k].push(p[k]);
+    const op = objectPenalty(x);
+    if (op != null) objectPenalties.push(op);
   }
-  return sub.length ? Math.round(mean(sub)) : 100;
+  const axis = (arr) => (arr.length ? Math.round(100 * (1 - mean(arr))) : null);
+  return {
+    clarity: objectPenalties.length ? Math.round(100 * (1 - mean(objectPenalties))) : 100,
+    clarity_breakdown: { cyclomatic: axis(dim.cyclomatic), length: axis(dim.length), nesting: axis(dim.nesting), lcom: axis(dim.lcom) },
+  };
+}
+
+/**
+ * Per compilation-unit object drill-down (Code Health tab): worst routine
+ * cyclomatic, average routine length, max nesting, class LCOM* (null for
+ * non-classes), performance-finding count, clean-core grade, and the clarity
+ * penalty (0-1) that drove the score — so a reader sees WHICH objects, and WHY,
+ * drag the package down. Sorted worst-penalty first.
+ * @param {{nodes?: object[]}} g
+ * @param {object[]} findings
+ * @param {Map<string, object>} inputs
+ * @returns {Array<object>}
+ */
+function perObjectHealth(g, findings, inputs) {
+  const perfBy = new Map();
+  for (const f of findings ?? []) if (f.family === "performance" && f.object) perfBy.set(f.object, (perfBy.get(f.object) ?? 0) + 1);
+  const seen = new Map();
+  for (const n of g?.nodes ?? []) {
+    if (!COMPILATION_UNIT_KINDS.has(n.kind) || seen.has(n.object)) continue;
+    const x = inputs.get(n.object);
+    const pen = x ? objectPenalty(x) : null;
+    seen.set(n.object, {
+      object: n.object,
+      kind: n.kind,
+      cyclomatic: x?.maxCC ?? 0,
+      max_routine_loc: x?.lengthLoc ?? 0,
+      nesting: x?.nesting ?? 0,
+      lcom: x && x.lcom != null ? Math.round(x.lcom * 100) / 100 : null,
+      perf_findings: perfBy.get(n.object) ?? 0,
+      grade: n.clean_core_grade ?? "unknown",
+      penalty: pen == null ? 0 : Math.round(pen * 100) / 100,
+    });
+  }
+  return [...seen.values()].sort((a, b) => b.penalty - a.penalty || (a.object < b.object ? -1 : a.object > b.object ? 1 : 0));
 }
 
 /**
@@ -61,12 +169,9 @@ function clarityScore(reg) {
  * (Ce/Ca = DISTINCT objects this object depends on / is depended on by, members
  * resolved to their owning object; self-loops and non-coupling edges ignored),
  * and A is Martin abstractness (interface=1, class=abstract-method fraction,
- * else 0). D=0 is on the main sequence (a concrete entry point A=0/I=1, or a
- * depended-upon abstraction A=1/I=0); D=1 is a corner (the "zone of pain":
- * concrete + heavily depended-upon A=0/I=0, which raw instability wrongly rates
- * as perfect). Objects with NO dependents (Ca=0) are excluded — a by-design
- * entry point's position is not a health signal (decision 2026-07-09). A package
- * with no depended-upon objects scores 100.
+ * else 0). Objects with NO dependents (Ca=0) are excluded — a by-design entry
+ * point's position is not a health signal (decision 2026-07-09). A package with
+ * no depended-upon objects scores 100.
  * @param {{nodes?: object[], edges?: object[]}} g
  * @param {Map<string, number>} abstractness object name -> Martin abstractness A (default 0)
  * @returns {number} 0-100
@@ -114,8 +219,7 @@ function performanceScore(g, findings) {
 
 /**
  * Package clean_core_grade = weakest KNOWN node grade (§2 weakest-wins); falls
- * back to "unknown" only when no node carries a known A/B/C/D grade (§15.3
- * unknown->INDETERMINATE). A known blocker (D) dominates any co-present unknowns.
+ * back to "unknown" only when no node carries a known A/B/C/D grade.
  * @param {object[]} nodes
  * @returns {string} A|B|C|D|unknown
  */

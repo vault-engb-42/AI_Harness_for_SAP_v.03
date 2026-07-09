@@ -43,6 +43,91 @@ export function methodCyclomatic(reg) {
   return out.sort(byObjectThen("method"));
 }
 
+// abaplint's cyclomatic branch statements (CyclomaticComplexityStats set), reused
+// to score FORMs / function modules that its method-only stats skip.
+const BRANCH_STATEMENTS = ["Assert", "Check", "If", "ElseIf", "While", "Case", "SelectLoop", "Catch", "Cleanup", "EndAt", "Loop"];
+
+/**
+ * Cyclomatic complexity per ROUTINE — methods (via abaplint) PLUS FORMs and
+ * function modules (abaplint's method-only stats skip these, verified, so this is
+ * purely additive — no double count). A FORM/FM routine's cyclomatic = 1 + count
+ * of branch statements in its body. This closes the clarity blind spot where
+ * FORM/report-heavy legacy code scored a misleading 100 (op observation 1a).
+ * Production only (test include excluded), matching methodCyclomatic.
+ *
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {Array<{object: string, cyclomatic: number}>} sorted by (object, cyclomatic)
+ */
+export function routineComplexity(reg) {
+  const branchCtors = BRANCH_STATEMENTS.map((n) => Statements[n]).filter(Boolean);
+  const out = methodCyclomatic(reg).map((m) => ({ object: m.object, cyclomatic: m.cyclomatic }));
+  for (const obj of objectsOf(reg)) {
+    const object = nameOf(obj);
+    const testFile = obj.getTestclassFile?.()?.getFilename();
+    for (const file of obj.getABAPFiles?.() ?? []) {
+      if (file.getFilename() === testFile) continue;
+      const struct = file.getStructure?.();
+      if (!struct) continue;
+      for (const Ctor of [Structures.Form, Structures.FunctionModule]) {
+        for (const routine of struct.findAllStructures(Ctor)) {
+          let branches = 0;
+          for (const sn of routine.findAllStatementNodes()) if (branchCtors.some((C) => sn.get() instanceof C)) branches += 1;
+          out.push({ object, cyclomatic: branches + 1 });
+        }
+      }
+    }
+  }
+  return out.sort((a, b) => (a.object < b.object ? -1 : a.object > b.object ? 1 : a.cyclomatic - b.cyclomatic));
+}
+
+/**
+ * Per object: the max and total line-span of its routine structures (method /
+ * FORM / function module, span inclusive of the opening..closing statement). The
+ * PER-ROUTINE length signal for code_health.clarity — a per-object average would
+ * dilute one 200-line monolith among short routines, so the caller uses `max`.
+ * `sum` lets the caller recover a program's event-block body (total LOC − sum),
+ * which lives outside any routine structure and would otherwise be invisible.
+ * Production only.
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {Map<string, {max: number, sum: number}>} object name -> routine LOC stats
+ */
+export function routineLengths(reg) {
+  const out = new Map();
+  for (const obj of objectsOf(reg)) {
+    const testFile = obj.getTestclassFile?.()?.getFilename();
+    let max = 0;
+    let sum = 0;
+    for (const file of obj.getABAPFiles?.() ?? []) {
+      if (file.getFilename() === testFile) continue;
+      const struct = file.getStructure?.();
+      if (!struct) continue;
+      for (const Ctor of [Structures.Method, Structures.Form, Structures.FunctionModule]) {
+        for (const routine of struct.findAllStructures(Ctor)) {
+          const loc = structLoc(routine);
+          max = Math.max(max, loc);
+          sum += loc;
+        }
+      }
+    }
+    out.set(obj.getName(), { max, sum });
+  }
+  return out;
+}
+
+/** @param {object} node a structure node @returns {number} inclusive line span of its statements */
+function structLoc(node) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const sn of node.findAllStatementNodes()) {
+    for (const t of sn.getTokens()) {
+      const r = t.getStart().getRow();
+      if (r < min) min = r;
+      if (r > max) max = r;
+    }
+  }
+  return max >= min ? max - min + 1 : 0;
+}
+
 /**
  * Henderson-Sellers LCOM* per (non-test) class: `(m - (1/a)·Σ μ(f)) / (m - 1)`,
  * where m = implemented methods, a = declared attributes, μ(f) = methods

@@ -104,13 +104,32 @@ function codebaseSection(m) {
 export function codeHealthTab(doc) {
   const ch = doc.code_health ?? {};
   const note = {
-    Clarity: "Method complexity (cyclomatic) + class cohesion (LCOM). Higher = clearer.",
+    Clarity: "Readability: each object scored by its WORST attribute — cyclomatic complexity, routine length, nesting, or class cohesion (LCOM*). Higher = clearer.",
     Stability: "Distance from Robert Martin's main sequence over the dependency core. Higher = better-placed.",
     Performance: "Share of objects free of performance findings.",
     Compound: "Mean of the three above.",
   };
-  const rows = ["Clarity", "Stability", "Performance", "Compound"].map((k) => `${bar(k, ch[k.toLowerCase()])}<p class="muted small">${esc(note[k])}</p>`).join("");
-  return `<h2>Code Health — grade ${esc(ch.clean_core_grade ?? "?")}</h2>${rows}`;
+  const bars = ["Clarity", "Stability", "Performance", "Compound"].map((k) => `${bar(k, ch[k.toLowerCase()])}<p class="muted small">${esc(note[k])}</p>`).join("");
+  return `<h2>Code Health — grade ${esc(ch.clean_core_grade ?? "?")}</h2>${bars}
+${clarityBreakdown(ch.clarity_breakdown)}
+<h3>By object <span class="muted">(worst first)</span></h3>${perObjectHealthTable(ch.by_object)}`;
+}
+
+/** The four clarity sub-axes as bars, so the clarity number is explainable. */
+function clarityBreakdown(b) {
+  if (!b) return "";
+  const rows = [["Cyclomatic", b.cyclomatic], ["Routine length", b.length], ["Nesting", b.nesting], ["Cohesion (LCOM*)", b.lcom]]
+    .filter(([, v]) => v != null).map(([l, v]) => bar(l, v)).join("");
+  return `<h3>Clarity breakdown <span class="muted">(lower axis = the readability fault)</span></h3>${rows}`;
+}
+
+/** Per-object health drill-down — which objects, and why, drag the package scores down. */
+function perObjectHealthTable(byObject) {
+  const rows = (byObject ?? []).map((o) => {
+    const lcom = o.lcom == null ? "—" : round(o.lcom);
+    return `<tr><td>${esc(o.object)}</td><td class="muted small">${esc(o.kind)}</td><td class="${num(o.cyclomatic) > 20 ? "hot" : ""}">${num(o.cyclomatic)}</td><td class="${num(o.max_routine_loc) > 150 ? "hot" : ""}">${num(o.max_routine_loc)}</td><td class="${num(o.nesting) > 5 ? "hot" : ""}">${num(o.nesting)}</td><td>${lcom}</td><td class="${num(o.perf_findings) ? "hot" : ""}">${num(o.perf_findings)}</td><td><span class="pill">${esc(o.grade)}</span></td><td><b class="${num(o.penalty) >= 0.5 ? "hot" : ""}">${round(o.penalty)}</b></td></tr>`;
+  }).join("");
+  return `<table><thead><tr><th>Object</th><th>Kind</th><th>Max cyclomatic</th><th>Longest routine (LOC)</th><th>Nesting</th><th>LCOM*</th><th>Perf</th><th>Grade</th><th>Clarity penalty</th></tr></thead><tbody>${rows || "<tr><td colspan=9><i>no objects</i></td></tr>"}</tbody></table>`;
 }
 
 // Interactive dependency graph: a deterministic 3-column layered layout computed

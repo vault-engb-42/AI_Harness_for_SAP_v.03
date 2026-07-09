@@ -85,6 +85,13 @@ function validateCodeHealth(ch, errors) {
     const v = ch?.[k];
     if (!Number.isInteger(v) || v < 0 || v > 100) errors.push(`code_health.${k} must be an integer in [0,100]: ${v}`);
   }
+  if (ch.by_object !== undefined) {
+    if (!Array.isArray(ch.by_object)) return void errors.push("code_health.by_object is not an array");
+    ch.by_object.forEach((o, i) => {
+      if (absent(o?.object)) errors.push(`code_health.by_object[${i}] missing object`);
+      if (badEnum(o, "grade", GRADE)) errors.push(`code_health.by_object[${i}] bad grade: ${o.grade}`);
+    });
+  }
 }
 
 /** debt is optional; when present, scores is an array of {symbol, score∈[0,1]} + numeric summaries. */

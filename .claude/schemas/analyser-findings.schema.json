@@ -103,9 +103,40 @@
       "properties": {
         "clean_core_grade": { "type": "string", "enum": ["A", "B", "C", "D", "unknown"] },
         "clarity": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "clarity_breakdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The four clarity sub-axes as 0-100 scores (null where the dimension has no population), so the clarity number is explainable: cyclomatic complexity, routine length, control-flow nesting, class cohesion (LCOM*).",
+          "properties": {
+            "cyclomatic": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "length": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "nesting": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "lcom": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+          }
+        },
         "stability": { "type": "integer", "minimum": 0, "maximum": 100 },
         "performance": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "compound": { "type": "integer", "minimum": 0, "maximum": 100 }
+        "compound": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "by_object": {
+          "type": "array",
+          "description": "Per compilation-unit health drill-down: worst routine cyclomatic (methods + FORMs + function modules), longest routine LOC (event-block body counted for programs), max nesting, class LCOM* (null for non-classes), performance-finding count, clean-core grade, and the clarity penalty (0-1) that drove the score. Sorted worst-penalty first.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["object", "kind", "cyclomatic", "grade"],
+            "properties": {
+              "object": { "type": "string" },
+              "kind": { "type": "string" },
+              "cyclomatic": { "type": "integer", "minimum": 0 },
+              "max_routine_loc": { "type": "integer", "minimum": 0 },
+              "nesting": { "type": "integer", "minimum": 0 },
+              "lcom": { "type": ["number", "null"] },
+              "perf_findings": { "type": "integer", "minimum": 0 },
+              "grade": { "type": "string", "enum": ["A", "B", "C", "D", "unknown"] },
+              "penalty": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
       }
     },
     "debt": {
