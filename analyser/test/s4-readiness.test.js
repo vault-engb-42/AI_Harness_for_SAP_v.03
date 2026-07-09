@@ -56,7 +56,7 @@ test("classicAPI (Level B) is S/4-ready but NOT Cloud-ready — the two percenta
   // S/4-ready = A + B (classicAPI runs on S/4 but is not cloud-released).
   const g = graphWith([
     { source: "ZCL_X", target: "/ATL/BLART_RANGE", kind: "uses-table" }, // A released
-    { source: "ZCL_X", target: "CL_ABAP_CHAR_UTILITIES", kind: "inherits" }, // B classicAPI
+    { source: "ZCL_X", target: "/AIF/CL_BGRFC_CLEANUP_UTIL", kind: "inherits" }, // B classicAPI (classifications-only, so release-info-wins keeps it B)
     { source: "ZCL_X", target: "CF_REBD_BUILDING", kind: "call-function" }, // D removed
   ]);
   const r = computeReadiness(g, cloud);

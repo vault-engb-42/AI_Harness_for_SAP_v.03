@@ -2,33 +2,32 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { classify, effortTier } from "../src/cloudification.js";
 
-// §3.F oracle-adoption — BEFORE/AFTER fixture (arch spec §3.F: "an INTENDED
-// migration ... proven with a before/after fixture, not a silent side effect").
-//
-// cloudification.classify().release_state + effortTier() now derive from the
-// ORACLE Level (weakest-wins over BOTH registries), replacing the old release-
-// wins normalizeS4Status. For the ~266 conflict objects this CHANGES output.
-// Each row documents BEFORE (old cloudification) -> AFTER (oracle). The AFTER
-// values are asserted (regression guard); BEFORE is the documented delta.
-// Real registries, no mocks.
+// Oracle classification — §3.F oracle-adoption, refined by the 2026-07-09
+// "release-info wins" operator policy. classify().release_state + effortTier()
+// derive from the oracle Level. On a cross-registry conflict the AUTHORITATIVE
+// objectReleaseInfo file wins over the classifications file (its states are used
+// whenever present; classifications is a fallback), with weakest-wins WITHIN the
+// winning source. So a released↔classicAPI object stays RELEASED (the classic-API
+// list can't demote a released foundational API), while a notToBeReleased/deprecated
+// object still collapses to removed/deprecated. Real registries, no mocks.
 
-// [name, BEFORE release_state, BEFORE tier, AFTER release_state, AFTER tier]
-const DELTAS = [
-  // released (objectReleaseInfo) + classicAPI (objectClassifications): release-wins
-  // reported "released" (readiness numerator, keep-and-clean); weakest-wins reports
-  // Level B -> "deprecated" / "re-platform". THESE move s4_readiness_pct downward.
-  ["CL_ABAP_CHAR_UTILITIES", "released", "keep-and-clean", "deprecated", "re-platform"],
-  ["/UI2/CL_JSON", "released", "keep-and-clean", "deprecated", "re-platform"],
-  // notToBeReleased-bearing: old release-wins normalized to "deprecated"/"re-platform";
-  // weakest-wins collapses notToBeReleased/noAPI to Level D -> "removed" / "retire".
-  ["CL_BCS", "deprecated", "re-platform", "removed", "retire"],
-  ["T001", "deprecated", "re-platform", "removed", "retire"],
+// [name, expected release_state, expected effort_tier]
+const CASES = [
+  // released (release-info) + classicAPI (classifications) conflict: release-info
+  // wins -> stays released / keep-and-clean (the false-flag class we fixed).
+  ["CL_ABAP_CHAR_UTILITIES", "released", "keep-and-clean"],
+  ["/UI2/CL_JSON", "released", "keep-and-clean"],
+  ["CX_STATIC_CHECK", "released", "keep-and-clean"],
+  // notToBeReleased (release-info) -> Level D: release-info wins AND is the worst
+  // state, so these collapse to removed / retire (unchanged by the policy).
+  ["CL_BCS", "removed", "retire"],
+  ["T001", "removed", "retire"],
 ];
 
-test("§3.F: classify().release_state + effortTier now derive from the oracle Level (before/after)", () => {
-  for (const [name, beforeState, beforeTier, afterState, afterTier] of DELTAS) {
-    assert.equal(classify(name).release_state, afterState, `${name} release_state should be ${afterState} (was ${beforeState} pre-§3.F)`);
-    assert.equal(effortTier(name), afterTier, `${name} effort_tier should be ${afterTier} (was ${beforeTier} pre-§3.F)`);
+test("classify().release_state + effortTier: release-info wins over the classifications file", () => {
+  for (const [name, state, tier] of CASES) {
+    assert.equal(classify(name).release_state, state, `${name} release_state should be ${state}`);
+    assert.equal(effortTier(name), tier, `${name} effort_tier should be ${tier}`);
   }
 });
 

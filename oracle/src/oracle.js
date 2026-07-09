@@ -12,18 +12,23 @@ import { dirname, join } from "node:path";
  *   - objectReleaseInfoLatest.json   -> released | deprecated | notToBeReleased
  *   - objectClassifications_SAP.json -> classicAPI | noAPI
  *
- * classifyName is a TOTAL function (conv #3): the registries are NOT
- * one-state-per-object (266 cross-registry + 12/47 intra-registry conflicts), so
- * a key resolving to multiple states takes the WEAKEST (lowest) level by the
- * total order D < C < B < A — deterministic worst-wins, the conservative proxy.
- * Lazy-loaded once; fail-open (an unreadable file degrades entries to absent).
+ * classifyName is a TOTAL function (conv #3). The registries are NOT
+ * one-state-per-object and their vocabularies are DISJOINT (release-info =
+ * released|deprecated|notToBeReleased; classifications = classicAPI|noAPI), so
+ * every cross-registry object "conflicts". Resolution (operator policy 2026-07-09,
+ * "release-info wins"): the AUTHORITATIVE objectReleaseInfo file wins — its states
+ * are used whenever present; the classifications file is a fallback used only when
+ * release-info has no row for the object. WEAKEST-wins (lowest level by D<C<B<A)
+ * still applies WITHIN the winning source, for intra-file conflicts. This stops the
+ * classic-API list from demoting a released foundational API (e.g. CX_STATIC_CHECK,
+ * CL_ABAP_CHAR_UTILITIES) to classicAPI. Lazy-loaded once; fail-open.
  */
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
 
 const SOURCES = [
-  { file: "objectReleaseInfoLatest.json", key: "objectReleaseInfo" },
-  { file: "objectClassifications_SAP.json", key: "objectClassifications" },
+  { file: "objectReleaseInfoLatest.json", key: "objectReleaseInfo", authoritative: true },
+  { file: "objectClassifications_SAP.json", key: "objectClassifications", authoritative: false },
 ];
 
 /** registry state -> clean-core level. */
@@ -72,19 +77,20 @@ function ingest(full, byName, src) {
           .map((s) => ({ name: String(s.tadirObjName ?? "").toUpperCase(), type: String(s.objectType ?? s.tadirObject ?? "") }))
           .filter((s) => s.name)
       : [];
-    addEntry(full, `${type}|${name}`, state, successors);
-    addEntry(byName, name, state, successors);
+    addEntry(full, `${type}|${name}`, state, successors, src.authoritative);
+    addEntry(byName, name, state, successors, src.authoritative);
   }
 }
 
-/** Accumulate a state (and successors) into an index bucket. */
-function addEntry(map, key, state, successors) {
+/** Accumulate a state (and successors) into an index bucket, kept per source so the
+ * authoritative release-info can win over the classifications fallback. */
+function addEntry(map, key, state, successors, authoritative) {
   let rec = map.get(key);
   if (!rec) {
-    rec = { states: new Set(), successors: [] };
+    rec = { authStates: new Set(), fallbackStates: new Set(), successors: [] };
     map.set(key, rec);
   }
-  rec.states.add(state);
+  (authoritative ? rec.authStates : rec.fallbackStates).add(state);
   if (rec.successors.length === 0 && successors.length) rec.successors = successors;
 }
 
@@ -118,12 +124,16 @@ export function classifyName(name, tadirType) {
   if (!norm) return unknown;
   const { full, byName } = loadIndex();
   const rec = tadirType ? full.get(`${String(tadirType).toUpperCase()}|${norm}`) : byName.get(norm);
-  if (!rec || rec.states.size === 0) return unknown;
-  const level = weakestLevel(rec.states);
+  if (!rec) return unknown;
+  // Release-info WINS: use the authoritative release-info states when present, else
+  // fall back to the classifications file. Weakest-wins applies within the source.
+  const states = rec.authStates.size ? rec.authStates : rec.fallbackStates;
+  if (states.size === 0) return unknown;
+  const level = weakestLevel(states);
   if (level === null) return unknown;
   return {
     level,
-    state: winningState(rec.states, level),
+    state: winningState(states, level),
     grade: LEVEL_GRADE[level],
     atc_priority: LEVEL_PRIORITY[level],
     successor: rec.successors[0]?.name ?? null,
