@@ -64,9 +64,11 @@ export function debtTab(doc) {
   return `<h2>Technical Debt <span class="muted">(avg ${round(doc.debt?.avg_score)} · max ${round(doc.debt?.max_score)} · ${doc.debt?.hotspot_count ?? 0} hotspots)</span></h2><table><thead><tr><th>Symbol</th><th>Score</th><th>Signals</th></tr></thead><tbody>${rows || "<tr><td colspan=3><i>none</i></td></tr>"}</tbody></table>`;
 }
 
-// Findings virtualization: emit the findings ONCE as a compact inert JSON island;
-// the client (html-assets FINDINGS_JS) filters + paginates (50/page) into #recs via
-// DOM APIs. Keeps the file small and fast even on 100K-LOC repos (the §3.C NFR).
+// Findings tab: a triage view (honest headline + breakdowns) over a virtualized
+// browser. The findings ship ONCE as a compact inert JSON island; the client
+// (html-assets FINDINGS_JS) filters + paginates (50/page) into #recs via DOM APIs,
+// so the file stays small at 100K-LOC scale (the §3.C NFR).
+const isModernization = (f) => Boolean(f?.family) && f.family !== "abaplint";
 export function findingsTab(doc) {
   const findings = doc.findings ?? [];
   const fams = [...new Set(findings.map((f) => f.family ?? ""))].sort();
@@ -75,11 +77,41 @@ export function findingsTab(doc) {
     findings.map((f) => ({ rule_id: f.rule_id, severity: f.severity, family: f.family ?? "", message: f.message, object: f.object, file: f.file ?? "", line: num(f.line), suggestion: f.suggestion ?? "" })),
   );
   const opt = (v, label) => `<option value="${esc(v)}">${esc(label)}</option>`;
-  return `<h2>Findings — technical detail (${findings.length})</h2>
+  return `<h2>Findings (${findings.length})</h2>
+${triage(findings)}
+<h3>Browse</h3>
 <div class="filters"><select id="fFam">${["", ...fams].map((v) => opt(v, v || "all families")).join("")}</select><select id="fSev">${["", "priority-1", "priority-2", "priority-3", "info"].map((s) => opt(s, s || "all severities")).join("")}</select><span class="muted" id="fInfo"></span></div>
 <div id="recs"></div>
 <div class="pager"><button type="button" id="fPrev">‹ Prev</button><button type="button" id="fNext">Next ›</button></div>
 ${island}`;
+}
+
+/** Triage: the honest headline + family/severity breakdown + top rules + object hotspots. */
+function triage(findings) {
+  const total = findings.length;
+  const modern = findings.filter(isModernization).length;
+  const p1 = findings.filter((f) => f.severity === "priority-1").length;
+  const headline = `<p class="muted"><b>${total}</b> findings — <b>${modern}</b> modernization + <b>${total - modern}</b> code-quality lint; <b class="${p1 ? "hot" : ""}">${p1}</b> priority-1 blocker${p1 === 1 ? "" : "s"}. The modernization findings are the migration work; the lint is cleanup.</p>`;
+  return `${headline}
+<div class="cols"><div><h3>By family</h3>${tally(findings, (f) => f.family || "unknown", true)}</div>
+<div><h3>Top rules</h3>${tally(findings, (f) => f.rule_id || "unknown", false, 8)}</div>
+<div><h3>Hotspot objects</h3>${tally(findings, (f) => f.object || "unknown", false, 8)}</div></div>`;
+}
+
+/** Count findings by a key -> a compact table (optionally with a priority-1 column), top N by count. */
+function tally(findings, keyOf, withP1, top) {
+  const by = new Map();
+  for (const f of findings) {
+    const k = keyOf(f);
+    if (!by.has(k)) by.set(k, { count: 0, p1: 0 });
+    const e = by.get(k);
+    e.count += 1;
+    if (f.severity === "priority-1") e.p1 += 1;
+  }
+  let entries = [...by.entries()].sort((a, b) => b[1].count - a[1].count || (a[0] < b[0] ? -1 : 1));
+  if (top) entries = entries.slice(0, top);
+  const rows = entries.map(([k, e]) => `<tr><td>${esc(k)}</td><td>${e.count}</td>${withP1 ? `<td class="${e.p1 ? "hot" : ""}">${e.p1}</td>` : ""}</tr>`).join("");
+  return `<table><thead><tr><th>${withP1 ? "Family" : "Name"}</th><th>Count</th>${withP1 ? "<th>P1</th>" : ""}</tr></thead><tbody>${rows || `<tr><td colspan=${withP1 ? 3 : 2}><i>none</i></td></tr>`}</tbody></table>`;
 }
 
 const IMPACT_RANK = { critical: 0, high: 1, medium: 2, low: 3 };

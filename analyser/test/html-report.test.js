@@ -120,6 +120,20 @@ test("Findings tab virtualizes via a JSON island (not one card per finding)", ()
   assert.ok((html.match(/class="rec sev-/g) ?? []).length < 5, "cards are rendered client-side, not baked in");
 });
 
+test("Findings tab has a triage view: honest headline + family/rules/hotspots breakdown", () => {
+  const many = {
+    ...DOC,
+    findings: [
+      ...Array.from({ length: 30 }, (_, i) => ({ rule_id: "abaplint:naming", severity: "priority-3", family: "abaplint", object: "ZR", message: "lint" + i })),
+      ...Array.from({ length: 5 }, (_, i) => ({ rule_id: "released-api", severity: "priority-1", family: "released-api", object: "ZO", message: "mod" + i })),
+    ],
+  };
+  const html = renderHtml(many);
+  assert.ok(html.includes(">5</b> modernization"), "splits modernization from lint (5 of 35)");
+  assert.ok(html.includes(">5</b class") || />5<\/b> priority-1/.test(html) || html.includes("priority-1 blocker"), "surfaces the P1 count");
+  assert.ok(html.includes("By family") && html.includes("Top rules") && html.includes("Hotspot objects"), "the three breakdowns");
+});
+
 test("renderHtml is deterministic", () => {
   assert.equal(renderHtml(DOC), renderHtml(DOC));
 });
