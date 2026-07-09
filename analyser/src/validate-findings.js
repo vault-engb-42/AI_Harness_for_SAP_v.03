@@ -13,6 +13,8 @@ const POSTURE = new Set(["level-a", "brownfield-mixed", "classic", "unknown"]);
 const GRADE = new Set(["A", "B", "C", "D", "unknown"]);
 const TIER = new Set(["retire", "re-platform", "keep-and-clean", "unknown"]);
 const IMPACT = new Set(["low", "medium", "high", "critical"]);
+const EFFORT = new Set(["S", "M", "L", "XL"]); // §3.D plan effort_tier (distinct from node TIER)
+const PRIORITY = new Set(["P1", "P2", "P3"]); // §3.D plan priority_rank
 
 /**
  * @param {object} doc a produced analyser-findings document
@@ -34,6 +36,7 @@ export function validateFindings(doc) {
   validateBlastRadius(doc?.blast_radius, errors);
   validateCodeHealth(doc?.code_health, errors);
   validateDebt(doc?.debt, errors);
+  validateModernizationPlan(doc?.modernization_plan, errors);
   return { valid: errors.length === 0, errors };
 }
 
@@ -89,6 +92,19 @@ function validateDebt(debt, errors) {
   debt.scores.forEach((s, i) => {
     if (absent(s?.symbol)) errors.push(`debt.scores[${i}] missing symbol`);
     if (typeof s?.score !== "number" || s.score < 0 || s.score > 1) errors.push(`debt.scores[${i}].score must be a number in [0,1]: ${s?.score}`);
+  });
+}
+
+/** modernization_plan is optional; when present, each object needs a legal effort/priority and a 0-5 complexity. */
+function validateModernizationPlan(plan, errors) {
+  if (plan === undefined) return;
+  if (!Array.isArray(plan.objects)) return void errors.push("modernization_plan.objects is not an array");
+  plan.objects.forEach((o, i) => {
+    if (absent(o?.object)) errors.push(`modernization_plan.objects[${i}] missing object`);
+    if (badEnum(o, "effort_tier", EFFORT)) errors.push(`modernization_plan.objects[${i}] bad effort_tier: ${o.effort_tier}`);
+    if (badEnum(o, "priority_rank", PRIORITY)) errors.push(`modernization_plan.objects[${i}] bad priority_rank: ${o.priority_rank}`);
+    const c = o?.migration_complexity;
+    if (!Number.isInteger(c) || c < 0 || c > 5) errors.push(`modernization_plan.objects[${i}].migration_complexity must be an integer 0-5: ${c}`);
   });
 }
 

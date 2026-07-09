@@ -19,6 +19,7 @@ import { layers, boundaries } from "./graph-dimensions.js";
 import { codeHealth } from "./code-health.js";
 import { scoreDebt } from "./debt-scorer.js";
 import { normalizedRank } from "./pagerank.js";
+import { modernizationPlan } from "./modernization-plan.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -96,6 +97,8 @@ export function analyzePackage(files, opts = {}) {
   // the same run_id in every process (the offline provenance + cache key).
   const source_hash = sourceHash(canon);
   const config_hash = configHash({ target_release: opts.target_release });
+  // debt feeds both the Debt dimension and the §3.D plan's effort/complexity — compute once.
+  const debt = scoreDebt(g, findings, reg);
   const doc = {
     schema_version: SCHEMA_VERSION,
     source_system: opts.source_system ?? "unknown",
@@ -108,11 +111,12 @@ export function analyzePackage(files, opts = {}) {
     s4_readiness,
     cloud_readiness: cloudReadiness(findings),
     code_health: codeHealth(g, findings, reg),
-    debt: scoreDebt(g, findings, reg),
+    debt,
     layers: layers(g),
     boundaries: boundaries(g),
     graph: g,
     blast_radius,
+    modernization_plan: modernizationPlan(g, debt, findings, reg, cloud),
     namespace_summary: buildNamespaceSummary(g.nodes),
   };
   if (notes.length) doc.coverage_note = notes.join(" | ");
