@@ -160,7 +160,8 @@
               "clean_core_posture": { "type": "string", "enum": ["level-a", "brownfield-mixed", "classic", "unknown"], "description": "DUAL-EMITTED (§15.5) from clean_core_grade via the crosswalk A->level-a, B/C->brownfield-mixed, D->classic; retained one minor for back-compat, then cutover." },
               "clean_core_grade": { "type": "string", "enum": ["A", "B", "C", "D", "unknown"], "description": "Oracle clean-core Level (§15.5, replaces clean_core_posture): SAP nodes = own Level; customer nodes = weakest dependency Level (§2 cap); unknown for registry gaps." },
               "modernization_target": { "type": "string" },
-              "effort_tier": { "type": "string", "enum": ["retire", "re-platform", "keep-and-clean", "unknown"] }
+              "effort_tier": { "type": "string", "enum": ["retire", "re-platform", "keep-and-clean", "unknown"] },
+              "rank": { "type": "number", "minimum": 0, "maximum": 1, "description": "PageRank importance normalized to [0,1] (§3.C top_objects / §3.D priority_rank); most important object = 1.0." }
             }
           }
         },

@@ -18,6 +18,7 @@ import { cloudReadiness } from "./cloud-readiness.js";
 import { layers, boundaries } from "./graph-dimensions.js";
 import { codeHealth } from "./code-health.js";
 import { scoreDebt } from "./debt-scorer.js";
+import { normalizedRank } from "./pagerank.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -75,6 +76,10 @@ export function analyzePackage(files, opts = {}) {
   const s4_readiness = computeReadiness(graph, cloud);
   const blast_radius = collectBlastRadius(graph, cloud, opts.depth ?? 3);
   const g = graph.toGraphJSON();
+  // PageRank importance (§3.C top_objects / §3.D priority_rank), normalized so the
+  // most important object = 1.0. Deterministic; set before the stable sort.
+  const rank = normalizedRank(g);
+  for (const node of g.nodes) node.rank = Math.round((rank.get(node.id) ?? 0) * 10000) / 10000;
   // A5: stable total-order sort of every graph emit (nodes/edges come from Maps
   // in insertion order) so the emitted graph is byte-identical regardless of
   // processing order. Runs after enrich/readiness/blast, which use `graph` (not
