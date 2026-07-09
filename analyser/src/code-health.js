@@ -56,11 +56,14 @@ function clarityScore(reg) {
 }
 
 /**
- * Stability = 100*(1 - mean Martin instability I=Ce/(Ca+Ce)) over compilation-unit
- * objects, where Ce/Ca are the DISTINCT other objects this object depends on /
- * is depended on by (members resolved to their owning object; self-loops and
- * non-coupling edges ignored). Isolated objects (Ce+Ca=0) are excluded; an
- * uncoupled package scores 100.
+ * Stability = 100*(1 - mean Martin instability I=Ce/(Ca+Ce)) over the
+ * DEPENDED-UPON core, where Ce/Ca are the DISTINCT other objects this object
+ * depends on / is depended on by (members resolved to their owning object;
+ * self-loops and non-coupling edges ignored). Objects with NO dependents (Ca=0)
+ * are excluded: a by-design entry point (report/top class) is meant to depend
+ * outward and be depended on by nothing, so its I=1 is not a health defect and
+ * must not drag the score (evidence-based decision 2026-07-09). A package with
+ * no depended-upon objects scores 100.
  * @param {{nodes?: object[], edges?: object[]}} g
  * @returns {number} 0-100
  */
@@ -79,10 +82,10 @@ function stabilityScore(g) {
   }
   const instabilities = [];
   for (const object of compilationUnitObjects(nodes)) {
-    const out = ce.get(object)?.size ?? 0;
     const inc = ca.get(object)?.size ?? 0;
-    if (out + inc === 0) continue;
-    instabilities.push(out / (out + inc));
+    if (inc === 0) continue; // exclude by-design entry points (nothing depends on them)
+    const out = ce.get(object)?.size ?? 0;
+    instabilities.push(out / (out + inc)); // inc>0 => denominator>0
   }
   return instabilities.length ? Math.round(100 * (1 - mean(instabilities))) : 100;
 }

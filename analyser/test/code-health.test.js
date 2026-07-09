@@ -68,9 +68,12 @@ test("performance = share of compilation-unit objects free of performance-family
   assert.equal(codeHealth(g, findings, reg).performance, 50);
 });
 
-test("stability = 100*(1 - mean Martin instability); a pure consumer (I=1) drags it to 0", () => {
-  // ZCL_APP depends on ZCL_LIB (Ce=1, Ca=0 -> I=1); ZCL_LIB is depended-on
-  // (Ce=0, Ca=1 -> I=0). mean I = 0.5 -> stability 50.
+test("stability excludes by-design entry points (Ca=0); only depended-upon objects are scored", () => {
+  // ZCL_APP depends on ZCL_LIB but nothing depends on ZCL_APP (Ca=0) -> it is a
+  // by-design entry point (its I=1 is not a defect) and is excluded. ZCL_LIB
+  // (Ca=1, Ce=0 -> I=0) is the only scored object -> stability 100. Before the
+  // refinement, ZCL_APP's I=1 wrongly dragged this to 50 (adversarial-review
+  // caveat, evidence-based decision 2026-07-09).
   const g = {
     nodes: [
       { id: "ZCL_APP", kind: "class", object: "ZCL_APP" },
@@ -79,7 +82,7 @@ test("stability = 100*(1 - mean Martin instability); a pure consumer (I=1) drags
     edges: [{ source: "ZCL_APP", target: "ZCL_LIB", kind: "call-method" }],
   };
   const reg = loadRegistry([{ filename: "zr_x.prog.abap", source: "REPORT zr_x." }]);
-  assert.equal(codeHealth(g, [], reg).stability, 50);
+  assert.equal(codeHealth(g, [], reg).stability, 100);
 });
 
 test("clean_core_grade = weakest node grade (D beats C beats B beats A); unknown only if nothing known", () => {
