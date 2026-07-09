@@ -5,8 +5,10 @@
 // analysis can be produced and read here, without wiring the MCP server.
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
+import { writeFileSync } from "node:fs";
 import { filesFromBundle } from "./src/modes.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
+import { renderHtml } from "./src/html-report.js";
 
 const DEFAULT_OUT = "specs/brownfield/analyser-findings.json";
 
@@ -17,6 +19,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--package") opts.package = argv[++i];
     else if (a === "--out") opts.out = argv[++i];
+    else if (a === "--html") opts.html = argv[++i];
     else if (a === "--json") opts.json = true;
     else rest.push(a);
   }
@@ -74,7 +77,13 @@ function main() {
   }
   const doc = analyzePackage(files, { package: opts.package, source_system: `bundle:${opts.path}` });
   const outPath = writeReport(doc, opts.out);
-  process.stdout.write((opts.json ? JSON.stringify(doc, null, 2) : renderReport(doc, files.length, outPath)) + "\n");
+  let htmlNote = "";
+  if (opts.html) {
+    const htmlPath = resolve(opts.html);
+    writeFileSync(htmlPath, renderHtml(doc), "utf8");
+    htmlNote = `\nInteractive HTML report: ${htmlPath}`;
+  }
+  process.stdout.write((opts.json ? JSON.stringify(doc, null, 2) : renderReport(doc, files.length, outPath) + htmlNote) + "\n");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
