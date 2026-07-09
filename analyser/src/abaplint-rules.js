@@ -15,7 +15,43 @@ import { severityForAbaplintRule, familyForAbaplintRule } from "./finding-severi
  */
 export function runAbaplintRules(reg) {
   const fileIndex = buildFileIndex(reg);
-  return reg.findIssues().map((issue) => toFinding(issue, fileIndex));
+  try {
+    return reg.findIssues().map((issue) => toFinding(issue, fileIndex));
+  } catch {
+    // abaplint can crash internally on some malformed source (e.g. the abapdoc
+    // rule on a condensed class). The registry-wide run aborts, so fall back to
+    // per-object isolation — a single bad object must never abort the whole scan
+    // (fail-closed, arch spec §10).
+    return runPerObjectIsolated(reg, fileIndex);
+  }
+}
+
+/**
+ * Fail-closed fallback: run abaplint one object at a time so a crash is confined
+ * to that object (degraded to an engine-error diagnostic) while every other
+ * object is still analyzed. Cross-object rules are lost in this degraded mode —
+ * an acceptable trade when the registry-wide run already crashed.
+ * @param {import("@abaplint/core").Registry} reg
+ * @param {Map<string, {object: string, object_type: string}>} fileIndex
+ * @returns {Array<object>}
+ */
+function runPerObjectIsolated(reg, fileIndex) {
+  const findings = [];
+  for (const obj of objectsOf(reg)) {
+    try {
+      for (const issue of reg.findIssuesObject(obj)) findings.push(toFinding(issue, fileIndex));
+    } catch (e) {
+      findings.push({
+        rule_id: "abaplint_engine_error",
+        severity: "info",
+        object: obj.getName?.() ?? "",
+        object_type: obj.getType?.(),
+        message: `abaplint could not analyze this object (engine error): ${String(e?.message ?? e).slice(0, 160)}`,
+        family: "engine",
+      });
+    }
+  }
+  return findings;
 }
 
 /**
