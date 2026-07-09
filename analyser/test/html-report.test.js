@@ -113,22 +113,37 @@ test("Graph tab offers force-directed SVG + a dependency matrix (DSM) view", () 
   assert.ok(html.includes("mx-dep"), "the ZR→T001 dependency shows as a filled cell");
 });
 
-test("dependency matrix flags a circular dependency above the diagonal", () => {
+test("dependency matrix: SCC-based cycle marking — a real cycle shows, a clean DAG shows none", () => {
+  const node = (n, r) => ({ id: n, kind: "class", object: n, namespace: "Z", rank: r });
   const cyclic = {
     ...DOC,
     graph: {
-      nodes: [
-        { id: "ZCL_A", kind: "class", object: "ZCL_A", namespace: "Z", rank: 0.5 },
-        { id: "ZCL_B", kind: "class", object: "ZCL_B", namespace: "Z", rank: 0.4 },
-      ],
+      nodes: [node("ZCL_A", 0.5), node("ZCL_B", 0.4)],
       edges: [
         { source: "ZCL_A", target: "ZCL_B", kind: "call-method" },
         { source: "ZCL_B", target: "ZCL_A", kind: "call-method" },
       ],
     },
   };
-  const html = renderHtml(cyclic);
-  assert.ok(html.includes("mx-cycle"), "the A↔B cycle is marked as a circular dependency");
+  // Count real cycle CELLS (class "mx-dep mx-cycle"), not the CSS rule or legend swatch.
+  const cycleCells = (h) => (h.match(/mx-dep mx-cycle/g) ?? []).length;
+  const ch = renderHtml(cyclic);
+  assert.ok(ch.includes("circular dependency (2)"), "both edges of the A↔B SCC are marked (count 2)");
+  assert.equal(cycleCells(ch), 2, "2 real cycle cells");
+
+  const dag = {
+    ...DOC,
+    graph: {
+      nodes: [node("ZCL_A", 0.5), node("ZCL_B", 0.4), node("ZCL_C", 0.3)],
+      edges: [
+        { source: "ZCL_A", target: "ZCL_B", kind: "call-method" },
+        { source: "ZCL_B", target: "ZCL_C", kind: "call-method" },
+      ],
+    },
+  };
+  const dh = renderHtml(dag);
+  assert.ok(dh.includes("circular dependency (0)"), "a clean DAG reports zero cycles");
+  assert.equal(cycleCells(dh), 0, "no cycle cells — the DAG is clean");
 });
 
 test("SARIF tab is a summary panel + export pointer, NOT the embedded raw document", () => {

@@ -144,15 +144,19 @@ function dependencyMatrix(og) {
     const keep = new Set(topByRank(og, MATRIX_CAP));
     objects = objects.filter((o) => keep.has(o));
   }
+  // Definitive cycle marking: an edge is circular iff BOTH ends sit in the same
+  // strongly-connected component of size > 1 (Tarjan) — independent of the row/col
+  // ordering, so a clean DAG shows zero red cells and a real cycle always shows.
+  const scc = stronglyConnected(objects, og.adj);
   let cycles = 0;
   const rowHtml = objects.map((o, i) => {
     const deps = og.adj.get(o);
     const cells = objects.map((t, j) => {
       if (i === j) return `<td class="mx-diag"></td>`;
       if (!deps || !deps.has(t)) return "<td></td>";
-      const cyc = j > i;
+      const cyc = scc.has(o) && scc.get(o) === scc.get(t);
       if (cyc) cycles += 1;
-      return `<td class="mx-dep${cyc ? " mx-cycle" : ""}" title="${esc(o)} → ${esc(t)}${cyc ? " (cycle)" : ""}"></td>`;
+      return `<td class="mx-dep${cyc ? " mx-cycle" : ""}" title="${esc(o)} → ${esc(t)}${cyc ? " (circular)" : ""}"></td>`;
     }).join("");
     return `<tr><th class="mx-row" title="${esc(og.kindOf.get(o) ?? "")}">${i + 1}. ${esc(o)}</th>${cells}</tr>`;
   }).join("");
@@ -160,6 +164,58 @@ function dependencyMatrix(og) {
   const capNote = capped ? `<b>Top ${objects.length} of ${total} objects.</b> ` : "";
   return `<p class="muted small">${capNote}Dependency matrix — rows depend on columns · <span class="mx-key mx-dep"></span> dependency (below the diagonal = clean layering) · <span class="mx-key mx-cycle"></span> circular dependency (${cycles}). Hover a cell for the pair. Best for spotting cycles + clusters at scale.</p>
 <div class="mxwrap"><table class="mx"><thead>${header}</thead><tbody>${rowHtml}</tbody></table></div>`;
+}
+
+/**
+ * Tarjan strongly-connected components over the object graph. Returns a Map of
+ * object -> component id, populated ONLY for objects in a CYCLIC component (size
+ * > 1) — the definitive "these objects are in a circular dependency" set, so a cell
+ * is a cycle iff both its objects map to the same id. Deterministic (iteration order
+ * follows the objects array). Depth-bounded by the matrix object cap.
+ * @param {string[]} objects
+ * @param {Map<string, Map<string, number>>} adj src -> (tgt -> count)
+ * @returns {Map<string, number>}
+ */
+function stronglyConnected(objects, adj) {
+  const set = new Set(objects);
+  const index = new Map();
+  const low = new Map();
+  const onStack = new Set();
+  const stack = [];
+  const comp = new Map();
+  let idx = 0;
+  let compId = 0;
+  const connect = (v) => {
+    index.set(v, idx);
+    low.set(v, idx);
+    idx += 1;
+    stack.push(v);
+    onStack.add(v);
+    for (const w of adj.get(v)?.keys() ?? []) {
+      if (!set.has(w)) continue;
+      if (!index.has(w)) {
+        connect(w);
+        low.set(v, Math.min(low.get(v), low.get(w)));
+      } else if (onStack.has(w)) {
+        low.set(v, Math.min(low.get(v), index.get(w)));
+      }
+    }
+    if (low.get(v) === index.get(v)) {
+      const members = [];
+      let w;
+      do {
+        w = stack.pop();
+        onStack.delete(w);
+        members.push(w);
+      } while (w !== v);
+      if (members.length > 1) {
+        for (const m of members) comp.set(m, compId);
+        compId += 1;
+      }
+    }
+  };
+  for (const v of objects) if (!index.has(v)) connect(v);
+  return comp;
 }
 
 /** Topological depth from leaves (dependencies first); cycle back-edge -> 0, no loop. */
