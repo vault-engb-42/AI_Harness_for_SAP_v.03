@@ -129,6 +129,36 @@ function lcomForClass(cd, methodTokens) {
 }
 
 /**
+ * Martin abstractness A per object, for the main-sequence distance in
+ * code_health.stability. An interface is fully abstract (A=1); a class's A is
+ * its fraction of abstract methods (a concrete class -> 0, a fully deferred
+ * class -> 1); every other object kind is concrete (A=0, so it is not keyed
+ * here and callers default to 0). FOR TESTING classes are excluded, matching
+ * classCohesion.
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {Map<string, number>} object name (upper) -> A in [0,1]
+ */
+export function abstractnessByObject(reg) {
+  const map = new Map();
+  for (const obj of objectsOf(reg)) {
+    for (const file of obj.getABAPFiles?.() ?? []) {
+      const info = file.getInfo?.();
+      if (!info) continue;
+      for (const cd of info.listClassDefinitions?.() ?? []) {
+        if (cd.isForTesting) continue;
+        const methods = cd.methods ?? [];
+        const abstractCount = methods.filter((m) => m.isAbstract).length;
+        map.set(String(cd.name).toUpperCase(), methods.length ? abstractCount / methods.length : 0);
+      }
+      for (const id of info.listInterfaceDefinitions?.() ?? []) {
+        map.set(String(id.name).toUpperCase(), 1);
+      }
+    }
+  }
+  return map;
+}
+
+/**
  * @param {object} struct a structure node
  * @param {Function} stmt the direct statement class to descend into
  * @param {Function} expr the name expression class

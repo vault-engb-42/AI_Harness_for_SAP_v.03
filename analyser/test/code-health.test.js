@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadRegistry } from "../src/abaplint-loader.js";
-import { codeHealth } from "../src/code-health.js";
+import { codeHealth, stabilityScore } from "../src/code-health.js";
 import { analyzePackage } from "../src/orchestrator.js";
 import { validateFindings } from "../src/validate-findings.js";
 
@@ -68,20 +68,72 @@ test("performance = share of compilation-unit objects free of performance-family
   assert.equal(codeHealth(g, findings, reg).performance, 50);
 });
 
-test("stability excludes by-design entry points (Ca=0); only depended-upon objects are scored", () => {
-  // ZCL_APP depends on ZCL_LIB but nothing depends on ZCL_APP (Ca=0) -> it is a
-  // by-design entry point (its I=1 is not a defect) and is excluded. ZCL_LIB
-  // (Ca=1, Ce=0 -> I=0) is the only scored object -> stability 100. Before the
-  // refinement, ZCL_APP's I=1 wrongly dragged this to 50 (adversarial-review
-  // caveat, evidence-based decision 2026-07-09).
+test("stability scores only the depended-upon core; a Ca=0 entry point is excluded", () => {
+  // ZCL_MID -> ZCL_CORE. ZCL_CORE: Ca=1, Ce=0 -> I=0. ZCL_MID: Ca=0 -> excluded
+  // (a by-design entry point). Concrete A=0 -> ZCL_CORE D=|0+0-1|=1 -> stability 0
+  // (a concrete class everything depends on is Martin's "zone of pain"). If
+  // ZCL_MID were NOT excluded it would contribute I=1,D=0 and give 50 instead.
   const g = {
     nodes: [
-      { id: "ZCL_APP", kind: "class", object: "ZCL_APP" },
-      { id: "ZCL_LIB", kind: "class", object: "ZCL_LIB" },
+      { id: "ZCL_CORE", kind: "class", object: "ZCL_CORE" },
+      { id: "ZCL_MID", kind: "class", object: "ZCL_MID" },
     ],
-    edges: [{ source: "ZCL_APP", target: "ZCL_LIB", kind: "call-method" }],
+    edges: [{ source: "ZCL_MID", target: "ZCL_CORE", kind: "call-method" }],
   };
-  const reg = loadRegistry([{ filename: "zr_x.prog.abap", source: "REPORT zr_x." }]);
+  assert.equal(stabilityScore(g, new Map()), 0);
+});
+
+test("stability = 100*(1 - mean main-sequence distance D=|A+I-1|) over the core", () => {
+  // ZR (entry, Ca=0) excluded. ZCL_MID: Ce=1,Ca=1 -> I=0.5, A=0 -> D=0.5.
+  // ZCL_CORE: Ce=0,Ca=1 -> I=0, A=0 -> D=1. mean D = 0.75 -> stability 25.
+  const g = {
+    nodes: [
+      { id: "ZR", kind: "report", object: "ZR" },
+      { id: "ZCL_MID", kind: "class", object: "ZCL_MID" },
+      { id: "ZCL_CORE", kind: "class", object: "ZCL_CORE" },
+    ],
+    edges: [
+      { source: "ZR", target: "ZCL_MID", kind: "call-method" },
+      { source: "ZCL_MID", target: "ZCL_CORE", kind: "call-method" },
+    ],
+  };
+  assert.equal(stabilityScore(g, new Map()), 25);
+});
+
+test("main-sequence rewards a depended-upon abstraction (A=1, I=0 -> D=0 -> stability 100)", () => {
+  // ZIF_SVC is implemented by ZCL_IMPL: Ca=1, Ce=0 -> I=0; fully abstract A=1 ->
+  // D=|1+0-1|=0. ZCL_IMPL (Ca=0) excluded. stability 100 — the ideal stable
+  // abstraction, where a concrete depended-upon class would score 0.
+  const g = {
+    nodes: [
+      { id: "ZIF_SVC", kind: "interface", object: "ZIF_SVC" },
+      { id: "ZCL_IMPL", kind: "class", object: "ZCL_IMPL" },
+    ],
+    edges: [{ source: "ZCL_IMPL", target: "ZIF_SVC", kind: "inherits" }],
+  };
+  assert.equal(stabilityScore(g, new Map([["ZIF_SVC", 1]])), 100);
+});
+
+test("codeHealth wires AST abstractness into stability end-to-end (real interface -> A=1)", () => {
+  const reg = loadRegistry([
+    { filename: "zif_svc.intf.abap", source: "INTERFACE zif_svc PUBLIC.\n  METHODS run.\nENDINTERFACE." },
+    {
+      filename: "zcl_impl.clas.abap",
+      source: [
+        "CLASS zcl_impl DEFINITION PUBLIC. PUBLIC SECTION. INTERFACES zif_svc.",
+        "ENDCLASS.",
+        "CLASS zcl_impl IMPLEMENTATION. METHOD zif_svc~run. ENDMETHOD. ENDCLASS.",
+      ].join("\n"),
+    },
+  ]);
+  const g = {
+    nodes: [
+      { id: "ZIF_SVC", kind: "interface", object: "ZIF_SVC" },
+      { id: "ZCL_IMPL", kind: "class", object: "ZCL_IMPL" },
+    ],
+    edges: [{ source: "ZCL_IMPL", target: "ZIF_SVC", kind: "inherits" }],
+  };
+  // abstractnessByObject(reg) resolves ZIF_SVC -> 1, so D=0 -> stability 100.
   assert.equal(codeHealth(g, [], reg).stability, 100);
 });
 

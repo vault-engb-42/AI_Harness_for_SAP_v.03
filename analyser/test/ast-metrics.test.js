@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadRegistry } from "../src/abaplint-loader.js";
-import { methodCyclomatic, classCohesion } from "../src/ast-metrics.js";
+import { methodCyclomatic, classCohesion, abstractnessByObject } from "../src/ast-metrics.js";
 
 // Faithful AST metrics (arch spec §3.C code_health.clarity). Real abaplint parse,
 // no mocks. Cyclomatic reuses abaplint's own CyclomaticComplexityStats branch set
@@ -125,6 +125,33 @@ test("methodCyclomatic excludes FOR TESTING methods (same production population 
     { filename: "zcl_prod.clas.testclasses.abap", source: testclasses },
   ]);
   assert.deepEqual(methodCyclomatic(reg).map((m) => m.method), ["BIG"], "T1 (FOR TESTING) is excluded");
+});
+
+test("abstractnessByObject: interface=1, half-abstract class=0.5, concrete=0 (Martin abstractness A)", () => {
+  const reg = loadRegistry([
+    { filename: "zif_x.intf.abap", source: "INTERFACE zif_x PUBLIC.\n  METHODS do_it.\nENDINTERFACE." },
+    {
+      filename: "zcl_base.clas.abap",
+      source: [
+        "CLASS zcl_base DEFINITION PUBLIC ABSTRACT.",
+        "  PUBLIC SECTION. METHODS concrete. METHODS must_impl ABSTRACT.",
+        "ENDCLASS.",
+        "CLASS zcl_base IMPLEMENTATION. METHOD concrete. ENDMETHOD. ENDCLASS.",
+      ].join("\n"),
+    },
+    {
+      filename: "zcl_plain.clas.abap",
+      source: [
+        "CLASS zcl_plain DEFINITION PUBLIC. PUBLIC SECTION. METHODS a.",
+        "ENDCLASS.",
+        "CLASS zcl_plain IMPLEMENTATION. METHOD a. ENDMETHOD. ENDCLASS.",
+      ].join("\n"),
+    },
+  ]);
+  const a = abstractnessByObject(reg);
+  assert.equal(a.get("ZIF_X"), 1, "an interface is fully abstract");
+  assert.equal(a.get("ZCL_BASE"), 0.5, "1 of 2 methods abstract");
+  assert.equal(a.get("ZCL_PLAIN"), 0, "a concrete class");
 });
 
 test("metrics are total on a package with no methods/classes (empty arrays, no throw)", () => {

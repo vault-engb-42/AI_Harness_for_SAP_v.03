@@ -1,4 +1,4 @@
-import { methodCyclomatic, classCohesion } from "./ast-metrics.js";
+import { methodCyclomatic, classCohesion, abstractnessByObject } from "./ast-metrics.js";
 
 /**
  * code_health dimension (arch spec §3.C) — a package-level clean_core_grade plus
@@ -27,7 +27,7 @@ const CC_HIGH = 20;
  */
 export function codeHealth(g, findings, reg) {
   const clarity = clarityScore(reg);
-  const stability = stabilityScore(g);
+  const stability = stabilityScore(g, abstractnessByObject(reg));
   const performance = performanceScore(g, findings);
   const compound = Math.round((clarity + stability + performance) / 3);
   return { clean_core_grade: aggregateGrade(g?.nodes ?? []), clarity, stability, performance, compound };
@@ -56,18 +56,22 @@ function clarityScore(reg) {
 }
 
 /**
- * Stability = 100*(1 - mean Martin instability I=Ce/(Ca+Ce)) over the
- * DEPENDED-UPON core, where Ce/Ca are the DISTINCT other objects this object
- * depends on / is depended on by (members resolved to their owning object;
- * self-loops and non-coupling edges ignored). Objects with NO dependents (Ca=0)
- * are excluded: a by-design entry point (report/top class) is meant to depend
- * outward and be depended on by nothing, so its I=1 is not a health defect and
- * must not drag the score (evidence-based decision 2026-07-09). A package with
- * no depended-upon objects scores 100.
+ * Stability = 100*(1 - mean D) over the DEPENDED-UPON core, where D=|A+I-1| is
+ * Robert C. Martin's distance from the main sequence: I=Ce/(Ca+Ce) is instability
+ * (Ce/Ca = DISTINCT objects this object depends on / is depended on by, members
+ * resolved to their owning object; self-loops and non-coupling edges ignored),
+ * and A is Martin abstractness (interface=1, class=abstract-method fraction,
+ * else 0). D=0 is on the main sequence (a concrete entry point A=0/I=1, or a
+ * depended-upon abstraction A=1/I=0); D=1 is a corner (the "zone of pain":
+ * concrete + heavily depended-upon A=0/I=0, which raw instability wrongly rates
+ * as perfect). Objects with NO dependents (Ca=0) are excluded — a by-design
+ * entry point's position is not a health signal (decision 2026-07-09). A package
+ * with no depended-upon objects scores 100.
  * @param {{nodes?: object[], edges?: object[]}} g
+ * @param {Map<string, number>} abstractness object name -> Martin abstractness A (default 0)
  * @returns {number} 0-100
  */
-function stabilityScore(g) {
+export function stabilityScore(g, abstractness = new Map()) {
   const nodes = g?.nodes ?? [];
   const ownerById = new Map(nodes.map((n) => [n.id, n.object]));
   const ce = new Map();
@@ -80,14 +84,16 @@ function stabilityScore(g) {
     addTo(ce, src, tgt);
     addTo(ca, tgt, src);
   }
-  const instabilities = [];
+  const distances = [];
   for (const object of compilationUnitObjects(nodes)) {
     const inc = ca.get(object)?.size ?? 0;
     if (inc === 0) continue; // exclude by-design entry points (nothing depends on them)
     const out = ce.get(object)?.size ?? 0;
-    instabilities.push(out / (out + inc)); // inc>0 => denominator>0
+    const instability = out / (out + inc); // inc>0 => denominator>0
+    const a = abstractness.get(object) ?? 0;
+    distances.push(Math.abs(a + instability - 1)); // D = |A + I - 1|, in [0,1]
   }
-  return instabilities.length ? Math.round(100 * (1 - mean(instabilities))) : 100;
+  return distances.length ? Math.round(100 * (1 - mean(distances))) : 100;
 }
 
 /**
