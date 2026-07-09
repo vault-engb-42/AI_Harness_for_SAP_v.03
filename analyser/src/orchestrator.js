@@ -17,6 +17,7 @@ import { curateFindings } from "./curation.js";
 import { cloudReadiness } from "./cloud-readiness.js";
 import { layers, boundaries } from "./graph-dimensions.js";
 import { codeHealth } from "./code-health.js";
+import { scoreDebt } from "./debt-scorer.js";
 
 /**
  * Top-level analyser orchestration: parse -> CPG -> rules (abaplint + harness)
@@ -102,6 +103,7 @@ export function analyzePackage(files, opts = {}) {
     s4_readiness,
     cloud_readiness: cloudReadiness(findings),
     code_health: codeHealth(g, findings, reg),
+    debt: scoreDebt(g, findings, reg),
     layers: layers(g),
     boundaries: boundaries(g),
     graph: g,

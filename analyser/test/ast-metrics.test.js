@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadRegistry } from "../src/abaplint-loader.js";
-import { methodCyclomatic, classCohesion, abstractnessByObject } from "../src/ast-metrics.js";
+import { methodCyclomatic, classCohesion, abstractnessByObject, sizeMetrics } from "../src/ast-metrics.js";
 
 // Faithful AST metrics (arch spec §3.C code_health.clarity). Real abaplint parse,
 // no mocks. Cyclomatic reuses abaplint's own CyclomaticComplexityStats branch set
@@ -152,6 +152,48 @@ test("abstractnessByObject: interface=1, half-abstract class=0.5, concrete=0 (Ma
   assert.equal(a.get("ZIF_X"), 1, "an interface is fully abstract");
   assert.equal(a.get("ZCL_BASE"), 0.5, "1 of 2 methods abstract");
   assert.equal(a.get("ZCL_PLAIN"), 0, "a concrete class");
+});
+
+test("sizeMetrics: per-object physical LOC + routine count (methods + forms + function modules)", () => {
+  const clas = [
+    "CLASS zcl_x DEFINITION PUBLIC.",
+    "  PUBLIC SECTION. METHODS a. METHODS b.",
+    "ENDCLASS.",
+    "CLASS zcl_x IMPLEMENTATION.",
+    "  METHOD a. WRITE 1. ENDMETHOD.",
+    "  METHOD b. WRITE 2. ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const rep = ["REPORT zr.", "START-OF-SELECTION.", "  PERFORM f1.", "FORM f1.", "  WRITE 1.", "ENDFORM."].join("\n");
+  const reg = loadRegistry([
+    { filename: "zcl_x.clas.abap", source: clas },
+    { filename: "zr.prog.abap", source: rep },
+  ]);
+  assert.deepEqual(sizeMetrics(reg), [
+    { object: "ZCL_X", loc: 7, routines: 2 },
+    { object: "ZR", loc: 6, routines: 1 },
+  ]);
+});
+
+test("sizeMetrics excludes the .clas.testclasses include (production LOC/routines only)", () => {
+  const main = [
+    "CLASS zcl_p DEFINITION PUBLIC. PUBLIC SECTION. METHODS a. ENDCLASS.",
+    "CLASS zcl_p IMPLEMENTATION. METHOD a. WRITE 1. ENDMETHOD. ENDCLASS.",
+  ].join("\n");
+  const tc = [
+    "CLASS lcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.",
+    "  PRIVATE SECTION. METHODS t1 FOR TESTING. METHODS t2 FOR TESTING.",
+    "ENDCLASS.",
+    "CLASS lcl_test IMPLEMENTATION. METHOD t1. ENDMETHOD. METHOD t2. ENDMETHOD. ENDCLASS.",
+  ].join("\n");
+  const reg = loadRegistry([
+    { filename: "zcl_p.clas.abap", source: main },
+    { filename: "zcl_p.clas.testclasses.abap", source: tc },
+  ]);
+  const [m] = sizeMetrics(reg);
+  assert.equal(m.object, "ZCL_P");
+  assert.equal(m.routines, 1, "only the production method a; the 2 test methods excluded");
+  assert.equal(m.loc, 2, "only the 2 production lines; the testclasses include excluded");
 });
 
 test("metrics are total on a package with no methods/classes (empty arrays, no throw)", () => {

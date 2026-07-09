@@ -33,6 +33,7 @@ export function validateFindings(doc) {
   validateReadiness(doc?.s4_readiness, errors);
   validateBlastRadius(doc?.blast_radius, errors);
   validateCodeHealth(doc?.code_health, errors);
+  validateDebt(doc?.debt, errors);
   return { valid: errors.length === 0, errors };
 }
 
@@ -79,6 +80,16 @@ function validateCodeHealth(ch, errors) {
     const v = ch?.[k];
     if (!Number.isInteger(v) || v < 0 || v > 100) errors.push(`code_health.${k} must be an integer in [0,100]: ${v}`);
   }
+}
+
+/** debt is optional; when present, scores is an array of {symbol, score∈[0,1]} + numeric summaries. */
+function validateDebt(debt, errors) {
+  if (debt === undefined) return;
+  if (!Array.isArray(debt.scores)) return void errors.push("debt.scores is not an array");
+  debt.scores.forEach((s, i) => {
+    if (absent(s?.symbol)) errors.push(`debt.scores[${i}] missing symbol`);
+    if (typeof s?.score !== "number" || s.score < 0 || s.score > 1) errors.push(`debt.scores[${i}].score must be a number in [0,1]: ${s?.score}`);
+  });
 }
 
 function validateBlastRadius(blast, errors) {

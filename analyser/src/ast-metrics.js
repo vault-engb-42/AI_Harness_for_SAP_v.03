@@ -129,6 +129,36 @@ function lcomForClass(cd, methodTokens) {
 }
 
 /**
+ * Per compilation-unit object: physical LOC and routine count (methods + FORMs +
+ * function modules). Production only — the `.clas.testclasses` include is
+ * excluded (mirrors methodCyclomatic), so test code never inflates size/density.
+ * Inputs for the tech-debt size_ratio / function_density / avg_function_length
+ * signals.
+ * @param {import("@abaplint/core").Registry} reg
+ * @returns {Array<{object: string, loc: number, routines: number}>} sorted by object
+ */
+export function sizeMetrics(reg) {
+  const out = [];
+  for (const obj of objectsOf(reg)) {
+    const testFile = obj.getTestclassFile?.()?.getFilename();
+    let loc = 0;
+    let routines = 0;
+    for (const file of obj.getABAPFiles?.() ?? []) {
+      if (file.getFilename() === testFile) continue; // production only
+      loc += file.getRawRows().length;
+      const st = file.getStructure?.();
+      if (!st) continue;
+      routines +=
+        st.findAllStructures(Structures.Method).length +
+        st.findAllStructures(Structures.Form).length +
+        st.findAllStructures(Structures.FunctionModule).length;
+    }
+    out.push({ object: nameOf(obj), loc, routines });
+  }
+  return out.sort((a, b) => (a.object < b.object ? -1 : a.object > b.object ? 1 : 0));
+}
+
+/**
  * Martin abstractness A per object, for the main-sequence distance in
  * code_health.stability. An interface is fully abstract (A=1); a class's A is
  * its fraction of abstract methods (a concrete class -> 0, a fully deferred

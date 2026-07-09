@@ -88,6 +88,34 @@
         "compound": { "type": "integer", "minimum": 0, "maximum": 100 }
       }
     },
+    "debt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scores", "avg_score", "max_score", "hotspot_count"],
+      "description": "Tech-debt scoring (§3.C Debt tab): per-symbol 0-1 composite over 10 signals — TALOS debt_scorer structure/weights/anchors (Appendix A), ADAPTED to our real metrics (complexity=McCabe, lcom_score=Henderson-Sellers LCOM*, duplication=clone findings) where TALOS forces 0/proxy. Composite = weighted sum of the first 6 signals only (0.20 size_ratio + 0.10 function_density + 0.20 avg_function_length + 0.20 coupling + 0.20 complexity + 0.10 duplication); signals 7-10 are structural, reported but not weighted. Symbol = compilation-unit object; scores sorted by score desc.",
+      "properties": {
+        "scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["symbol", "score", "signals"],
+            "properties": {
+              "symbol": { "type": "string" },
+              "score": { "type": "number", "minimum": 0, "maximum": 1 },
+              "signals": {
+                "type": "object",
+                "additionalProperties": { "type": "number" },
+                "description": "The 10 signals, each 0-1: size_ratio, function_density, avg_function_length, coupling, complexity, duplication, interface_presence, test_double_ready, lcom_score, structural_quality."
+              }
+            }
+          }
+        },
+        "avg_score": { "type": "number" },
+        "max_score": { "type": "number" },
+        "hotspot_count": { "type": "integer" }
+      }
+    },
     "layers": {
       "type": "object",
       "additionalProperties": false,
