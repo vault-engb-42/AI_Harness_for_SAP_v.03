@@ -32,6 +32,7 @@ export function validateFindings(doc) {
   validateGraph(doc?.graph, errors);
   validateReadiness(doc?.s4_readiness, errors);
   validateBlastRadius(doc?.blast_radius, errors);
+  validateCodeHealth(doc?.code_health, errors);
   return { valid: errors.length === 0, errors };
 }
 
@@ -67,6 +68,16 @@ function validateReadiness(s4, errors) {
   if (!s4) return void errors.push("s4_readiness missing");
   for (const r of ["s4_readiness_pct", "released_hits", "deprecated_hits"]) {
     if (absent(s4[r])) errors.push(`s4_readiness missing ${r}`);
+  }
+}
+
+/** code_health is optional; when present, grade must be a legal Level and the four scores integers in [0,100]. */
+function validateCodeHealth(ch, errors) {
+  if (ch === undefined) return;
+  if (badEnum(ch, "clean_core_grade", GRADE)) errors.push(`code_health bad clean_core_grade: ${ch.clean_core_grade}`);
+  for (const k of ["clarity", "stability", "performance", "compound"]) {
+    const v = ch?.[k];
+    if (!Number.isInteger(v) || v < 0 || v > 100) errors.push(`code_health.${k} must be an integer in [0,100]: ${v}`);
   }
 }
 
