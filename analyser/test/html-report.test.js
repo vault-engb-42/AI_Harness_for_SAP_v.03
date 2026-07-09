@@ -94,12 +94,13 @@ test("renderHtml HTML-escapes untrusted finding-derived text (P8)", () => {
   assert.ok(html.includes("\\u003cimg") || html.includes("&lt;img"), "object payload is encoded, not raw");
 });
 
-test("Graph tab is an interactive SVG (pan/zoom scaffold + highlightable nodes/edges)", () => {
+test("Graph tab is a force-directed SVG with layered seed, controls, and highlightable nodes/edges", () => {
   const html = renderHtml(DOC);
-  assert.ok(html.includes('id="gsvg"') && html.includes('id="gv"'), "pannable svg + transform group");
-  assert.ok(/class="gn" data-id=/.test(html), "nodes carry data-id for click-highlight");
-  assert.ok(/class="ge" data-src=/.test(html), "edges carry endpoints for adjacency highlight");
-  assert.ok(html.includes("gReset"), "reset-view control present");
+  assert.ok(html.includes('id="gsvg"') && html.includes('id="gv"'), "svg + transform group");
+  assert.ok(/class="gn" data-id="[^"]+" data-x="[^"]+" data-y=/.test(html), "nodes carry id + deterministic seed position");
+  assert.ok(/class="ge" data-src=/.test(html), "edges carry endpoints for the sim + highlight");
+  assert.ok(/onclick="gLayout\('force'\)"/.test(html) && /onclick="gLayout\('layered'\)"/.test(html), "Force/Layered toggle");
+  assert.ok(html.includes("gZoom") && html.includes("gFit") && html.includes("gReset"), "visible zoom/fit/reset controls");
 });
 
 test("SARIF tab is a summary panel + export pointer, NOT the embedded raw document", () => {

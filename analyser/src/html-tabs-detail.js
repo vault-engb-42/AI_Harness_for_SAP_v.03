@@ -7,10 +7,12 @@ import { esc, num, round, bar, jsonIsland, layerColumns } from "./html-util.js";
  * keep both modules under the 300-line limit. Deterministic, pure, P8-escaped.
  */
 
-// Interactive dependency graph: a deterministic 3-column layered layout computed
-// here (entry -> internal -> data, rows by importance), rendered as inline SVG with
-// client-side pan/zoom/click-highlight (html-assets GRAPH_JS). No vendored library;
-// positions are a pure function of the sorted nodes + layers, so bytes stay stable.
+// Interactive dependency graph. The server renders a DETERMINISTIC 3-column layered
+// layout (entry -> internal -> data, rows by importance) as inline SVG — the no-JS
+// fallback, the "Layered" mode, AND the seed for the client-side FORCE simulation
+// (html-assets GRAPH_JS): a seeded, no-random spring model that animates the nodes
+// into a clustered layout, with drag / zoom buttons / click-highlight. The motion is
+// client-side, so emitted bytes stay byte-identical (§3.A). No vendored library.
 const GRAPH_NS_COLOR = { Z: "#0ea5a4", Y: "#0ea5a4", sap: "#94a3b8", registered: "#d97706" };
 const GRAPH_COL_X = { entry: 170, internal: 520, data: 870 };
 const MAX_GRAPH_RENDER = 300;
@@ -35,14 +37,14 @@ export function graphTab(doc) {
     list.forEach((n, i) => pos.set(n.id, { x: GRAPH_COL_X[layer], y: 40 + i * 26 }));
     rows = Math.max(rows, list.length);
   }
-  const w = 1080, h = 40 + rows * 26 + 20;
+  const w = 1080, h = Math.max(600, 40 + rows * 26 + 20);
   const lines = edges.map((e) => { const a = pos.get(e.source), b = pos.get(e.target); return a && b ? `<line class="ge" data-src="${esc(e.source)}" data-tgt="${esc(e.target)}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>` : ""; }).join("");
-  const dots = nodes.map((n) => { const p = pos.get(n.id); const r = 5 + Math.round(num(n.rank) * 9); return `<g class="gn" data-id="${esc(n.id)}"><circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${GRAPH_NS_COLOR[n.namespace] ?? "#64748b"}"><title>${esc(n.id)} (${esc(n.kind)} · rank ${round(n.rank)})</title></circle><text x="${p.x + r + 3}" y="${p.y + 3}">${esc(String(n.object).slice(0, 16))}</text></g>`; }).join("");
+  const dots = nodes.map((n) => { const p = pos.get(n.id); const r = 5 + Math.round(num(n.rank) * 9); return `<g class="gn" data-id="${esc(n.id)}" data-x="${p.x}" data-y="${p.y}" transform="translate(${p.x} ${p.y})"><circle r="${r}" fill="${GRAPH_NS_COLOR[n.namespace] ?? "#64748b"}"><title>${esc(n.id)} (${esc(n.kind)} · rank ${round(n.rank)})</title></circle><text x="${r + 3}" y="3">${esc(String(n.object).slice(0, 16))}</text></g>`; }).join("");
   const note = truncated ? `<b>Showing the top ${nodes.length} of ${all.length} nodes by importance.</b> ` : "";
   return `<h2>Dependency Graph — ${all.length} nodes / ${totalEdges} edges</h2>
-<p class="muted">${note}Columns: entry → internal → data. Node size = importance (PageRank). Teal = customer · grey = SAP · amber = vendor.</p>
-<div class="scroll gwrap"><svg id="gsvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><g id="gv">${lines}${dots}</g></svg></div>
-<div class="ghint">Scroll to zoom · drag to pan · click a node to highlight its dependencies · <button type="button" onclick="gReset()">reset view</button></div>`;
+<p class="muted">${note}Node size = importance (PageRank). Teal = customer · grey = SAP · amber = vendor. Drag nodes; click one to highlight its neighbours.</p>
+<div class="gbar"><b>Layout</b> <button type="button" onclick="gLayout('force')">Force</button> <button type="button" onclick="gLayout('layered')">Layered</button> <span class="sep">·</span> <b>Zoom</b> <button type="button" onclick="gZoom(1.25)">+</button> <button type="button" onclick="gZoom(0.8)">−</button> <button type="button" onclick="gFit()">Fit</button> <button type="button" onclick="gReset()">Reset</button></div>
+<div class="gwrap"><svg id="gsvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><g id="gv">${lines}${dots}</g></svg></div>`;
 }
 
 export function boundariesTab(doc) {
