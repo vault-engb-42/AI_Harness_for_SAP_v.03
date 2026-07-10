@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { renderHtml } from "../src/html-report.js";
+import { APP_JS } from "../src/html-assets.js";
 
 // §3.E self-contained HTML report. Deterministic, no external resource loads, all
 // finding-derived text HTML-escaped (P8: scanned ABAP is untrusted). The renderer
@@ -88,6 +90,25 @@ test("renderHtml loads no external resources (self-contained file://)", () => {
   assert.ok(!/<link\b/i.test(html), "no external stylesheet link");
 });
 
+test("CSP hardening: script-src is hash-based (no unsafe-inline), zero inline event handlers", () => {
+  const html = renderHtml(DOC);
+  const csp = html.match(/Content-Security-Policy" content="([^"]+)"/)[1];
+  // The script XSS vector is closed: the inline script is allow-listed by SHA-256
+  // hash, NOT by 'unsafe-inline'. A wrong/absent hash means the browser blocks the
+  // script and the report's interactivity dies — so assert the hash matches the bytes.
+  assert.ok(/script-src 'sha256-[A-Za-z0-9+/=]+'/.test(csp), "script-src uses a sha256 hash allow-list");
+  assert.ok(!/script-src[^;]*'unsafe-inline'/.test(csp), "script-src does NOT allow unsafe-inline");
+  const expected = createHash("sha256").update(APP_JS).digest("base64");
+  assert.ok(csp.includes("'sha256-" + expected + "'"), "CSP hash matches the emitted APP_JS bytes exactly");
+  // No inline HTML event-handler attributes anywhere (all converted to addEventListener),
+  // so even a hypothetical escaping slip could not execute an on*= handler.
+  assert.ok(!/\son[a-z]+\s*=\s*["']/i.test(html), "no inline on*= event-handler attributes");
+  // style-src intentionally RETAINS unsafe-inline: bar() emits dynamic style="width:N%"
+  // which cannot be hashed or classed; inline styles are not a script-execution vector
+  // and default-src 'none' blocks any exfiltration. Documented residual, not an oversight.
+  assert.ok(/style-src 'unsafe-inline'/.test(csp), "style-src retains unsafe-inline for dynamic bar widths");
+});
+
 test("renderHtml HTML-escapes untrusted finding-derived text (P8)", () => {
   const hostile = {
     ...DOC,
@@ -106,7 +127,7 @@ test("Graph tab offers force-directed SVG + a dependency matrix (DSM) view", () 
   const html = renderHtml(DOC);
   assert.ok(html.includes('id="gsvg"') && html.includes('id="gv"'), "svg + transform group");
   assert.ok(/class="gn" data-id="[^"]+" data-x="[^"]+" data-y=/.test(html), "nodes carry id + deterministic seed position");
-  assert.ok(/onclick="gLayout\('force'\)"/.test(html) && /onclick="gLayout\('matrix'\)"/.test(html), "Force + Matrix toggle");
+  assert.ok(/data-g="layout" data-arg="force"/.test(html) && /data-g="layout" data-arg="matrix"/.test(html), "Force + Matrix toggle (wired via addEventListener, not inline onclick)");
   assert.ok(html.includes("gZoom") && html.includes("gFit"), "zoom/fit controls");
   // DSM: ZR depends on T001 -> a dependency cell in the object×object grid.
   assert.ok(html.includes('id="gmatrix"') && html.includes('table class="mx"'), "dependency matrix rendered");

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { CSS, APP_JS } from "./html-assets.js";
 import { esc, num } from "./html-util.js";
 import { summaryTab, recommendationsTab, planTab, codeHealthTab } from "./html-tabs.js";
@@ -38,5 +39,11 @@ export function renderHtml(doc, opts = {}) {
 <header><h1>Analyse — ${esc(doc.package ?? "package")}</h1><span class="chip">${(doc.graph?.nodes?.length ?? 0)} nodes · ${(doc.graph?.edges?.length ?? 0)} edges · ${(doc.findings ?? []).length} findings · S/4 ${num(doc.s4_readiness?.s4_readiness_pct)}% · run ${esc(String(doc.run_id ?? "").slice(0, 10))}</span></header>
 <nav class="tabs">${nav}</nav>${panels}<script>${APP_JS}</script>`;
   if (opts.fragment) return inner;
-  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>Analyse — ${esc(doc.package ?? "package")}</title></head><body>${inner}</body></html>`;
+  // Hash-based CSP: the single inline <script> is allow-listed by the SHA-256 of its
+  // exact bytes (deterministic — APP_JS is a constant), so 'unsafe-inline' is dropped
+  // from script-src, closing the XSS vector while the self-contained file keeps working.
+  // style-src RETAINS 'unsafe-inline': bar() emits dynamic style="width:N%" that cannot
+  // be hashed; inline styles execute no script and default-src 'none' blocks exfiltration.
+  const scriptHash = createHash("sha256").update(APP_JS).digest("base64");
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${scriptHash}'"><title>Analyse — ${esc(doc.package ?? "package")}</title></head><body>${inner}</body></html>`;
 }
