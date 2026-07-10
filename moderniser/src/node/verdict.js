@@ -27,11 +27,20 @@ const PASS_PARITY = new Set(["equivalent", "PASS_STRUCTURAL"]);
 
 export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   const cp = checkpoint;
-  const p4Broken = cp.invariants?.intact === false || cp.auth_coverage?.lost === true;
+  const warn = ratchet.atc_warn_delta;
 
-  // PARK is the deterministic no-released-successor class ONLY, and never overrides a P4/auth
-  // violation (L7) — a broken invariant is always BLOCK.
-  if (cp.block_reason === NO_RELEASED_SUCCESSOR && !p4Broken) {
+  // PARK is the deterministic no-released-successor class ONLY. It NEVER applies to a
+  // P4-invariant OR a defective-output BLOCK (§3.2, L7): PARK is for a node that could not
+  // even be attempted (no released successor), so its checkpoint conjuncts are ABSENT, not
+  // failing. Any PRESENT failing conjunct is a defect that forces BLOCK.
+  const hasDefect =
+    cp.invariants?.intact === false ||
+    cp.auth_coverage?.lost === true ||
+    (typeof cp.atc_p1 === "number" && cp.atc_p1 > 0) ||
+    cp.unit?.green === false ||
+    (cp.parity !== undefined && !PASS_PARITY.has(cp.parity.verdict)) ||
+    (typeof warn === "number" && warn > 0);
+  if (cp.block_reason === NO_RELEASED_SUCCESSOR && !hasDefect) {
     return { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] };
   }
 
@@ -42,7 +51,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken"); // fail-closed: must PROVE intact
   if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost"); // fail-open: block only on proven loss
   if (!PASS_PARITY.has(cp.parity?.verdict)) reasons.push(`parity-not-equivalent:${cp.parity?.verdict ?? "missing"}`);
-  if (!((ratchet.atc_warn_delta ?? 1) <= 0)) reasons.push("warn-delta-regressed"); // missing → 1 → fail-closed
+  if (!(Number.isFinite(warn) && warn <= 0)) reasons.push("warn-delta-regressed"); // non-number/missing → fail-closed
 
   return reasons.length === 0 ? { verdict: "GREEN", reasons: [] } : { verdict: "BLOCK", reasons };
 }

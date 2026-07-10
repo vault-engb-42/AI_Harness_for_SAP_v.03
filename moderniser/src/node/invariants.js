@@ -41,8 +41,11 @@ export function invariantDiff(before = {}, after = {}) {
 
   const beforePairs = new Set(b.auth_checks.map(pairKey));
   const beforeObjects = new Set(b.dcl_restrictions.map((d) => d.object));
+  const privKey = (c) => JSON.stringify([c.object, c.had_row_auth === true]);
+  const beforePriv = new Set(b.privileged_cds.map(privKey));
+  const afterPriv = new Set(a.privileged_cds.map(privKey));
   const auth_delta =
-    !setEqual(beforePairs, afterPairs) || !setEqual(beforeObjects, afterObjects) || a.privileged_cds.length > 0;
+    !setEqual(beforePairs, afterPairs) || !setEqual(beforeObjects, afterObjects) || !setEqual(beforePriv, afterPriv);
 
   return {
     intact: violations.length === 0,

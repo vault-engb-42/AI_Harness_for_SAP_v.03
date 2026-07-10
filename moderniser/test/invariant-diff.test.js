@@ -78,3 +78,10 @@ test("adding auth (no removal) is not a loss but is a delta", () => {
   assert.equal(r.auth_coverage.lost, false);
   assert.equal(r.auth_delta, true);
 });
+
+test("auth_delta flags REMOVAL of WITH PRIVILEGED ACCESS too (any footprint change → attestation owed)", () => {
+  const before = bundle({ privileged_cds: [{ object: "I_X", had_row_auth: true }] });
+  const r = invariantDiff(before, bundle());
+  assert.equal(r.auth_delta, true);
+  assert.equal(r.auth_coverage.lost, false, "removing privileged access is a strengthening, not a loss");
+});

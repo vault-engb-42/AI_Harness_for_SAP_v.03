@@ -75,3 +75,22 @@ test("PARK is REFUSED when a P4 invariant or auth is also broken (P4 wins → BL
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, invariants: { intact: false } }, {}).verdict, "BLOCK");
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, auth_coverage: { lost: true } }, {}).verdict, "BLOCK");
 });
+
+test("PARK is REFUSED for a DEFECTIVE-output no-successor block — never a defect BLOCK (§3.2, L7)", () => {
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, atc_p1: 5 }, {}).verdict, "BLOCK", "ATC P1>0 is a defect");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, unit: { green: false } }, {}).verdict, "BLOCK", "unit red");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, parity: { verdict: "auth_vanished" } }, {}).verdict, "BLOCK", "parity veto");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, parity: { verdict: "scope_reduced" } }, {}).verdict, "BLOCK", "parity BLOCK band");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR }, { atc_warn_delta: 3 }).verdict, "BLOCK", "WARN regressed");
+});
+
+test("PARK is still granted for a genuine no-successor node (checkpoint conjuncts absent, not failing)", () => {
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR }, {}).verdict, "PARK");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, activated: false }, {}).verdict, "PARK", "not-built ≠ defect");
+});
+
+test("a non-number WARN delta fails closed (no coercion past the ratchet guard)", () => {
+  assert.equal(verdict({}, { atc_warn_delta: "0" }).verdict, "BLOCK");
+  assert.equal(verdict({}, { atc_warn_delta: "-3" }).verdict, "BLOCK");
+  assert.equal(verdict({}, { atc_warn_delta: NaN }).verdict, "BLOCK");
+});

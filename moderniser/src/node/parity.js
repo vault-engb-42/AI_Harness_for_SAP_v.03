@@ -15,7 +15,12 @@
  *     PASS_STRUCTURAL iff the class set is empty.
  *
  * Pure. The before/after AST → `diff` extraction (via @abaplint) is a later I/O step; here
- * `diff` is the already-extracted CPG-diff feature bundle.
+ * `diff` is the already-extracted CPG-diff feature bundle. Two extraction responsibilities are
+ * OWED by that step (§6.1): the `money` class relies on resolved CURR/QUAN/DEC operand types,
+ * so the extractor must ship a seeded standard-amount-field allowlist (DMBTR/WRBTR/NETWR/…) as
+ * the offline fallback when abaplint type inference returns `unknown`; and `client_specified_delta`
+ * must fold BOTH §6.1 sub-triggers (a CLIENT SPECIFIED token diff AND a client-dependent↔independent
+ * table-access switch) into the single boolean.
  */
 
 // §15.4 semantic-parity deduction weights.
