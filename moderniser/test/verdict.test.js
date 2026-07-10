@@ -1,0 +1,77 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { nodeVerdict } from "../src/node/verdict.js";
+import { NO_RELEASED_SUCCESSOR } from "../src/state/node-status.js";
+
+// §3.2 verdict logic, re-tokenised to §6.1's parity enum. A fixed conjunction — no
+// author-settable soft path for the hard gates (P4 / ATC-P1). Fail-CLOSED on every hard
+// conjunct (missing evidence = fail, never fall-through-pass, §3.2 5.3); fail-OPEN on auth
+// (BLOCK only on PROVEN coverage loss, L7). PARK is the deterministic no-released-successor
+// class only — never a P4/defect BLOCK (L7).
+
+const green = () => ({
+  activated: true,
+  reconciled: true,
+  atc_p1: 0,
+  unit: { green: true },
+  invariants: { intact: true },
+  auth_coverage: { lost: false },
+  parity: { verdict: "equivalent" },
+});
+const ratchet = () => ({ atc_warn_delta: 0 });
+const verdict = (cpOver = {}, rOver = {}) => nodeVerdict({ ...green(), ...cpOver }, { ...ratchet(), ...rOver });
+
+test("a fully-passing checkpoint is GREEN with no reasons", () => {
+  assert.deepEqual(nodeVerdict(green(), ratchet()), { verdict: "GREEN", reasons: [] });
+});
+
+test("PASS_STRUCTURAL parity is also GREEN", () => {
+  assert.equal(verdict({ parity: { verdict: "PASS_STRUCTURAL" } }).verdict, "GREEN");
+});
+
+test("each hard conjunct failing yields BLOCK", () => {
+  assert.equal(verdict({ activated: false }).verdict, "BLOCK");
+  assert.equal(verdict({ reconciled: false }).verdict, "BLOCK");
+  assert.equal(verdict({ atc_p1: 1 }).verdict, "BLOCK");
+  assert.equal(verdict({ unit: { green: false } }).verdict, "BLOCK");
+  assert.equal(verdict({ invariants: { intact: false } }).verdict, "BLOCK");
+  assert.equal(verdict({ auth_coverage: { lost: true } }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: { verdict: "needs_review" } }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: { verdict: "scope_reduced" } }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: { verdict: "auth_vanished" } }).verdict, "BLOCK", "a parity veto");
+  assert.equal(verdict({}, { atc_warn_delta: 1 }).verdict, "BLOCK");
+});
+
+test("BLOCK reasons name exactly the failed conjuncts", () => {
+  const r = verdict({ atc_p1: 2, unit: { green: false } });
+  assert.equal(r.verdict, "BLOCK");
+  assert.deepEqual(r.reasons.sort(), ["atc-p1-nonzero", "unit-not-green"]);
+});
+
+test("hard conjuncts fail CLOSED when their evidence is missing", () => {
+  assert.equal(nodeVerdict({}, {}).verdict, "BLOCK", "empty checkpoint → BLOCK, never pass");
+  assert.equal(verdict({ atc_p1: undefined }).verdict, "BLOCK");
+  assert.equal(verdict({ unit: undefined }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: undefined }).verdict, "BLOCK");
+  assert.equal(nodeVerdict(green(), {}).verdict, "BLOCK", "missing warn-delta → fail-closed");
+});
+
+test("auth fails OPEN — a missing auth_coverage does not block (L7: block only on proven loss)", () => {
+  assert.equal(verdict({ auth_coverage: undefined }).verdict, "GREEN");
+});
+
+test("the WARN delta passes at exactly 0 and when negative, fails when positive", () => {
+  assert.equal(verdict({}, { atc_warn_delta: 0 }).verdict, "GREEN");
+  assert.equal(verdict({}, { atc_warn_delta: -3 }).verdict, "GREEN");
+  assert.equal(verdict({}, { atc_warn_delta: 1 }).verdict, "BLOCK");
+});
+
+test("PARK is granted for a no-released-successor block that breaks no invariant", () => {
+  const r = nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, activated: false }, {});
+  assert.deepEqual(r, { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] });
+});
+
+test("PARK is REFUSED when a P4 invariant or auth is also broken (P4 wins → BLOCK)", () => {
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, invariants: { intact: false } }, {}).verdict, "BLOCK");
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, auth_coverage: { lost: true } }, {}).verdict, "BLOCK");
+});
