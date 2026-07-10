@@ -61,6 +61,11 @@ test("isolated nodes are all level 0", () => {
   assert.deepEqual(kahnLevels(cond(["A", "B"], [])).levels, [["A", "B"]]);
 });
 
+test("the indegree seed is byte-stable regardless of super-node array order", () => {
+  const mk = (superNodes) => JSON.stringify(kahnLevels({ superNodes, edges: [["A", "B"]] }).indegree);
+  assert.equal(mk([{ id: "A", members: ["A"] }, { id: "B", members: ["B"] }]), mk([{ id: "B", members: ["B"] }, { id: "A", members: ["A"] }]));
+});
+
 test("kahnLevels is deterministic and independent of node/edge input order", () => {
   const c1 = cond(["A", "B", "C", "D"], [["A", "B"], ["A", "C"], ["B", "D"], ["C", "D"]]);
   const c2 = cond(["D", "C", "B", "A"], [["C", "D"], ["B", "D"], ["A", "C"], ["A", "B"]]);

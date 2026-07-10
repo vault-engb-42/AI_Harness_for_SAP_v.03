@@ -8,62 +8,49 @@ import { buildConflictGraph } from "../src/graph/conflict.js";
 // §3.1 Stage 4 (L4) — the CONFLICT graph. Reference-edge independence is insufficient:
 // two nodes also conflict if they share a program pool (function-group co-tenancy), a
 // DDIC object or its base (append/include), a lock object, a number-range, or a transport.
-// Undirected. Returns direct-conflict `adjacency` (frontier's both-graph independence),
-// transitive `groups` (co-tenant clusters that must move together), per-edge `reasons`.
-// Pure; resource metadata is injected (populated later by SCOPE) — absent on the raw CPG.
+// Represented as per-node `keysOf` (frontier's DIRECT-conflict check — no O(k^2) clique),
+// `buckets` (nodes per shared resource, for observability + collapse), and `groups`
+// (transitive co-tenant clusters ≥2 that must move together). Pure; metadata injected by
+// SCOPE — absent on the raw CPG.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DOC = JSON.parse(readFileSync(join(HERE, "fixtures", "analyser-findings.json"), "utf8"));
-const ek = (a, b) => JSON.stringify([a, b]);
 
-test("two nodes sharing a program pool get one undirected conflict edge", () => {
-  const g = buildConflictGraph([{ id: "A", program_pool: "SAPLZFG" }, { id: "B", program_pool: "SAPLZFG" }, { id: "C" }]);
-  assert.deepEqual(g.edges, [["A", "B"]]);
-  assert.deepEqual(g.adjacency, { A: ["B"], B: ["A"], C: [] });
-  assert.deepEqual(g.reasons[ek("A", "B")], ["pool:SAPLZFG"]);
+test("keysOf lists each node's namespaced resource keys, sorted; keyless nodes are []", () => {
+  const g = buildConflictGraph([{ id: "A", program_pool: "P", ddic: ["T"] }, { id: "B" }]);
+  assert.deepEqual(g.keysOf.A, ["ddic:T", "pool:P"]);
+  assert.deepEqual(g.keysOf.B, []);
 });
 
-test("shared DDIC / lock / number-range / transport each form a conflict edge", () => {
-  const mk = (extra) => buildConflictGraph([{ id: "A", ...extra }, { id: "B", ...extra }]).edges;
-  assert.deepEqual(mk({ ddic: ["SKB1"] }), [["A", "B"]]);
-  assert.deepEqual(mk({ locks: ["EZ_ZFI"] }), [["A", "B"]]);
-  assert.deepEqual(mk({ number_ranges: ["NR01"] }), [["A", "B"]]);
-  assert.deepEqual(mk({ transport: "DEVK900001" }), [["A", "B"]]);
+test("all five conflict sources are recognised (function_group aliases program pool)", () => {
+  const keys = (extra) => buildConflictGraph([{ id: "A", ...extra }]).keysOf.A;
+  assert.deepEqual(keys({ program_pool: "G" }), ["pool:G"]);
+  assert.deepEqual(keys({ function_group: "G" }), ["pool:G"]);
+  assert.deepEqual(keys({ ddic: ["T"] }), ["ddic:T"]);
+  assert.deepEqual(keys({ locks: ["L"] }), ["lock:L"]);
+  assert.deepEqual(keys({ number_ranges: ["N"] }), ["nr:N"]);
+  assert.deepEqual(keys({ transport: "TR" }), ["tr:TR"]);
 });
 
-test("nodes sharing no resource have no conflict edge or group", () => {
-  const g = buildConflictGraph([{ id: "A", program_pool: "P1" }, { id: "B", program_pool: "P2" }]);
-  assert.deepEqual(g.edges, []);
-  assert.deepEqual(g.groups, []);
+test("buckets group node ids by shared resource key, sorted", () => {
+  const g = buildConflictGraph([{ id: "A", program_pool: "P" }, { id: "B", program_pool: "P" }, { id: "C", ddic: ["T"] }]);
+  assert.deepEqual(g.buckets["pool:P"], ["A", "B"]);
+  assert.deepEqual(g.buckets["ddic:T"], ["C"]);
 });
 
-test("an edge's reasons list ALL shared resources, sorted", () => {
-  const g = buildConflictGraph([{ id: "A", program_pool: "P", ddic: ["T"] }, { id: "B", program_pool: "P", ddic: ["T"] }]);
-  assert.deepEqual(g.reasons[ek("A", "B")], ["ddic:T", "pool:P"]);
-});
-
-test("groups are transitive connected components; direct adjacency is NOT transitive", () => {
+test("groups are transitive connected components of size >=2; singletons excluded", () => {
   const g = buildConflictGraph([
     { id: "A", program_pool: "P" },
     { id: "B", program_pool: "P", ddic: ["T"] },
     { id: "C", ddic: ["T"] },
+    { id: "X" },
   ]);
-  assert.deepEqual(g.groups, [["A", "B", "C"]], "transitive co-tenant cluster");
-  assert.deepEqual(g.adjacency.A, ["B"], "A and C share nothing directly");
-  assert.deepEqual(g.adjacency.B, ["A", "C"]);
-  assert.deepEqual(g.edges, [["A", "B"], ["B", "C"]]);
-});
-
-test("three co-pool nodes form a clique and a single group", () => {
-  const g = buildConflictGraph([{ id: "A", program_pool: "P" }, { id: "B", program_pool: "P" }, { id: "C", program_pool: "P" }]);
-  assert.deepEqual(g.edges, [["A", "B"], ["A", "C"], ["B", "C"]]);
   assert.deepEqual(g.groups, [["A", "B", "C"]]);
+  assert.ok(!g.groups.flat().includes("X"));
 });
 
-test("an isolated node is in no group", () => {
-  const g = buildConflictGraph([{ id: "A", program_pool: "P" }, { id: "B", program_pool: "P" }, { id: "X" }]);
-  assert.deepEqual(g.groups, [["A", "B"]]);
-  assert.ok(!g.groups.flat().includes("X"));
+test("nodes sharing no resource form no group", () => {
+  assert.deepEqual(buildConflictGraph([{ id: "A", program_pool: "P1" }, { id: "B", program_pool: "P2" }]).groups, []);
 });
 
 test("buildConflictGraph is deterministic and independent of node input order", () => {
@@ -71,10 +58,19 @@ test("buildConflictGraph is deterministic and independent of node input order", 
   assert.equal(JSON.stringify(buildConflictGraph(nodes)), JSON.stringify(buildConflictGraph([...nodes].reverse())));
 });
 
-test("the raw golden CPG (no resource metadata) has an empty conflict graph", () => {
+test("the raw golden CPG (no resource metadata) yields empty buckets and groups", () => {
   const g = buildConflictGraph(DOC.graph.nodes);
-  assert.deepEqual(g.edges, []);
+  assert.deepEqual(g.buckets, {});
   assert.deepEqual(g.groups, []);
-  assert.ok(Object.values(g.adjacency).every((a) => a.length === 0));
-  assert.equal(Object.keys(g.adjacency).length, DOC.graph.nodes.length, "every node present, all isolated");
+  assert.equal(Object.keys(g.keysOf).length, DOC.graph.nodes.length, "every node present");
+  assert.ok(Object.values(g.keysOf).every((k) => k.length === 0), "all keyless");
+});
+
+test("a large co-tenant bucket stays LINEAR — no O(k^2) clique materialisation", () => {
+  const n = 2000;
+  const nodes = Array.from({ length: n }, (_, i) => ({ id: "F" + String(i).padStart(5, "0"), program_pool: "SAPLBIG" }));
+  const g = buildConflictGraph(nodes);
+  assert.equal(g.buckets["pool:SAPLBIG"].length, n, "one bucket with k members (not k^2 edges)");
+  assert.equal(g.groups.length, 1);
+  assert.equal(g.groups[0].length, n);
 });

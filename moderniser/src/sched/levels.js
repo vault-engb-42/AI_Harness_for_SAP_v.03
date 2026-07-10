@@ -24,7 +24,7 @@ import { superNodeKeys, riskComparator } from "./risk.js";
  * @returns {{levels: string[][], levelOf: Record<string, number>, indegree: Record<string, number>}}
  */
 export function kahnLevels(condensation, nodeMeta = {}) {
-  const ids = condensation.superNodes.map((s) => s.id);
+  const ids = [...new Set(condensation.superNodes.map((s) => s.id))].sort(); // sorted → indegree seed is byte-stable
   const indegree = Object.fromEntries(ids.map((id) => [id, 0]));
   const adj = new Map(ids.map((id) => [id, []]));
   for (const [u, v] of condensation.edges) {

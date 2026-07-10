@@ -19,9 +19,15 @@
  *
  * Pure function of the scheduler state. Deterministic (ready set sorted before greedy pick).
  *
+ * Conflict independence is DIRECT (§3.1 Stage 4): a candidate conflicts with the batch iff
+ * it shares a resource key with an already-chosen node — tracked by accumulating chosen
+ * nodes' `keysOf` into a running set, so it stays O(keys) even for a huge co-tenant bucket
+ * (never the O(k²) clique). Two nodes in one transitive cluster that share nothing directly
+ * may still co-generate; the per-transport activate mutex (L4) guards their activation.
+ *
  * @param {{
  *   condensation: {superNodes: Array<{id: string, members?: string[], dynamic_seal?: string}>, edges: Array<[string, string]>},
- *   conflict: {adjacency: Record<string, string[]>},
+ *   conflict: {keysOf: Record<string, string[]>},
  *   status: Record<string, string>,
  *   indegree: Record<string, number>,
  *   park?: string[],
@@ -37,14 +43,14 @@ const NEEDS_MANUAL_SEAM = "NEEDS_MANUAL_SEAM";
 export function nextFrontier(state) {
   const { condensation, status, indegree } = state;
   const parked = new Set(state.park || []);
-  const confAdj = state.conflict?.adjacency || {};
+  const keysOf = state.conflict?.keysOf || {};
   const refAdj = undirectedRefAdjacency(condensation.edges);
 
   const ready = condensation.superNodes
     .filter(
       (s) =>
         status[s.id] === "PENDING" &&
-        (indegree[s.id] || 0) === 0 &&
+        indegree[s.id] === 0 && // fail-closed: a missing counter entry is NOT ready
         s.dynamic_seal !== NEEDS_MANUAL_SEAM &&
         !parked.has(s.id),
     )
@@ -55,13 +61,15 @@ export function nextFrontier(state) {
   const cap = state.teamSize ?? Infinity;
   const frontier = [];
   const chosen = new Set();
+  const chosenKeys = new Set();
   for (const id of ready) {
     if (frontier.length >= cap) break;
     const conflictsRef = (refAdj.get(id) || EMPTY).some((x) => chosen.has(x));
-    const conflictsConf = (confAdj[id] || EMPTY).some((x) => chosen.has(x));
+    const conflictsConf = (keysOf[id] || EMPTY).some((k) => chosenKeys.has(k));
     if (!conflictsRef && !conflictsConf) {
       frontier.push(id);
       chosen.add(id);
+      for (const k of keysOf[id] || EMPTY) chosenKeys.add(k);
     }
   }
   return frontier;

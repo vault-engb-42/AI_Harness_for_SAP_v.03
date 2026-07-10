@@ -23,7 +23,7 @@ function state(superNodes, edges = [], over = {}) {
   const ids = superNodes.map((s) => s.id);
   return {
     condensation: { superNodes, edges },
-    conflict: { adjacency: Object.fromEntries(ids.map((id) => [id, []])) },
+    conflict: { keysOf: Object.fromEntries(ids.map((id) => [id, []])) },
     status: Object.fromEntries(ids.map((id) => [id, "PENDING"])),
     indegree: Object.fromEntries(ids.map((id) => [id, 0])),
     park: [],
@@ -69,10 +69,25 @@ test("worst-debt-first: grade D sorts ahead of C ahead of A", () => {
 
 test("conflict independence: two ready co-tenants cannot share one frontier — worst wins", () => {
   const st = state([{ id: "A" }, { id: "B" }], [], {
-    conflict: { adjacency: { A: ["B"], B: ["A"] } },
+    conflict: { keysOf: { A: ["pool:P"], B: ["pool:P"] } },
     meta: { A: { grade: "D" }, B: { grade: "A" } },
   });
-  assert.deepEqual(nextFrontier(st), ["A"], "B is deferred this round — it conflicts with the chosen A");
+  assert.deepEqual(nextFrontier(st), ["A"], "B is deferred this round — it shares pool:P with the chosen A");
+});
+
+test("conflict is DIRECT resource sharing, not transitive group membership", () => {
+  // A~B via pool:P, B~C via ddic:T; A and C share nothing directly, so they MAY co-generate.
+  const st = state([{ id: "A" }, { id: "B" }, { id: "C" }], [], {
+    conflict: { keysOf: { A: ["pool:P"], B: ["pool:P", "ddic:T"], C: ["ddic:T"] } },
+  });
+  // id-order pick: A chosen; B shares pool:P with A -> skipped; C shares nothing with A -> chosen.
+  assert.deepEqual(nextFrontier(st), ["A", "C"]);
+});
+
+test("readiness fails closed when a node has no in-degree entry (the seed must be complete)", () => {
+  const st = state([{ id: "A" }, { id: "B" }]);
+  delete st.indegree.A;
+  assert.deepEqual(nextFrontier(st), ["B"], "A is excluded — a missing counter is treated as not-ready");
 });
 
 test("reference independence is enforced defensively even if state is inconsistent", () => {
