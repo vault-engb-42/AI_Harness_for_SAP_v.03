@@ -164,6 +164,77 @@ test("augment output composes with condense into a DAG", () => {
   assert.ok(hasNoCycle(c.superNodes.map((s) => s.id), c.edges), "condensation of augmented graph is acyclic");
 });
 
+// --- Rule-11 review remediations: under-approximation fixes (the direction L5 forbids) ---
+
+test("enhancement markers woven as abapGit comments still seal (scanned pre-strip)", () => {
+  const cpg = {
+    nodes: [
+      { id: "A", source: "*ENHANCEMENT-POINT RGGBR000_01 SPOTS ES_RGGBR000." },
+      { id: "B", source: '"{ Begin ENHO DIMP_GENERAL_RGGBR000 }' },
+    ],
+    edges: [],
+  };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), SEAL, "*-comment ENHANCEMENT-POINT");
+  assert.equal(seal(r, "B"), SEAL, '"-comment Begin ENHO');
+});
+
+test('a " inside a |...| template or `...` backtick literal is not a comment (no under-strip)', () => {
+  const cpg = {
+    nodes: [
+      { id: "A", source: 'msg = |He said "hi"|. CALL FUNCTION lv_fm.' },
+      { id: "B", source: "x = `a\"b`. CALL FUNCTION lv_fm." },
+    ],
+    edges: [],
+  };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), SEAL, "template");
+  assert.equal(seal(r, "B"), SEAL, "backtick");
+});
+
+test("a genuine inline comment after code is still stripped (no over-seal regression)", () => {
+  const cpg = { nodes: [{ id: "A", source: "CALL FUNCTION 'X'. \" CALL FUNCTION lv_y" }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), undefined, "commented dynamic call ignored");
+});
+
+test("the '' char-literal escape does not swallow trailing real code", () => {
+  const cpg = { nodes: [{ id: "A", source: "x = 'don''t'. CALL FUNCTION lv_fm." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL);
+});
+
+test("multi-handler SET HANDLER h1 h2 h3 FOR o adds one synthetic edge per handler", () => {
+  const cpg = {
+    nodes: [{ id: "A", source: "SET HANDLER h1 h2 h3 FOR lo." }, { id: "H1" }, { id: "H2" }, { id: "H3" }],
+    edges: [],
+  };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined);
+  assert.deepEqual(syn(r).map((e) => e.target).sort(), ["H1", "H2", "H3"]);
+  assert.ok(syn(r).every((e) => e.kind === "set-handler"));
+});
+
+test("a dynamic SET HANDLER (var) seals rather than emitting a malformed edge", () => {
+  const cpg = { nodes: [{ id: "A", source: "SET HANDLER (lv_h) FOR lo." }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), SEAL);
+  assert.equal(syn(r).length, 0);
+});
+
+test("runtime-codegen and dynamic-dispatch families all seal (taxonomy completeness)", () => {
+  const cases = {
+    submit: "SUBMIT (lv_rep) AND RETURN.",
+    genpool: "GENERATE SUBROUTINE POOL lt_src NAME lv_nm.",
+    insrep: "INSERT REPORT lv_nm FROM lt_src.",
+    transf: "CALL TRANSFORMATION (lv_x) SOURCE tab = lt.",
+    custfn: "CALL CUSTOMER-FUNCTION '001'.",
+    swe: "CALL FUNCTION 'SWE_EVENT_CREATE'.",
+  };
+  for (const [name, src] of Object.entries(cases)) {
+    const cpg = { nodes: [{ id: "A", source: src }], edges: [] };
+    assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL, name);
+  }
+});
+
 function hasNoCycle(nodes, edges) {
   const indeg = new Map(nodes.map((n) => [n, 0]));
   const adj = new Map(nodes.map((n) => [n, []]));

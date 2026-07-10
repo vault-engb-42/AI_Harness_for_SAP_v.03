@@ -25,19 +25,30 @@
 export const NEEDS_MANUAL_SEAM = "NEEDS_MANUAL_SEAM";
 
 // Unresolved dynamic indirection → seal the node (target is not statically knowable).
+// Scanned on the COMMENT-STRIPPED line — these are live statements.
 const SEAL_PATTERNS = [
   /\bCALL\s+FUNCTION\s+(?!')\S/i, //           CALL FUNCTION <var>  (a literal opens with ')
   /->\s*\(|=>\s*\(|\bCALL\s+METHOD\s+\(/i, //  dynamic method component
   /\bFROM\s*\(\s*[\w~/]+\s*\)/i, //            dynamic SELECT ... FROM (tab)  (not a derived table)
   /\bPERFORM\s*\(/i, //                        dynamic PERFORM (form)
-  /OPEN_FI_PERFORM|FQEVENTS|\bBTE_/i, //       Business Transaction Events dispatcher (customizing-driven)
-  /\bENHANCEMENT\b|\bENHO\b|\bENHSPOT\b/i, //  runtime enhancement injection
+  /\bSET\s+HANDLER\s+\(/i, //                  dynamic SET HANDLER (var)
+  /\bSUBMIT\s*\(/i, //                         dynamic SUBMIT (report)
+  /\bGENERATE\s+SUBROUTINE\s+POOL\b|\bINSERT\s+REPORT\b/i, // runtime code generation (backdoor pattern, security.md)
+  /\bCALL\s+TRANSFORMATION\s*\(/i, //          dynamic CALL TRANSFORMATION (name)
+  /\bCALL\s+CUSTOMER-FUNCTION\b/i, //          classic customer exit (customizing-driven)
+  /OPEN_FI_PERFORM|FQEVENTS|\bBTE_|SWE_EVENT_CREATE/i, // BTE / FQEVENTS / workflow-event dispatch (table-driven)
 ];
 
-// Resolvable indirection with a literal target → a synthetic edge (captured group 1).
+// Enhancement markers are load-bearing COMMENTS in abapGit-serialized source
+// (`*ENHANCEMENT-POINT …`, `"{ Begin ENHO … }`), so they MUST be scanned on the RAW
+// (pre-strip) line — otherwise comment-stripping erases them and the seal silently no-ops.
+const RAW_SEAL_PATTERNS = [/\bENHANCEMENT\b|\bENHO\b|\bENHSPOT\b/i];
+
+// Resolvable indirection with a literal target → a synthetic edge. `multi` splits the
+// captured token run into one edge per target; a target containing `(` is dynamic → seal.
 const RESOLVABLE = [
   { re: /\bPERFORM\s+([\w~/]+)\s+ON\s+COMMIT/i, kind: "perform-on-commit" },
-  { re: /\bSET\s+HANDLER\s+([\w~/=>]+)\s+FOR\b/i, kind: "set-handler" },
+  { re: /\bSET\s+HANDLER\s+(.+?)\s+FOR\b/i, kind: "set-handler", multi: true },
 ];
 
 export function overApproximateEdges(cpg) {
@@ -63,25 +74,38 @@ function scanNode(node) {
   const out = { synthetic: [], sealed: false };
   if (!node.source) return out;
   for (const raw of node.source.split(/\r?\n/)) {
+    if (RAW_SEAL_PATTERNS.some((p) => p.test(raw))) out.sealed = true; // markers live in comments — scan pre-strip
     const line = stripComment(raw);
     if (!line.trim()) continue;
-    for (const { re, kind } of RESOLVABLE) {
+    for (const { re, kind, multi } of RESOLVABLE) {
       const m = re.exec(line);
-      if (m) out.synthetic.push({ target: m[1].toUpperCase(), kind });
+      if (!m) continue;
+      for (const t of multi ? m[1].trim().split(/\s+/) : [m[1]]) {
+        if (t.includes("(")) out.sealed = true; // dynamic target -> seal, not a malformed edge
+        else out.synthetic.push({ target: t.toUpperCase(), kind });
+      }
     }
     if (SEAL_PATTERNS.some((p) => p.test(line))) out.sealed = true;
   }
   return out;
 }
 
-/** Strip an ABAP comment: a full-line `*` comment, or an inline `"` outside a '...' literal. */
+/**
+ * Strip an ABAP comment: a full-line `*` comment, or an inline `"` that is OUTSIDE any
+ * string literal. ABAP has three literal delimiters — `'…'` char, `` `…` `` string, and
+ * `|…|` template (with `\` escaping `|`/`{`/`}`) — and a `"` inside any of them is data,
+ * not a comment. Stripping such a `"` would drop trailing real code (under-approximation).
+ */
 function stripComment(line) {
   if (/^\s*\*/.test(line)) return ""; // no valid statement begins with '*'
-  let inStr = false;
+  let delim = null; // "'", "`", or "|" when inside a literal
   for (let i = 0; i < line.length; i += 1) {
     const c = line[i];
-    if (c === "'") inStr = !inStr;
-    else if (c === '"' && !inStr) return line.slice(0, i);
+    if (delim === "|" && c === "\\") i += 1; // template escape: \| \{ \}
+    else if (delim) {
+      if (c === delim) delim = null;
+    } else if (c === "'" || c === "`" || c === "|") delim = c;
+    else if (c === '"') return line.slice(0, i);
   }
   return line;
 }
