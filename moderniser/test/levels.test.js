@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { kahnLevels } from "../src/sched/levels.js";
 import { tarjanCondense } from "../src/graph/condense.js";
 import { overApproximateEdges } from "../src/graph/augment.js";
+import { precedenceEdges } from "../src/graph/build.js";
 
 // §3.1 Stage 3 (L2/L6) — topological levels over the SCC-condensed DAG via Kahn peeling
 // (level = longest predecessor chain = earliest wave). Returns the INITIAL in-degree map
@@ -81,12 +82,15 @@ test("fails closed if the condensation is not a DAG (invariant: condense guarant
   assert.throws(() => kahnLevels(bad), /DAG|cycle|acyclic/i);
 });
 
-test("the golden fixture levels fully, rooted at the entry report, deterministically", () => {
+test("the golden fixture levels BOTTOM-UP: leaves first, the entry report alone in the last wave", () => {
   const g = overApproximateEdges({ nodes: DOC.graph.nodes, edges: DOC.graph.edges });
-  const c = tarjanCondense(g.nodes.map((n) => n.id), g.edges.map((e) => [e.source, e.target]));
+  const c = tarjanCondense(g.nodes.map((n) => n.id), precedenceEdges(g.edges)); // dependency→dependent (ratified 2026-07-11)
   const r = kahnLevels(c, metaFromDoc(DOC));
   assert.equal(Object.keys(r.levelOf).length, c.superNodes.length, "every super-node leveled");
-  assert.deepEqual(r.levels[0], ["ZFICO_BTC_CSV_GL"], "the entry report is the sole in-degree-0 root");
+  assert.equal(r.levels.length, 3);
+  assert.ok(r.levels[0].includes("KD_GET_FILENAME_ON_F4") && r.levels[0].includes("ZFICO_BTC_CSV_TOP"), "leaves at level 0");
+  assert.deepEqual([...r.levels[1]].sort(), ["ZFICO_BTC_CSV_GL.UPLOAD_FILE", "ZFICO_BTC_CSV_SCR"]);
+  assert.deepEqual(r.levels[2], ["ZFICO_BTC_CSV_GL"], "the entry report schedules LAST");
   assert.equal(JSON.stringify(r), JSON.stringify(kahnLevels(c, metaFromDoc(DOC))), "deterministic");
 });
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { buildObjectGraph } from "../src/graph/build.js";
+import { buildObjectGraph, precedenceEdges } from "../src/graph/build.js";
 
 // §6.2 / §3.1 — collapse the analyser's method/form-level CPG (graph.nodes/edges) into the
 // OBJECT-level dependency graph the scheduler operates on (a "node" is a CPG object; a RAP
@@ -113,6 +113,12 @@ test("the golden ZFICO fixture collapses to 11 objects with the expected inter-o
   assert.ok(has("ZFICO_BTC_CSV_GL", "SKB1", "uses-table"), "GL uses SKB1");
   assert.ok(has("ZFICO_BTC_CSV_SCR", "KD_GET_FILENAME_ON_F4", "call-function"), "SCR calls KD_GET");
   assert.ok(!g.edges.some((e) => e.source === e.target), "no self-loops (forms collapsed into GL)");
-  // GL is the entry (nothing points to it) — top-down scheduler convention, §3.1
-  assert.ok(!g.edges.some((e) => e.target === "ZFICO_BTC_CSV_GL"), "GL has no in-edges (in-degree-0 root)");
+  // Nothing depends on GL in the NATIVE orientation → in the scheduler's PRECEDENCE
+  // orientation (dependency→dependent, ratified 2026-07-11) GL is the SINK: the last wave.
+  assert.ok(!g.edges.some((e) => e.target === "ZFICO_BTC_CSV_GL"), "nothing depends on the entry report");
+});
+
+test("precedenceEdges reverses native uses-edges to [dependency, dependent] pairs for the scheduler", () => {
+  assert.deepEqual(precedenceEdges([{ source: "GL", target: "SCR", kind: "includes" }]), [["SCR", "GL"]]);
+  assert.deepEqual(precedenceEdges([]), []);
 });

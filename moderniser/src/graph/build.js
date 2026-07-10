@@ -10,10 +10,12 @@
  * (nodes + edge endpoints), not only edge-connected ones.
  *
  * Edge direction is the analyser's native convention: `source → target` means source
- * uses/depends-on target. The scheduler treats an in-degree-0 object as a root (§3.1 Stage 3,
- * top-down: "never a fan-in 'foundational' override"), so the entry report — which nothing
- * depends on — lands at level 0. NB this is the OPPOSITE order to the analyser's bottom-up
- * `modernization_plan.wave`; the scheduler re-derives its own level and does not use `wave`.
+ * uses/depends-on target. The SCHEDULER consumes the reversed PRECEDENCE orientation via
+ * `precedenceEdges()` below (ratified 2026-07-11): in-degree then counts unmet dependencies,
+ * so leaves schedule first and the entry report lands in the LAST wave — the same direction
+ * as the analyser's bottom-up `modernization_plan.wave` and `topoWaves` (its
+ * moderniser-annotated SCC primitive; the entry-first `computeLayers` is the Graph tab's
+ * VISUAL convention only). scope.js keeps native edges (pool/blast derivation walks uses-edges).
  *
  * Pure. Deterministic (nodes + edges sorted).
  *
@@ -56,6 +58,22 @@ export function buildObjectGraph(doc) {
   const nodeList = [...attrs.keys()].sort().map((id) => ({ id, ...attrs.get(id) }));
   edges.sort((a, b) => cmp(a.source, b.source) || cmp(a.target, b.target) || cmp(a.kind, b.kind));
   return { nodes: nodeList, edges };
+}
+
+/**
+ * Scheduler orientation (ratified 2026-07-11): PRECEDENCE edges run dependency → dependent —
+ * the REVERSE of the CPG's native `source → target` (= source uses target). Kahn in-degree
+ * then counts unmet dependencies: an in-degree-0 root has nothing left to wait for, leaves
+ * schedule first, and the entry object lands in the last wave. A caller is therefore always
+ * rewritten against an already-modernised, ACTIVATED callee interface (§3.1 closure_green,
+ * L2) — the reason top-down was rejected: a dependent gated GREEN against unmodernised
+ * dependencies is re-opened when those dependencies' interfaces change.
+ *
+ * @param {Array<{source: string, target: string}>} edges native CPG or object-graph edges
+ * @returns {Array<[string, string]>} [dependency, dependent] pairs for condense/levels/frontier
+ */
+export function precedenceEdges(edges) {
+  return edges.map((e) => [e.target, e.source]);
 }
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);

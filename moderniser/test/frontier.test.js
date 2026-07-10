@@ -7,6 +7,7 @@ import { nextFrontier } from "../src/sched/frontier.js";
 import { tarjanCondense } from "../src/graph/condense.js";
 import { overApproximateEdges } from "../src/graph/augment.js";
 import { kahnLevels } from "../src/sched/levels.js";
+import { precedenceEdges } from "../src/graph/build.js";
 
 // §3.1 Stage 5 (L2 + L4) — the scheduling loop's frontier selector. A super-node is READY
 // iff: status PENDING, its dependency closure is green (live in-degree counter == 0), it is
@@ -101,24 +102,33 @@ test("nextFrontier is deterministic and independent of super-node input order", 
   assert.deepEqual(nextFrontier(mk([{ id: "A" }, { id: "B" }, { id: "C" }])), nextFrontier(mk([{ id: "C" }, { id: "B" }, { id: "A" }])));
 });
 
-test("resumable-counter flow over the golden fixture: root first, then its freed successors", () => {
+test("resumable-counter flow over the golden fixture: leaves first, the entry report LAST", () => {
   const g = overApproximateEdges({ nodes: DOC.graph.nodes, edges: DOC.graph.edges });
-  const cond = tarjanCondense(g.nodes.map((n) => n.id), g.edges.map((e) => [e.source, e.target]));
+  const cond = tarjanCondense(g.nodes.map((n) => n.id), precedenceEdges(g.edges)); // dependency→dependent
   const meta = metaFromDoc(DOC);
   const st = state(cond.superNodes, cond.edges, { indegree: { ...kahnLevels(cond, meta).indegree }, meta, teamSize: 100 });
+  const markWaveGreen = (ids) => {
+    for (const id of ids) {
+      st.status[id] = "GREEN";
+      for (const [u, v] of cond.edges) if (u === id) st.indegree[v] -= 1;
+    }
+  };
 
-  assert.deepEqual(nextFrontier(st), ["ZFICO_BTC_CSV_GL"], "the entry report is the only ready root");
-
-  // mark the root green exactly as the loop's live counter would (decrement each successor)
-  st.status.ZFICO_BTC_CSV_GL = "GREEN";
-  for (const [u, v] of cond.edges) if (u === "ZFICO_BTC_CSV_GL") st.indegree[v] -= 1;
+  const f1 = nextFrontier(st);
+  assert.ok(!f1.includes("ZFICO_BTC_CSV_GL"), "the entry report is NOT ready first — its dependencies gate it");
+  assert.ok(f1.includes("KD_GET_FILENAME_ON_F4"), "a leaf SAP dependency is ready");
+  assert.ok(f1.includes("ZFICO_BTC_CSV_TOP"), "an include with no further deps is ready");
+  assert.ok(!f1.includes("ZFICO_BTC_CSV_SCR"), "SCR waits for its own dependency KD_GET");
+  assert.ok(!f1.includes("ZFICO_BTC_CSV_GL.UPLOAD_FILE"), "UPLOAD_FILE waits for CL_GUI's method");
+  markWaveGreen(f1);
 
   const f2 = nextFrontier(st);
-  assert.ok(!f2.includes("ZFICO_BTC_CSV_GL"), "the green root is gone");
-  assert.ok(f2.includes("ZFICO_BTC_CSV_SCR"), "a successor whose only in-edge was the root is freed");
-  assert.ok(f2.includes("ZFICO_BTC_CSV_GL.BDC_OPEN"), "a called FORM is freed");
-  assert.ok(!f2.includes("KD_GET_FILENAME_ON_F4"), "still blocked: its in-edge is from SCR, not the root");
-  assert.ok(!f2.includes("CL_GUI_FRONTEND_SERVICES.GUI_UPLOAD"), "still blocked: in-edge is from a FORM");
+  assert.ok(f2.includes("ZFICO_BTC_CSV_SCR"), "SCR freed once KD_GET is green");
+  assert.ok(f2.includes("ZFICO_BTC_CSV_GL.UPLOAD_FILE"), "UPLOAD_FILE freed once CL_GUI is green");
+  assert.ok(!f2.includes("ZFICO_BTC_CSV_GL"), "GL still gated by SCR + its forms");
+  markWaveGreen(f2);
+
+  assert.deepEqual(nextFrontier(st), ["ZFICO_BTC_CSV_GL"], "the entry report schedules LAST — whole closure green");
 });
 
 function metaFromDoc(doc) {
