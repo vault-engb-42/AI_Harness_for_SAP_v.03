@@ -135,6 +135,64 @@ test("onPass fails closed when the gate would BLOCK — baselines are never touc
   assert.throws(() => onPass(node(), evidence({ atc_p1: 5 }), empty()), /BLOCK/);
 });
 
+// --- Rule-11 review remediations ---
+
+test("gate returns the SIGNED atc_warn_delta nodeVerdict consumes (delta vs own baseline, seed ∞ → 0)", () => {
+  const n = node();
+  const at = (k) => evidence({ atc_warns: Array.from({ length: k }, (_, i) => ({ file: "zprog.abap", line: 10 + (i % 3) })) });
+  // first pass, no baseline: establish — verdict-facing delta is 0 (never a false BLOCK downstream)
+  assert.equal(ratchetGate(n, at(2), empty()).atc_warn_delta, 0);
+  const base = { atcBaseline: { per_object: { "sig-1": 2 } }, covBaseline: { per_object: {} } };
+  assert.equal(ratchetGate(n, at(2), base).atc_warn_delta, 0, "at the ceiling → 0 (pass)");
+  assert.equal(ratchetGate(n, at(1), base).atc_warn_delta, -1, "under → negative (pass)");
+  assert.equal(ratchetGate(n, at(3), base).atc_warn_delta, 1, "over → positive (block)");
+});
+
+test("cross-module coherence: nodeVerdict fed the gate's atc_warn_delta agrees with the gate", async () => {
+  const { nodeVerdict } = await import("../src/node/verdict.js");
+  const greenCp = {
+    activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
+    invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
+  };
+  const n = node();
+  const ev = evidence({ atc_warns: [{ file: "zprog.abap", line: 10 }, { file: "zprog.abap", line: 11 }] });
+  const g = ratchetGate(n, ev, empty()); // first pass: gate PASS, 2 warns introduced
+  assert.equal(g.verdict, "PASS");
+  const v = nodeVerdict(greenCp, { atc_warn_delta: g.atc_warn_delta });
+  assert.equal(v.verdict, "GREEN", "an establish-pass must not be re-blocked by the verdict conjunct");
+});
+
+test("malformed warn entries fail CLOSED (no silent delta-0 fail-open)", () => {
+  const bad = [
+    [{ obj: "zprog.abap", row: 10 }], //         wrong element shape
+    [{ file: "zprog.abap", line: "10" }], //     string line
+    [{ file: 42, line: 10 }], //                 non-string file
+    [{ file: "zprog.abap" }], //                 missing line
+  ];
+  for (const atc_warns of bad) {
+    const r = ratchetGate(node(), evidence({ atc_warns }), empty());
+    assert.equal(r.verdict, "BLOCK", JSON.stringify(atc_warns));
+    assert.ok(r.reasons.includes("atc-warns-malformed"));
+  }
+});
+
+test("a coverage baseline entry present but WITHOUT a finite pct is corrupt → fail-closed", () => {
+  const base = { atcBaseline: { per_object: {} }, covBaseline: { per_object: { "sig-1": { bite_proven: true } } } };
+  const r = ratchetGate(node(), evidence({ coverage: { pct: 0.1, bite_proven: false } }), base);
+  assert.equal(r.verdict, "BLOCK", "must not silently fall back to the global floor");
+  assert.ok(r.reasons.includes("baseline-corrupt"));
+});
+
+test("onPass carried-over per_object entries do NOT alias the input (deep-copied)", () => {
+  const base = {
+    atcBaseline: { per_object: { other: 5 } },
+    covBaseline: { per_object: { other: { pct: 0.9, bite_proven: true } } },
+  };
+  const next = onPass(node(), evidence(), base);
+  next.covBaseline.per_object.other.pct = 0.1; // mutate the carried-over entry in the RESULT
+  assert.equal(base.covBaseline.per_object.other.pct, 0.9, "input baseline entry untouched");
+});
+
 test("ratchet sequence is monotone: establish 2 → tighten to 1 → 2 now BLOCKs", () => {
   const n = node();
   const at = (k) => evidence({ atc_warns: Array.from({ length: k }, (_, i) => ({ file: "zprog.abap", line: 10 + (i % 3) })) });

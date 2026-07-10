@@ -40,10 +40,17 @@ export function warnOnChangedLines(diffChangedLines, atcWarns) {
 }
 
 /**
- * @param {{canonical_sig: string, parity_required?: boolean, diff_changed_lines?: Array<{file: string, lines: number[]}>}} node
+ * Both sides of the warn/diff join MUST share one canonical file-key space — the evidence
+ * assembler normalises paths before calling; a mismatched convention here would silently
+ * fail-open, which is why warn elements are shape-VALIDATED (fail-closed) below.
+ *
+ * @param {{canonical_sig: string, parity_required?: boolean, diff_changed_lines?: Array<{file: string, lines: number[]}>}} node internal typed record (scope.js emits boolean parity_required)
  * @param {{atc_p1?: number, atc_warns?: Array<{file: string, line: number}>, coverage?: {pct?: number, bite_proven?: boolean}}} evidence
  * @param {{atcBaseline: {per_object?: Record<string, number>}, covBaseline: {per_object?: Record<string, {pct: number, bite_proven: boolean}>, coverage_floor_pct?: number}}} baselines
- * @returns {{verdict: "PASS"|"BLOCK", reasons: string[], delta: number}}
+ * @returns {{verdict: "PASS"|"BLOCK", reasons: string[], delta: number, atc_warn_delta: number}}
+ *   `delta` = absolute changed-line warn count; `atc_warn_delta` = the SIGNED delta-vs-own-
+ *   baseline (§6.4: seed ∞ → 0 on an establish-pass) — THE value `nodeVerdict`'s
+ *   `ratchet.atc_warn_delta ≤ 0` conjunct consumes, so gate and verdict can never disagree.
  */
 export function ratchetGate(node, evidence = {}, baselines) {
   const key = node.canonical_sig;
@@ -54,29 +61,38 @@ export function ratchetGate(node, evidence = {}, baselines) {
   if (node.parity_required === true && evidence.coverage?.bite_proven !== true) reasons.push("bite-not-proven");
 
   let delta = 0;
+  let atc_warn_delta = 1; // fail-closed default: a downstream verdict must also block
   if (!Array.isArray(evidence.atc_warns)) {
     reasons.push("atc-warns-missing"); // tool returned nothing → fail-closed
+  } else if (!evidence.atc_warns.every((w) => typeof w.file === "string" && Number.isInteger(w.line))) {
+    reasons.push("atc-warns-malformed"); // unmatchable entries would silently join to delta 0 → fail-closed
   } else {
     delta = warnOnChangedLines(node.diff_changed_lines, evidence.atc_warns);
     const ceiling = baselines.atcBaseline.per_object?.[key] ?? Infinity; // L10 seed ∞
+    atc_warn_delta = Number.isFinite(ceiling) ? delta - ceiling : 0; // establish-pass → 0
     if (delta > ceiling) reasons.push(`warn-delta-regressed:${delta}>${ceiling}`);
   }
 
   const pct = evidence.coverage?.pct;
+  const covEntry = baselines.covBaseline.per_object?.[key];
   if (!Number.isFinite(pct)) {
     reasons.push("coverage-missing"); // fail-closed
+  } else if (covEntry !== undefined && !Number.isFinite(covEntry.pct)) {
+    reasons.push("baseline-corrupt"); // an entry with no finite pct must not fall back to the floor
   } else {
-    const floor = baselines.covBaseline.per_object?.[key]?.pct ?? baselines.covBaseline.coverage_floor_pct ?? 0;
+    const floor = covEntry?.pct ?? baselines.covBaseline.coverage_floor_pct ?? 0;
     if (pct < floor) reasons.push(`coverage-regressed:${pct}<${floor}`);
   }
 
-  return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta };
+  return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta, atc_warn_delta };
 }
 
 /**
  * Record a PASSING node's new baselines (only ever called after a PASS — enforced here, so
- * a caller bug can never move a baseline on BLOCK). Returns NEW baseline objects; the
- * recorded bite state is the ACTUAL evidence, never assumed.
+ * a caller bug can never move a baseline on BLOCK). Returns NEW baselines with carried-over
+ * per_object entries DEEP-copied (no aliasing back to the input); the recorded bite state is
+ * the ACTUAL evidence, never assumed. Non-per_object fields (evaluator-owned, e.g.
+ * `accepted_priority_2_3`, `coverage_floor_pct`) are carried through untouched.
  * @returns {{atcBaseline: object, covBaseline: object}}
  */
 export function onPass(node, evidence, baselines) {
@@ -85,6 +101,9 @@ export function onPass(node, evidence, baselines) {
     throw new Error(`ratchet onPass called on a BLOCK (${gate.reasons.join(", ")}) — baselines are never touched on BLOCK`);
   }
   const key = node.canonical_sig;
+  const covEntries = Object.fromEntries(
+    Object.entries(baselines.covBaseline.per_object ?? {}).map(([k, v]) => [k, { ...v }]), // per-entry copy
+  );
   return {
     atcBaseline: {
       ...baselines.atcBaseline,
@@ -93,7 +112,7 @@ export function onPass(node, evidence, baselines) {
     covBaseline: {
       ...baselines.covBaseline,
       per_object: {
-        ...(baselines.covBaseline.per_object ?? {}),
+        ...covEntries,
         [key]: { pct: evidence.coverage.pct, bite_proven: evidence.coverage.bite_proven === true },
       },
     },
