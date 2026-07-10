@@ -1,3 +1,5 @@
+import { superNodeKeys, riskComparator } from "./risk.js";
+
 /**
  * Topological levels over the SCC-condensed DAG (MODERNISER_DESIGN §3.1 Stage 3, L2/L6).
  *
@@ -32,8 +34,7 @@ export function kahnLevels(condensation, nodeMeta = {}) {
     }
   }
 
-  const key = compositeKeys(condensation.superNodes, nodeMeta);
-  const byWorst = (a, b) => cmpKey(key[a], key[b], a, b);
+  const byWorst = riskComparator(superNodeKeys(condensation.superNodes, nodeMeta));
 
   const counter = { ...indegree };
   const levels = [];
@@ -58,38 +59,4 @@ export function kahnLevels(condensation, nodeMeta = {}) {
     throw new Error(`kahnLevels: condensation is not a DAG (${ids.length - assigned} super-node(s) in a cycle)`);
   }
   return { levels, levelOf, indegree };
-}
-
-const GRADE_RANK = { D: 0, C: 1, B: 2, A: 3 };
-
-/** Clean-core grade → rank (D worst = 0). Unknown/absent → 4 (sorts last). */
-function gradeRank(grade) {
-  const r = GRADE_RANK[String(grade ?? "").toUpperCase()];
-  return r === undefined ? 4 : r;
-}
-
-/** Aggregate each super-node's WORST-member composite key. */
-function compositeKeys(superNodes, nodeMeta) {
-  const key = {};
-  for (const s of superNodes) {
-    let rank = 4;
-    let complexity = 0;
-    let blast = 0;
-    for (const m of s.members) {
-      const meta = nodeMeta[m] || {};
-      rank = Math.min(rank, gradeRank(meta.grade));
-      complexity = Math.max(complexity, meta.complexity || 0);
-      blast = Math.max(blast, meta.blast || 0);
-    }
-    key[s.id] = { rank, complexity, blast };
-  }
-  return key;
-}
-
-/** Worst-first: grade D→A asc, then complexity desc, then blast desc, then id asc. */
-function cmpKey(a, b, ida, idb) {
-  if (a.rank !== b.rank) return a.rank - b.rank;
-  if (a.complexity !== b.complexity) return b.complexity - a.complexity;
-  if (a.blast !== b.blast) return b.blast - a.blast;
-  return ida < idb ? -1 : ida > idb ? 1 : 0;
 }
