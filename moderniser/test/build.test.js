@@ -94,6 +94,15 @@ test("buildObjectGraph is deterministic and independent of node/edge input order
   assert.equal(JSON.stringify(g1), JSON.stringify(buildObjectGraph(shuffled)));
 });
 
+test("kind/namespace of an object with NO id===object node is deterministic (min-by-id sub-node)", () => {
+  const mk = (nodes) => buildObjectGraph({ graph: { nodes, edges: [] } }).nodes[0];
+  const a = mk([{ id: "C.M1", object: "C", kind: "method", namespace: "sap" }, { id: "C.EVT", object: "C", kind: "event", namespace: "Z" }]);
+  const b = mk([{ id: "C.EVT", object: "C", kind: "event", namespace: "Z" }, { id: "C.M1", object: "C", kind: "method", namespace: "sap" }]);
+  assert.equal(a.kind, b.kind, "kind independent of input order");
+  assert.equal(a.namespace, b.namespace);
+  assert.equal(a.kind, "event", "C.EVT sorts before C.M1 → its attrs win");
+});
+
 test("the golden ZFICO fixture collapses to 11 objects with the expected inter-object edges", () => {
   const g = buildObjectGraph(DOC);
   assert.equal(g.nodes.length, 11, "18 CPG nodes (7 forms under GL) → 11 objects");

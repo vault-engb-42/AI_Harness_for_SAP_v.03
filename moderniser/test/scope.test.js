@@ -34,10 +34,9 @@ test("the entry object GL joins grade/debt/blast/complexity from the real analys
 test("canonical_sig = sha256(rule|entity_name|seam) with the driving finding's rule", () => {
   const gl = byObj(scopeNodes(DOC), "ZFICO_BTC_CSV_GL");
   assert.match(gl.canonical_sig, /^[0-9a-f]{64}$/);
-  assert.equal(
-    gl.canonical_sig,
-    canonicalNodeId({ rule: "talos-cloud-001-call-function", entity_name: "ZFICO_BTC_CSV_GL", seam: "ZFICO_BTC_CSV_GL" }),
-  );
+  // GL's driving finding = its highest-severity (P1), lex-min-tiebroken rule = "released-api"
+  // (stable across source shifts — NOT the positional-first transformation).
+  assert.equal(gl.canonical_sig, canonicalNodeId({ rule: "released-api", entity_name: "ZFICO_BTC_CSV_GL", seam: "ZFICO_BTC_CSV_GL" }));
 });
 
 test("program_pool is derived from `includes` edges — GL/SCR/TOP share the main program's pool", () => {
@@ -71,4 +70,42 @@ test("parity_required is false and canonical_sig uses 'no-finding' when an objec
 
 test("scopeNodes is deterministic", () => {
   assert.equal(JSON.stringify(scopeNodes(DOC)), JSON.stringify(scopeNodes(DOC)));
+});
+
+// --- Rule-11 review remediations ---
+
+test("blast counts a shared at-risk dep ONCE even when reached via multiple edge kinds", () => {
+  const doc = {
+    graph: {
+      nodes: [{ id: "P", object: "P", kind: "report", namespace: "Z" }, { id: "T", object: "T", kind: "table", namespace: "sap" }],
+      edges: [{ source: "P", target: "T", kind: "uses-table" }, { source: "P", target: "T", kind: "call-function" }],
+    },
+    blast_radius: [{ object: "T", affected_program_count: 5 }],
+    modernization_plan: { objects: [{ object: "P", transformation_count: 1, transformations: [{ rule_id: "r" }], migration_complexity: 0 }] },
+  };
+  assert.equal(scopeNodes(doc)[0].blast, 5, "5, not 10 — one distinct dep");
+});
+
+test("a shared include (pulled by two mains) puts all three in ONE program pool (co-tenant)", () => {
+  const n = (id) => ({ id, object: id, kind: "report", namespace: "Z" });
+  const doc = {
+    graph: { nodes: [n("A"), n("B"), n("I")], edges: [{ source: "A", target: "I", kind: "includes" }, { source: "B", target: "I", kind: "includes" }] },
+    modernization_plan: { objects: [{ object: "A", transformations: [] }, { object: "B", transformations: [] }, { object: "I", transformations: [] }] },
+  };
+  const s = scopeNodes(doc);
+  const pool = (o) => s.find((x) => x.object === o).resource_keys.program_pool;
+  assert.equal(pool("A"), pool("I"));
+  assert.equal(pool("B"), pool("I"), "A, B, I share one co-tenancy cluster via the shared include");
+});
+
+test("canonical_sig uses the DRIVING (highest-severity) finding's rule, stable across transformation order", () => {
+  const doc = {
+    findings: [{ object: "Z", rule_id: "zlow", atc_priority: "P3" }, { object: "Z", rule_id: "acrit", atc_priority: "P1" }],
+    modernization_plan: { objects: [{ object: "Z", transformation_count: 2, transformations: [{ rule_id: "zlow" }, { rule_id: "acrit" }], migration_complexity: 0 }] },
+  };
+  assert.equal(
+    scopeNodes(doc)[0].canonical_sig,
+    canonicalNodeId({ rule: "acrit", entity_name: "Z", seam: "Z" }),
+    "P1 'acrit' drives the sig, not the positional-first 'zlow'",
+  );
 });

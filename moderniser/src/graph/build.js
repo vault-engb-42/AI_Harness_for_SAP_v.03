@@ -35,7 +35,9 @@ export function buildObjectGraph(doc) {
       a.namespace = namespace ?? a.namespace;
     }
   };
-  for (const n of nodes) note(n.object, n.kind, n.namespace, n.rank, n.id === n.object);
+  // sorted by id → for an object with no id===object node, the min-by-id sub-node's attrs
+  // win deterministically (an own node always overrides via isOwn).
+  for (const n of [...nodes].sort((a, b) => cmp(a.id, b.id))) note(n.object, n.kind, n.namespace, n.rank, n.id === n.object);
 
   const seen = new Set();
   const edges = [];

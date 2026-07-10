@@ -31,9 +31,12 @@ export function scopeNodes(doc, objectGraph) {
   const debtOf = indexBy(doc.debt?.scores, (s) => s.symbol, (s) => s.score);
   const blastOf = new Map((doc.blast_radius ?? []).map((b) => [b.object, num(b.affected_program_count)]));
   const pools = programPools(og.edges);
+  const drivingOf = drivingRules(doc.findings);
 
   return (doc.modernization_plan?.objects ?? []).map((o) => {
-    const rule = o.transformations?.[0]?.rule_id ?? "no-finding";
+    // canonical_sig keys the ratchet baseline, so `rule` must be STABLE: the object's
+    // driving (highest-severity) finding, not the positional-first transformation (§6.3).
+    const rule = drivingOf.get(o.object) ?? o.transformations?.[0]?.rule_id ?? "no-finding";
     const complexity = num(o.migration_complexity);
     const blast = sumBlast(o.object, og.edges, blastOf);
     const grade = gradeOf.get(o.object) ?? "unknown";
@@ -76,32 +79,60 @@ function indexBy(arr, keyFn, valFn) {
   return m;
 }
 
-/** object → program pool = the topmost main program of its `includes` tree (co-tenancy). */
+/**
+ * object → program pool. Every object in an `includes` tree (a main and its includes, even
+ * an include pulled by several mains) is one co-tenancy cluster; the pool is the cluster's
+ * min-id member. Union-find so a shared include correctly unions all its includers.
+ */
 function programPools(edges) {
-  const includedBy = new Map();
-  const members = new Set();
+  const parent = new Map();
+  const find = (x) => {
+    while (parent.get(x) !== x) {
+      parent.set(x, parent.get(parent.get(x)));
+      x = parent.get(x);
+    }
+    return x;
+  };
+  const add = (x) => {
+    if (!parent.has(x)) parent.set(x, x);
+  };
   for (const e of edges) {
     if (e.kind !== "includes") continue;
-    includedBy.set(e.target, e.source);
-    members.add(e.source);
-    members.add(e.target);
+    add(e.source);
+    add(e.target);
+    const ra = find(e.source);
+    const rb = find(e.target);
+    if (ra !== rb) parent.set(ra < rb ? rb : ra, ra < rb ? ra : rb); // min-id root
   }
   const pool = new Map();
-  for (const o of members) {
-    let top = o;
-    const guard = new Set();
-    while (includedBy.has(top) && !guard.has(top)) {
-      guard.add(top);
-      top = includedBy.get(top);
-    }
-    pool.set(o, top);
-  }
+  for (const o of parent.keys()) pool.set(o, find(o));
   return pool;
 }
 
+/** object → the rule_id of its DRIVING finding: lowest atc_priority (P1<P2<P3), tiebreak rule_id. */
+function drivingRules(findings) {
+  const best = new Map();
+  for (const f of findings ?? []) {
+    const prio = priorityNum(f.atc_priority);
+    const cur = best.get(f.object);
+    if (!cur || prio < cur.prio || (prio === cur.prio && f.rule_id < cur.rule)) best.set(f.object, { prio, rule: f.rule_id });
+  }
+  const out = new Map();
+  for (const [o, v] of best) out.set(o, v.rule);
+  return out;
+}
+
+const priorityNum = (p) => {
+  const m = String(p).match(/(\d+)/);
+  return m ? Number(m[1]) : 99;
+};
+
+/** Σ blast over the object's DISTINCT at-risk deps (a dep reached via 2 edge kinds counts once). */
 function sumBlast(object, edges, blastOf) {
+  const deps = new Set();
+  for (const e of edges) if (e.source === object && blastOf.has(e.target)) deps.add(e.target);
   let sum = 0;
-  for (const e of edges) if (e.source === object && blastOf.has(e.target)) sum += blastOf.get(e.target);
+  for (const t of deps) sum += blastOf.get(t);
   return sum;
 }
 
