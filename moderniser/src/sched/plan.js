@@ -1,59 +1,63 @@
 import { createHash } from "node:crypto";
+import { writeFileSync, readFileSync, mkdirSync, renameSync } from "node:fs";
+import { join } from "node:path";
 import { canonicalJSON } from "../state/canonical-json.js";
 
 /**
- * Immutable plan artifact + content hash + REPLAN diff (MODERNISER_DESIGN §3.1, §6.3,
- * L6.3). At run start the condensed DAG + wave assignment are frozen into a
- * content-hashed `plan.json`; the hash covers nodes + waves via the canonical
- * sorted-key serializer, with nodes/waves normalised to a deterministic order first,
- * so an equivalent plan produced in any discovery order hashes identically. Node ids
- * are canonical signatures (see `node-id.js`), never positional indices.
+ * Immutable plan artifact + content hash + REPLAN diff + persistence
+ * (MODERNISER_DESIGN §3.1, §3.3, §6.3, L6.3). At run start the condensed DAG + wave
+ * assignment are frozen into a content-hashed `plan.json`; the hash covers a
+ * canonicalised node set + waves, so an equivalent plan produced in any discovery
+ * order — or with a node's set-like fields in any order — hashes identically. The
+ * artifact is deep-frozen and holds independent (deep-cloned) copies, so a later
+ * mutation of the caller's inputs can never desync `plan_hash`. Node ids are canonical
+ * signatures (see `node-id.js`), never positional indices.
  */
 
 export const PLAN_SCHEMA_VERSION = "1.0.0";
 
 /**
- * Freeze a plan into the immutable, content-hashed artifact.
+ * Freeze a plan into the immutable, content-hashed, deep-frozen artifact.
  * @param {{nodes: Array<{id: string, wave: number}>, session_budget?: number|null, generator_team_size?: number|null, edges_ref?: unknown[], edges_conflict?: unknown[], seams?: unknown[], park_register?: unknown[]}} input
  * @returns {object} the frozen PlanArtifact
  */
 export function freezePlan(input) {
-  const nodes = sortById(input.nodes ?? []);
+  const nodes = canonicalNodes(input.nodes);
   const waves = deriveWaves(nodes);
-  return {
+  return deepFreeze({
     schema_version: PLAN_SCHEMA_VERSION,
     plan_hash: hashPlan(nodes, waves),
     session_budget: input.session_budget ?? null,
     generator_team_size: input.generator_team_size ?? null,
     nodes,
     waves,
-    edges_ref: input.edges_ref ?? [],
-    edges_conflict: input.edges_conflict ?? [],
-    seams: input.seams ?? [],
-    park_register: input.park_register ?? [],
-  };
+    edges_ref: structuredClone(input.edges_ref ?? []),
+    edges_conflict: structuredClone(input.edges_conflict ?? []),
+    seams: structuredClone(input.seams ?? []),
+    park_register: structuredClone(input.park_register ?? []),
+  });
 }
 
 /**
- * The content hash of a node set (§6.3) — matches `freezePlan(...).plan_hash` for the
- * same nodes. Exposed so callers can re-hash without re-freezing.
+ * The content hash of a node set (§6.3) — equals `freezePlan({nodes}).plan_hash` for
+ * the same nodes. Exposed so callers can re-hash without re-freezing.
  * @param {Array<{id: string, wave: number}>} nodes
  * @returns {string} 64-char sha256 hex
  */
 export function planHash(nodes) {
-  const sorted = sortById(nodes ?? []);
-  return hashPlan(sorted, deriveWaves(sorted));
+  const c = canonicalNodes(nodes);
+  return hashPlan(c, deriveWaves(c));
 }
 
 /**
  * REPLAN diff (§6.3, resolves audit-open #6). A REPLAN gate (human sign-off) is
- * required **iff** a COMMITTED node (`isCommitted(id)` — status ∈ {GATED, GREEN, PARK})
- * has a different wave in `next` vs `prev`. New nodes, removed nodes, and non-committed
- * wave shifts are silent re-parses — no gate.
- * @param {{nodes: Array<{id: string, wave: number}>}} prev frozen PlanArtifact
- * @param {{nodes: Array<{id: string, wave: number}>}} next frozen PlanArtifact
+ * required when a COMMITTED node (`isCommitted(id)` — status ∈ {GATED, GREEN, PARK})
+ * either has a different wave in `next` vs `prev` OR is dropped entirely (discarding
+ * gated work). New nodes and non-committed wave shifts are silent re-parses.
+ * @param {{nodes: Array<{id: string, wave: number}>}} prev
+ * @param {{nodes: Array<{id: string, wave: number}>}} next
  * @param {(id: string) => boolean} isCommitted predicate over the CURRENT node-state
- * @returns {{replan_required: boolean, moved_committed: string[], added: string[], removed: string[]}}
+ * @returns {{replan_required: boolean, moved_committed: string[], removed_committed: string[], added: string[], removed: string[]}}
  */
 export function replan(prev, next, isCommitted) {
   const p = waveByNodeId(prev);
@@ -64,21 +68,80 @@ export function replan(prev, next, isCommitted) {
   }
   const added = [...q.keys()].filter((id) => !p.has(id)).sort();
   const removed = [...p.keys()].filter((id) => !q.has(id)).sort();
+  const removed_committed = removed.filter((id) => isCommitted(id));
   return {
-    replan_required: moved_committed.length > 0,
+    replan_required: moved_committed.length > 0 || removed_committed.length > 0,
     moved_committed: moved_committed.sort(),
+    removed_committed,
     added,
     removed,
   };
+}
+
+/**
+ * Persist a frozen plan atomically (write-temp + rename) under the state dir (§6.5).
+ * @param {string} runId
+ * @param {object} plan a `freezePlan()` artifact
+ * @param {string} [stateDir]
+ * @returns {string} the path written
+ */
+export function savePlan(runId, plan, stateDir = ".claude/state") {
+  const dir = join(stateDir, "plan");
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, `${runId}.plan.json`);
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, JSON.stringify(plan, null, 2), "utf8");
+  renameSync(tmp, path); // atomic swap on the same filesystem
+  return path;
+}
+
+/**
+ * Read a persisted plan and fail closed (§3.3): reject an unknown `schema_version`
+ * major, then re-hash the nodes/waves and reject a `plan_hash` mismatch (corruption
+ * or tamper). A resume can only proceed on a verified plan.
+ * @param {string} runId
+ * @param {string} [stateDir]
+ * @returns {object} the verified PlanArtifact
+ */
+export function loadPlan(runId, stateDir = ".claude/state") {
+  const path = join(stateDir, "plan", `${runId}.plan.json`);
+  const plan = JSON.parse(readFileSync(path, "utf8"));
+  const major = String(plan.schema_version ?? "").split(".")[0];
+  if (major !== PLAN_SCHEMA_VERSION.split(".")[0]) {
+    throw new Error(`loadPlan: unknown plan schema_version major '${plan.schema_version}' (built for ${PLAN_SCHEMA_VERSION})`);
+  }
+  if (plan.plan_hash !== planHash(plan.nodes)) {
+    throw new Error(`loadPlan: plan_hash mismatch for run '${runId}' — corrupt or tampered plan`);
+  }
+  return plan;
 }
 
 function hashPlan(nodes, waves) {
   return createHash("sha256").update(canonicalJSON({ nodes, waves })).digest("hex");
 }
 
-/** Nodes ordered by canonical id — makes the hash independent of discovery order. */
-function sortById(nodes) {
-  return [...nodes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+/**
+ * Validate + deep-clone + canonicalise the node set: every node needs a non-empty
+ * string `id` and a non-negative integer `wave` (fail-closed, matching node-id's
+ * rigor); set-like fields (`dependencies`) are sorted so their order never leaks into
+ * the hash; the array is ordered by `id` so discovery order never leaks in.
+ * @param {Array<{id: string, wave: number}>} nodes
+ * @returns {object[]}
+ */
+function canonicalNodes(nodes) {
+  return (nodes ?? [])
+    .map((n) => {
+      if (typeof n?.id !== "string" || n.id.length === 0) {
+        throw new Error("plan: every node needs a non-empty string id");
+      }
+      if (!Number.isInteger(n.wave) || n.wave < 0) {
+        throw new Error(`plan: node '${n.id}' needs a non-negative integer wave (got ${n.wave})`);
+      }
+      const c = structuredClone(n);
+      if (Array.isArray(c.dependencies)) c.dependencies = [...c.dependencies].sort();
+      return c;
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 /** waves[k] = the sorted node ids at the k-th distinct wave value (ascending). */
@@ -98,4 +161,13 @@ function waveByNodeId(plan) {
   const m = new Map();
   for (const n of plan?.nodes ?? []) m.set(n.id, n.wave);
   return m;
+}
+
+/** Recursively freeze so the returned artifact is immutable per run (§3.3). */
+function deepFreeze(o) {
+  if (o && typeof o === "object" && !Object.isFrozen(o)) {
+    Object.freeze(o);
+    for (const k of Object.keys(o)) deepFreeze(o[k]);
+  }
+  return o;
 }

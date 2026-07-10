@@ -34,3 +34,16 @@ test("canonicalJSON normalises -0 to 0 and rejects non-finite / bare undefined",
   assert.throws(() => canonicalJSON(Infinity));
   assert.throws(() => canonicalJSON(undefined));
 });
+
+test("canonicalJSON sorts keys of objects INSIDE arrays (element key-order independent)", () => {
+  assert.equal(canonicalJSON([{ b: 1, a: 2 }]), canonicalJSON([{ a: 2, b: 1 }]));
+  assert.equal(canonicalJSON([{ b: 1, a: 2 }]), '[{"a":2,"b":1}]');
+});
+
+test("canonicalJSON throws on a circular reference; a shared (DAG) sibling is fine", () => {
+  const o = { a: 1 };
+  o.self = o;
+  assert.throws(() => canonicalJSON(o), /circular/);
+  const shared = { x: 1 };
+  assert.equal(canonicalJSON({ p: shared, q: shared }), '{"p":{"x":1},"q":{"x":1}}');
+});
