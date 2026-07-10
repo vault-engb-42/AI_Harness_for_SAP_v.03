@@ -1,0 +1,179 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { overApproximateEdges } from "../src/graph/augment.js";
+import { tarjanCondense } from "../src/graph/condense.js";
+
+// §3.1 Stage 1 (L5) — over-approximate the CPG with DYNAMIC edges BEFORE condensing.
+// The analyser CPG carries only static code-reference edges (graph.edges). Dynamic
+// indirection (CALL FUNCTION <var>, dynamic method/SELECT, PERFORM ON COMMIT, SET
+// HANDLER, BTE/FQEVENTS, ENHO/ENHSPOT) is invisible to it. augment scans each node's
+// `source` (populated by the later SCOPE/build phase — absent here for the analyser
+// boundary artifact) and: resolvable target -> synthetic edge; unresolved dynamic
+// target -> node.dynamic_seal = NEEDS_MANUAL_SEAM; a synthetic edge that closes a
+// cycle over the code edges -> possible_cycle. Pure function; no I/O.
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DOC = JSON.parse(readFileSync(join(HERE, "fixtures", "analyser-findings.json"), "utf8"));
+const SEAL = "NEEDS_MANUAL_SEAM";
+
+const seal = (r, id) => r.nodes.find((n) => n.id === id)?.dynamic_seal;
+const syn = (r) => r.edges.filter((e) => e.synthetic);
+
+test("a dynamic CALL FUNCTION <var> seals the node and adds no edge", () => {
+  const cpg = { nodes: [{ id: "A", source: "CALL FUNCTION lv_fm EXPORTING x = 1." }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), SEAL);
+  assert.equal(syn(r).length, 0, "unresolved target -> seal, not edge");
+});
+
+test("a literal CALL FUNCTION is NOT dynamic — no seal, no synthetic edge (analyser owns it)", () => {
+  const cpg = { nodes: [{ id: "A", source: "CALL FUNCTION 'POPUP_TO_INFORM'." }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined);
+  assert.equal(syn(r).length, 0);
+});
+
+test("PERFORM <form> ON COMMIT (literal) adds a synthetic edge, no seal", () => {
+  const cpg = { nodes: [{ id: "A", source: "  PERFORM upd_db ON COMMIT." }, { id: "UPD_DB" }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined);
+  const e = syn(r);
+  assert.equal(e.length, 1);
+  assert.equal(e[0].source, "A");
+  assert.equal(e[0].target, "UPD_DB");
+  assert.equal(e[0].kind, "perform-on-commit");
+});
+
+test("SET HANDLER m FOR obj (literal handler) adds a synthetic edge, no seal", () => {
+  const cpg = { nodes: [{ id: "A", source: "SET HANDLER lcl_h=>on_changed FOR lo_bus." }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined);
+  const e = syn(r);
+  assert.equal(e.length, 1);
+  assert.equal(e[0].kind, "set-handler");
+  assert.equal(e[0].target, "LCL_H=>ON_CHANGED");
+});
+
+test("a dynamic PERFORM (var) seals the node", () => {
+  const cpg = { nodes: [{ id: "A", source: "PERFORM (lv_form) IN PROGRAM (lv_prog)." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL);
+});
+
+test("a dynamic method call seals the node", () => {
+  for (const src of ["r = lo_obj->(lv_meth).", "CALL METHOD (lv_cls)=>(lv_m).", "x = zcl=>(lv_m)."]) {
+    const cpg = { nodes: [{ id: "A", source: src }], edges: [] };
+    assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL, src);
+  }
+});
+
+test("a dynamic SELECT ... FROM (var) seals the node", () => {
+  const cpg = { nodes: [{ id: "A", source: "SELECT * FROM (lv_tab) INTO TABLE @lt." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL);
+});
+
+test("a BTE / FQEVENTS dispatcher seals the node (target is customizing-table-driven)", () => {
+  const cpg = { nodes: [{ id: "A", source: "CALL FUNCTION 'OPEN_FI_PERFORM_00001030_P'." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL);
+});
+
+test("an enhancement construct (ENHANCEMENT / ENHO) seals the node", () => {
+  const cpg = { nodes: [{ id: "A", source: "ENHANCEMENT 1 z_enh_impl. ENDENHANCEMENT." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL);
+});
+
+test("commented-out dynamic constructs are ignored (comment stripping)", () => {
+  const cpg = {
+    nodes: [
+      { id: "A", source: "* CALL FUNCTION lv_fm.\n\" CALL FUNCTION lv_fm2." },
+      { id: "B", source: "lv = 'has a \" quote'. CALL FUNCTION lv_fm." },
+    ],
+    edges: [],
+  };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined, "both dynamic calls are inside comments");
+  assert.equal(seal(r, "B"), SEAL, "the \" inside a '...' literal is not a comment");
+});
+
+test("a synthetic edge that closes a cycle over code edges is tagged possible_cycle", () => {
+  const cpg = {
+    nodes: [{ id: "A", source: "PERFORM b_form ON COMMIT." }, { id: "B_FORM" }],
+    edges: [{ source: "B_FORM", target: "A", kind: "calls" }],
+  };
+  const e = syn(overApproximateEdges(cpg));
+  assert.equal(e.length, 1);
+  assert.equal(e[0].possible_cycle, true, "B_FORM already reaches A, so A->B_FORM closes a cycle");
+});
+
+test("a synthetic edge NOT closing a cycle is not tagged", () => {
+  const cpg = { nodes: [{ id: "A", source: "PERFORM b_form ON COMMIT." }, { id: "B_FORM" }], edges: [] };
+  const e = syn(overApproximateEdges(cpg));
+  assert.notEqual(e[0].possible_cycle, true);
+});
+
+test("a node with no source is an identity — no seal, no synthetic edge", () => {
+  const cpg = { nodes: [{ id: "A" }, { id: "B", source: "" }], edges: [{ source: "A", target: "B", kind: "calls" }] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), undefined);
+  assert.equal(seal(r, "B"), undefined);
+  assert.equal(syn(r).length, 0);
+  assert.equal(r.edges.length, 1, "code edges pass through unchanged");
+});
+
+test("code edges pass through preserving their fields alongside synthetic ones", () => {
+  const cpg = {
+    nodes: [{ id: "A", source: "SET HANDLER lcl=>m FOR o." }, { id: "B" }],
+    edges: [{ source: "A", target: "B", kind: "calls", evidence: "f:1" }],
+  };
+  const r = overApproximateEdges(cpg);
+  const code = r.edges.find((e) => !e.synthetic);
+  assert.deepEqual(code, { source: "A", target: "B", kind: "calls", evidence: "f:1" });
+  assert.equal(r.edges.length, 2);
+});
+
+test("the real golden CPG (nodes carry no source) augments to a safe identity", () => {
+  const cpg = { nodes: DOC.graph.nodes, edges: DOC.graph.edges };
+  const r = overApproximateEdges(cpg);
+  assert.equal(syn(r).length, 0, "no source -> no dynamic edges discovered");
+  assert.ok(r.nodes.every((n) => n.dynamic_seal === undefined), "no node sealed");
+  assert.equal(r.edges.length, DOC.graph.edges.length, "edge set unchanged");
+  // augment must not mutate the caller's CPG
+  assert.ok(DOC.graph.nodes.every((n) => !("dynamic_seal" in n)), "input nodes untouched");
+});
+
+test("augment is deterministic (byte-stable across runs)", () => {
+  const mk = () => ({
+    nodes: [{ id: "A", source: "SET HANDLER h1 FOR o.\nSET HANDLER h2 FOR o.\nCALL FUNCTION lv_x." }, { id: "H1" }, { id: "H2" }],
+    edges: [{ source: "H1", target: "A", kind: "calls" }],
+  });
+  assert.equal(JSON.stringify(overApproximateEdges(mk())), JSON.stringify(overApproximateEdges(mk())));
+});
+
+test("duplicate identical dynamic constructs yield a single synthetic edge", () => {
+  const cpg = { nodes: [{ id: "A", source: "SET HANDLER h FOR o.\nSET HANDLER h FOR o." }, { id: "H" }], edges: [] };
+  assert.equal(syn(overApproximateEdges(cpg)).length, 1);
+});
+
+test("augment output composes with condense into a DAG", () => {
+  const cpg = { nodes: DOC.graph.nodes, edges: DOC.graph.edges };
+  const g = overApproximateEdges(cpg);
+  const c = tarjanCondense(g.nodes.map((n) => n.id), g.edges.map((e) => [e.source, e.target]));
+  assert.ok(c.superNodes.length > 0);
+  assert.ok(hasNoCycle(c.superNodes.map((s) => s.id), c.edges), "condensation of augmented graph is acyclic");
+});
+
+function hasNoCycle(nodes, edges) {
+  const indeg = new Map(nodes.map((n) => [n, 0]));
+  const adj = new Map(nodes.map((n) => [n, []]));
+  for (const [u, v] of edges) { adj.get(u).push(v); indeg.set(v, indeg.get(v) + 1); }
+  const q = nodes.filter((n) => indeg.get(n) === 0);
+  let seen = 0;
+  while (q.length) {
+    const n = q.pop();
+    seen++;
+    for (const w of adj.get(n)) { indeg.set(w, indeg.get(w) - 1); if (indeg.get(w) === 0) q.push(w); }
+  }
+  return seen === nodes.length;
+}
