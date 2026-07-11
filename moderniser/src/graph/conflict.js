@@ -68,6 +68,7 @@ function resourceKeys(node) {
   for (const l of node.locks || []) ks.add(`lock:${l}`);
   for (const r of node.number_ranges || []) ks.add(`nr:${r}`);
   if (node.transport) ks.add(`tr:${node.transport}`);
+  for (const t of node.transports || []) ks.add(`tr:${t}`); // super-node-keyed: ALL members' transports
   return [...ks].sort();
 }
 

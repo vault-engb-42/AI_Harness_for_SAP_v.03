@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { writeFileSync, readFileSync, mkdirSync, renameSync } from "node:fs";
+import { readFileSync, mkdirSync, renameSync, openSync, writeSync, fsyncSync, closeSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJSON } from "../state/canonical-json.js";
 
@@ -79,7 +79,12 @@ export function replan(prev, next, isCommitted) {
 }
 
 /**
- * Persist a frozen plan atomically (write-temp + rename) under the state dir (§6.5).
+ * Persist a frozen plan durably (write-temp + fsync + atomic-rename) under the state dir
+ * (§6.5, §3.3 "commit = fsync → atomic-rename → git add"). The git-add of the explicit
+ * path is the SHELL's step — this library never runs VCS commands. NB `plan_hash` covers
+ * {nodes, waves} only (§6.3): the resource knobs (`session_budget`, `generator_team_size`)
+ * are deliberately outside the hash — they tune parallelism, never ordering or independence
+ * (the frontier re-enforces both-graph independence live).
  * @param {string} runId
  * @param {object} plan a `freezePlan()` artifact
  * @param {string} [stateDir]
@@ -90,7 +95,13 @@ export function savePlan(runId, plan, stateDir = ".claude/state") {
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${runId}.plan.json`);
   const tmp = `${path}.tmp`;
-  writeFileSync(tmp, JSON.stringify(plan, null, 2), "utf8");
+  const fd = openSync(tmp, "w");
+  try {
+    writeSync(fd, JSON.stringify(plan, null, 2));
+    fsyncSync(fd); // durable before the swap — a crash can never leave a torn plan
+  } finally {
+    closeSync(fd);
+  }
   renameSync(tmp, path); // atomic swap on the same filesystem
   return path;
 }
@@ -138,7 +149,9 @@ function canonicalNodes(nodes) {
         throw new Error(`plan: node '${n.id}' needs a non-negative integer wave (got ${n.wave})`);
       }
       const c = structuredClone(n);
-      if (Array.isArray(c.dependencies)) c.dependencies = [...c.dependencies].sort();
+      // set-like: dedupe + sort — a duplicate dependency would desync the loop's counter
+      // (init counts entries; a GREEN decrements once per dependency) and leak into the hash.
+      if (Array.isArray(c.dependencies)) c.dependencies = [...new Set(c.dependencies)].sort();
       return c;
     })
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

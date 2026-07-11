@@ -68,11 +68,20 @@ export function nextDispatch(plan, state) {
   return frontier;
 }
 
-/** Hand a frontier batch to the node drivers: PENDING → GROUNDED (FSM-checked). */
+/** Hand a frontier batch to the node drivers: PENDING → GROUNDED (FSM-checked + readiness-guarded). */
 export function dispatch(plan, state, sigs) {
   bind(plan, state);
   let next = state;
-  for (const sig of sigs) next = setStatus(plan, next, sig, "GROUNDED");
+  for (const sig of sigs) {
+    if (state.indegree[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
+    if (state.indegree[sig] !== 0) {
+      throw new Error(`loop: ${sig} is not ready — its closure is not green (indegree ${state.indegree[sig]})`);
+    }
+    if (state.park_register.some((p) => p.sig === sig)) {
+      throw new Error(`loop: ${sig} is parked — it re-enters only when its successor ships (L7)`);
+    }
+    next = setStatus(plan, next, sig, "GROUNDED");
+  }
   return next;
 }
 
@@ -82,9 +91,14 @@ export function applyProgress(plan, state, sig, nextStatus) {
   const wasParked = state.status[sig] === "PARK";
   let next = setStatus(plan, state, sig, nextStatus);
   if (wasParked && nextStatus === "PENDING") {
-    // re-entry (successor shipped, L7): the node leaves the CURRENTLY-parked register —
-    // the audited history stays in the persisted park file / git, not in live state.
-    next = { ...next, park_register: next.park_register.filter((p) => p.sig !== sig) };
+    // re-entry (successor shipped, L7): the node leaves the CURRENTLY-parked register AND
+    // its quarantine record — the audited history stays in the persisted park file / git,
+    // not in live state (a re-entered, later-GREEN node must not read as still quarantined).
+    next = {
+      ...next,
+      park_register: next.park_register.filter((p) => p.sig !== sig),
+      deferral_track: next.deferral_track.filter((d) => d.sig !== sig),
+    };
   }
   return next;
 }

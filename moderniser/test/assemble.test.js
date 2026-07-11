@@ -115,3 +115,72 @@ test("runtime.objectToSig maps every in-plan object (incl. cycle members) to its
   assert.equal(runtime.objectToSig.ZFICO_BTC_CSV_GL, SIG.GL);
   assert.equal(runtime.objectToSig.ZFICO_BTC_CSV_SCR, SIG.SCR);
 });
+
+// --- Rule-11 review remediations ---
+
+test("a RAP Business Object target expands to the L1 artifact-set skeleton in transport order", () => {
+  const d = doc({
+    nodes: [gnode("ZRAP")],
+    edges: [],
+    planObjects: [pobj("ZRAP", { modernization_target: "RAP Business Object" })],
+  });
+  const n = assemblePlan(d).plan.nodes[0];
+  assert.deepEqual(
+    n.artifacts,
+    [
+      { obj_type: "cds", transport_rank: 1, name: null },
+      { obj_type: "intf", transport_rank: 2, name: null },
+      { obj_type: "class", transport_rank: 3, name: null },
+      { obj_type: "bdef", transport_rank: 4, name: null },
+      { obj_type: "test_class", transport_rank: 5, name: null },
+    ],
+    "§3.3 #6: the full Clean-Core surface as ONE super-node; names are filled at TRANSFORM",
+  );
+});
+
+test("a non-RAP target carries a single-artifact skeleton of its own kind", () => {
+  const { plan } = assemblePlan(DOC); // GL targets a Fiori Elements App
+  assert.deepEqual(byObj(plan, "ZFICO_BTC_CSV_GL").artifacts, [{ obj_type: "report", transport_rank: 1, name: null }]);
+});
+
+test("opts.augment threads Stage-1 seals and synthetic edges into the assembled plan", () => {
+  const d = doc({
+    nodes: [gnode("ZA"), gnode("ZB")],
+    edges: [{ source: "ZA", target: "ZB", kind: "calls" }],
+    planObjects: [pobj("ZA"), pobj("ZB")],
+  });
+  // a dynamic CALL FUNCTION <var> in ZB sealed it; a synthetic back-edge closes a cycle
+  const { plan } = assemblePlan(d, {
+    augment: { seals: { ZB: true }, edges: [{ source: "ZB", target: "ZA", kind: "perform-on-commit", synthetic: true }] },
+  });
+  assert.equal(plan.nodes.length, 1, "the synthetic back-edge closed a cycle → one super-node");
+  assert.equal(plan.nodes[0].break_gate, true);
+  assert.equal(plan.nodes[0].dynamic_seal, "NEEDS_MANUAL_SEAM", "a sealed member seals the super-node");
+});
+
+test("a sealed plan node is never dispatched (the frontier veto is reachable end-to-end)", async () => {
+  const { initRun, nextDispatch } = await import("../src/sched/loop.js");
+  const d = doc({
+    nodes: [gnode("ZS"), gnode("ZFREE")],
+    edges: [],
+    planObjects: [pobj("ZS"), pobj("ZFREE")],
+  });
+  const { plan } = assemblePlan(d, { augment: { seals: { ZS: true } } });
+  const ready = nextDispatch(plan, initRun(plan));
+  assert.deepEqual(ready.map((s) => plan.nodes.find((n) => n.id === s).object), ["ZFREE"], "ZS is sealed out");
+});
+
+test("member transports become tr: conflict keys (Stage-4 'shares a transport')", () => {
+  const d = doc({
+    nodes: [gnode("ZX"), gnode("ZY")],
+    edges: [],
+    planObjects: [pobj("ZX"), pobj("ZY")],
+  });
+  const { plan } = assemblePlan(d, { transportOf: { ZX: "DEVK900001", ZY: "DEVK900001" } });
+  for (const o of ["ZX", "ZY"]) assert.ok(byObj(plan, o).conflict_keys.includes("tr:DEVK900001"), o);
+});
+
+test("a plan object missing from the CPG fails closed with a NAMED error, not a TypeError", () => {
+  const d = doc({ nodes: [gnode("ZA")], edges: [], planObjects: [pobj("ZA"), pobj("ZGHOST")] });
+  assert.throws(() => assemblePlan(d), /ZGHOST.*graph|graph.*ZGHOST/i);
+});

@@ -33,7 +33,11 @@ import { freezePlan } from "./plan.js";
 export function assemblePlan(doc, opts = {}) {
   const og = buildObjectGraph(doc);
   const scoped = scopeNodes(doc, og);
-  const cond = tarjanCondense(og.nodes.map((n) => n.id), precedenceEdges(og.edges));
+  // Stage 1 seam: augmented dynamic edges join the graph BEFORE condensation (§3.1 —
+  // a synthetic back-edge that closes a cycle must reach Tarjan); seals arrive per object.
+  const edges = [...og.edges, ...(opts.augment?.edges ?? [])];
+  const seals = opts.augment?.seals ?? {};
+  const cond = tarjanCondense(og.nodes.map((n) => n.id), precedenceEdges(edges));
   const levels = kahnLevels(cond, scopeMeta(scoped));
 
   const scopedByObject = new Map(scoped.map((s) => [s.object, s]));
@@ -41,26 +45,32 @@ export function assemblePlan(doc, opts = {}) {
 
   const sigOfSuper = new Map(); // superId -> plan-node sig (smallest in-plan member's sig)
   for (const [superId, members] of inPlanSupers) {
+    if (!cond.superNodes.some((s) => s.id === superId)) {
+      throw new Error(`assemble: plan object '${members[0]}' is missing from the analyser graph (no CPG node) — fail closed`);
+    }
     sigOfSuper.set(superId, scopedByObject.get(members[0]).canonical_sig);
   }
 
-  const conflictKeys = superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper);
+  const conflictKeys = superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper, opts.transportOf);
   const predecessors = predecessorMap(cond.edges);
 
   const nodes = [...inPlanSupers.entries()].map(([superId, members]) => {
     const superNode = cond.superNodes.find((s) => s.id === superId);
     const rep = scopedByObject.get(members[0]);
+    const sealed = superNode.members.some((m) => seals[m] === true); // any sealed member seals the super-node (L5)
     return {
       id: sigOfSuper.get(superId),
       object: rep.object,
       kind: members.length > 1 ? "super" : "object",
       members: [...superNode.members].sort(),
       break_gate: superNode.break_gate,
+      ...(sealed ? { dynamic_seal: "NEEDS_MANUAL_SEAM" } : {}),
       wave: levels.levelOf[superId],
       dependencies: inPlanAncestors(superId, predecessors, sigOfSuper),
       conflict_keys: conflictKeys[sigOfSuper.get(superId)],
       member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
       parity_required: members.some((m) => scopedByObject.get(m).parity_required),
+      artifacts: artifactSkeleton(members, scopedByObject),
       transport_id: opts.transportOf?.[rep.object],
     };
   });
@@ -90,23 +100,44 @@ function groupBySuper(scoped, superOf) {
   return new Map([...groups.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)));
 }
 
-/** Super-node-keyed conflict keys (§3.1 Stage 4): members' resources aggregated per sig. */
-function superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper) {
+/** Super-node-keyed conflict keys (§3.1 Stage 4): members' resources — incl. transports — aggregated per sig. */
+function superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper, transportOf) {
   const conflictNodes = [...inPlanSupers.entries()].map(([superId, members]) => {
     const pools = new Set();
     const ddic = new Set();
     const locks = new Set();
     const nr = new Set();
+    const trs = new Set();
     for (const m of members) {
       const rk = scopedByObject.get(m).resource_keys;
       if (rk.program_pool) pools.add(rk.program_pool);
       for (const d of rk.ddic ?? []) ddic.add(d);
       for (const l of rk.locks ?? []) locks.add(l);
       for (const r of rk.number_ranges ?? []) nr.add(r);
+      if (transportOf?.[m]) trs.add(transportOf[m]); // "shares a transport" is a conflict (Stage 4)
     }
-    return { id: sigOfSuper.get(superId), program_pools: [...pools], ddic: [...ddic], locks: [...locks], number_ranges: [...nr] };
+    return {
+      id: sigOfSuper.get(superId),
+      program_pools: [...pools],
+      ddic: [...ddic],
+      locks: [...locks],
+      number_ranges: [...nr],
+      transports: [...trs],
+    };
   });
   return buildConflictGraph(conflictNodes).keysOf;
+}
+
+// §3.3 #6 (L1): a RAP Business Object target expands to the full Clean-Core surface as ONE
+// super-node, activation-ordered by the moderniser's own _TRANSPORT_ORDER. Artifact NAMES
+// are generation-time (the node driver fills them at TRANSFORM); the plan carries the typed
+// skeleton so transport ranking and multi-artifact reconciliation are pinned up front.
+const RAP_SURFACE = [["cds", 1], ["intf", 2], ["class", 3], ["bdef", 4], ["test_class", 5]];
+
+function artifactSkeleton(members, scopedByObject) {
+  const isRap = members.some((m) => scopedByObject.get(m).modernization_target === "RAP Business Object");
+  if (isRap) return RAP_SURFACE.map(([obj_type, transport_rank]) => ({ obj_type, transport_rank, name: null }));
+  return [{ obj_type: scopedByObject.get(members[0]).kind ?? "object", transport_rank: 1, name: null }];
 }
 
 /** superId -> its direct predecessor superIds over the condensed precedence edges (dep → dependent). */

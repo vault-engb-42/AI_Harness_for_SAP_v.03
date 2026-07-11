@@ -161,6 +161,26 @@ test("renderVerdict wires ratchetGate's SIGNED delta into nodeVerdict — one co
   assert.equal(r2.green, false);
 });
 
+test("PARK re-entry also clears the node's deferral_track quarantine (no stale live state)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
+  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR });
+  st = applyProgress(plan, st, A, "PENDING"); // successor ships
+  assert.deepEqual(st.deferral_track, [], "quarantine record left with the park record");
+  st = dispatch(plan, st, [A]);
+  st = walkGreen(plan, st, A);
+  assert.equal(runComplete(plan, st), true, "a re-entered node can complete the run");
+});
+
+test("dispatch enforces readiness — a dep-blocked or parked node cannot be handed out", () => {
+  const A = "a".repeat(64), B = "b".repeat(64);
+  const plan = mkPlan([{ id: A }, { id: B, dependencies: [A] }]);
+  const st = initRun(plan);
+  assert.throws(() => dispatch(plan, st, [B]), /ready|indegree|closure/i, "B's closure is not green");
+});
+
 test("every loop function is copy-on-write — the input state is never mutated", () => {
   const A = "a".repeat(64);
   const plan = mkPlan([{ id: A }]);

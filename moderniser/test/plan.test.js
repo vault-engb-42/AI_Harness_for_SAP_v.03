@@ -66,6 +66,18 @@ test("freezePlan fails closed on a node with a missing / invalid wave or id", ()
   assert.throws(() => freezePlan({ nodes: [{ id: "", wave: 0 }] }), /id/);
 });
 
+test("dependencies are DEDUPED as a set — a duplicate entry cannot desync the loop's counter", () => {
+  // Rule-11 finding: initRun counts dependencies.length while GREEN decrements once per dep;
+  // a duplicate would permanently starve the dependent. The set-like field dedupes at freeze.
+  const plan = freezePlan({ nodes: [{ id: "n1", wave: 0, dependencies: ["X", "X", "Y"] }] });
+  assert.deepEqual([...plan.nodes[0].dependencies], ["X", "Y"]);
+  assert.equal(
+    plan.plan_hash,
+    freezePlan({ nodes: [{ id: "n1", wave: 0, dependencies: ["Y", "X"] }] }).plan_hash,
+    "duplicates never reach the hash",
+  );
+});
+
 test("plan_hash is independent of a node's dependency-array order (a set, not a list)", () => {
   const a = [{ id: "n1", wave: 0, dependencies: ["X", "Y"] }, { id: "n2", wave: 1, dependencies: [] }];
   const b = [{ id: "n1", wave: 0, dependencies: ["Y", "X"] }, { id: "n2", wave: 1, dependencies: [] }];
