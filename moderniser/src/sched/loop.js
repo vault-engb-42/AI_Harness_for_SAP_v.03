@@ -43,11 +43,27 @@ export function initRun(plan, opts = {}) {
     indegree,
     status,
     cycle: {}, // per-sig generator-refinement retries used (MAX_PHASE_RETRY_CYCLES gate)
+    verdict_green: {}, // per-sig recorded verdict result — GREEN is EARNED, never asserted
     deferral_track: [],
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig
     cancel_token: opts.cancel_token ?? null,
   };
+}
+
+/**
+ * Record the rendered verdict for a node AT ITS CHECKPOINT (status must be GATED — a node
+ * that has not reached the checkpoint has nothing to verdict, and baselines must never move
+ * outside the lifecycle). `applyOutcome(GREEN)` refuses without a recorded GREEN verdict:
+ * the reducer, not the orchestrating prose, decides GREEN (GAN separation, §3.2).
+ */
+export function recordVerdict(plan, state, sig, verdictResult) {
+  bind(plan, state);
+  if (state.status[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
+  if (state.status[sig] !== "GATED") {
+    throw new Error(`loop: verdict for ${sig} refused — the node is ${state.status[sig]}, not GATED`);
+  }
+  return { ...state, verdict_green: { ...state.verdict_green, [sig]: verdictResult.green === true } };
 }
 
 /** The next parallel batch: both-graph independent, worst-first, capped (§3.1 Stage 5). */
@@ -111,6 +127,9 @@ export function applyProgress(plan, state, sig, nextStatus) {
  */
 export function applyOutcome(plan, state, sig, outcome) {
   bind(plan, state);
+  if (outcome.status === "GREEN" && state.verdict_green?.[sig] !== true) {
+    throw new Error(`loop: GREEN for ${sig} refused — no recorded green verdict (record one at GATED first)`);
+  }
   let next = setStatus(plan, state, sig, outcome.status, { reason: outcome.reason });
 
   if (outcome.status === "GREEN") {
@@ -122,7 +141,13 @@ export function applyOutcome(plan, state, sig, outcome) {
   } else if (outcome.status === "BLOCK") {
     next = { ...next, deferral_track: [...next.deferral_track, { sig, reason: outcome.reason ?? "unspecified" }] };
   } else if (outcome.status === "PARK") {
-    next = { ...next, park_register: [...next.park_register, { sig, reason: outcome.reason }] };
+    next = {
+      ...next,
+      park_register: [
+        ...next.park_register,
+        { sig, reason: outcome.reason, ...(outcome.signed_by ? { signed_by: outcome.signed_by } : {}) }, // L7: named human sign-off
+      ],
+    };
   }
 
   return releaseActivation(plan, next, sig); // idempotent when no mutex is held
@@ -188,7 +213,14 @@ function setStatus(plan, state, sig, to, ctx = {}) {
   const retry = to === "GENERATED" && (from === "SYNTAX_OK" || from === "GATED");
   assertTransition(from, to, { cycle: retry ? state.cycle[sig] ?? 0 : ctx.cycle ?? 0, reason: ctx.reason });
   const next = { ...state, status: { ...state.status, [sig]: to } };
-  if (retry) next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
+  if (retry) {
+    next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
+    if (next.verdict_green?.[sig] !== undefined) {
+      const verdict_green = { ...next.verdict_green };
+      delete verdict_green[sig]; // a stale verdict can never bless a REGENERATED artifact
+      next.verdict_green = verdict_green;
+    }
+  }
   return next;
 }
 

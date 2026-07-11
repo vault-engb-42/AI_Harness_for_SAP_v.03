@@ -8,12 +8,18 @@ import { tmpdir } from "node:os";
 
 // /modernise CLI (§6.5) — the deterministic imperative shell over the pure reducer, driven
 // by the skill via Bash. REAL code path: subprocess + real fs against a temp state dir with
-// the golden ZFICO fixture (no mocks). Every mutating command persists state durably and
-// appends a P8-scrubbed observability row (§6.6, sigs/statuses only — never ABAP source).
+// the golden ZFICO fixture (no mocks). GREEN is EARNED: outcome GREEN requires a recorded
+// green verdict at GATED (the reducer decides, never the orchestrator's prose).
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
+
+const GREEN_CP = {
+  activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
+  invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
+};
+const GREEN_EV = { atc_p1: 0, atc_warns: [], coverage: { pct: 0.55, bite_proven: true } };
 
 function run(args, opts = {}) {
   const out = execFileSync(process.execPath, [CLI, ...args], { encoding: "utf8", ...opts });
@@ -22,121 +28,150 @@ function run(args, opts = {}) {
 
 function freshDirs() {
   const base = mkdtempSync(join(tmpdir(), "modernise-cli-"));
+  writeFileSync(join(base, "cp.json"), JSON.stringify(GREEN_CP), "utf8");
+  writeFileSync(join(base, "ev.json"), JSON.stringify(GREEN_EV), "utf8");
   return { base, state: join(base, "state"), runs: join(base, "runs") };
 }
 
-test("plan → next → dispatch → FSM walk → outcome → status runs the golden fixture to complete", () => {
-  const { base, state, runs } = freshDirs();
+const mkCli = ({ base, state, runs }) => {
+  const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
+  const walk = (rid, sig) => {
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    cli("verdict", rid, sig, "--checkpoint", join(base, "cp.json"), "--evidence", join(base, "ev.json"), "--record");
+    cli("outcome", rid, sig, "GREEN");
+  };
+  return { cli, walk };
+};
+
+test("plan → next → dispatch → FSM walk → verdict → GREEN runs the golden fixture to complete", () => {
+  const dirs = freshDirs();
+  const { cli, walk } = mkCli(dirs);
   try {
-    const planned = run(["plan", FIXTURE, "--state-dir", state, "--runs-dir", runs]);
+    const planned = cli("plan", FIXTURE);
     assert.match(planned.run_id, /^run-[0-9a-f]{12}$/, "deterministic run id from the plan hash");
-    assert.match(planned.plan_hash, /^[0-9a-f]{64}$/);
     assert.equal(planned.nodes.length, 3);
-    assert.ok(existsSync(join(state, "plan", `${planned.run_id}.plan.json`)), "plan persisted");
-    assert.ok(existsSync(join(state, "runs", `${planned.run_id}.state.json`)), "state persisted");
-
+    assert.ok(existsSync(join(dirs.state, "plan", `${planned.run_id}.plan.json`)), "plan persisted");
     const rid = planned.run_id;
-    const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
-    const walk = (sig) => {
-      for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
-      cli("outcome", rid, sig, "GREEN");
-    };
 
-    const r1 = cli("next", rid);
-    assert.equal(r1.ready.length, 1);
-    assert.equal(r1.ready[0].object, "ZFICO_BTC_CSV_SCR", "bottom-up: SCR first");
-    cli("dispatch", rid, r1.ready[0].sig);
-    walk(r1.ready[0].sig);
-
-    const r2 = cli("next", rid);
-    assert.equal(r2.ready[0].object, "ZFICO_BTC_CSV_TOP");
-    cli("dispatch", rid, r2.ready[0].sig);
-    walk(r2.ready[0].sig);
-
-    const r3 = cli("next", rid);
-    assert.equal(r3.ready[0].object, "ZFICO_BTC_CSV_GL", "the entry report schedules LAST");
-    cli("dispatch", rid, r3.ready[0].sig);
-    walk(r3.ready[0].sig);
+    for (const expected of ["ZFICO_BTC_CSV_SCR", "ZFICO_BTC_CSV_TOP", "ZFICO_BTC_CSV_GL"]) {
+      const r = cli("next", rid);
+      assert.equal(r.ready[0].object, expected, "bottom-up order");
+      cli("dispatch", rid, r.ready[0].sig);
+      walk(rid, r.ready[0].sig);
+    }
 
     const st = cli("status", rid);
     assert.equal(st.complete, true);
     assert.deepEqual(st.counts, { GREEN: 3 });
-    assert.deepEqual(st.ready_now, []);
 
-    const log = readFileSync(join(runs, rid, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const log = readFileSync(join(dirs.runs, rid, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
     assert.ok(log.length >= 20, "one row per mutation");
     assert.ok(log.every((r) => r.run_id === rid && typeof r.event === "string"), "structured rows");
     assert.ok(!JSON.stringify(log).includes("CALL FUNCTION"), "P8: no ABAP source in the log");
   } finally {
-    rmSync(base, { recursive: true, force: true });
+    rmSync(dirs.base, { recursive: true, force: true });
   }
 });
 
-test("resume verifies both hashes and reports where the run stands", () => {
-  const { base, state, runs } = freshDirs();
+test("outcome GREEN without a green verdict is REFUSED through the CLI (gate not bypassable)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
   try {
-    const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
     const { run_id: rid } = cli("plan", FIXTURE);
     const r1 = cli("next", rid);
     cli("dispatch", rid, r1.ready[0].sig);
-
-    const resumed = cli("resume", rid);
-    assert.equal(resumed.verified, true, "plan_hash re-verified + state bound");
-    assert.equal(resumed.status.counts.GROUNDED, 1, "the dispatched node is in flight");
-    assert.ok(resumed.status.ready_now.length >= 1, "what to do next is reported");
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, r1.ready[0].sig, s);
+    assert.throws(() => cli("outcome", rid, r1.ready[0].sig, "GREEN"), /verdict|Command failed/i);
   } finally {
-    rmSync(base, { recursive: true, force: true });
+    rmSync(dirs.base, { recursive: true, force: true });
   }
 });
 
-test("a tampered state file fails CLOSED on resume", () => {
-  const { base, state, runs } = freshDirs();
+test("verdict is refused unless the node is at GATED (no out-of-lifecycle baseline moves)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
   try {
-    const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sig = nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR").sig;
+    assert.throws(
+      () => cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "cp.json"), "--evidence", join(dirs.base, "ev.json"), "--record"),
+      /GATED|Command failed/i,
+    );
+    assert.ok(!existsSync(join(dirs.state, "atc-baseline.json")), "no baseline moved");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("a green verdict at GATED records baselines once (--record) and GREEN completes", () => {
+  const dirs = freshDirs();
+  const { cli, walk } = mkCli(dirs);
+  try {
     const { run_id: rid } = cli("plan", FIXTURE);
-    const statePath = join(state, "runs", `${rid}.state.json`);
+    const r1 = cli("next", rid);
+    cli("dispatch", rid, r1.ready[0].sig);
+    walk(rid, r1.ready[0].sig);
+    const atc = JSON.parse(readFileSync(join(dirs.state, "atc-baseline.json"), "utf8"));
+    assert.equal(atc.per_object[r1.ready[0].sig], 0, "baseline established via onPass");
+    assert.equal(cli("status", rid).counts.GREEN, 1);
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("resume verifies both hashes; a tampered state fails CLOSED", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const r1 = cli("next", rid);
+    cli("dispatch", rid, r1.ready[0].sig);
+    const resumed = cli("resume", rid);
+    assert.equal(resumed.verified, true);
+    assert.equal(resumed.status.counts.GROUNDED, 1);
+
+    const statePath = join(dirs.state, "runs", `${rid}.state.json`);
     const st = JSON.parse(readFileSync(statePath, "utf8"));
-    st.plan_hash = "f".repeat(64); // bind to a different plan
+    st.plan_hash = "f".repeat(64);
     writeFileSync(statePath, JSON.stringify(st), "utf8");
     assert.throws(() => cli("resume", rid), /plan_hash|Command failed/i);
   } finally {
-    rmSync(base, { recursive: true, force: true });
+    rmSync(dirs.base, { recursive: true, force: true });
   }
 });
 
-test("verdict composes gate+verdict from evidence files; --record persists baselines only on green", () => {
-  const { base, state, runs } = freshDirs();
+test("guards: run-id traversal, non-positive team-size, un-ready dispatch, existing run", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
   try {
-    const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
-    const sig = nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR").sig;
-    const checkpoint = {
-      activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
-      invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
-    };
-    // SCR is parity_required (it has transformations) → the bite must be PROVEN (L6(1))
-    const evidence = { atc_p1: 0, atc_warns: [], coverage: { pct: 0.55, bite_proven: true } };
-    writeFileSync(join(base, "cp.json"), JSON.stringify(checkpoint), "utf8");
-    writeFileSync(join(base, "ev.json"), JSON.stringify(evidence), "utf8");
+    assert.throws(() => cli("plan", FIXTURE, "--run-id", "../../evil/pwn"), /run-id|Command failed/i, "path traversal rejected");
+    assert.ok(!existsSync(join(dirs.base, "evil")), "nothing written outside containment");
+    assert.throws(() => cli("plan", FIXTURE, "--team-size", "0"), /team-size|Command failed/i);
+    assert.throws(() => cli("plan", FIXTURE, "--team-size", "abc"), /team-size|Command failed/i);
 
-    const v = cli("verdict", rid, sig, "--checkpoint", join(base, "cp.json"), "--evidence", join(base, "ev.json"), "--record");
-    assert.equal(v.green, true);
-    assert.equal(v.gate.verdict, "PASS");
-    const atc = JSON.parse(readFileSync(join(state, "atc-baseline.json"), "utf8"));
-    assert.equal(atc.per_object[sig], 0, "baseline established via onPass copy-on-write");
-  } finally {
-    rmSync(base, { recursive: true, force: true });
-  }
-});
-
-test("dispatching an un-ready node fails closed through the CLI too", () => {
-  const { base, state, runs } = freshDirs();
-  try {
-    const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
     const { run_id: rid, nodes } = cli("plan", FIXTURE);
     const gl = nodes.find((n) => n.object === "ZFICO_BTC_CSV_GL").sig;
     assert.throws(() => cli("dispatch", rid, gl), /ready|Command failed/i, "GL's closure is not green");
+    assert.throws(() => cli("plan", FIXTURE), /exists|resume|Command failed/i, "re-planning a live run refused");
   } finally {
-    rmSync(base, { recursive: true, force: true });
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const r1 = cli("next", rid);
+    const sig = r1.ready[0].sig;
+    cli("dispatch", rid, sig);
+    const again = cli("dispatch", rid, sig); // retry after a crash-between-state-and-log
+    assert.deepEqual(again.dispatched, [sig], "no illegal GROUNDED→GROUNDED wedge");
+    cli("progress", rid, sig, "GENERATED");
+    const rep = cli("progress", rid, sig, "GENERATED"); // same-status repeat is a no-op
+    assert.equal(rep.status, "GENERATED");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
   }
 });

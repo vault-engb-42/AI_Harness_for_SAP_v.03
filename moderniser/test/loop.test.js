@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, acquireActivation, releaseActivation, renderVerdict, runComplete } from "../src/sched/loop.js";
+import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, acquireActivation, releaseActivation, renderVerdict, recordVerdict, runComplete } from "../src/sched/loop.js";
 import { assemblePlan } from "../src/sched/assemble.js";
 import { freezePlan } from "../src/sched/plan.js";
 import { NO_RELEASED_SUCCESSOR } from "../src/state/node-status.js";
@@ -22,9 +22,10 @@ const mkPlan = (nodes) =>
   freezePlan({ nodes: nodes.map((n) => ({ wave: 0, dependencies: [], members: [n.id], member_meta: {}, conflict_keys: [], ...n })) });
 
 const FORWARD = ["GROUNDED", "GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"];
-/** drive one dispatched node through its whole per-node FSM to GREEN */
+/** drive one dispatched node through its whole per-node FSM — verdict recorded at GATED — to GREEN */
 function walkGreen(plan, state, sig) {
   for (const s of FORWARD.slice(1)) state = applyProgress(plan, state, sig, s);
+  state = recordVerdict(plan, state, sig, { green: true }); // the reducer, not prose, gates GREEN
   return applyOutcome(plan, state, sig, { status: "GREEN" });
 }
 
@@ -98,7 +99,7 @@ test("illegal FSM moves and unknown sigs fail closed everywhere", () => {
   const A = "a".repeat(64);
   const plan = mkPlan([{ id: A }]);
   const st = initRun(plan);
-  assert.throws(() => applyOutcome(plan, st, A, { status: "GREEN" }), /illegal/i, "PENDING→GREEN skips the chain");
+  assert.throws(() => applyOutcome(plan, st, A, { status: "GREEN" }), /illegal|verdict/i, "PENDING→GREEN refused (no verdict, chain skipped)");
   assert.throws(() => dispatch(plan, st, ["9".repeat(64)]), /unknown/i);
   assert.throws(() => applyProgress(plan, st, A, "bogus"), /illegal/i);
 });
@@ -191,6 +192,52 @@ test("every loop function is copy-on-write — the input state is never mutated"
   acquireActivation(plan, st1, A);
   assert.equal(JSON.stringify(st0), snapshot, "st0 untouched");
   assert.notEqual(st1.status[A], st0.status[A]);
+});
+
+// --- Rule-11 (CLI/skill review) remediations at the reducer level ---
+
+test("GREEN is REFUSED without a recorded green verdict — the reducer, not prose, decides (GAN)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  for (const s of FORWARD.slice(1)) st = applyProgress(plan, st, A, s); // at GATED, NO verdict
+  assert.throws(() => applyOutcome(plan, st, A, { status: "GREEN" }), /verdict/i);
+  // a NON-green recorded verdict also refuses
+  const st2 = recordVerdict(plan, st, A, { green: false });
+  assert.throws(() => applyOutcome(plan, st2, A, { status: "GREEN" }), /verdict/i);
+  // BLOCK never needs a verdict (fail direction is free)
+  assert.equal(applyOutcome(plan, st, A, { status: "BLOCK", reason: "unit-red" }).status[A], "BLOCK");
+});
+
+test("recordVerdict is GATED-gated and copy-on-write", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  const st = initRun(plan);
+  assert.throws(() => recordVerdict(plan, st, A, { green: true }), /GATED/i, "a PENDING node has no checkpoint to verdict");
+  let st2 = dispatch(plan, st, [A]);
+  for (const s of FORWARD.slice(1)) st2 = applyProgress(plan, st2, A, s);
+  const st3 = recordVerdict(plan, st2, A, { green: true });
+  assert.equal(st3.verdict_green[A], true);
+  assert.equal(st2.verdict_green[A], undefined, "input untouched");
+});
+
+test("a re-generated node's stale verdict is cleared on the retry edge (no verdict reuse)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  for (const s of FORWARD.slice(1)) st = applyProgress(plan, st, A, s);
+  st = recordVerdict(plan, st, A, { green: true });
+  st = applyProgress(plan, st, A, "GENERATED"); // checkpoint machine-BLOCK → regenerate
+  assert.equal(st.verdict_green[A], undefined, "the old verdict cannot bless the NEW artifact");
+});
+
+test("PARK records the named human signer (L7 audited register)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
+  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe" });
+  assert.deepEqual(st.park_register, [{ sig: A, reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe" }]);
 });
 
 test("state is JSON-durable: a serialize/revive round-trip resumes identically", () => {
