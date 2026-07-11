@@ -2,10 +2,20 @@
  * Mega-SCC seam computation (MODERNISER_DESIGN §3.1 Stage 2 / §3.4 #4, L5). A cycle
  * super-node above SESSION_BUDGET is never "atomic": compute an approximate minimum
  * feedback-arc-set — greedy Eades–Lin–Smyth linear arrangement, back-edges = cut
- * candidates — and choose the FEWEST cuts such that every residual sub-component fits the
- * budget. Each seam carries an evidence-based confidence (how much the cut shrank the
- * largest blob). The human approves a CUT, not an ordering (the CUT/COGEN_RAP_BO/
- * SPROUT_DEFER gate and the learned seam-memory live in the exception module, §3.4 #7).
+ * candidates — cutting GREEDILY FEW edges (approximate; exact minimality is NP-hard and
+ * §3.1 asks only for "approximate") until every residual sub-component fits the budget.
+ * Each seam carries an HONEST evidence field: `confidence` = how much the cut shrank the
+ * largest blob (0 when it broke structure without shrinking it yet — such cuts also carry
+ * `structural: true`; no fabricated floors, the human ranks by this number).
+ *
+ * The human approves a CUT, not an ordering. Deferred to the exception module (§3.4 #7),
+ * recorded here so nothing is silently dropped: the CUT/COGEN_RAP_BO/SPROUT_DEFER gate
+ * (`cycle_gate.proposeSeams` is the intended caller wrapping `minFeedbackArcSet`), the
+ * learned seam-memory (member-signature-set keyed), the gate-packet edge-KIND enrichment
+ * (seams are (source,target) pairs — the gate joins kinds upstream; `possible_cycle`
+ * synthetic edges deserve cut-preference the pipeline cannot yet express), and the
+ * per-member sub-scheduler for mid-cycle resume (§3.1 Stage 2 last sentence — home:
+ * sched/loop + exception scheduler, DEV-gated).
  *
  * Pure. ITERATIVE throughout (the scale NFR — mega-SCCs are exactly where recursion
  * dies). Deterministic: inputs are normalised (sorted, deduped, self-loop/foreign-edge
@@ -17,68 +27,75 @@ const CANDIDATES_PER_CUT = 16; // top-K back-edges (by span) evaluated per cut �
 
 /**
  * Greedy Eades–Lin–Smyth arrangement: repeatedly peel sinks (to the right), sources (to
- * the left), else the max-(out−in) node — discovered incrementally via queues (no O(V²)
- * rescans). Removing the order-violating edges of the result always yields a DAG.
+ * the left), else the max-(out−in) node. Sink/source discovery is incremental via queues
+ * (no O(V²) rescans for the peeling); NB the stuck-pick fallback scans `remaining` per
+ * pick, so a dense sink/source-free blob degrades toward O(V²) — the ELS m/2−n/6 quality
+ * bound holds regardless (delta-buckets are the known fix if profiling ever bites).
+ * Removing the order-violating edges of the result always yields a DAG.
  * @param {string[]} nodeIds @param {Array<[string, string]>} edgesIn
  * @returns {string[]} the arrangement
  */
 export function elsOrder(nodeIds, edgesIn) {
   const nodes = [...new Set(nodeIds)].sort();
   const { out, inn } = adjacency(nodes, edgesIn);
-  const remaining = new Set(nodes);
-  const s1 = [];
-  const s2 = []; // built in removal order; ELS prepends sinks, so reversed at the end
-  const sinkQ = [];
-  const sourceQ = [];
+  const ctx = { out, inn, remaining: new Set(nodes), s1: [], s2: [], sinkQ: [], sourceQ: [], si: 0, so: 0 };
   for (const n of nodes) {
-    if (out.get(n).size === 0) sinkQ.push(n);
-    else if (inn.get(n).size === 0) sourceQ.push(n);
+    if (out.get(n).size === 0) ctx.sinkQ.push(n);
+    else if (inn.get(n).size === 0) ctx.sourceQ.push(n);
   }
-  const removeNode = (n) => {
-    remaining.delete(n);
-    for (const v of out.get(n)) {
-      inn.get(v).delete(n);
-      if (inn.get(v).size === 0 && remaining.has(v)) sourceQ.push(v);
-    }
-    for (const u of inn.get(n)) {
-      out.get(u).delete(n);
-      if (out.get(u).size === 0 && remaining.has(u)) sinkQ.push(u);
-    }
-  };
-  let si = 0;
-  let so = 0;
-  while (remaining.size > 0) {
-    while (si < sinkQ.length || so < sourceQ.length) {
-      while (si < sinkQ.length) {
-        const n = sinkQ[si++];
-        if (remaining.has(n) && out.get(n).size === 0) {
-          s2.push(n);
-          removeNode(n);
-        }
+  while (ctx.remaining.size > 0) {
+    drainPeelQueues(ctx);
+    if (ctx.remaining.size > 0) stuckPick(ctx);
+  }
+  return [...ctx.s1, ...ctx.s2.reverse()]; // s2 was built in removal order; ELS prepends sinks
+}
+
+/** remove a node, feeding newly-created sinks/sources into the peel queues. */
+function removeNode(ctx, n) {
+  ctx.remaining.delete(n);
+  for (const v of ctx.out.get(n)) {
+    ctx.inn.get(v).delete(n);
+    if (ctx.inn.get(v).size === 0 && ctx.remaining.has(v)) ctx.sourceQ.push(v);
+  }
+  for (const u of ctx.inn.get(n)) {
+    ctx.out.get(u).delete(n);
+    if (ctx.out.get(u).size === 0 && ctx.remaining.has(u)) ctx.sinkQ.push(u);
+  }
+}
+
+/** peel every queued sink (→ s2) and source (→ s1); stale queue entries are re-validated. */
+function drainPeelQueues(ctx) {
+  while (ctx.si < ctx.sinkQ.length || ctx.so < ctx.sourceQ.length) {
+    while (ctx.si < ctx.sinkQ.length) {
+      const n = ctx.sinkQ[ctx.si++];
+      if (ctx.remaining.has(n) && ctx.out.get(n).size === 0) {
+        ctx.s2.push(n);
+        removeNode(ctx, n);
       }
-      while (so < sourceQ.length) {
-        const n = sourceQ[so++];
-        if (remaining.has(n) && inn.get(n).size === 0) {
-          s1.push(n);
-          removeNode(n);
-        }
-      }
     }
-    if (remaining.size > 0) {
-      let best = null;
-      let bestD = -Infinity;
-      for (const n of remaining) {
-        const d = out.get(n).size - inn.get(n).size;
-        if (d > bestD || (d === bestD && n < best)) {
-          best = n;
-          bestD = d;
-        }
+    while (ctx.so < ctx.sourceQ.length) {
+      const n = ctx.sourceQ[ctx.so++];
+      if (ctx.remaining.has(n) && ctx.inn.get(n).size === 0) {
+        ctx.s1.push(n);
+        removeNode(ctx, n);
       }
-      s1.push(best);
-      removeNode(best);
     }
   }
-  return [...s1, ...s2.reverse()];
+}
+
+/** no sinks or sources left: remove the max-(out−in) node (tiebreak min id) to s1. */
+function stuckPick(ctx) {
+  let best = null;
+  let bestD = -Infinity;
+  for (const n of ctx.remaining) {
+    const d = ctx.out.get(n).size - ctx.inn.get(n).size;
+    if (d > bestD || (d === bestD && n < best)) {
+      best = n;
+      bestD = d;
+    }
+  }
+  ctx.s1.push(best);
+  removeNode(ctx, best);
 }
 
 /**
@@ -124,13 +141,16 @@ export function minFeedbackArcSet(scc, budget) {
     const inComp = new Set(target.members);
     const compEdges = work.filter(([u, v]) => inComp.has(u) && inComp.has(v));
     const cut = bestCut(target.members, compEdges);
+    const noShrink = cut.largestAfter === target.members.length;
     seams.push({
       source: cut.edge[0],
       target: cut.edge[1],
       rank: seams.length + 1,
-      // evidence: how much this cut shrank the largest blob; floored so the field stays in
-      // (0,1] even for a dense blob where one cut cannot shrink the SCC yet.
-      confidence: Math.max(0.01, Math.round(((target.members.length - cut.largestAfter) / target.members.length) * 100) / 100),
+      // HONEST evidence for the human gate: how much this cut shrank the largest blob.
+      // A structure-breaking cut that shrank nothing reports 0 (+ structural marker) —
+      // never a fabricated floor a human could mistake for measured shrink.
+      confidence: Math.round(((target.members.length - cut.largestAfter) / target.members.length) * 100) / 100,
+      ...(noShrink ? { structural: true } : {}),
     });
     work = work.filter(([u, v]) => !(u === cut.edge[0] && v === cut.edge[1]));
   }
@@ -153,7 +173,8 @@ function bestCut(compMembers, compEdges) {
   for (const c of candidates) {
     const kept = compEdges.filter(([u, v]) => !(u === c.e[0] && v === c.e[1]));
     const cc = tarjanCondense(compMembers, kept);
-    const largest = Math.max(...cc.superNodes.map((s) => s.members.length));
+    let largest = 1; // loop, never a spread — Math.max(...130k members) RangeErrors (argument-count ceiling)
+    for (const s of cc.superNodes) if (s.members.length > largest) largest = s.members.length;
     if (
       best === null ||
       largest < best.largestAfter ||

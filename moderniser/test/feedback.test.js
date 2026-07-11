@@ -51,14 +51,28 @@ test("interlocked rings (figure-8) need two cuts", () => {
   assert.ok(r.sub_components.every((c) => c.length === 1));
 });
 
-test("seams are ranked in cut order with monotone evidence-based confidence fields", () => {
+test("seams are ranked in cut order with evidence-based confidence fields", () => {
   const edges = [...ring(["A", "B", "C", "D"]), ...ring(["D", "E", "F", "G"])];
   const r = minFeedbackArcSet({ members: ["A", "B", "C", "D", "E", "F", "G"], edges }, 2);
   assert.deepEqual(r.seams.map((s) => s.rank), r.seams.map((_, i) => i + 1));
   for (const s of r.seams) {
     assert.ok(typeof s.source === "string" && typeof s.target === "string");
-    assert.ok(s.confidence > 0 && s.confidence <= 1, "confidence = how much the cut shrinks the blob");
+    assert.ok(s.confidence >= 0 && s.confidence <= 1, "confidence = how much the cut shrinks the blob");
   }
+});
+
+test("a no-shrink cut reports HONEST confidence 0 with a structural marker — never a fabricated floor", () => {
+  // K4 complete digraph (both directions): early cuts cannot shrink the SCC yet.
+  const ids = ["A", "B", "C", "D"];
+  const edges = [];
+  for (const u of ids) for (const v of ids) if (u !== v) edges.push([u, v]);
+  const r = minFeedbackArcSet({ members: ids, edges }, 2);
+  const structural = r.seams.filter((s) => s.structural === true);
+  assert.ok(structural.length > 0, "a dense blob has cuts that break structure without shrinking the blob yet");
+  for (const s of structural) assert.equal(s.confidence, 0, "no shrink → 0, indistinguishable-from-evidence floors forbidden");
+  const shrinking = r.seams.filter((s) => s.structural !== true);
+  assert.ok(shrinking.length > 0 && shrinking.every((s) => s.confidence > 0), "real shrink → real confidence");
+  assert.ok(r.sub_components.every((c) => c.length <= 2), "budget still met");
 });
 
 test("the result composes with tarjanCondense: applying the seams leaves no over-budget SCC", () => {
@@ -89,6 +103,16 @@ test("fails closed on a bad budget; foreign edges and self-loops are ignored", (
   assert.throws(() => minFeedbackArcSet({ members: [], edges: [] }, 2), /members/i);
   const r = minFeedbackArcSet({ members: ["A", "B"], edges: [["A", "X"], ["A", "A"], ["A", "B"], ["B", "A"]] }, 2);
   assert.deepEqual(r.sub_components, [["A", "B"]], "foreign/self edges do not distort the SCC");
+});
+
+test("no spread-crash above the engine's argument ceiling: a 130000-node SCC seams cleanly", () => {
+  // Rule-11 finding: Math.max(...130k superNodes) RangeError'd — the largest-SCC
+  // computation must be a loop. A ring has exactly ONE back-edge candidate, so this stays fast.
+  const N = 130000;
+  const ids = Array.from({ length: N }, (_, i) => "m" + String(i).padStart(6, "0"));
+  const r = minFeedbackArcSet({ members: ids, edges: ring(ids) }, 65000);
+  assert.equal(r.seams.length, 1);
+  assert.ok(r.sub_components.every((c) => c.length <= 65000));
 });
 
 test("iterative at scale: a 20000-node ring with chords seams without stack overflow", () => {
