@@ -66,6 +66,17 @@ test("the raw golden CPG (no resource metadata) yields empty buckets and groups"
   assert.ok(Object.values(g.keysOf).every((k) => k.length === 0), "all keyless");
 });
 
+test("program_pools[] (plural, super-node-keyed) contributes every pool as a key", () => {
+  // §3.1 Stage 4 wiring contract: a super-node aggregates its members' resources — a
+  // 2-pool SCC must carry BOTH pool keys, or its conflicts are silently lost.
+  const g = buildConflictGraph([
+    { id: "S1", program_pools: ["POOL_A", "POOL_B"] },
+    { id: "X", program_pool: "POOL_B" },
+  ]);
+  assert.deepEqual(g.keysOf.S1, ["pool:POOL_A", "pool:POOL_B"]);
+  assert.deepEqual(g.groups, [["S1", "X"]], "S1 conflicts with X via its second pool");
+});
+
 test("a large co-tenant bucket stays LINEAR — no O(k^2) clique materialisation", () => {
   const n = 2000;
   const nodes = Array.from({ length: n }, (_, i) => ({ id: "F" + String(i).padStart(5, "0"), program_pool: "SAPLBIG" }));

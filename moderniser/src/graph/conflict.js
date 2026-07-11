@@ -28,7 +28,7 @@
  * Near-linear (union-find + star-union per bucket). Deterministic: every returned
  * collection is canonically sorted, so JSON is byte-stable regardless of node input order.
  *
- * @param {Array<{id: string, program_pool?: string, function_group?: string, ddic?: string[], locks?: string[], number_ranges?: string[], transport?: string}>} nodes
+ * @param {Array<{id: string, program_pool?: string, program_pools?: string[], function_group?: string, ddic?: string[], locks?: string[], number_ranges?: string[], transport?: string}>} nodes
  * @returns {{keysOf: Record<string, string[]>, buckets: Record<string, string[]>, groups: string[][]}}
  */
 export function buildConflictGraph(nodes) {
@@ -63,6 +63,7 @@ function resourceKeys(node) {
   const ks = new Set();
   if (node.program_pool) ks.add(`pool:${node.program_pool}`);
   if (node.function_group) ks.add(`pool:${node.function_group}`); // a function group IS a program pool
+  for (const p of node.program_pools || []) ks.add(`pool:${p}`); // super-node-keyed: ALL members' pools (§3.1 Stage 4)
   for (const d of node.ddic || []) ks.add(`ddic:${d}`);
   for (const l of node.locks || []) ks.add(`lock:${l}`);
   for (const r of node.number_ranges || []) ks.add(`nr:${r}`);
