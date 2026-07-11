@@ -158,6 +158,60 @@ test("guards: run-id traversal, non-positive team-size, un-ready dispatch, exist
   }
 });
 
+test("offline draft sweep: sweep-order lists PENDING nodes topologically; sweep-mark ledgers OUTSIDE loop state", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    // gated offline pass: SCR and TOP (depth-0) dispatch and stop at SYNTAX_OK; GL never greens
+    for (let i = 0; i < 2; i += 1) {
+      const r = cli("next", rid);
+      cli("dispatch", rid, r.ready[0].sig);
+      cli("progress", rid, r.ready[0].sig, "GENERATED");
+      cli("progress", rid, r.ready[0].sig, "SYNTAX_OK");
+    }
+    assert.deepEqual(cli("next", rid).ready, [], "the offline gated ceiling");
+
+    const order = cli("sweep-order", rid);
+    assert.equal(order.remaining.length, 1, "only GL was unreachable by the gated pass");
+    assert.equal(order.remaining[0].object, "ZFICO_BTC_CSV_GL");
+    assert.deepEqual(
+      order.remaining[0].dependencies.map((d) => d.status).sort(),
+      ["SYNTAX_OK", "SYNTAX_OK"],
+      "dep statuses tell the generator which drafts to ground against",
+    );
+
+    const glSig = order.remaining[0].sig;
+    cli("sweep-mark", rid, glSig, "--result", "drafted");
+    assert.deepEqual(cli("sweep-order", rid).remaining, [], "a swept node leaves the sweep queue");
+
+    const ledger = JSON.parse(readFileSync(join(dirs.runs, rid, "sweep.json"), "utf8"));
+    assert.equal(ledger.swept[glSig].result, "drafted");
+    // C's core principle: the sweep NEVER touches the loop state
+    const st = cli("status", rid);
+    assert.equal(st.counts.PENDING, 1, "GL is still PENDING in the gated state — the ledger is separate");
+    assert.equal(st.complete, false, "a swept draft is not GREEN");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("sweep-mark fails closed on unknown sigs and bogus results; re-mark is idempotent", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sig = nodes[0].sig;
+    assert.throws(() => cli("sweep-mark", rid, "9".repeat(64), "--result", "drafted"), /unknown|Command failed/i);
+    assert.throws(() => cli("sweep-mark", rid, sig, "--result", "shiny"), /result|Command failed/i);
+    cli("sweep-mark", rid, sig, "--result", "failed");
+    const again = cli("sweep-mark", rid, sig, "--result", "failed"); // idempotent repeat
+    assert.equal(again.result, "failed");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

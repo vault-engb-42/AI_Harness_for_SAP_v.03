@@ -2,9 +2,8 @@
 /**
  * /modernise CLI (MODERNISER_DESIGN §6.5, §3.5 layer 2→3 boundary) — the deterministic
  * imperative shell over the pure reducer. The skill drives it via Bash between agent
- * dispatches; every mutating command persists state DURABLY (write→fsync→rename) and
- * appends a P8-scrubbed observability row (§6.6 — sigs/statuses/reasons only, never ABAP
- * source, never credentials). All output is JSON on stdout; failures exit 1 on stderr.
+ * dispatches. All output is JSON on stdout; failures exit 1 on stderr. IO rules live in
+ * cli-io.js (durable commits, §6.6 log, sweep ledger).
  *
  * GREEN is EARNED: `verdict` (only legal at GATED) records the rendered result into state;
  * `outcome GREEN` is refused without a recorded green verdict — the reducer decides, never
@@ -16,15 +15,16 @@
  *   next <run_id> · dispatch <run_id> <sig...> · progress <run_id> <sig> <STATUS>
  *   outcome <run_id> <sig> <STATUS> [--reason r] [--signed-by name]
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
+ *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   status <run_id> · resume <run_id>
  * Common flags: --state-dir (default .claude/state) --runs-dir (default specs/runs)
  */
-import { readFileSync, mkdirSync, renameSync, openSync, writeSync, fsyncSync, closeSync, appendFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
 import { assemblePlan } from "./sched/assemble.js";
 import { savePlan, loadPlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, renderVerdict, recordVerdict, runComplete } from "./sched/loop.js";
 import { onPass } from "./state/ratchet.js";
+import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readJson, parseArgs } from "./cli-io.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -33,6 +33,8 @@ const COMMANDS = {
   progress: cmdProgress,
   outcome: cmdOutcome,
   verdict: cmdVerdict,
+  "sweep-order": cmdSweepOrder,
+  "sweep-mark": cmdSweepMark,
   status: cmdStatus,
   resume: cmdResume,
 };
@@ -113,6 +115,52 @@ function cmdVerdict(io, pos, flags) {
   return r;
 }
 
+/**
+ * Offline draft sweep (§6.5, ratified 2026-07-11): the nodes the gated pass could not reach
+ * (still PENDING — their closure can never green offline), in plan-topological order
+ * (wave asc — the bottom-up level IS a topological order), with each dependency's current
+ * status so the generator knows which drafts to ground against. READ-ONLY on loop state.
+ */
+function cmdSweepOrder(io, pos) {
+  const [runId] = pos;
+  const { plan, state } = load(io, runId);
+  const ledger = readSweepLedger(io, runId);
+  const bySig = new Map(plan.nodes.map((n) => [n.id, n]));
+  const remaining = plan.nodes
+    .filter((n) => state.status[n.id] === "PENDING" && ledger.swept[n.id] === undefined)
+    .sort((a, b) => a.wave - b.wave || (a.id < b.id ? -1 : 1))
+    .map((n) => ({
+      sig: n.id,
+      object: n.object,
+      wave: n.wave,
+      dependencies: (n.dependencies ?? []).map((d) => ({
+        sig: d,
+        object: bySig.get(d).object,
+        status: state.status[d],
+        swept: ledger.swept[d] !== undefined,
+      })),
+    }));
+  return { remaining };
+}
+
+/** Record a sweep result in the LEDGER (never loop state — the reducer's semantics stay single-meaning). */
+function cmdSweepMark(io, pos, flags) {
+  const [runId, sig] = pos;
+  const { plan } = load(io, runId);
+  if (!plan.nodes.some((n) => n.id === sig)) throw new Error(`sweep-mark: unknown node ${sig}`);
+  const result = flags.result;
+  if (result !== "drafted" && result !== "failed") {
+    throw new Error(`sweep-mark: --result must be 'drafted' or 'failed' (got '${result}')`);
+  }
+  const ledger = readSweepLedger(io, runId);
+  if (ledger.swept[sig]?.result !== result) {
+    ledger.swept[sig] = { result, ts: new Date().toISOString() };
+    saveSweepLedger(io, runId, ledger);
+    log(io, runId, "sweep-mark", { sig, result });
+  }
+  return { sig, result };
+}
+
 function cmdStatus(io, pos) {
   const { plan, state } = load(io, pos[0]);
   return statusOf(plan, state);
@@ -143,12 +191,13 @@ function parseTeamSize(raw) {
   return n;
 }
 
-// ---------- shared plumbing ----------
+// ---------- shared ----------
 
 function load(io, runId) {
   if (!runId) throw new Error("a <run_id> is required");
   const plan = loadPlan(validRunId(runId), io.stateDir); // re-hashes, rejects tamper/unknown major
-  const state = JSON.parse(readFileSync(statePath(io, runId), "utf8"));
+  const state = readJson(statePath(io, runId), null);
+  if (state === null) throw new Error(`no state for run '${runId}'`);
   if (state.plan_hash !== plan.plan_hash) {
     throw new Error(`resume: state plan_hash ${state.plan_hash} does not match plan ${plan.plan_hash} — REPLAN required`);
   }
@@ -172,86 +221,6 @@ const describe = (plan, sigs) =>
     const n = plan.nodes.find((x) => x.id === sig);
     return { sig, object: n.object, wave: n.wave };
   });
-
-const statePath = (io, runId) => join(io.stateDir, "runs", `${runId}.state.json`);
-
-const saveState = (io, runId, state) => writeDurable(statePath(io, runId), JSON.stringify(state, null, 2));
-
-/** durable commit: write temp → fsync → atomic rename (§3.3; git-add is the caller's step). */
-function writeDurable(path, text) {
-  mkdirSync(dirname(path), { recursive: true });
-  const tmp = `${path}.tmp`;
-  const fd = openSync(tmp, "w");
-  try {
-    writeSync(fd, text);
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(tmp, path);
-}
-
-/**
- * Two-phase baseline pair commit: BOTH files are fully written+fsynced before either rename,
- * shrinking the tear window to the instant between renames. A tear there is FAIL-SAFE by
- * monotonicity — baselines only tighten, so a half-advanced pair can only over-block.
- */
-function writeBaselinePair(stateDir, { atcBaseline, covBaseline }) {
-  const targets = [
-    [join(stateDir, "atc-baseline.json"), JSON.stringify(atcBaseline, null, 2)],
-    [join(stateDir, "abapunit-baseline.json"), JSON.stringify(covBaseline, null, 2)],
-  ];
-  const prepared = targets.map(([path, text]) => {
-    mkdirSync(dirname(path), { recursive: true });
-    const tmp = `${path}.tmp`;
-    const fd = openSync(tmp, "w");
-    try {
-      writeSync(fd, text);
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
-    }
-    return [tmp, path];
-  });
-  for (const [tmp, path] of prepared) renameSync(tmp, path);
-}
-
-/** §6.6 observability row — P8-scrubbed: identifiers and statuses only. */
-function log(io, runId, event, fields) {
-  const dir = join(io.runsDir, runId);
-  mkdirSync(dir, { recursive: true });
-  appendFileSync(join(dir, "log.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), run_id: runId, event, ...fields })}\n`, "utf8");
-}
-
-function readBaselines(stateDir) {
-  return {
-    atcBaseline: readJson(join(stateDir, "atc-baseline.json"), { per_object: {} }),
-    covBaseline: readJson(join(stateDir, "abapunit-baseline.json"), { per_object: {} }),
-  };
-}
-
-const readJson = (path, fallback) => (existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : fallback);
-
-function parseArgs(argv) {
-  const [cmd, ...rest] = argv;
-  const pos = [];
-  const flags = {};
-  for (let i = 0; i < rest.length; i += 1) {
-    if (rest[i].startsWith("--")) {
-      const name = rest[i].slice(2);
-      const next = rest[i + 1];
-      if (next !== undefined && !next.startsWith("--")) {
-        flags[name] = next;
-        i += 1;
-      } else {
-        flags[name] = ""; // bare flag (e.g. --record, --force)
-      }
-    } else {
-      pos.push(rest[i]);
-    }
-  }
-  return { cmd, pos, flags };
-}
 
 function main(argv) {
   const { cmd, pos, flags } = parseArgs(argv);
