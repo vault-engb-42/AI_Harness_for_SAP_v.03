@@ -141,11 +141,18 @@ export function applyOutcome(plan, state, sig, outcome) {
   } else if (outcome.status === "BLOCK") {
     next = { ...next, deferral_track: [...next.deferral_track, { sig, reason: outcome.reason ?? "unspecified" }] };
   } else if (outcome.status === "PARK") {
+    // L7: the EXECUTABLE park path enforces the audited sign-off — never optional
+    if (typeof outcome.signed_by !== "string" || outcome.signed_by.length === 0) {
+      throw new Error(`loop: PARK for ${sig} refused — a NAMED human sign-off is required (L7)`);
+    }
+    if (typeof outcome.justification !== "string" || outcome.justification.length === 0) {
+      throw new Error(`loop: PARK for ${sig} refused — a justification is required (L7)`);
+    }
     next = {
       ...next,
       park_register: [
         ...next.park_register,
-        { sig, reason: outcome.reason, ...(outcome.signed_by ? { signed_by: outcome.signed_by } : {}) }, // L7: named human sign-off
+        { sig, reason: outcome.reason, signed_by: outcome.signed_by, justification: outcome.justification },
       ],
     };
   }

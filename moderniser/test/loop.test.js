@@ -84,8 +84,8 @@ test("PARK is FSM-gated: only a NO_RELEASED_SUCCESSOR block can park; re-entry �
   let st = initRun(plan);
   st = dispatch(plan, st, [A]);
   st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
-  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR });
-  assert.deepEqual(st.park_register, [{ sig: A, reason: NO_RELEASED_SUCCESSOR }]);
+  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no successor" });
+  assert.deepEqual(st.park_register, [{ sig: A, reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no successor" }]);
   assert.deepEqual(nextDispatch(plan, st), [], "parked node is not ready");
   st = applyProgress(plan, st, A, "PENDING"); // successor ships → re-entry
   assert.deepEqual(nextDispatch(plan, st), [A], "re-enters scheduling");
@@ -167,7 +167,7 @@ test("PARK re-entry also clears the node's deferral_track quarantine (no stale l
   const plan = mkPlan([{ id: A }]);
   let st = dispatch(plan, initRun(plan), [A]);
   st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
-  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR });
+  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no successor" });
   st = applyProgress(plan, st, A, "PENDING"); // successor ships
   assert.deepEqual(st.deferral_track, [], "quarantine record left with the park record");
   st = dispatch(plan, st, [A]);
@@ -231,13 +231,27 @@ test("a re-generated node's stale verdict is cleared on the retry edge (no verdi
   assert.equal(st.verdict_green[A], undefined, "the old verdict cannot bless the NEW artifact");
 });
 
-test("PARK records the named human signer (L7 audited register)", () => {
+test("PARK records the named human signer + justification (L7 audited register)", () => {
   const A = "a".repeat(64);
   const plan = mkPlan([{ id: A }]);
   let st = dispatch(plan, initRun(plan), [A]);
   st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
-  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe" });
-  assert.deepEqual(st.park_register, [{ sig: A, reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe" }]);
+  st = applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no released successor for BKPF write" });
+  assert.deepEqual(st.park_register, [
+    { sig: A, reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no released successor for BKPF write" },
+  ]);
+});
+
+test("PARK is REFUSED without a named signer or justification — the EXECUTABLE path enforces L7", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  st = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
+  assert.throws(() => applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR }), /sign/i);
+  assert.throws(
+    () => applyOutcome(plan, st, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe" }),
+    /justif/i,
+  );
 });
 
 test("state is JSON-durable: a serialize/revive round-trip resumes identically", () => {

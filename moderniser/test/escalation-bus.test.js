@@ -67,6 +67,15 @@ test("surfaceable rate-limits: critical-path first, the rest queued — never dr
   assert.equal(surfaceable(r2, { max: 10 }).surfaced.length, 3);
 });
 
+test("surfaceable fails CLOSED on a missing/negative/non-integer max — never an inverted rate limit", () => {
+  const r = raiseEscalation(empty(), { kind: "OSCILLATION", node_ids: [A] }, { ts: "T" });
+  for (const bad of [undefined, -1, 1.5, NaN]) {
+    assert.throws(() => surfaceable(r, { max: bad }), /max/i, String(bad));
+  }
+  assert.deepEqual(surfaceable(r, { max: 0 }).surfaced, [], "0 surfaces nothing — everything queued");
+  assert.equal(surfaceable(r, { max: 0 }).queued.length, 1);
+});
+
 test("the register is never mutated (copy-on-write)", () => {
   const r0 = empty();
   raiseEscalation(r0, { kind: "BREAK_CYCLE", node_ids: [A] }, { ts: "T" });

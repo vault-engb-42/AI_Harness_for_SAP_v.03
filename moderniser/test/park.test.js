@@ -46,6 +46,13 @@ test("reEnter releases exactly the nodes whose successor now ships, keeping the 
   assert.deepEqual(r.parked.length, 2, "input register untouched (copy-on-write)");
 });
 
+test("successor_probe is canonicalised to registry case — a lowercase probe still re-enters", () => {
+  const r = tryPark(empty(), A, { reason: "NO_RELEASED_SUCCESSOR", ...signoff, successor_probe: "  i_journalentrytp " });
+  assert.equal(r.parked[0].successor_probe, "I_JOURNALENTRYTP", "trimmed + uppercased at the boundary");
+  const { reentered } = reEnter(r, { available: new Set(["I_JOURNALENTRYTP"]) });
+  assert.deepEqual(reentered, [A], "never parked forever on a case mismatch");
+});
+
 test("reEnter with nothing available is a no-op; the register is never mutated", () => {
   const r = tryPark(empty(), A, { reason: "NO_RELEASED_SUCCESSOR", ...signoff });
   const { register, reentered } = reEnter(r, { available: new Set() });

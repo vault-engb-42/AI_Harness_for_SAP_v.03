@@ -61,7 +61,8 @@ export function recordDecision(register, id, decision, { decided_by, ts }) {
   if (typeof decided_by !== "string" || decided_by.length === 0) throw new Error("gate-ui: decided_by (a named human) is required");
   const e = register.escalations.find((x) => x.id === id);
   if (!e) throw new Error(`gate-ui: unknown escalation '${id}'`);
-  if (!DECISIONS[e.kind]?.includes(decision)) {
+  if (!DECISIONS[e.kind]) throw new Error(`gate-ui: unknown escalation kind '${e.kind}' — hand-loaded row? the §3.4 taxonomy is closed`);
+  if (!DECISIONS[e.kind].includes(decision)) {
     throw new Error(`gate-ui: decision '${decision}' is not in ${e.kind}'s typed set [${DECISIONS[e.kind]}] — free-form decisions are refused`);
   }
   return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision });

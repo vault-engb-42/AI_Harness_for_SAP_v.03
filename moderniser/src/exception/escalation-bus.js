@@ -8,7 +8,10 @@
  * NB the §3.4 #7 sketch's `scheduler.ts` (eligibleNodes/quarantine) maps to the BUILT
  * scheduler: `sched/loop.nextDispatch` is eligibility, `applyOutcome(BLOCK)` +
  * `deferral_track` is quarantine — deliberately not re-implemented here (no divergent
- * duplication).
+ * duplication). Of the §3.4 #6 quarantine.json fields, `refinement_cycles` lives in the
+ * loop's `state.cycle`; `re_eligible_when` is DELIBERATELY absent — a quarantined node
+ * has no auto-re-eligibility clock, it re-enters only through a human decision
+ * (RESEED_GENERATOR / MANUAL_SEAM / re-entry), the stricter reading of L7.
  *
  * Pure copy-on-write over the escalations register (§3.4 #6 `escalations.json` shape);
  * timestamps are injected by the shell.
@@ -71,6 +74,9 @@ export function resolveEscalation(register, id, { resolved_by, ts, decision }) {
  * @returns {{surfaced: object[], queued: object[]}}
  */
 export function surfaceable(register, { max, criticalSigs = new Set() }) {
+  if (!Number.isInteger(max) || max < 0) {
+    throw new Error(`escalation: max must be a non-negative integer (got ${max}) — an unguarded slice would invert the rate limit`);
+  }
   const open = register.escalations
     .filter((x) => x.status === "OPEN")
     .map((x) => ({ e: x, critical: x.node_ids.some((n) => criticalSigs.has(n)) }))

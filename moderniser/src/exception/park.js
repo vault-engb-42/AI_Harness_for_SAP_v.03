@@ -26,7 +26,16 @@ export function tryPark(register, nodeId, { reason, signed_by, justification, su
     ...register,
     parked: [
       ...register.parked,
-      { node_id: nodeId, reason, signed_by, justification, successor_probe: successor_probe ?? null, parked_at: ts },
+      {
+        node_id: nodeId,
+        reason,
+        signed_by,
+        justification,
+        // canonicalised to the cloudification registry's case at the boundary — a verbatim
+        // lowercase probe would silently park the node forever (reEnter matches exactly)
+        successor_probe: typeof successor_probe === "string" ? successor_probe.trim().toUpperCase() : null,
+        parked_at: ts,
+      },
     ],
   };
 }

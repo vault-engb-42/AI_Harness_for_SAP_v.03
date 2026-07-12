@@ -212,6 +212,61 @@ test("sweep-mark fails closed on unknown sigs and bogus results; re-mark is idem
   }
 });
 
+test("escalation wiring: escalate → escalations (rate-limited) → decide writes the audited register", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sig = nodes[0].sig;
+    const raised = cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig, "--root-signature", "talos-select-in-loop|SKB1");
+    assert.match(raised.id, /^esc-[0-9a-f]{12}$/);
+    const again = cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig); // same (kind, nodes) → idempotent, anti-storm
+    assert.equal(again.id, raised.id, "no duplicate escalation for one root cause");
+    cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig); // different kind → a second escalation
+
+    const list = cli("escalations", rid, "--max", "1");
+    assert.equal(list.surfaced.length, 1, "rate-limited");
+    assert.equal(list.queued.length, 1, "queued, not dropped");
+
+    const decided = cli("decide", rid, raised.id, "RESEED_GENERATOR", "--by", "j.doe");
+    assert.equal(decided.status, "RESOLVED");
+    const reg = JSON.parse(readFileSync(join(dirs.state, "escalations.json"), "utf8"));
+    const row = reg.escalations.find((e) => e.id === raised.id);
+    assert.equal(row.decision, "RESEED_GENERATOR");
+    assert.equal(row.resolved_by, "j.doe", "audited row persisted");
+
+    assert.throws(() => cli("decide", rid, raised.id, "JUST_PASS_IT", "--by", "j.doe"), /decision|Command failed/i);
+    assert.throws(() => cli("escalate", rid, "--kind", "RETRY_CEILING", "--nodes", sig), /kind|Command failed/i);
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("PARK through the CLI enforces sign-off + justification and writes the audit register", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const r1 = cli("next", rid);
+    const sig = r1.ready[0].sig;
+    cli("dispatch", rid, sig);
+    cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
+    assert.throws(
+      () => cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR", "--signed-by", "j.doe"),
+      /justif|Command failed/i,
+      "no justification → refused at the executable path",
+    );
+    cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR", "--signed-by", "j.doe",
+      "--justification", "no released successor", "--successor-probe", "i_journalentrytp");
+    const park = JSON.parse(readFileSync(join(dirs.state, "park-register.json"), "utf8"));
+    assert.equal(park.parked[0].node_id, sig);
+    assert.equal(park.parked[0].signed_by, "j.doe");
+    assert.equal(park.parked[0].successor_probe, "I_JOURNALENTRYTP", "probe canonicalised to registry case");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

@@ -12,8 +12,36 @@
  */
 import { readFileSync, mkdirSync, renameSync, openSync, writeSync, fsyncSync, closeSync, appendFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { loadPlan } from "./sched/plan.js";
 
 export const statePath = (io, runId) => join(io.stateDir, "runs", `${runId}.state.json`);
+
+/** run ids reach path joins — reject separators and dot-segments (path traversal, P8). */
+export function validRunId(runId) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runId) || runId.includes("..")) {
+    throw new Error(`invalid run id '${runId}' — [A-Za-z0-9._-] only, no separators or '..'`);
+  }
+  return runId;
+}
+
+/** Load the verified plan + its bound state (fail-closed on either hash). */
+export function loadRun(io, runId) {
+  if (!runId) throw new Error("a <run_id> is required");
+  const plan = loadPlan(validRunId(runId), io.stateDir); // re-hashes, rejects tamper/unknown major
+  const state = readJson(statePath(io, runId), null);
+  if (state === null) throw new Error(`no state for run '${runId}'`);
+  if (state.plan_hash !== plan.plan_hash) {
+    throw new Error(`resume: state plan_hash ${state.plan_hash} does not match plan ${plan.plan_hash} — REPLAN required`);
+  }
+  return { plan, state };
+}
+
+// ---- exception-family registers (§3.4 #6 shapes, durably committed) ----
+
+export const readEscalations = (io) => readJson(join(io.stateDir, "escalations.json"), { escalations: [] });
+export const saveEscalations = (io, reg) => writeDurable(join(io.stateDir, "escalations.json"), JSON.stringify(reg, null, 2));
+export const readParkRegister = (io) => readJson(join(io.stateDir, "park-register.json"), { parked: [] });
+export const saveParkRegister = (io, reg) => writeDurable(join(io.stateDir, "park-register.json"), JSON.stringify(reg, null, 2));
 
 export const saveState = (io, runId, state) => writeDurable(statePath(io, runId), JSON.stringify(state, null, 2));
 

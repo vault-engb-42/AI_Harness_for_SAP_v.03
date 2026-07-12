@@ -66,7 +66,7 @@ Every deterministic step is a CLI call (JSON on stdout; non-zero exit = fail-clo
 |---|---|---|
 | `BREAK_CYCLE` | `break_gate` super-node (SCC) | present CUT options — seam / co-generate as one RAP BO / sprout-and-defer (`seam-finder` ranks candidates); the human approves a CUT, not an ordering |
 | `AUTH_EQUIVALENCE` | non-empty auth delta (AUTHORITY-CHECK→DCL coverage move) | `abap-security-reviewer` prepares the evidence; a named human signs the attestation before PASS |
-| `NO_RELEASED_SUCCESSOR` | fail-close, not a defect | PARK needs a **named** sign-off: `... outcome <sig> PARK --reason NO_RELEASED_SUCCESSOR --signed-by <name>`; re-enters when the registry ships the successor |
+| `NO_RELEASED_SUCCESSOR` | fail-close, not a defect | PARK needs a **named** sign-off + justification: `... outcome <sig> PARK --reason NO_RELEASED_SUCCESSOR --signed-by <name> --justification "..." [--successor-probe I_X]` (writes the audited `park-register.json` row; the probe re-checks each run) |
 | `OSCILLATION` | generator thrash cluster (root-signature grouped) | present the cluster once, not per retry |
 | `REPLAN_WAVE_MOVE` | a re-parse moved an already-gated node's wave (or dropped it) | human sign-off before any re-freeze |
 | `RISK_LEVEL_REVIEW` | batched approval of a level containing a flagged node | present the level's wave table + flags in one gate |
@@ -74,6 +74,8 @@ Every deterministic step is a CLI call (JSON on stdout; non-zero exit = fail-clo
 | seam confirm (§3.1 Stage 1) | `NEEDS_MANUAL_SEAM` — dynamic caller set unresolved | present the seam evidence; on confirmation `... progress <sig> PENDING` re-enters |
 
 Everything else — ATC-P1>0, unit red, P4 diff, parity BLOCK (<0.30 or a veto), the 3-cycle retry ceiling — is a **machine BLOCK** that quarantines the node (`deferral_track`), never a human escalation. A quarantined node blocks only its own dependents; independent nodes keep flowing.
+
+**Raising and deciding (the CLI owns the registers):** raise with `... escalate <run_id> --kind <KIND> --nodes <sig[,sig]> [--root-signature r]` (idempotent per kind+node-set — one root cause never storms); list the rate-limited surfaceable set with `... escalations <run_id> [--max N] [--critical sig,sig]` (the rest stay queued, never dropped); record the human's TYPED decision with `... decide <run_id> <esc_id> <DECISION> --by <name>` (free-form decisions are refused; every decision writes the audited `escalations.json` row). Present each surfaced escalation as its GatePacket (kind, one-line cause, deterministic evidence, plan fields, typed decisions) — never invent decision options.
 
 ## Outputs
 

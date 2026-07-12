@@ -55,6 +55,11 @@ test("recordDecision writes the audited resolution row and fails closed off the 
   assert.throws(() => recordDecision(reg, id, "RESEED_GENERATOR", { ts: "T2" }), /decided_by/i, "audited row needs the named human");
 });
 
+test("a hand-loaded row with an unknown kind gets an ACTIONABLE refusal, not a misleading set", () => {
+  const reg = { escalations: [{ id: "esc-deadbeef0000", kind: "RETRY_CEILING", node_ids: [A], status: "OPEN" }] };
+  assert.throws(() => recordDecision(reg, "esc-deadbeef0000", "ANY", { decided_by: "j", ts: "T" }), /unknown.*kind|kind.*unknown/i);
+});
+
 test("registers are copy-on-write end to end", () => {
   const reg = raise("PARITY_REVIEW");
   const snapshot = JSON.stringify(reg);

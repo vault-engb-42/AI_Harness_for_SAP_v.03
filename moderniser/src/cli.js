@@ -21,10 +21,12 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { assemblePlan } from "./sched/assemble.js";
-import { savePlan, loadPlan } from "./sched/plan.js";
+import { savePlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, renderVerdict, recordVerdict, runComplete } from "./sched/loop.js";
 import { onPass } from "./state/ratchet.js";
-import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readJson, parseArgs } from "./cli-io.js";
+import { tryPark } from "./exception/park.js";
+import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
+import { cmdEscalate, cmdEscalations, cmdDecide } from "./cli-escalations.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -35,6 +37,9 @@ const COMMANDS = {
   verdict: cmdVerdict,
   "sweep-order": cmdSweepOrder,
   "sweep-mark": cmdSweepMark,
+  escalate: cmdEscalate,
+  escalations: cmdEscalations,
+  decide: cmdDecide,
   status: cmdStatus,
   resume: cmdResume,
 };
@@ -89,10 +94,32 @@ function cmdOutcome(io, pos, flags) {
   const [runId, sig, status] = pos;
   const { plan, state } = load(io, runId);
   if (state.status[sig] === status) return { sig, status, complete: runComplete(plan, state) }; // idempotent repeat
-  const next = applyOutcome(plan, state, sig, { status, reason: flags.reason, signed_by: flags["signed-by"] });
+  const next = applyOutcome(plan, state, sig, {
+    status,
+    reason: flags.reason,
+    signed_by: flags["signed-by"],
+    justification: flags.justification,
+  });
+  if (status === "PARK") parkAudit(io, sig, flags); // audit register FIRST — a retry is idempotent on both
   saveState(io, runId, next);
   log(io, runId, "outcome", { sig, status, reason: flags.reason, signed_by: flags["signed-by"] });
   return { sig, status, complete: runComplete(plan, next) };
+}
+
+/** The §3.4 #5/#6 audited park row (idempotent — a crash-retry must not double-park). */
+function parkAudit(io, sig, flags) {
+  const reg = readParkRegister(io);
+  if (reg.parked.some((p) => p.node_id === sig)) return;
+  saveParkRegister(
+    io,
+    tryPark(reg, sig, {
+      reason: flags.reason,
+      signed_by: flags["signed-by"],
+      justification: flags.justification,
+      successor_probe: flags["successor-probe"],
+      ts: new Date().toISOString(),
+    }),
+  );
 }
 
 function cmdVerdict(io, pos, flags) {
@@ -175,14 +202,6 @@ function cmdResume(io, pos) {
 
 // ---------- guards ----------
 
-/** run ids reach path joins — reject separators and dot-segments (path traversal, P8). */
-function validRunId(runId) {
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runId) || runId.includes("..")) {
-    throw new Error(`plan: invalid --run-id '${runId}' — [A-Za-z0-9._-] only, no separators or '..'`);
-  }
-  return runId;
-}
-
 /** team-size 0/negative/NaN would silently stall the frontier forever — fail loud instead. */
 function parseTeamSize(raw) {
   if (raw === undefined) return null;
@@ -193,16 +212,7 @@ function parseTeamSize(raw) {
 
 // ---------- shared ----------
 
-function load(io, runId) {
-  if (!runId) throw new Error("a <run_id> is required");
-  const plan = loadPlan(validRunId(runId), io.stateDir); // re-hashes, rejects tamper/unknown major
-  const state = readJson(statePath(io, runId), null);
-  if (state === null) throw new Error(`no state for run '${runId}'`);
-  if (state.plan_hash !== plan.plan_hash) {
-    throw new Error(`resume: state plan_hash ${state.plan_hash} does not match plan ${plan.plan_hash} — REPLAN required`);
-  }
-  return { plan, state };
-}
+const load = loadRun; // plan/state read + traversal guard + hash binding live in cli-io
 
 function statusOf(plan, state) {
   const counts = {};

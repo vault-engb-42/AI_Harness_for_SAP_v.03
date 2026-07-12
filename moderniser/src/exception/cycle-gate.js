@@ -9,6 +9,9 @@
 import { createHash } from "node:crypto";
 import { minFeedbackArcSet } from "../graph/feedback.js";
 
+// Provisional pins until the §3.5 manifest exists (thresholds are manifest territory);
+// the STALENESS/expiry half of design open-Q #5 is deliberately deferred with them —
+// `resolved_at` is stored so an expiry policy can be applied without a schema change.
 const FIRST_CONFIDENCE = 0.6; //  a once-confirmed seam is a strong prior, not a certainty
 const CONFIDENCE_STEP = 0.15; //  each re-confirmation raises it…
 const CONFIDENCE_CAP = 0.95; //   …but it never reaches 1 (the human always decides)
