@@ -53,14 +53,22 @@ const SEAL_PATTERNS = [
 
 // Enhancement markers are load-bearing COMMENTS in abapGit-serialized source
 // (`*ENHANCEMENT-POINT …`, `"{ Begin ENHO … }`), so they MUST be scanned on the RAW
-// (pre-strip) line — otherwise comment-stripping erases them and the seal silently no-ops.
-const RAW_SEAL_PATTERNS = [/\bENHANCEMENT\b|\bENHO\b|\bENHSPOT\b/i];
+// (pre-strip) line. MARKER SHAPES only (L6 review): the bare word "enhancement" is common
+// English in SAP prose comments — sealing on it parks large corpus fractions behind
+// spurious seam confirmations. Matched: ENHANCEMENT-POINT/-SECTION <id>, the numbered
+// implementation statement `ENHANCEMENT n …`, END-ENHANCEMENT, abapGit `"{ Begin ENHO`,
+// and ENHSPOT.
+const RAW_SEAL_PATTERNS = [
+  /^\s*\*?\s*ENHANCEMENT(?:-POINT|-SECTION)\s+\S|^\s*ENHANCEMENT\s+\d|^\s*END-ENHANCEMENT\b|"\{\s*Begin\s+ENHO\b|\bENHSPOT\b/i,
+];
 
 // Resolvable indirection with a literal target → a synthetic edge. `multi` splits the
 // captured token run into one edge per target; a target containing `(` is dynamic → seal.
+// The regexes carry /g and are consumed via matchAll: ABAP chains statements on one
+// physical line, and a once-per-line exec silently lost the second edge (L5 review).
 const RESOLVABLE = [
-  { re: /\bPERFORM\s+([\w~/]+)\s+ON\s+COMMIT/i, kind: "perform-on-commit" },
-  { re: /\bSET\s+HANDLER\s+(.+?)\s+FOR\b/i, kind: "set-handler", multi: true },
+  { re: /\bPERFORM\s+([\w~/]+)\s+ON\s+COMMIT/gi, kind: "perform-on-commit" },
+  { re: /\bSET\s+HANDLER\s+(.+?)\s+FOR\b/gi, kind: "set-handler", multi: true },
 ];
 
 export function overApproximateEdges(cpg) {
@@ -90,11 +98,11 @@ function scanNode(node) {
     const line = stripComment(raw);
     if (!line.trim()) continue;
     for (const { re, kind, multi } of RESOLVABLE) {
-      const m = re.exec(line);
-      if (!m) continue;
-      for (const t of multi ? m[1].trim().split(/\s+/) : [m[1]]) {
-        if (t.includes("(")) out.sealed = true; // dynamic target -> seal, not a malformed edge
-        else out.synthetic.push({ target: t.toUpperCase(), kind });
+      for (const m of line.matchAll(re)) {
+        for (const t of multi ? m[1].trim().split(/\s+/) : [m[1]]) {
+          if (t.includes("(")) out.sealed = true; // dynamic target -> seal, not a malformed edge
+          else out.synthetic.push({ target: t.toUpperCase(), kind });
+        }
       }
     }
     if (SEAL_PATTERNS.some((p) => p.test(line))) out.sealed = true;
@@ -109,7 +117,9 @@ function scanNode(node) {
  * not a comment. Stripping such a `"` would drop trailing real code (under-approximation).
  */
 function stripComment(line) {
-  if (/^\s*\*/.test(line)) return ""; // no valid statement begins with '*'
+  if (/^\*/.test(line)) return ""; // ABAP full-line comments require '*' in COLUMN 1 — an
+  // indented '*' is code (e.g. a SELECT field list on a continuation line); erasing it
+  // would hide dynamic constructs from the seal scan (under-approximation, L4 review)
   let delim = null; // "'", "`", or "|" when inside a literal
   for (let i = 0; i < line.length; i += 1) {
     const c = line[i];

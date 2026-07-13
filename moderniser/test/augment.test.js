@@ -286,6 +286,48 @@ test("round-2 taxonomy (F8): static forms of the same statements stay UNSEALED �
   }
 });
 
+// --- Phase E verified LOWs (branch-review 2026-07-13, adversarially re-verified) ---
+
+test("L4: an INDENTED '*' line is CODE, not a comment — ABAP comments require column 1", () => {
+  // legal vector per the verifier: a chained SELECT whose '*' field list lands on an
+  // indented continuation line carrying the dynamic FROM — erasing it under-seals
+  const src = "SELECT SINGLE\n  * FROM (lv_tab) INTO @lv_data.";
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+  assert.equal(seal(r, "A"), SEAL, "the continuation line must reach the seal scan");
+  // a genuine column-1 comment is still stripped
+  const c = overApproximateEdges({ nodes: [{ id: "A", source: "* CALL TRANSACTION lv_tcode." }], edges: [] });
+  assert.equal(seal(c, "A"), undefined, "column-1 comments never seal");
+});
+
+test("L5: chained resolvable statements on ONE line each emit their edge", () => {
+  const src = "PERFORM f1 ON COMMIT. PERFORM f2 ON COMMIT.";
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+  assert.deepEqual(syn(r).map((e) => e.target).sort(), ["F1", "F2"], "the second statement's edge must not be lost");
+});
+
+test("L6: ENHANCEMENT raw-seal fires on real markers, not on prose comments", () => {
+  const prose = [
+    "* enhancement request 4711: rebate logic",
+    '" small enhancement for the rebate case',
+  ];
+  for (const src of prose) {
+    const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+    assert.equal(seal(r, "A"), undefined, src);
+  }
+  const markers = [
+    "*ENHANCEMENT-POINT zep_1 SPOTS zes_1.", //  abapGit comment-serialized marker
+    "ENHANCEMENT-SECTION zes_2 SPOTS zsp.", //   statement form
+    "ENHANCEMENT 1 zx_impl.", //                 numbered implementation marker
+    "END-ENHANCEMENT.",
+    '"{ Begin ENHO zenho_impl }',
+    "ENHANCEMENT-POINT zep_9.",
+  ];
+  for (const src of markers) {
+    const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+    assert.equal(seal(r, "A"), SEAL, src);
+  }
+});
+
 function hasNoCycle(nodes, edges) {
   const indeg = new Map(nodes.map((n) => [n, 0]));
   const adj = new Map(nodes.map((n) => [n, []]));
