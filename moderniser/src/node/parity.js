@@ -36,6 +36,16 @@ const MONEY_TYPES = new Set(["CURR", "QUAN", "DEC"]);
 const DATA_SOURCE_EDGES = new Set(["uses-table", "consumes-cds", "call-function"]);
 const READ_IDIOMS = [["SELECT", "EML"], ["CALL-FUNCTION", "CALL-METHOD"]];
 
+// The successor_kind seam is PINNED here (L10 review): accepted tokens are the internal
+// 'table'/'cds' pair AND the analyser's TADIR-style vocabulary (blast_radius.successor_kind
+// = TADIR type, e.g. CDS_STOB/DDLS/STOB/TABL). NB the §6.2 plan-transformation contract
+// carries released_successor as a NAME with no kind token — deriving the kind for that
+// shape is the diff extractor's owed step (recorded debt), not this classifier's.
+const DATA_SOURCE_KINDS = new Map([
+  ["table", "table"], ["tabl", "table"],
+  ["cds", "cds"], ["cds_stob", "cds"], ["ddls", "cds"], ["stob", "cds"],
+]);
+
 /**
  * @param {{changed_edges?: Array<{kind: string, target_before: string, target_after: string}>, transformations?: Array<{kind: string, successor_kind?: string}>, money_operands?: Array<{field: string, type: string}>, client_specified_delta?: boolean, statement_kind_changes?: Array<{from: string, to: string}>}} diff
  * @returns {string[]} sorted mandatory-parity classes
@@ -47,7 +57,7 @@ export function classifyParity(diff = {}) {
     if (DATA_SOURCE_EDGES.has(e.kind) && e.target_before !== e.target_after) classes.add("data-source");
   }
   for (const t of diff.transformations || []) {
-    if (t.kind === "released-api" && ["table", "cds"].includes(t.successor_kind)) classes.add("data-source");
+    if (t.kind === "released-api" && DATA_SOURCE_KINDS.has(String(t.successor_kind).toLowerCase())) classes.add("data-source");
   }
   for (const m of diff.money_operands || []) {
     if (MONEY_TYPES.has(String(m.type).toUpperCase())) classes.add("money");

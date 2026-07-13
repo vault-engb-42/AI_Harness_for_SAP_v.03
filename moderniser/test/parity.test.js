@@ -21,6 +21,11 @@ test("data-source: an unchanged edge target does NOT trigger", () => {
 
 test("data-source: a released-api transformation whose successor is a table/CDS", () => {
   assert.deepEqual(classifyParity(diff({ transformations: [{ kind: "released-api", successor_kind: "cds" }] })), ["data-source"]);
+  // L10: the analyser's TADIR-style vocabulary normalises into the same trigger
+  assert.deepEqual(classifyParity(diff({ transformations: [{ kind: "released-api", successor_kind: "CDS_STOB" }] })), ["data-source"]);
+  assert.deepEqual(classifyParity(diff({ transformations: [{ kind: "released-api", successor_kind: "TABL" }] })), ["data-source"]);
+  assert.deepEqual(classifyParity(diff({ transformations: [{ kind: "released-api", successor_kind: "DDLS" }] })), ["data-source"]);
+  assert.deepEqual(classifyParity(diff({ transformations: [{ kind: "released-api", successor_kind: "CLAS" }] })), [], "a class successor is not a data-source trigger");
 });
 
 test("money: a changed CURR/QUAN/DEC operand", () => {

@@ -50,14 +50,17 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   // PARK is the deterministic no-released-successor class ONLY. It NEVER applies to a
   // P4-invariant OR a defective-output BLOCK (§3.2, L7): PARK is for a node that could not
   // even be attempted (no released successor), so its checkpoint conjuncts are ABSENT, not
-  // failing. Any PRESENT failing conjunct is a defect that forces BLOCK.
+  // failing. "Absent" means the KEY is absent (L9 review): present-but-malformed evidence
+  // (string atc_p1, loose-typed booleans, null objects) is a defect, never an absence —
+  // otherwise a corrupt checkpoint file slips the guard the strict GREEN checks would block.
+  const present = (x) => x !== undefined;
   const hasDefect =
-    cp.invariants?.intact === false ||
-    cp.auth_coverage?.lost === true ||
-    (typeof cp.atc_p1 === "number" && cp.atc_p1 > 0) ||
-    cp.unit?.green === false ||
-    (cp.parity !== undefined && !passesParity(cp)) ||
-    (typeof warn === "number" && warn > 0);
+    (present(cp.invariants) && cp.invariants?.intact !== true) ||
+    (present(cp.auth_coverage) && cp.auth_coverage?.lost !== false) ||
+    (present(cp.atc_p1) && cp.atc_p1 !== 0) ||
+    (present(cp.unit) && cp.unit?.green !== true) ||
+    (present(cp.parity) && !passesParity(cp)) ||
+    (present(warn) && !(Number.isFinite(warn) && warn <= 0));
   if (cp.block_reason === NO_RELEASED_SUCCESSOR && !hasDefect) {
     return { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] };
   }

@@ -6,8 +6,11 @@
  *
  * Happy path:  PENDING → GROUNDED → GENERATED → SYNTAX_OK → PUSHED → ACTIVATED → GATED → GREEN
  * Retry loop:  SYNTAX_OK→GENERATED and GATED→GENERATED, only while cycle < MAX_PHASE_RETRY_CYCLES
- *              (a syntax fail or a machine BLOCK at the checkpoint re-generates; at the ceiling
- *              the only move is BLOCK — the bounded generator-refinement loop, §3.2/§3.4).
+ *              (post-syntax refinement / a machine BLOCK at the checkpoint re-generates; at the
+ *              ceiling the only move is BLOCK — the bounded generator-refinement loop, §3.2/§3.4).
+ *              NB a syntax FAIL is never reported as a status: SYNTAX_OK is pass-only, and the
+ *              orchestrating skill counts failed syntax attempts in prose (§3.2 #4 offline
+ *              compromise) — the FSM cycle counter sees only these two edges.
  * Escalation:  any ACTIVE state → BLOCK (dependents never schedule) or → NEEDS_MANUAL_SEAM.
  * Re-entry:    BLOCK → PARK only when the block reason is the deterministic NO_RELEASED_SUCCESSOR
  *              (never a P4/defect BLOCK, L7); PARK → PENDING when the successor ships;

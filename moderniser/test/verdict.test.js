@@ -106,6 +106,18 @@ test("PARK is REFUSED for a DEFECTIVE-output no-successor block — never a defe
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR }, { atc_warn_delta: 3 }).verdict, "BLOCK", "WARN regressed");
 });
 
+test("L9: malformed-but-PRESENT evidence is a defect for the PARK guard — 'absent' means the KEY is absent", () => {
+  const park = (cp, ratchet = {}) => nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, ...cp }, ratchet).verdict;
+  assert.equal(park({}), "PARK", "genuinely absent conjuncts → the deterministic PARK class");
+  assert.equal(park({ atc_p1: "5" }), "BLOCK", "string-typed atc_p1 is present-and-unusable, not absent");
+  assert.equal(park({ unit: { green: "false" } }), "BLOCK");
+  assert.equal(park({ unit: null }), "BLOCK", "present-but-null unit is malformed evidence (no TypeError)");
+  assert.equal(park({ invariants: { intact: 0 } }), "BLOCK");
+  assert.equal(park({ auth_coverage: { lost: "true" } }), "BLOCK", "loose-typed auth evidence cannot slip the guard");
+  assert.equal(park({}, { atc_warn_delta: "3" }), "BLOCK", "string warn delta is present-and-unusable");
+  assert.equal(park({ atc_p1: 0, unit: { green: true }, auth_coverage: { lost: false } }), "PARK", "well-typed PASSING evidence never forbids PARK");
+});
+
 test("PARK is still granted for a genuine no-successor node (checkpoint conjuncts absent, not failing)", () => {
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR }, {}).verdict, "PARK");
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, activated: false }, {}).verdict, "PARK", "not-built ≠ defect");
