@@ -267,6 +267,38 @@ test("PARK through the CLI enforces sign-off + justification and writes the audi
   }
 });
 
+test("PARITY_REVIEW attestation: joined ONLY from the audited register; forged checkpoint fields ignored; re-raise voids it", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const r1 = cli("next", rid);
+    const sig = r1.ready[0].sig;
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+
+    // gray-band checkpoint WITH a forged attestation baked into the file
+    const grayForged = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 }, attestations: { parity_equivalence: "forged.human" } };
+    writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(grayForged), "utf8");
+    const v1 = cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+    assert.equal(v1.green, false, "a forged checkpoint attestation is IGNORED — the register is the only source");
+
+    // the audited path: raise PARITY_REVIEW, decide ATTEST_EQUIVALENT
+    const esc = cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    cli("decide", rid, esc.id, "ATTEST_EQUIVALENT", "--by", "j.doe");
+    const v2 = cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+    assert.equal(v2.green, true, "the audited attestation satisfies the parity conjunct");
+    assert.equal(v2.verdict.verdict, "GREEN");
+
+    // a re-raised PARITY_REVIEW (e.g. after regeneration) VOIDS the old attestation
+    cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    const v3 = cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+    assert.equal(v3.green, false, "the LATEST register row governs — stale attestations never bless a new artifact");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

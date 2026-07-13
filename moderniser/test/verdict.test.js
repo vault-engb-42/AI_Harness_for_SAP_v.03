@@ -71,6 +71,28 @@ test("PARK is granted for a no-released-successor block that breaks no invariant
   assert.deepEqual(r, { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] });
 });
 
+// --- PARITY_REVIEW attestation consumption (operator-ratified 2026-07-12) ---
+
+test("an ATTESTED needs_review satisfies the parity conjunct — all other conjuncts still required", () => {
+  const attested = { parity: { verdict: "needs_review" }, attestations: { parity_equivalence: "j.doe" } };
+  assert.equal(verdict(attested).verdict, "GREEN", "gray band + audited attestation + machine conjuncts green");
+  assert.equal(verdict({ ...attested, unit: { green: false } }).verdict, "BLOCK", "attestation neutralises ONLY parity");
+  assert.equal(verdict({ ...attested, atc_p1: 2 }).verdict, "BLOCK");
+});
+
+test("an UNattested needs_review still blocks; a null attestation is not an attestation", () => {
+  assert.equal(verdict({ parity: { verdict: "needs_review" } }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: { verdict: "needs_review" }, attestations: { parity_equivalence: null } }).verdict, "BLOCK");
+  assert.equal(verdict({ parity: { verdict: "needs_review" }, attestations: { parity_equivalence: "" } }).verdict, "BLOCK");
+});
+
+test("vetoes and scope_reduced can NEVER be attested past (7.5 asymmetry)", () => {
+  for (const v of ["scope_reduced", "auth_vanished", "reassembly_broken"]) {
+    const r = verdict({ parity: { verdict: v }, attestations: { parity_equivalence: "j.doe" } });
+    assert.equal(r.verdict, "BLOCK", v);
+  }
+});
+
 test("PARK is REFUSED when a P4 invariant or auth is also broken (P4 wins → BLOCK)", () => {
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, invariants: { intact: false } }, {}).verdict, "BLOCK");
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, auth_coverage: { lost: true } }, {}).verdict, "BLOCK");

@@ -70,7 +70,7 @@ Every deterministic step is a CLI call (JSON on stdout; non-zero exit = fail-clo
 | `OSCILLATION` | generator thrash cluster (root-signature grouped) | present the cluster once, not per retry |
 | `REPLAN_WAVE_MOVE` | a re-parse moved an already-gated node's wave (or dropped it) | human sign-off before any re-freeze |
 | `RISK_LEVEL_REVIEW` | batched approval of a level containing a flagged node | present the level's wave table + flags in one gate |
-| `PARITY_REVIEW` | parity score in the [0.30, 0.70) gray band | present score + evidence; **offline never auto-passes** |
+| `PARITY_REVIEW` | parity score in the [0.30, 0.70) gray band | present score + evidence; **offline never auto-passes**. On `ATTEST_EQUIVALENT` (via `decide … --by <name>`), re-run `verdict` — the CLI joins the attestation from the audited register (a checkpoint-supplied field is ignored; a re-raised review voids it); vetoes/`scope_reduced` are never attestable |
 | seam confirm (§3.1 Stage 1) | `NEEDS_MANUAL_SEAM` — dynamic caller set unresolved | present the seam evidence; on confirmation `... progress <sig> PENDING` re-enters |
 
 Everything else — ATC-P1>0, unit red, P4 diff, parity BLOCK (<0.30 or a veto), the 3-cycle retry ceiling — is a **machine BLOCK** that quarantines the node (`deferral_track`), never a human escalation. A quarantined node blocks only its own dependents; independent nodes keep flowing.

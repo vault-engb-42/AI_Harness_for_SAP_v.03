@@ -25,6 +25,22 @@ import { NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
 
 const PASS_PARITY = new Set(["equivalent", "PASS_STRUCTURAL"]);
 
+/**
+ * The parity conjunct with the ATTESTATION branch (operator-ratified 2026-07-12, §6.1):
+ * a `needs_review` gray band is satisfied by a named human attestation recorded through
+ * the audited PARITY_REVIEW decision path (`attestations.parity_equivalence` — injected
+ * by the CLI from the escalations register ONLY, never trusted from a checkpoint file).
+ * Mirrors the AUTH pattern: attestation is EXTRA evidence on top of green machine
+ * conjuncts, never a substitute — vetoes and `scope_reduced` are NEVER attestable (7.5).
+ */
+function passesParity(cp) {
+  const v = cp.parity?.verdict;
+  if (PASS_PARITY.has(v)) return true;
+  if (v !== "needs_review") return false; // vetoes / scope_reduced / missing: no attestation applies
+  const att = cp.attestations?.parity_equivalence;
+  return typeof att === "string" && att.length > 0;
+}
+
 export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   const cp = checkpoint;
   const warn = ratchet.atc_warn_delta;
@@ -38,7 +54,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
     cp.auth_coverage?.lost === true ||
     (typeof cp.atc_p1 === "number" && cp.atc_p1 > 0) ||
     cp.unit?.green === false ||
-    (cp.parity !== undefined && !PASS_PARITY.has(cp.parity.verdict)) ||
+    (cp.parity !== undefined && !passesParity(cp)) ||
     (typeof warn === "number" && warn > 0);
   if (cp.block_reason === NO_RELEASED_SUCCESSOR && !hasDefect) {
     return { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] };
@@ -50,7 +66,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   if (cp.unit?.green !== true) reasons.push("unit-not-green");
   if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken"); // fail-closed: must PROVE intact
   if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost"); // fail-open: block only on proven loss
-  if (!PASS_PARITY.has(cp.parity?.verdict)) reasons.push(`parity-not-equivalent:${cp.parity?.verdict ?? "missing"}`);
+  if (!passesParity(cp)) reasons.push(`parity-not-equivalent:${cp.parity?.verdict ?? "missing"}`);
   if (!(Number.isFinite(warn) && warn <= 0)) reasons.push("warn-delta-regressed"); // non-number/missing → fail-closed
 
   return reasons.length === 0 ? { verdict: "GREEN", reasons: [] } : { verdict: "BLOCK", reasons };

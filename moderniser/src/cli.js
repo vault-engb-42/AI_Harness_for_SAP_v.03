@@ -25,7 +25,7 @@ import { savePlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, renderVerdict, recordVerdict, runComplete } from "./sched/loop.js";
 import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
-import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
+import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readParkRegister, saveParkRegister, readEscalations, parseArgs, loadRun, validRunId } from "./cli-io.js";
 import { cmdEscalate, cmdEscalations, cmdDecide } from "./cli-escalations.js";
 
 const COMMANDS = {
@@ -106,6 +106,13 @@ function cmdOutcome(io, pos, flags) {
   return { sig, status, complete: runComplete(plan, next) };
 }
 
+/** The LATEST register row for (PARITY_REVIEW, sig) → the attester's name, else null. */
+function parityAttestation(io, sig) {
+  const rows = readEscalations(io).escalations.filter((e) => e.kind === "PARITY_REVIEW" && e.node_ids.includes(sig));
+  const latest = rows[rows.length - 1];
+  return latest?.status === "RESOLVED" && latest?.decision === "ATTEST_EQUIVALENT" ? latest.resolved_by : null;
+}
+
 /** The §3.4 #5/#6 audited park row (idempotent — a crash-retry must not double-park). */
 function parkAudit(io, sig, flags) {
   const reg = readParkRegister(io);
@@ -127,7 +134,16 @@ function cmdVerdict(io, pos, flags) {
   const { plan, state } = load(io, runId);
   const node = plan.nodes.find((n) => n.id === sig);
   if (!node) throw new Error(`verdict: unknown node ${sig}`);
-  const checkpoint = JSON.parse(readFileSync(flags.checkpoint, "utf8"));
+  const fileCp = JSON.parse(readFileSync(flags.checkpoint, "utf8"));
+  // Parity attestation is joined from the AUDITED escalations register ONLY (ratified
+  // 2026-07-12): a checkpoint-supplied attestation field is overwritten, so the typed
+  // `decide … ATTEST_EQUIVALENT --by <name>` verb is the single path to attest. The
+  // LATEST register row for this node governs — a re-raised PARITY_REVIEW (e.g. after
+  // regeneration) voids any earlier attestation.
+  const checkpoint = {
+    ...fileCp,
+    attestations: { ...(fileCp.attestations ?? {}), parity_equivalence: parityAttestation(io, sig) },
+  };
   const evidence = JSON.parse(readFileSync(flags.evidence, "utf8"));
   const baselines = readBaselines(io.stateDir);
   const gateNode = { canonical_sig: sig, parity_required: node.parity_required, diff_changed_lines: evidence.diff_changed_lines ?? [] };
