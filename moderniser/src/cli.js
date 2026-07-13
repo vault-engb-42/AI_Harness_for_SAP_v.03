@@ -16,6 +16,8 @@
  *   outcome <run_id> <sig> <STATUS> [--reason r] [--signed-by name]
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
+ *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
+ *   packets <run_id> [--max N]                  (surfaced escalations as GatePackets, §3.4 #8)
  *   status <run_id> · resume <run_id>
  * Common flags: --state-dir (default .claude/state) --runs-dir (default specs/runs)
  */
@@ -25,8 +27,10 @@ import { savePlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, renderVerdict, recordVerdict, runComplete } from "./sched/loop.js";
 import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
-import { statePath, saveState, writeBaselinePair, log, readSweepLedger, saveSweepLedger, readBaselines, readParkRegister, saveParkRegister, readEscalations, parseArgs, loadRun, validRunId } from "./cli-io.js";
-import { cmdEscalate, cmdEscalations, cmdDecide } from "./cli-escalations.js";
+import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, readEscalations, parseArgs, loadRun, validRunId } from "./cli-io.js";
+import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide } from "./cli-escalations.js";
+import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
+import { cmdReprobe } from "./cli-park.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -37,8 +41,10 @@ const COMMANDS = {
   verdict: cmdVerdict,
   "sweep-order": cmdSweepOrder,
   "sweep-mark": cmdSweepMark,
+  reprobe: cmdReprobe,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
+  packets: cmdPackets,
   decide: cmdDecide,
   status: cmdStatus,
   resume: cmdResume,
@@ -183,58 +189,6 @@ function cmdVerdict(io, pos, flags) {
   }
   log(io, runId, "verdict", { sig, green: r.green, gate: r.gate.verdict });
   return r;
-}
-
-/**
- * Offline draft sweep (§6.5, ratified 2026-07-11): the nodes the gated pass could not reach
- * (still PENDING — their closure can never green offline), in plan-topological order
- * (wave asc — the bottom-up level IS a topological order), with each dependency's current
- * status so the generator knows which drafts to ground against. READ-ONLY on loop state.
- */
-function cmdSweepOrder(io, pos) {
-  const [runId] = pos;
-  const { plan, state } = load(io, runId);
-  const ledger = readSweepLedger(io, runId);
-  const bySig = new Map(plan.nodes.map((n) => [n.id, n]));
-  const remaining = plan.nodes
-    .filter((n) => state.status[n.id] === "PENDING" && ledger.swept[n.id] === undefined)
-    .sort((a, b) => a.wave - b.wave || (a.id < b.id ? -1 : 1))
-    .map((n) => ({
-      sig: n.id,
-      object: n.object,
-      wave: n.wave,
-      dependencies: (n.dependencies ?? []).map((d) => ({
-        sig: d,
-        object: bySig.get(d).object,
-        status: state.status[d],
-        swept: ledger.swept[d]?.result === "drafted", // a FAILED sweep left no draft to ground against (F16)
-        sweep_result: ledger.swept[d]?.result ?? null,
-      })),
-    }));
-  return { remaining };
-}
-
-/** Record a sweep result in the LEDGER (never loop state — the reducer's semantics stay single-meaning). */
-function cmdSweepMark(io, pos, flags) {
-  const [runId, sig] = pos;
-  const { plan, state } = load(io, runId);
-  if (!plan.nodes.some((n) => n.id === sig)) throw new Error(`sweep-mark: unknown node ${sig}`);
-  if (state.status[sig] !== "PENDING") {
-    // the sweep covers only what the gated pass could NOT reach — marking a gated-pass
-    // node would pollute the proof-bundle ledger (F16 secondary)
-    throw new Error(`sweep-mark: ${sig} is ${state.status[sig]} — only gated-pass-unreached (PENDING) nodes are sweepable (§6.5)`);
-  }
-  const result = flags.result;
-  if (result !== "drafted" && result !== "failed") {
-    throw new Error(`sweep-mark: --result must be 'drafted' or 'failed' (got '${result}')`);
-  }
-  const ledger = readSweepLedger(io, runId);
-  if (ledger.swept[sig]?.result !== result) {
-    ledger.swept[sig] = { result, ts: new Date().toISOString() };
-    saveSweepLedger(io, runId, ledger);
-    log(io, runId, "sweep-mark", { sig, result });
-  }
-  return { sig, result };
 }
 
 function cmdStatus(io, pos) {

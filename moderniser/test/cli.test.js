@@ -501,6 +501,58 @@ test("progress refuses terminal outcomes through the CLI — outcome is the only
   }
 });
 
+test("reprobe re-enters parked nodes whose successor shipped — audited row released, node reschedulable (F18/F26)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
+    cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR",
+      "--signed-by", "j.doe", "--justification", "no successor", "--successor-probe", "i_journalentrytp");
+    assert.throws(() => cli("reprobe", rid), (e) => /available/i.test(String(e.stderr ?? e.message)), "offline: the operator must supply the shipped names");
+    const miss = cli("reprobe", rid, "--available", "I_OTHERAPI");
+    assert.deepEqual(miss.reentered, [], "an unshipped successor re-enters nothing");
+    assert.deepEqual(miss.still_parked, [sig]);
+    const hit = cli("reprobe", rid, "--available", "i_journalentrytp"); // canonicalised like the park probe
+    assert.deepEqual(hit.reentered, [sig]);
+    assert.deepEqual(hit.still_parked, []);
+    const reg = JSON.parse(readFileSync(join(dirs.state, "park-register.json"), "utf8"));
+    assert.deepEqual(reg.parked, [], "the audited row is released WITH the re-entry — file and state never diverge");
+    assert.deepEqual(cli("next", rid).ready.map((r) => r.sig), [sig], "the re-entered node schedules again");
+    const again = cli("reprobe", rid, "--available", "i_journalentrytp"); // crash-retry is a no-op
+    assert.deepEqual(again.reentered, []);
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("packets renders surfaced escalations as GatePackets — kind, cause, typed decisions (F18)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sig = nodes[0].sig;
+    cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig, "--root-signature", "talos-select-in-loop|SKB1");
+    cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    const p = cli("packets", rid);
+    assert.equal(p.packets.length, 2);
+    for (const pk of p.packets) {
+      assert.ok(typeof pk.cause === "string" && pk.cause.length > 0, "one-line cause");
+      assert.ok(Array.isArray(pk.decisions) && pk.decisions.length >= 2, "TYPED decision set — options are never invented");
+    }
+    const osc = p.packets.find((x) => x.kind === "OSCILLATION");
+    assert.match(osc.cause, /thrash/i);
+    assert.deepEqual(osc.decisions, ["RESEED_GENERATOR", "MANUAL_SEAM", "DEFER"]);
+    const limited = cli("packets", rid, "--max", "1");
+    assert.equal(limited.packets.length, 1, "rate-limit applies to packets too");
+    assert.equal(limited.queued, 1, "the rest queue, never dropped");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("escalate validates sigs against the plan; decide's receipt names the CORRECT resolver after a re-raise", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

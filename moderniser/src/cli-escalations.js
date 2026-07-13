@@ -1,15 +1,16 @@
 /**
  * Escalation verbs for the /modernise CLI — the executable path into the exception-module
  * family (§3.4). The skill raises taxonomy escalations, lists the rate-limited surfaceable
- * set, and records TYPED human decisions; every mutation lands durably in the §3.4 #6
- * `escalations.json` register and a §6.6 log row.
+ * set, renders GatePackets, and records TYPED human decisions; every mutation lands durably
+ * in the §3.4 #6 `escalations.json` register and a §6.6 log row.
  *
  *   escalate    <run_id> --kind K --nodes sig[,sig...] [--root-signature r]
  *   escalations <run_id> [--max N] [--critical sig[,sig...]]
+ *   packets     <run_id> [--max N] [--critical sig[,sig...]]
  *   decide      <run_id> <esc_id> <DECISION> --by <name>
  */
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
-import { recordDecision } from "./exception/gate-ui.js";
+import { recordDecision, renderPacket } from "./exception/gate-ui.js";
 import { loadRun, readEscalations, saveEscalations, log } from "./cli-io.js";
 
 const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the manifest pins it
@@ -46,6 +47,20 @@ export function cmdEscalations(io, pos, flags) {
   const criticalSigs = new Set(String(flags.critical ?? "").split(",").filter(Boolean));
   const { surfaced, queued } = surfaceable(readEscalations(io), { max, criticalSigs });
   return { surfaced, queued };
+}
+
+/**
+ * The §3.4 #8 GatePacket presentation, made executable (review F18): each SURFACED
+ * escalation rendered with its kind, one-line cause, and TYPED decision set — the skill
+ * presents these verbatim and never invents decision options.
+ */
+export function cmdPackets(io, pos, flags) {
+  const [runId] = pos;
+  loadRun(io, runId);
+  const max = flags.max === undefined ? DEFAULT_SURFACE_MAX : Number(flags.max);
+  const criticalSigs = new Set(String(flags.critical ?? "").split(",").filter(Boolean));
+  const { surfaced, queued } = surfaceable(readEscalations(io), { max, criticalSigs });
+  return { packets: surfaced.map((e) => renderPacket(e)), queued: queued.length };
 }
 
 export function cmdDecide(io, pos, flags) {
