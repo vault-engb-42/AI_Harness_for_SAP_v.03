@@ -55,12 +55,27 @@ export function raiseEscalation(register, e, { ts }) {
   return { ...register, escalations: [...register.escalations, row] };
 }
 
-/** Mark an OPEN escalation resolved (audited). Fails closed on unknown/already-resolved. */
-export function resolveEscalation(register, id, { resolved_by, ts, decision }) {
+/**
+ * Mark an OPEN escalation resolved (audited). Fails closed on unknown/already-resolved.
+ * `run_id` + `decided_cycles` (sig → the node's refinement cycle at decide time) TEMPORALLY
+ * BIND the decision to the artifact the human actually saw — the verdict join requires both
+ * to match, so a regenerated artifact or another run can never inherit an attestation.
+ */
+export function resolveEscalation(register, id, { resolved_by, ts, decision, run_id, decided_cycles }) {
   const idx = register.escalations.findIndex((x) => x.id === id && x.status === "OPEN");
   if (idx < 0) throw new Error(`escalation: '${id}' is unknown or already resolved`);
   const escalations = register.escalations.map((x, i) =>
-    i === idx ? { ...x, status: "RESOLVED", resolved_by, resolved_at: ts, ...(decision !== undefined ? { decision } : {}) } : x,
+    i === idx
+      ? {
+          ...x,
+          status: "RESOLVED",
+          resolved_by,
+          resolved_at: ts,
+          ...(decision !== undefined ? { decision } : {}),
+          ...(run_id !== undefined ? { run_id } : {}),
+          ...(decided_cycles !== undefined ? { decided_cycles } : {}),
+        }
+      : x,
   );
   return { ...register, escalations };
 }

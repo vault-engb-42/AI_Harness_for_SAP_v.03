@@ -16,8 +16,12 @@ const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the
 
 export function cmdEscalate(io, pos, flags) {
   const [runId] = pos;
-  loadRun(io, runId); // escalations must belong to a verified run
+  const { plan } = loadRun(io, runId); // escalations must belong to a verified run
   const node_ids = String(flags.nodes ?? "").split(",").filter(Boolean);
+  const known = new Set(plan.nodes.map((n) => n.id));
+  for (const s of node_ids) {
+    if (!known.has(s)) throw new Error(`escalate: '${s}' is not a plan node — a typo'd sig would silently fail to void/join`);
+  }
   const reg = readEscalations(io);
   const next = raiseEscalation(
     reg,
@@ -46,11 +50,17 @@ export function cmdEscalations(io, pos, flags) {
 
 export function cmdDecide(io, pos, flags) {
   const [runId, id, decision] = pos;
-  loadRun(io, runId);
+  const { state } = loadRun(io, runId);
   const reg = readEscalations(io);
-  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts: new Date().toISOString() });
+  const target = reg.escalations.find((e) => e.id === id && e.status === "OPEN");
+  // Temporal binding (ratified 2026-07-13): stamp the run + each node's CURRENT refinement
+  // cycle into the audited row — the verdict join requires both, so this decision can never
+  // bless a regenerated artifact or leak into another run.
+  const decided_cycles = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.cycle?.[s] ?? 0]));
+  const ts = new Date().toISOString();
+  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_cycles });
   saveEscalations(io, next);
-  const row = next.escalations.find((e) => e.id === id);
+  const row = next.escalations.find((e) => e.id === id && e.status === "RESOLVED" && e.resolved_at === ts);
   log(io, runId, "decide", { id, decision, decided_by: flags.by });
-  return row;
+  return row; // the row THIS call resolved — never an earlier same-id row
 }

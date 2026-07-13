@@ -299,6 +299,57 @@ test("PARITY_REVIEW attestation: joined ONLY from the audited register; forged c
   }
 });
 
+test("an attestation is bound to the ARTIFACT: a retry voids it; another run cannot inherit it", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    const gray = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 } };
+    writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(gray), "utf8");
+    const vd = (r) => cli("verdict", r, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+
+    const esc = cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    cli("decide", rid, esc.id, "ATTEST_EQUIVALENT", "--by", "j.doe");
+    assert.equal(vd(rid).green, true, "attested at cycle 0 → green");
+
+    // REGENERATION: the checkpoint machine-BLOCKs → retry → walk back to GATED
+    cli("progress", rid, sig, "GENERATED");
+    for (const s of ["SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    assert.equal(vd(rid).green, false, "the human never saw THIS artifact — the cycle stamp voids the attestation");
+
+    // ANOTHER RUN (same state dir, same sigs) can never inherit the attestation
+    const { run_id: rid2 } = cli("plan", FIXTURE, "--run-id", "run2");
+    const sig2 = cli("next", rid2).ready[0].sig;
+    cli("dispatch", rid2, sig2);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid2, sig2, s);
+    assert.equal(vd(rid2).green, false, "run binding: r1's attestation never blesses r2");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("escalate validates sigs against the plan; decide's receipt names the CORRECT resolver after a re-raise", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sig = nodes[0].sig;
+    assert.throws(() => cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", "NOT_A_NODE"), /plan|unknown|Command failed/i);
+
+    const e1 = cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig);
+    cli("decide", rid, e1.id, "DEFER", "--by", "j.doe");
+    cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig); // recurs → same id, new OPEN row
+    const receipt = cli("decide", rid, e1.id, "RESEED_GENERATOR", "--by", "k.new");
+    assert.equal(receipt.resolved_by, "k.new", "the receipt is the row THIS decide resolved, not the first id match");
+    assert.equal(receipt.decision, "RESEED_GENERATOR");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

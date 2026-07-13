@@ -106,11 +106,18 @@ function cmdOutcome(io, pos, flags) {
   return { sig, status, complete: runComplete(plan, next) };
 }
 
-/** The LATEST register row for (PARITY_REVIEW, sig) → the attester's name, else null. */
-function parityAttestation(io, sig) {
+/**
+ * The LATEST register row for (PARITY_REVIEW, sig) → the attester's name, IFF the decision
+ * is temporally bound to THIS run and THIS artifact (the node's current refinement cycle).
+ * Unstamped/older rows fail closed — the human attested code this artifact is not.
+ */
+function parityAttestation(io, sig, runId, state) {
   const rows = readEscalations(io).escalations.filter((e) => e.kind === "PARITY_REVIEW" && e.node_ids.includes(sig));
   const latest = rows[rows.length - 1];
-  return latest?.status === "RESOLVED" && latest?.decision === "ATTEST_EQUIVALENT" ? latest.resolved_by : null;
+  if (latest?.status !== "RESOLVED" || latest?.decision !== "ATTEST_EQUIVALENT") return null;
+  if (latest.run_id !== runId) return null;
+  if ((latest.decided_cycles?.[sig] ?? -1) !== (state.cycle?.[sig] ?? 0)) return null;
+  return latest.resolved_by;
 }
 
 /** The §3.4 #5/#6 audited park row (idempotent — a crash-retry must not double-park). */
@@ -135,14 +142,16 @@ function cmdVerdict(io, pos, flags) {
   const node = plan.nodes.find((n) => n.id === sig);
   if (!node) throw new Error(`verdict: unknown node ${sig}`);
   const fileCp = JSON.parse(readFileSync(flags.checkpoint, "utf8"));
-  // Parity attestation is joined from the AUDITED escalations register ONLY (ratified
-  // 2026-07-12): a checkpoint-supplied attestation field is overwritten, so the typed
+  // Attestations are joined from the AUDITED escalations register ONLY (ratified
+  // 2026-07-12/13): checkpoint-supplied attestation fields are overwritten, so the typed
   // `decide … ATTEST_EQUIVALENT --by <name>` verb is the single path to attest. The
-  // LATEST register row for this node governs — a re-raised PARITY_REVIEW (e.g. after
-  // regeneration) voids any earlier attestation.
+  // LATEST register row governs, and it must be TEMPORALLY BOUND to this run + this
+  // artifact (the node's current refinement cycle) — a regenerated artifact or another
+  // run can never inherit an attestation. auth_equivalence is nulled until its consumer
+  // is wired (build-step 7) — a forged field must not lie in wait.
   const checkpoint = {
     ...fileCp,
-    attestations: { ...(fileCp.attestations ?? {}), parity_equivalence: parityAttestation(io, sig) },
+    attestations: { parity_equivalence: parityAttestation(io, sig, runId, state), auth_equivalence: null },
   };
   const evidence = JSON.parse(readFileSync(flags.evidence, "utf8"));
   const baselines = readBaselines(io.stateDir);

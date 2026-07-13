@@ -4,7 +4,9 @@
  * gates (P4 invariants, ATC priority-1) [§3.2 7.1].
  *
  *   GREEN ⇔ activated ∧ reconciled ∧ atc_p1 == 0 ∧ unit.green ∧ P4.intact
- *            ∧ auth_coverage.not_lost ∧ parity ∈ {equivalent, PASS_STRUCTURAL} ∧ atc_warn_delta ≤ 0
+ *            ∧ auth_coverage.not_lost
+ *            ∧ (parity ∈ {equivalent, PASS_STRUCTURAL} ∨ attested(needs_review))   — §6.1 attestation branch
+ *            ∧ atc_warn_delta ≤ 0
  *   BLOCK ⇔ any conjunct false
  *   PARK  ⇔ BLOCK whose reason is the deterministic NO_RELEASED_SUCCESSOR — never a P4/defect BLOCK
  *
