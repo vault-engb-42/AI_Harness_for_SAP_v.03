@@ -85,3 +85,30 @@ test("auth_delta flags REMOVAL of WITH PRIVILEGED ACCESS too (any footprint chan
   assert.equal(r.auth_delta, true);
   assert.equal(r.auth_coverage.lost, false, "removing privileged access is a strengthening, not a loss");
 });
+
+// --- Whole-branch review remediations (branch-review-2026-07-13: F13 + F14, B2/B3) ---
+
+test("P4a/L7 — a removed CDS DCL restriction is coverage LOSS unless relocated (F13)", () => {
+  const before = bundle({ dcl_restrictions: [{ object: "S_TABU_DIS" }] });
+  // removed entirely: the row-level auth the DCL carried is gone
+  const gone = invariantDiff(before, bundle());
+  assert.equal(gone.auth_coverage.lost, true, "a deleted DCL is a loss, not merely a delta");
+  assert.deepEqual(gone.auth_coverage.lost_scopes, [{ object: "S_TABU_DIS", field: "*" }]);
+  assert.equal(gone.auth_delta, true);
+  // relocated to an after-DCL on the same object → covered
+  assert.equal(invariantDiff(before, bundle({ dcl_restrictions: [{ object: "S_TABU_DIS" }] })).auth_coverage.lost, false);
+  // relocated to an AUTHORITY-CHECK on the same object → the reverse of the sanctioned P3 move, still covered
+  const relocated = invariantDiff(before, bundle({ auth_checks: [chk("S_TABU_DIS", "ACTVT")] }));
+  assert.equal(relocated.auth_coverage.lost, false, "an after-check on the object covers the scope");
+  assert.equal(relocated.auth_delta, true, "footprint changed → attestation still owed");
+});
+
+test("P4a/L6.2 — pre-existing WITH PRIVILEGED ACCESS is carried debt, never a fresh loss (F14)", () => {
+  const priv = bundle({ privileged_cds: [{ object: "I_X", had_row_auth: true }] });
+  const same = invariantDiff(priv, priv);
+  assert.equal(same.auth_coverage.lost, false, "an identical before/after bundle cannot be a loss");
+  assert.deepEqual(same.auth_coverage.lost_scopes, []);
+  assert.equal(same.auth_delta, false, "no footprint change either — fully consistent verdict");
+  // INTRODUCED privileged access still counts as loss (the guarded direction is unchanged)
+  assert.equal(invariantDiff(bundle(), priv).auth_coverage.lost, true);
+});

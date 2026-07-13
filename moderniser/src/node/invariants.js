@@ -11,8 +11,10 @@
  *     (a managed RAP BO legitimately has zero AUTHORITY-CHECK; auth moves to DCL, P3). Effective
  *     scope = AUTHORITY-CHECK (object,field) pairs ∪ CDS DCL restrictions (a DCL grant covers its
  *     object for any field). LOSS = a before-covered (object,field) not covered in the after by
- *     an AUTHORITY-CHECK OR a DCL grant on that object, OR `WITH PRIVILEGED ACCESS` on a released
- *     analytical CDS that previously had row-level auth.
+ *     an AUTHORITY-CHECK OR a DCL grant on that object, OR a before-DCL object with neither an
+ *     after-DCL nor an after-check on it (F13), OR INTRODUCED `WITH PRIVILEGED ACCESS` on a
+ *     released analytical CDS that had row-level auth — pre-existing privileged access is
+ *     carried debt, never re-counted (L6.2, F14).
  *
  *   auth_delta = any auth-footprint change → an abap-security-reviewer auth-equivalence
  *     attestation is owed before PASS (persisted in node-state `attestations`).
@@ -31,13 +33,22 @@ export function invariantDiff(before = {}, after = {}) {
 
   const afterPairs = new Set(a.auth_checks.map(pairKey));
   const afterObjects = new Set(a.dcl_restrictions.map((d) => d.object));
+  const afterCheckObjects = new Set(a.auth_checks.map((c) => c.object));
   const lostScopes = b.auth_checks
     .filter((c) => !afterPairs.has(pairKey(c)) && !afterObjects.has(c.object))
     .map((c) => ({ object: c.object, field: c.field }));
+  // A before-DCL restriction is before-covered scope (docstring: pairs ∪ DCL). Removed with
+  // no after-DCL and no after-check on the object → the row-level auth is GONE (F13).
+  const dclLoss = b.dcl_restrictions
+    .filter((d) => !afterObjects.has(d.object) && !afterCheckObjects.has(d.object))
+    .map((d) => ({ object: d.object, field: "*" }));
+  // Only INTRODUCED privileged access is loss — a before-privileged object is carried debt,
+  // not re-counted every diff (L6.2; an unchanged bundle must never read as a loss, F14).
+  const beforePrivObjects = new Set(b.privileged_cds.map((c) => c.object));
   const privilegedLoss = a.privileged_cds
-    .filter((c) => c.had_row_auth === true)
+    .filter((c) => c.had_row_auth === true && !beforePrivObjects.has(c.object))
     .map((c) => ({ object: c.object, field: "*" }));
-  const lost_scopes = [...lostScopes, ...privilegedLoss];
+  const lost_scopes = [...lostScopes, ...dclLoss, ...privilegedLoss];
 
   const beforePairs = new Set(b.auth_checks.map(pairKey));
   const beforeObjects = new Set(b.dcl_restrictions.map((d) => d.object));
