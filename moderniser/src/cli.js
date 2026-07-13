@@ -108,15 +108,17 @@ function cmdOutcome(io, pos, flags) {
 
 /**
  * The LATEST register row for (PARITY_REVIEW, sig) → the attester's name, IFF the decision
- * is temporally bound to THIS run and THIS artifact (the node's current refinement cycle).
- * Unstamped/older rows fail closed — the human attested code this artifact is not.
+ * is temporally bound to THIS run and THIS artifact (the node's current GENERATION — it
+ * bumps on every entry to GENERATED, so a retry, a re-entry re-walk, or a pre-artifact
+ * decision all mismatch). Unstamped/older rows fail closed — the human attested code this
+ * artifact is not.
  */
 function parityAttestation(io, sig, runId, state) {
   const rows = readEscalations(io).escalations.filter((e) => e.kind === "PARITY_REVIEW" && e.node_ids.includes(sig));
   const latest = rows[rows.length - 1];
   if (latest?.status !== "RESOLVED" || latest?.decision !== "ATTEST_EQUIVALENT") return null;
   if (latest.run_id !== runId) return null;
-  if ((latest.decided_cycles?.[sig] ?? -1) !== (state.cycle?.[sig] ?? 0)) return null;
+  if ((latest.decided_generations?.[sig] ?? -1) !== (state.generation?.[sig] ?? 0)) return null;
   return latest.resolved_by;
 }
 

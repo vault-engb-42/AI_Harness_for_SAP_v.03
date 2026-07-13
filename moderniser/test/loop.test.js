@@ -254,6 +254,73 @@ test("PARK is REFUSED without a named signer or justification — the EXECUTABLE
   );
 });
 
+// --- Whole-branch review remediations (branch-review-2026-07-13: F2 / F3 / F4 cluster A1) ---
+
+test("applyProgress REFUSES terminal statuses — outcomes must go through applyOutcome (F2)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  for (const s of FORWARD.slice(1)) st = applyProgress(plan, st, A, s); // at GATED
+  for (const terminal of ["GREEN", "BLOCK", "NEEDS_MANUAL_SEAM"]) {
+    assert.throws(() => applyProgress(plan, st, A, terminal), /applyOutcome|terminal/i, `${terminal} via progress refused`);
+  }
+  // PARK via progress refused too (even from a legal BLOCK/NO_RELEASED_SUCCESSOR position)
+  const st2 = applyOutcome(plan, st, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
+  assert.throws(() => applyProgress(plan, st2, A, "PARK"), /applyOutcome|terminal/i);
+});
+
+test("the artifact GENERATION counter increments on EVERY entry to GENERATED — retry AND re-entry regen (F4)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  let st = dispatch(plan, initRun(plan), [A]);
+  assert.deepEqual(st.generation ?? {}, {}, "no artifact yet");
+  st = applyProgress(plan, st, A, "GENERATED");
+  assert.equal(st.generation[A], 1, "first artifact");
+  st = applyProgress(plan, st, A, "SYNTAX_OK");
+  st = applyProgress(plan, st, A, "GENERATED"); // retry edge
+  assert.equal(st.generation[A], 2, "a retry regenerates");
+  for (const s of ["SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) st = applyProgress(plan, st, A, s);
+  st = applyOutcome(plan, st, A, { status: "NEEDS_MANUAL_SEAM" });
+  st = applyProgress(plan, st, A, "PENDING"); // human confirms the caller set → re-entry
+  st = dispatch(plan, st, [A]);
+  st = applyProgress(plan, st, A, "GENERATED"); // GROUNDED→GENERATED: NOT a retry edge
+  assert.equal(st.generation[A], 3, "re-entry regeneration moves the generation");
+  assert.equal(st.cycle[A], 1, "…while the retry-cycle counter does NOT — the two are distinct");
+});
+
+test("generation is resume-tolerant: a legacy persisted state without the key seeds from 0", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  const st = dispatch(plan, initRun(plan), [A]);
+  delete st.generation; // a state file written before the counter existed
+  const next = applyProgress(plan, st, A, "GENERATED");
+  assert.equal(next.generation[A], 1);
+});
+
+test("re-entry regeneration voids the stale verdict — GREEN must be re-earned on the NEW artifact (F3)", () => {
+  const A = "a".repeat(64);
+  const plan = mkPlan([{ id: A }]);
+  // seam detour: GATED (verdicted green) → NEEDS_MANUAL_SEAM → PENDING → re-walk
+  let st = dispatch(plan, initRun(plan), [A]);
+  for (const s of FORWARD.slice(1)) st = applyProgress(plan, st, A, s);
+  st = recordVerdict(plan, st, A, { green: true });
+  st = applyOutcome(plan, st, A, { status: "NEEDS_MANUAL_SEAM" });
+  st = applyProgress(plan, st, A, "PENDING");
+  st = dispatch(plan, st, [A]);
+  for (const s of FORWARD.slice(1)) st = applyProgress(plan, st, A, s); // regenerated, NEVER verdicted
+  assert.throws(() => applyOutcome(plan, st, A, { status: "GREEN" }), /verdict/i, "seam re-entry cannot reuse the old verdict");
+  // park detour: same leak through BLOCK(NO_RELEASED_SUCCESSOR) → PARK → PENDING
+  let sp = dispatch(plan, initRun(plan), [A]);
+  for (const s of FORWARD.slice(1)) sp = applyProgress(plan, sp, A, s);
+  sp = recordVerdict(plan, sp, A, { green: true });
+  sp = applyOutcome(plan, sp, A, { status: "BLOCK", reason: NO_RELEASED_SUCCESSOR });
+  sp = applyOutcome(plan, sp, A, { status: "PARK", reason: NO_RELEASED_SUCCESSOR, signed_by: "j.doe", justification: "no successor" });
+  sp = applyProgress(plan, sp, A, "PENDING");
+  sp = dispatch(plan, sp, [A]);
+  for (const s of FORWARD.slice(1)) sp = applyProgress(plan, sp, A, s);
+  assert.throws(() => applyOutcome(plan, sp, A, { status: "GREEN" }), /verdict/i, "park re-entry cannot reuse the old verdict");
+});
+
 test("state is JSON-durable: a serialize/revive round-trip resumes identically", () => {
   const { plan } = assemblePlan(DOC);
   let st = initRun(plan);

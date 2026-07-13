@@ -43,6 +43,7 @@ export function initRun(plan, opts = {}) {
     indegree,
     status,
     cycle: {}, // per-sig generator-refinement retries used (MAX_PHASE_RETRY_CYCLES gate)
+    generation: {}, // per-sig artifact generation — bumps on EVERY entry to GENERATED (attestation binding)
     verdict_green: {}, // per-sig recorded verdict result — GREEN is EARNED, never asserted
     deferral_track: [],
     park_register: [],
@@ -101,17 +102,31 @@ export function dispatch(plan, state, sigs) {
   return next;
 }
 
+// Terminal outcomes carry semantics applyProgress cannot honour: the earned-GREEN verdict
+// guard, the dependent indegree decrement, quarantine/park bookkeeping, and the mutex
+// release all live in applyOutcome — an FSM-legal GATED→GREEN through this channel would
+// bypass every one of them (branch review F2).
+const TERMINAL_OUTCOMES = new Set(["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]);
+
 /** A non-terminal per-node phase move reported by the node driver (FSM-checked, cycle-aware). */
 export function applyProgress(plan, state, sig, nextStatus) {
   bind(plan, state);
-  const wasParked = state.status[sig] === "PARK";
+  if (TERMINAL_OUTCOMES.has(nextStatus)) {
+    throw new Error(`loop: ${nextStatus} is a terminal outcome — route it through applyOutcome (verdict guard, quarantine, mutex release)`);
+  }
+  const reentry = (state.status[sig] === "PARK" || state.status[sig] === "NEEDS_MANUAL_SEAM") && nextStatus === "PENDING";
   let next = setStatus(plan, state, sig, nextStatus);
-  if (wasParked && nextStatus === "PENDING") {
-    // re-entry (successor shipped, L7): the node leaves the CURRENTLY-parked register AND
-    // its quarantine record — the audited history stays in the persisted park file / git,
-    // not in live state (a re-entered, later-GREEN node must not read as still quarantined).
+  if (reentry) {
+    // re-entry (successor shipped / caller set confirmed, L7): the node leaves the
+    // CURRENTLY-parked register AND its quarantine record — the audited history stays in
+    // the persisted park file / git, not in live state. Any verdict recorded before the
+    // detour is voided too: the re-walk regenerates, and a stale verdict must never bless
+    // the artifact it produces (branch review F3 — defense in depth with the setStatus void).
+    const verdict_green = { ...next.verdict_green };
+    delete verdict_green[sig];
     next = {
       ...next,
+      verdict_green,
       park_register: next.park_register.filter((p) => p.sig !== sig),
       deferral_track: next.deferral_track.filter((d) => d.sig !== sig),
     };
@@ -220,14 +235,20 @@ function setStatus(plan, state, sig, to, ctx = {}) {
   const retry = to === "GENERATED" && (from === "SYNTAX_OK" || from === "GATED");
   assertTransition(from, to, { cycle: retry ? state.cycle[sig] ?? 0 : ctx.cycle ?? 0, reason: ctx.reason });
   const next = { ...state, status: { ...state.status, [sig]: to } };
-  if (retry) {
-    next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
+  if (to === "GENERATED") {
+    // EVERY entry into GENERATED is a new artifact — first pass, retry, or a post-re-entry
+    // re-walk. The generation counter is the attestation temporal binding (F4: the retry
+    // cycle alone misses re-entry regeneration), and any recorded verdict is void here
+    // (F3: a stale verdict can never bless a REGENERATED artifact). `?? {}` tolerates a
+    // legacy persisted state written before the counter existed.
+    next.generation = { ...(state.generation ?? {}), [sig]: ((state.generation ?? {})[sig] ?? 0) + 1 };
     if (next.verdict_green?.[sig] !== undefined) {
       const verdict_green = { ...next.verdict_green };
-      delete verdict_green[sig]; // a stale verdict can never bless a REGENERATED artifact
+      delete verdict_green[sig];
       next.verdict_green = verdict_green;
     }
   }
+  if (retry) next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
   return next;
 }
 

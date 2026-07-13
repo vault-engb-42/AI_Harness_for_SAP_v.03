@@ -331,6 +331,67 @@ test("an attestation is bound to the ARTIFACT: a retry voids it; another run can
   }
 });
 
+test("attestation is bound to the artifact GENERATION: pre-attestation and re-entry regeneration both void (F4)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    const gray = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 } };
+    writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(gray), "utf8");
+    const vd = (r) => cli("verdict", r, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+
+    // defeat 1 (probe C): decide while the node is still PENDING — NO artifact exists yet
+    const esc = cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    cli("decide", rid, esc.id, "ATTEST_EQUIVALENT", "--by", "j.doe");
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    assert.equal(vd(rid).green, false, "a decision made before ANY artifact existed cannot bless generation 1");
+
+    // control: attesting THIS artifact (same generation) applies
+    const esc2 = cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    cli("decide", rid, esc2.id, "ATTEST_EQUIVALENT", "--by", "j.doe");
+    assert.equal(vd(rid).green, true, "same-generation attestation applies");
+
+    // defeat 2 (probe B): seam-out + re-entry regeneration — the CYCLE counter does not move,
+    // the GENERATION does, so the stale attestation must void
+    cli("outcome", rid, sig, "NEEDS_MANUAL_SEAM");
+    cli("progress", rid, sig, "PENDING");
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    assert.equal(vd(rid).green, false, "re-entry regeneration voids the attestation — the human never saw THIS artifact");
+    assert.throws(
+      () => cli("outcome", rid, sig, "GREEN"),
+      (e) => /verdict/i.test(String(e.stderr ?? e.message)),
+      "and the regenerated artifact's GREEN must be re-earned (F3, CLI surface)",
+    );
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("progress refuses terminal outcomes through the CLI — outcome is the only terminal verb (F2)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    for (const terminal of ["GREEN", "BLOCK", "NEEDS_MANUAL_SEAM"]) {
+      assert.throws(
+        () => cli("progress", rid, sig, terminal),
+        (e) => /terminal|applyOutcome/i.test(String(e.stderr ?? e.message)),
+        `progress ${terminal} refused with the routing message`,
+      );
+    }
+    const st = cli("status", rid);
+    assert.equal(st.counts.GATED, 1, "the node is untouched by the refused calls");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("escalate validates sigs against the plan; decide's receipt names the CORRECT resolver after a re-raise", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

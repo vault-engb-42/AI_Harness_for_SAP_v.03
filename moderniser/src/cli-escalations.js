@@ -53,12 +53,14 @@ export function cmdDecide(io, pos, flags) {
   const { state } = loadRun(io, runId);
   const reg = readEscalations(io);
   const target = reg.escalations.find((e) => e.id === id && e.status === "OPEN");
-  // Temporal binding (ratified 2026-07-13): stamp the run + each node's CURRENT refinement
-  // cycle into the audited row — the verdict join requires both, so this decision can never
-  // bless a regenerated artifact or leak into another run.
-  const decided_cycles = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.cycle?.[s] ?? 0]));
+  // Temporal binding (ratified 2026-07-13; re-keyed per branch-review F4): stamp the run +
+  // each node's CURRENT artifact GENERATION into the audited row — the generation bumps on
+  // EVERY entry to GENERATED (retry AND re-entry regeneration; a pre-artifact decision
+  // stamps 0 and can never match generation ≥ 1), so this decision can never bless an
+  // artifact the human did not see, nor leak into another run.
+  const decided_generations = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.generation?.[s] ?? 0]));
   const ts = new Date().toISOString();
-  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_cycles });
+  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_generations });
   saveEscalations(io, next);
   const row = next.escalations.find((e) => e.id === id && e.status === "RESOLVED" && e.resolved_at === ts);
   log(io, runId, "decide", { id, decision, decided_by: flags.by });
