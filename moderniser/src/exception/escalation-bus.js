@@ -63,7 +63,7 @@ export function raiseEscalation(register, e, { ts }) {
  * run can never inherit an attestation, and a pre-artifact decision (generation 0) never
  * blesses generation ≥ 1.
  */
-export function resolveEscalation(register, id, { resolved_by, ts, decision, run_id, decided_generations }) {
+export function resolveEscalation(register, id, { resolved_by, ts, decision, run_id, decided_generations, decided_epoch }) {
   const idx = register.escalations.findIndex((x) => x.id === id && x.status === "OPEN");
   if (idx < 0) throw new Error(`escalation: '${id}' is unknown or already resolved`);
   const escalations = register.escalations.map((x, i) =>
@@ -76,6 +76,7 @@ export function resolveEscalation(register, id, { resolved_by, ts, decision, run
           ...(decision !== undefined ? { decision } : {}),
           ...(run_id !== undefined ? { run_id } : {}),
           ...(decided_generations !== undefined ? { decided_generations } : {}),
+          ...(decided_epoch !== undefined ? { decided_epoch } : {}),
         }
       : x,
   );

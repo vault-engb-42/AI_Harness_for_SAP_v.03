@@ -75,7 +75,9 @@ export function cmdDecide(io, pos, flags) {
   // artifact the human did not see, nor leak into another run.
   const decided_generations = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.generation?.[s] ?? 0]));
   const ts = new Date().toISOString();
-  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_generations });
+  // decided_epoch: run_id alone cannot discriminate a --force-recreated run (same plan-hash
+  // id); the epoch stamped at plan time can (F4-escape review)
+  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_generations, decided_epoch: state.run_epoch ?? null });
   saveEscalations(io, next);
   const row = next.escalations.find((e) => e.id === id && e.status === "RESOLVED" && e.resolved_at === ts);
   log(io, runId, "decide", { id, decision, decided_by: flags.by });

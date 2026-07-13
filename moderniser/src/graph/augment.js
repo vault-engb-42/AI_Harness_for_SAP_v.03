@@ -46,6 +46,9 @@ const SEAL_PATTERNS = [
   /\bCREATE\s+OBJECT\s+\S+\s+TYPE\s*\(/i, //                 dynamic class instantiation TYPE (var)
   /\b(?:GET|CALL)\s+BADI\b/i, //                             kernel BAdI dispatch (filter/customizing-driven callee set)
   /\bPERFORM\s+[\w~/]+\s*\(\s*[\w~/]+\s*\)\s+ON\s+COMMIT/i, // PERFORM form(prog) ON COMMIT — cross-program late call
+  /\bINSERT\s+INTO\s*\(/i, //                                dynamic write-DML, INTO form (F8-escape review)
+  /\bPERFORM\s+[\w~/]+\s+IN\s+PROGRAM\b[^."]*\bON\s+COMMIT/i, // PERFORM f IN PROGRAM p ON COMMIT — same late call, keyword form
+  /\bPERFORM\s+[\w~/]+\s+IN\s+PROGRAM\s*\(/i, //             dynamic program name — unknowable callee
 ];
 
 // Enhancement markers are load-bearing COMMENTS in abapGit-serialized source

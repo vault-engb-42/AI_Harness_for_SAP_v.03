@@ -321,6 +321,22 @@ test("re-entry regeneration voids the stale verdict — GREEN must be re-earned 
   assert.throws(() => applyOutcome(plan, sp, A, { status: "GREEN" }), /verdict/i, "park re-entry cannot reuse the old verdict");
 });
 
+test("applyProgress refuses GROUNDED and applyOutcome refuses non-terminals — verb symmetry (F11 escape)", () => {
+  const A = "a".repeat(64), B = "b".repeat(64);
+  const plan = mkPlan([{ id: A, dynamic_seal: "NEEDS_MANUAL_SEAM" }, { id: B, dependencies: [A] }]);
+  const st = initRun(plan);
+  // grounding through progress would bypass ALL THREE dispatch vetoes (seal probed here;
+  // readiness and park ride the same guard)
+  assert.throws(() => applyProgress(plan, st, A, "GROUNDED"), /dispatch/i, "sealed node cannot be grounded via progress");
+  assert.throws(() => applyProgress(plan, st, B, "GROUNDED"), /dispatch/i, "unready node cannot be grounded via progress");
+  // and the mirror: a phase move cannot sneak through outcome (skipping re-entry cleanup)
+  const p2 = mkPlan([{ id: A }]);
+  let sp = dispatch(p2, initRun(p2), [A]);
+  sp = applyOutcome(p2, sp, A, { status: "NEEDS_MANUAL_SEAM" });
+  assert.throws(() => applyOutcome(p2, sp, A, { status: "PENDING" }), /applyProgress|terminal/i, "re-entry goes through applyProgress (register cleanup)");
+  assert.equal(applyProgress(p2, sp, A, "PENDING").status[A], "PENDING", "the legitimate re-entry verb still works");
+});
+
 test("dispatch refuses a dynamic-sealed node — the L5 seam gate holds on direct dispatch too (F11)", () => {
   const A = "a".repeat(64), B = "b".repeat(64);
   const plan = mkPlan([{ id: A, dynamic_seal: "NEEDS_MANUAL_SEAM" }, { id: B }]);

@@ -57,7 +57,7 @@ export function renderPacket(escalation, context = {}) {
  * stamped with the named decider, resolved exactly once.
  * @returns {{escalations: object[]}} the new register
  */
-export function recordDecision(register, id, decision, { decided_by, ts, run_id, decided_generations }) {
+export function recordDecision(register, id, decision, { decided_by, ts, run_id, decided_generations, decided_epoch }) {
   if (typeof decided_by !== "string" || decided_by.length === 0) throw new Error("gate-ui: decided_by (a named human) is required");
   const e = register.escalations.find((x) => x.id === id);
   if (!e) throw new Error(`gate-ui: unknown escalation '${id}'`);
@@ -65,7 +65,7 @@ export function recordDecision(register, id, decision, { decided_by, ts, run_id,
   if (!DECISIONS[e.kind].includes(decision)) {
     throw new Error(`gate-ui: decision '${decision}' is not in ${e.kind}'s typed set [${DECISIONS[e.kind]}] — free-form decisions are refused`);
   }
-  return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision, run_id, decided_generations });
+  return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision, run_id, decided_generations, decided_epoch });
 }
 
 export { ESCALATION_KINDS };

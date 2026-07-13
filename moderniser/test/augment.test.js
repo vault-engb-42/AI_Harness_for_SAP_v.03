@@ -254,6 +254,21 @@ test("round-2 taxonomy (F8): dynamic write-DML, dynamic transaction, dynamic CRE
   }
 });
 
+test("round-2 escapes (F8 verifier): INSERT INTO (var) and PERFORM ... IN PROGRAM ... ON COMMIT seal", () => {
+  const cases = {
+    insInto: "INSERT INTO (lv_tab) VALUES @ls_row.",
+    inProgramCommit: "PERFORM upd_db IN PROGRAM zprog ON COMMIT.",
+    inProgramDyn: "PERFORM upd_db IN PROGRAM (lv_prog).", // dynamic program name → unknowable callee
+  };
+  for (const [name, src] of Object.entries(cases)) {
+    const cpg = { nodes: [{ id: "A", source: src }], edges: [] };
+    assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL, name);
+  }
+  // static IN PROGRAM without ON COMMIT stays unsealed (statically resolvable cross-program call)
+  const cpg = { nodes: [{ id: "A", source: "PERFORM init IN PROGRAM zstartup." }], edges: [] };
+  assert.equal(seal(overApproximateEdges(cpg), "A"), undefined, "plain IN PROGRAM is not a late call");
+});
+
 test("round-2 taxonomy (F8): static forms of the same statements stay UNSEALED — no over-trigger", () => {
   const cases = {
     updStatic: "UPDATE ztab SET amount = 0.",

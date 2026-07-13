@@ -119,6 +119,11 @@ export function applyProgress(plan, state, sig, nextStatus) {
   if (TERMINAL_OUTCOMES.has(nextStatus)) {
     throw new Error(`loop: ${nextStatus} is a terminal outcome — route it through applyOutcome (verdict guard, quarantine, mutex release)`);
   }
+  if (nextStatus === "GROUNDED") {
+    // grounding is dispatch's move ONLY — dispatch re-checks readiness, park, and the L5
+    // seal; PENDING→GROUNDED through this channel would bypass all three (F11 escape)
+    throw new Error(`loop: GROUNDED is dispatch's move — dispatch re-checks readiness, park, and the L5 seal`);
+  }
   const reentry = (state.status[sig] === "PARK" || state.status[sig] === "NEEDS_MANUAL_SEAM") && nextStatus === "PENDING";
   let next = setStatus(plan, state, sig, nextStatus);
   if (reentry) {
@@ -147,6 +152,11 @@ export function applyProgress(plan, state, sig, nextStatus) {
  */
 export function applyOutcome(plan, state, sig, outcome) {
   bind(plan, state);
+  if (!TERMINAL_OUTCOMES.has(outcome.status)) {
+    // mirror of applyProgress's guard: a phase move through this channel would skip the
+    // re-entry register cleanup (verb symmetry — the F11-escape review)
+    throw new Error(`loop: ${outcome.status} is not a terminal outcome — report phase moves through applyProgress`);
+  }
   if (outcome.status === "GREEN" && state.verdict_green?.[sig] !== true) {
     throw new Error(`loop: GREEN for ${sig} refused — no recorded green verdict (record one at GATED first)`);
   }

@@ -67,7 +67,11 @@ function cmdPlan(io, pos, flags) {
     throw new Error(`plan: run '${runId}' already exists — use 'resume ${runId}' (or --force to discard it)`);
   }
   savePlan(runId, plan, io.stateDir);
-  saveState(io, runId, initRun(plan));
+  // run_epoch (F4-escape review): the run id is plan-hash-derived, so `--force` recreates a
+  // run under the SAME id while escalations.json survives — the epoch makes each plan
+  // invocation a distinct attestation domain, so a discarded run's attestation can never
+  // bless the recreated run's artifact. Shell-side clock; the reducer stays pure.
+  saveState(io, runId, { ...initRun(plan), run_epoch: new Date().toISOString() });
   log(io, runId, "plan", { plan_hash: plan.plan_hash, nodes: plan.nodes.length });
   return {
     run_id: runId,
@@ -132,6 +136,7 @@ function parityAttestation(io, sig, runId, state) {
   const latest = rows[rows.length - 1];
   if (latest?.status !== "RESOLVED" || latest?.decision !== "ATTEST_EQUIVALENT") return null;
   if (latest.run_id !== runId) return null;
+  if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null; // plan --force reuses the run id; the epoch does not
   if ((latest.decided_generations?.[sig] ?? -1) !== (state.generation?.[sig] ?? 0)) return null;
   return latest.resolved_by;
 }

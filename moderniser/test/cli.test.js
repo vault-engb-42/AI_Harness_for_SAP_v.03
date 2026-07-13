@@ -479,6 +479,33 @@ test("verdict evidence missing diff_changed_lines fails CLOSED through the CLI (
   }
 });
 
+test("an attestation never survives plan --force — the recreated run cannot inherit it (F4 escape)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    const gray = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 } };
+    writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(gray), "utf8");
+    const vd = (r) => cli("verdict", r, sig, "--checkpoint", join(dirs.base, "gray.json"), "--evidence", join(dirs.base, "ev.json"));
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    const esc = cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
+    cli("decide", rid, esc.id, "ATTEST_EQUIVALENT", "--by", "j.doe");
+    assert.equal(vd(rid).green, true, "attested at this artifact → green");
+
+    // --force discards the run but reuses the SAME plan-hash-derived run id; the register
+    // survives in the state dir — the recreated walk re-reaches generation 1
+    const { run_id: rid2 } = cli("plan", FIXTURE, "--force");
+    assert.equal(rid2, rid, "the collision the escape rides on");
+    cli("dispatch", rid2, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid2, sig, s);
+    assert.equal(vd(rid2).green, false, "the human never saw the recreated run's artifact — the attestation must not leak across --force");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("progress refuses terminal outcomes through the CLI — outcome is the only terminal verb (F2)", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);
