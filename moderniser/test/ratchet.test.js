@@ -193,6 +193,52 @@ test("onPass carried-over per_object entries do NOT alias the input (deep-copied
   assert.equal(base.covBaseline.per_object.other.pct, 0.9, "input baseline entry untouched");
 });
 
+// --- Whole-branch review remediations (branch-review-2026-07-13: F1 + corrupt-baseline, A2) ---
+
+test("the DIFF side of the join fails CLOSED: missing or malformed diff_changed_lines BLOCKs (F1)", () => {
+  const withWarns = evidence({ atc_warns: [{ file: "zprog.abap", line: 10 }] });
+  // missing entirely: a gated node has BY DEFINITION been regenerated — an absent diff means
+  // the diff tool errored or the assembler dropped the field (§3.2 5.3 → FAIL)
+  const missing = ratchetGate(node({ diff_changed_lines: undefined }), withWarns, empty());
+  assert.equal(missing.verdict, "BLOCK");
+  assert.ok(missing.reasons.includes("diff-changed-lines-missing"));
+  assert.equal(missing.atc_warn_delta, 1, "fail-closed delta — the downstream verdict must also block");
+  // malformed shapes must not silently join to delta 0
+  const bad = [
+    [{ path: "zprog.abap", rows: [10] }], //     wrong keys (the report's probe shape)
+    [{ file: "zprog.abap", lines: "10" }], //    lines not an array
+    [{ file: 42, lines: [10] }], //              non-string file
+    [{ file: "zprog.abap", lines: [10.5] }], //  non-integer line
+  ];
+  for (const diff_changed_lines of bad) {
+    const r = ratchetGate(node({ diff_changed_lines }), withWarns, empty());
+    assert.equal(r.verdict, "BLOCK", JSON.stringify(diff_changed_lines));
+    assert.ok(r.reasons.includes("diff-changed-lines-malformed"));
+  }
+  // an EXPLICIT empty diff is a valid claim (nothing changed), not an absence
+  assert.equal(ratchetGate(node({ diff_changed_lines: [] }), withWarns, empty()).verdict, "PASS");
+});
+
+test("a present-but-non-finite ATC ceiling is corrupt → fail-closed, never read as seed-∞ bootstrap", () => {
+  const withWarns = evidence({ atc_warns: [{ file: "zprog.abap", line: 10 }] });
+  for (const ceiling of [null, "3", NaN]) {
+    const base = { atcBaseline: { per_object: { "sig-1": ceiling } }, covBaseline: { per_object: {} } };
+    const r = ratchetGate(node(), withWarns, base);
+    assert.equal(r.verdict, "BLOCK", String(ceiling));
+    assert.ok(r.reasons.includes("baseline-corrupt"));
+    assert.equal(r.atc_warn_delta, 1, "fail-closed delta");
+  }
+});
+
+test("a present-but-non-finite coverage_floor_pct is corrupt → fail-closed, never floor-0", () => {
+  for (const floor of [null, "0.4"]) {
+    const base = { atcBaseline: { per_object: {} }, covBaseline: { coverage_floor_pct: floor, per_object: {} } };
+    const r = ratchetGate(node(), evidence(), base);
+    assert.equal(r.verdict, "BLOCK", String(floor));
+    assert.ok(r.reasons.includes("baseline-corrupt"));
+  }
+});
+
 test("ratchet sequence is monotone: establish 2 → tighten to 1 → 2 now BLOCKs", () => {
   const n = node();
   const at = (k) => evidence({ atc_warns: Array.from({ length: k }, (_, i) => ({ file: "zprog.abap", line: 10 + (i % 3) })) });

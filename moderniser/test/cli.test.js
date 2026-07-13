@@ -19,7 +19,8 @@ const GREEN_CP = {
   activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
   invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
 };
-const GREEN_EV = { atc_p1: 0, atc_warns: [], coverage: { pct: 0.55, bite_proven: true } };
+// diff_changed_lines is REQUIRED evidence (F1): the gate fails closed without it
+const GREEN_EV = { atc_p1: 0, atc_warns: [], diff_changed_lines: [{ file: "zfico.abap", lines: [1] }], coverage: { pct: 0.55, bite_proven: true } };
 
 function run(args, opts = {}) {
   const out = execFileSync(process.execPath, [CLI, ...args], { encoding: "utf8", ...opts });
@@ -365,6 +366,24 @@ test("attestation is bound to the artifact GENERATION: pre-attestation and re-en
       (e) => /verdict/i.test(String(e.stderr ?? e.message)),
       "and the regenerated artifact's GREEN must be re-earned (F3, CLI surface)",
     );
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("verdict evidence missing diff_changed_lines fails CLOSED through the CLI (F1 — no ?? [] erasure)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    const { diff_changed_lines: _omit, ...evNoDiff } = GREEN_EV;
+    writeFileSync(join(dirs.base, "ev-nodiff.json"), JSON.stringify(evNoDiff), "utf8");
+    const v = cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "cp.json"), "--evidence", join(dirs.base, "ev-nodiff.json"));
+    assert.equal(v.green, false, "absence must propagate to the gate, never read as an empty diff");
+    assert.ok(v.reasons.includes("diff-changed-lines-missing"), JSON.stringify(v.reasons));
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }

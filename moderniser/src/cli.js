@@ -157,7 +157,9 @@ function cmdVerdict(io, pos, flags) {
   };
   const evidence = JSON.parse(readFileSync(flags.evidence, "utf8"));
   const baselines = readBaselines(io.stateDir);
-  const gateNode = { canonical_sig: sig, parity_required: node.parity_required, diff_changed_lines: evidence.diff_changed_lines ?? [] };
+  // NO `?? []` fallback: an absent diff_changed_lines must PROPAGATE so the gate fails
+  // closed (F1 — the erasure here made a missing diff indistinguishable from an empty one).
+  const gateNode = { canonical_sig: sig, parity_required: node.parity_required, diff_changed_lines: evidence.diff_changed_lines };
   const r = renderVerdict(gateNode, checkpoint, evidence, baselines);
   saveState(io, runId, recordVerdict(plan, state, sig, r)); // GATED-gated; refuses out-of-lifecycle
   if (r.green && flags.record !== undefined) {

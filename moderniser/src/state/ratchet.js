@@ -44,7 +44,7 @@ export function warnOnChangedLines(diffChangedLines, atcWarns) {
  * assembler normalises paths before calling; a mismatched convention here would silently
  * fail-open, which is why warn elements are shape-VALIDATED (fail-closed) below.
  *
- * @param {{canonical_sig: string, parity_required?: boolean, diff_changed_lines?: Array<{file: string, lines: number[]}>}} node internal typed record (scope.js emits boolean parity_required)
+ * @param {{canonical_sig: string, parity_required?: boolean, diff_changed_lines: Array<{file: string, lines: number[]}>}} node internal typed record (scope.js emits boolean parity_required); the diff is REQUIRED — absence fails closed (F1)
  * @param {{atc_p1?: number, atc_warns?: Array<{file: string, line: number}>, coverage?: {pct?: number, bite_proven?: boolean}}} evidence
  * @param {{atcBaseline: {per_object?: Record<string, number>}, covBaseline: {per_object?: Record<string, {pct: number, bite_proven: boolean}>, coverage_floor_pct?: number}}} baselines
  * @returns {{verdict: "PASS"|"BLOCK", reasons: string[], delta: number, atc_warn_delta: number}}
@@ -60,27 +60,43 @@ export function ratchetGate(node, evidence = {}, baselines) {
 
   if (node.parity_required === true && evidence.coverage?.bite_proven !== true) reasons.push("bite-not-proven");
 
+  // BOTH sides of the warn/diff join are shape-validated fail-closed (review F1: the warn
+  // side alone left a missing/malformed diff silently joining to delta 0 — a gated node has
+  // by definition been regenerated, so an absent diff means the diff tool errored, §3.2 5.3).
+  const diff = node.diff_changed_lines;
+  const diffValid =
+    Array.isArray(diff) && diff.every((d) => typeof d.file === "string" && Array.isArray(d.lines) && d.lines.every(Number.isInteger));
+  if (!Array.isArray(diff)) reasons.push("diff-changed-lines-missing");
+  else if (!diffValid) reasons.push("diff-changed-lines-malformed");
+
   let delta = 0;
   let atc_warn_delta = 1; // fail-closed default: a downstream verdict must also block
   if (!Array.isArray(evidence.atc_warns)) {
     reasons.push("atc-warns-missing"); // tool returned nothing → fail-closed
   } else if (!evidence.atc_warns.every((w) => typeof w.file === "string" && Number.isInteger(w.line))) {
     reasons.push("atc-warns-malformed"); // unmatchable entries would silently join to delta 0 → fail-closed
-  } else {
-    delta = warnOnChangedLines(node.diff_changed_lines, evidence.atc_warns);
-    const ceiling = baselines.atcBaseline.per_object?.[key] ?? Infinity; // L10 seed ∞
-    atc_warn_delta = Number.isFinite(ceiling) ? delta - ceiling : 0; // establish-pass → 0
-    if (delta > ceiling) reasons.push(`warn-delta-regressed:${delta}>${ceiling}`);
+  } else if (diffValid) {
+    delta = warnOnChangedLines(diff, evidence.atc_warns);
+    const ceiling = baselines.atcBaseline.per_object?.[key];
+    if (ceiling !== undefined && !Number.isFinite(ceiling)) {
+      reasons.push("baseline-corrupt"); // a present-but-corrupt ceiling must not read as seed-∞ bootstrap
+    } else {
+      atc_warn_delta = ceiling === undefined ? 0 : delta - ceiling; // L10 seed ∞ → establish-pass 0
+      if (ceiling !== undefined && delta > ceiling) reasons.push(`warn-delta-regressed:${delta}>${ceiling}`);
+    }
   }
 
   const pct = evidence.coverage?.pct;
   const covEntry = baselines.covBaseline.per_object?.[key];
+  const rawFloor = baselines.covBaseline.coverage_floor_pct;
   if (!Number.isFinite(pct)) {
     reasons.push("coverage-missing"); // fail-closed
   } else if (covEntry !== undefined && !Number.isFinite(covEntry.pct)) {
     reasons.push("baseline-corrupt"); // an entry with no finite pct must not fall back to the floor
+  } else if (rawFloor !== undefined && !Number.isFinite(rawFloor)) {
+    reasons.push("baseline-corrupt"); // a corrupt shipped floor must not silently read as floor-0
   } else {
-    const floor = covEntry?.pct ?? baselines.covBaseline.coverage_floor_pct ?? 0;
+    const floor = covEntry?.pct ?? rawFloor ?? 0;
     if (pct < floor) reasons.push(`coverage-regressed:${pct}<${floor}`);
   }
 
