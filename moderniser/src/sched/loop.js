@@ -97,6 +97,11 @@ export function dispatch(plan, state, sigs) {
     if (state.park_register.some((p) => p.sig === sig)) {
       throw new Error(`loop: ${sig} is parked — it re-enters only when its successor ships (L7)`);
     }
+    // Re-check the frontier's third veto too (F11): a sealed node must never reach a node
+    // driver — signature-changing modernisation waits for the human caller-set confirmation.
+    if (plan.nodes.find((n) => n.id === sig)?.dynamic_seal === "NEEDS_MANUAL_SEAM") {
+      throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
+    }
     next = setStatus(plan, next, sig, "GROUNDED");
   }
   return next;

@@ -46,8 +46,16 @@ const COMMANDS = {
 
 function cmdPlan(io, pos, flags) {
   const doc = JSON.parse(readFileSync(pos[0], "utf8"));
+  // Fail LOUD, never a vacuous zero-node run that status reports complete (F25): an
+  // adt-only/subset analyser artifact is schema-valid WITHOUT a modernization_plan.
+  if (!Array.isArray(doc.modernization_plan?.objects)) {
+    throw new Error("plan: the findings doc has no modernization_plan.objects — an adt-only/subset analyser artifact cannot drive /modernise; re-run /abap-analyser in a plan-emitting mode");
+  }
   const teamSize = parseTeamSize(flags["team-size"]);
   const { plan } = assemblePlan(doc, { generator_team_size: teamSize });
+  if (plan.nodes.length === 0) {
+    throw new Error("plan: modernization_plan.objects is empty — nothing to modernise; refusing a zero-node run that would vacuously report complete");
+  }
   const runId = validRunId(flags["run-id"] ?? `run-${plan.plan_hash.slice(0, 12)}`);
   if (existsSync(statePath(io, runId)) && flags.force === undefined) {
     throw new Error(`plan: run '${runId}' already exists — use 'resume ${runId}' (or --force to discard it)`);
@@ -122,13 +130,19 @@ function parityAttestation(io, sig, runId, state) {
   return latest.resolved_by;
 }
 
-/** The §3.4 #5/#6 audited park row (idempotent — a crash-retry must not double-park). */
+/**
+ * The §3.4 #5/#6 audited park row. REPLACE-not-skip (F17/F26): every PARK is a FRESH
+ * audited sign-off — a stale row from an earlier park episode must not shadow the new
+ * signer/justification/probe (episode history lives in git + log.jsonl; the register
+ * holds the CURRENT park). An exact crash-retry rewrites the same content — idempotent
+ * in effect.
+ */
 function parkAudit(io, sig, flags) {
   const reg = readParkRegister(io);
-  if (reg.parked.some((p) => p.node_id === sig)) return;
+  const cleared = { ...reg, parked: reg.parked.filter((p) => p.node_id !== sig) };
   saveParkRegister(
     io,
-    tryPark(reg, sig, {
+    tryPark(cleared, sig, {
       reason: flags.reason,
       signed_by: flags["signed-by"],
       justification: flags.justification,
@@ -193,7 +207,8 @@ function cmdSweepOrder(io, pos) {
         sig: d,
         object: bySig.get(d).object,
         status: state.status[d],
-        swept: ledger.swept[d] !== undefined,
+        swept: ledger.swept[d]?.result === "drafted", // a FAILED sweep left no draft to ground against (F16)
+        sweep_result: ledger.swept[d]?.result ?? null,
       })),
     }));
   return { remaining };
@@ -202,8 +217,13 @@ function cmdSweepOrder(io, pos) {
 /** Record a sweep result in the LEDGER (never loop state — the reducer's semantics stay single-meaning). */
 function cmdSweepMark(io, pos, flags) {
   const [runId, sig] = pos;
-  const { plan } = load(io, runId);
+  const { plan, state } = load(io, runId);
   if (!plan.nodes.some((n) => n.id === sig)) throw new Error(`sweep-mark: unknown node ${sig}`);
+  if (state.status[sig] !== "PENDING") {
+    // the sweep covers only what the gated pass could NOT reach — marking a gated-pass
+    // node would pollute the proof-bundle ledger (F16 secondary)
+    throw new Error(`sweep-mark: ${sig} is ${state.status[sig]} — only gated-pass-unreached (PENDING) nodes are sweepable (§6.5)`);
+  }
   const result = flags.result;
   if (result !== "drafted" && result !== "failed") {
     throw new Error(`sweep-mark: --result must be 'drafted' or 'failed' (got '${result}')`);

@@ -321,6 +321,15 @@ test("re-entry regeneration voids the stale verdict — GREEN must be re-earned 
   assert.throws(() => applyOutcome(plan, sp, A, { status: "GREEN" }), /verdict/i, "park re-entry cannot reuse the old verdict");
 });
 
+test("dispatch refuses a dynamic-sealed node — the L5 seam gate holds on direct dispatch too (F11)", () => {
+  const A = "a".repeat(64), B = "b".repeat(64);
+  const plan = mkPlan([{ id: A, dynamic_seal: "NEEDS_MANUAL_SEAM" }, { id: B }]);
+  const st = initRun(plan);
+  assert.deepEqual(nextDispatch(plan, st), [B], "the frontier veto already excludes the sealed node");
+  assert.throws(() => dispatch(plan, st, [A]), /seal|caller|L5/i, "direct dispatch must re-check the veto, like it re-checks park and readiness");
+  assert.equal(dispatch(plan, st, [B]).status[B], "GROUNDED", "unsealed nodes dispatch normally");
+});
+
 test("state is JSON-durable: a serialize/revive round-trip resumes identically", () => {
   const { plan } = assemblePlan(DOC);
   let st = initRun(plan);

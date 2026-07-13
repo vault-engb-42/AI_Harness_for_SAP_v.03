@@ -332,6 +332,96 @@ test("an attestation is bound to the ARTIFACT: a retry voids it; another run can
   }
 });
 
+test("plan fails LOUD on a findings doc without modernization_plan — never a vacuous complete run (F25)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const doc = JSON.parse(readFileSync(FIXTURE, "utf8"));
+    delete doc.modernization_plan; // schema-valid: the ADT-only analyser mode emits exactly this shape
+    writeFileSync(join(dirs.base, "no-plan.json"), JSON.stringify(doc), "utf8");
+    assert.throws(
+      () => cli("plan", join(dirs.base, "no-plan.json")),
+      (e) => /modernization_plan/i.test(String(e.stderr ?? e.message)),
+      "absent section fails loud and names the producer",
+    );
+    doc.modernization_plan = { objects: [] };
+    writeFileSync(join(dirs.base, "empty-plan.json"), JSON.stringify(doc), "utf8");
+    assert.throws(
+      () => cli("plan", join(dirs.base, "empty-plan.json")),
+      (e) => /nothing to modernise|empty/i.test(String(e.stderr ?? e.message)),
+      "a zero-node plan is refused, never complete:true",
+    );
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("a re-park after re-entry REPLACES the audit row — the register reflects the LIVE park (F17/F26)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
+    cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR",
+      "--signed-by", "alice", "--justification", "registry gap v1", "--successor-probe", "i_first");
+    cli("progress", rid, sig, "PENDING"); // successor rumoured → re-entry
+    cli("dispatch", rid, sig);
+    cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
+    cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR",
+      "--signed-by", "bob", "--justification", "successor does not cover cross-client", "--successor-probe", "i_second");
+    const reg = JSON.parse(readFileSync(join(dirs.state, "park-register.json"), "utf8"));
+    const rows = reg.parked.filter((p) => p.node_id === sig);
+    assert.equal(rows.length, 1, "one CURRENT row per node — episode history lives in git + log.jsonl");
+    assert.equal(rows[0].signed_by, "bob", "the second park's sign-off is the audited one");
+    assert.equal(rows[0].justification, "successor does not cover cross-client");
+    assert.equal(rows[0].successor_probe, "I_SECOND", "a future successor re-probe checks the CURRENT probe");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("sweep-order distinguishes drafted from failed deps; sweep-mark is PENDING-only (F16)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    // no gated pass at all: every node is PENDING and sweepable, deps sort first
+    const order = cli("sweep-order", rid);
+    assert.equal(order.remaining.length, 3);
+    const [dep1, dep2, entry] = order.remaining.map((r) => r.sig);
+    cli("sweep-mark", rid, dep1, "--result", "failed");
+    cli("sweep-mark", rid, dep2, "--result", "drafted");
+    const view = cli("sweep-order", rid).remaining.find((r) => r.sig === entry);
+    const d1 = view.dependencies.find((d) => d.sig === dep1);
+    const d2 = view.dependencies.find((d) => d.sig === dep2);
+    assert.equal(d1.swept, false, "a FAILED sweep left no draft to ground against");
+    assert.equal(d1.sweep_result, "failed", "…and the generator can see why");
+    assert.equal(d2.swept, true);
+    assert.equal(d2.sweep_result, "drafted");
+    // a gated-pass node is not sweepable — the ledger stays clean of non-PENDING pollution
+    const dirs2 = freshDirs();
+    const { cli: cli2 } = mkCli(dirs2);
+    try {
+      const { run_id: rid2 } = cli2("plan", FIXTURE);
+      const sig2 = cli2("next", rid2).ready[0].sig;
+      cli2("dispatch", rid2, sig2);
+      cli2("progress", rid2, sig2, "GENERATED");
+      cli2("progress", rid2, sig2, "SYNTAX_OK");
+      assert.throws(
+        () => cli2("sweep-mark", rid2, sig2, "--result", "drafted"),
+        (e) => /PENDING/i.test(String(e.stderr ?? e.message)),
+        "a SYNTAX_OK node was reached by the gated pass — not sweep territory",
+      );
+    } finally {
+      rmSync(dirs2.base, { recursive: true, force: true });
+    }
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("attestation is bound to the artifact GENERATION: pre-attestation and re-entry regeneration both void (F4)", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);
