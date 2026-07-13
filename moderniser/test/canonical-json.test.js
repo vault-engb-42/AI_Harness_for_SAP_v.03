@@ -12,6 +12,15 @@ test("canonicalJSON sorts object keys recursively — insertion order irrelevant
   assert.equal(a, '{"a":{"c":3,"d":4},"b":1}');
 });
 
+test("L3: non-plain objects (Date/Map/Set) throw — never a silent '{}' hash degeneracy", () => {
+  assert.throws(() => canonicalJSON(new Date(1)), /non-plain/i);
+  assert.throws(() => canonicalJSON({ t: new Map([["a", 1]]) }), /non-plain/i);
+  assert.throws(() => canonicalJSON([new Set([1])]), /non-plain/i);
+  // plain shapes are untouched, including null-prototype objects
+  assert.equal(canonicalJSON({ a: 1 }), '{"a":1}');
+  assert.equal(canonicalJSON(Object.assign(Object.create(null), { a: 1 })), '{"a":1}');
+});
+
 test("canonicalJSON preserves array order (arrays are ordered data)", () => {
   assert.equal(canonicalJSON([3, 1, 2]), "[3,1,2]");
   assert.notEqual(canonicalJSON([1, 2]), canonicalJSON([2, 1]));

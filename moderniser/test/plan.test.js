@@ -111,6 +111,26 @@ test("savePlan + loadPlan round-trips and fails closed on tamper / unknown versi
   }
 });
 
+test("L7: a tampered stored `waves` array fails the load verification", () => {
+  const dir = join(tmpdir(), `mod-plan-l7-${process.pid}-${process.hrtime()[1]}`);
+  try {
+    const plan = freezePlan({ nodes: nodesFromDoc(DOC) });
+    savePlan("r1", plan, dir);
+    const tampered = { ...plan, waves: [...plan.waves].reverse().map((w) => [...w]) };
+    writeFileSync(join(dir, "plan", "rw.plan.json"), JSON.stringify(tampered), "utf8");
+    assert.throws(() => loadPlan("rw", dir), /mismatch/, "inverted waves must not load as verified");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("L8: freezePlan refuses duplicate node ids — the frontier must never emit one sig twice", () => {
+  assert.throws(
+    () => freezePlan({ nodes: [{ id: "d".repeat(64), wave: 0 }, { id: "d".repeat(64), wave: 3 }] }),
+    /duplicate/i,
+  );
+});
+
 test("replan surfaces added / removed and gates on a removed committed node", () => {
   const nodes = nodesFromDoc(DOC);
   const prev = freezePlan({ nodes });

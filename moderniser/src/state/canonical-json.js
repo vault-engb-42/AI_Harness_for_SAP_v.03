@@ -28,6 +28,15 @@ function write(v, seen) {
   if (t === "string") return JSON.stringify(v);
   if (t === "object") {
     if (seen.has(v)) throw new Error("canonicalJSON: circular reference");
+    if (!Array.isArray(v)) {
+      // fail-closed like the function's other non-JSON postures (L3 review): a Date/Map/Set
+      // enumerates zero own keys and would silently serialize as "{}" — two DISTINCT values,
+      // one hash. Only plain (or null-prototype) objects carry hashable content.
+      const proto = Object.getPrototypeOf(v);
+      if (proto !== Object.prototype && proto !== null) {
+        throw new Error("canonicalJSON: non-plain object (Date/Map/Set/class instances have no canonical form)");
+      }
+    }
     seen.add(v);
     const out = Array.isArray(v)
       ? `[${v.map((x) => write(x, seen)).join(",")}]`

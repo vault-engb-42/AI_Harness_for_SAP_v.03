@@ -121,7 +121,10 @@ export function loadPlan(runId, stateDir = ".claude/state") {
   if (major !== PLAN_SCHEMA_VERSION.split(".")[0]) {
     throw new Error(`loadPlan: unknown plan schema_version major '${plan.schema_version}' (built for ${PLAN_SCHEMA_VERSION})`);
   }
-  if (plan.plan_hash !== planHash(plan.nodes)) {
+  // hash with the STORED waves as input (L7 review): re-deriving waves from the nodes let a
+  // tampered stored `waves` array load as verified — feeding the stored value makes any
+  // waves tamper a hash mismatch (a legit file's waves ARE the derived ones, so it matches).
+  if (plan.plan_hash !== hashPlan(canonicalNodes(plan.nodes), plan.waves)) {
     throw new Error(`loadPlan: plan_hash mismatch for run '${runId}' — corrupt or tampered plan`);
   }
   return plan;
@@ -154,7 +157,13 @@ function canonicalNodes(nodes) {
       if (Array.isArray(c.dependencies)) c.dependencies = [...new Set(c.dependencies)].sort();
       return c;
     })
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map((n, i, arr) => {
+      // duplicate ids collapse to ONE status/indegree entry in initRun while the frontier
+      // emits the sig once per node — a batch violating its own independence contract (L8)
+      if (i > 0 && arr[i - 1].id === n.id) throw new Error(`plan: duplicate node id '${n.id}'`);
+      return n;
+    });
 }
 
 /** waves[k] = the sorted node ids at the k-th distinct wave value (ascending). */
