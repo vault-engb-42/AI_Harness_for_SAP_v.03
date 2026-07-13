@@ -386,5 +386,77 @@ The /modernise shell is genuinely hard to defeat on its advertised paths — run
 ### docs-contracts
 The built moderniser core is faithful to the load-bearing contracts: §3.2's GREEN conjunction (incl. the ratified needs_review-attestation branch), §6.1's parity weights/bands/vetoes and register-only temporally-bound attestation join, §6.3's plan_hash object-wrapper + fail-closed loadPlan + status FSM, §6.4's seed-infinity signed-delta ratchet, and the §3.4 7-kind taxonomy all match code exactly, with 272/272 moderniser tests (872/872 full suite) green and every implemented CLI verb documented in SKILL.md. The drift that survives is in the docs layer, in both directions: docs promising what code does not do (L7 auth-equivalence attestation "before PASS" is unenforced and hard-nulled; §6.3/§6.5's per-node .claude/state/nodes/*.json store does not exist; L1's full RAP surface incl. .dcls is absent from the frozen artifact skeleton; seam-memory/cycle-gate/gate-packet have no executable path) and docs asserting pre-build states (the master arch-spec says moderniser is UNBUILT with "no dir exists"; the handoff contradicts itself across sections and all its "re-verified" numbers are stale — actual: 101 commits ahead, HEAD b91ad32, 872/872). None of these are runtime defects today (the affected paths are DEV-cred-gated), but merging as-is ships a master spec and a resume handoff that misdescribe the tree, and two security-adjacent contracts (auth attestation, .dcls reconciliation surface) whose enforcement currently rests on prose.
 
-### cross-cutting-seams
+### cross-cutting-seams (finder summary)
 The moderniser spine itself held up under attack: the reducer is genuinely fail-closed (FSM-guarded moves, plan_hash binding on every entry point, earned-GREEN refusal, retry-edge verdict clearing, temporally-bound PARITY_REVIEW attestations — all re-verified by probe), the CLI has zero SAP-write/child-process/network surface so P4/P5/P8 cannot be violated from this code, sig-space vs object-space joins are coherent everywhere I traced (plan ids/baselines/escalations in sig-space; members/member_meta/frontier risk in object-space, keyed consistently), and the TODO-shaped docstring debts (augment source extraction, build-step-7 auth/currency-matrix, manifest-pinned thresholds) are each genuinely recorded in MODERNISER_DESIGN.md/SESSION_HANDOFF.md, so they are ratified deferrals, not gaps. All 272 moderniser tests pass. The survivors are exactly at the cross-subsystem file seams the code cannot see: (1) the branch made the moderniser CLI a second writer of .claude/state/{atc,abapunit}-baseline.json while the first writer's contract (abap-evaluator.md) and the files' own _note fields still claim sole evaluator ownership in a per_object-less schema — an evaluator write in its documented shape silently resets every ratchet ceiling to seed-∞ (probed: BLOCK→PASS), and the design's claimed "node lock" for concurrent sessions does not exist anywhere in the repo; (2) a schema-valid subset findings doc (docFromAdtOnly emits no modernization_plan; the schema does not require it) produces a zero-node plan that `status` immediately reports complete:true — the factory declares victory on drifted input (probed); (3) the L7 park audit register misses re-parks after re-entry (probed: second signer/justification never lands) and the documented successor-probe re-check (reEnter) has no executable caller; (4) cmdVerdict commits state (verdict_green) before the baseline pair, a two-write seam whose crash residue is fail-open, contradicting cli-io's own fail-safe-tear doctrine — narrow trigger, ranked LOW honestly.
+
+---
+
+## Remediation addendum — 2026-07-13
+
+All Phases A–C+E of the remediation work order (docs/SESSION_HANDOFF.md §4) executed; every fix
+was TDD'd RED-first and then INDEPENDENTLY verified by a 23-agent Rule-11 workflow (fresh-context
+adversarial verifiers re-running THIS report's probes against the fixed HEAD; 22 completed, L3's
+verifier was re-verified inline). The verifiers confirmed 10/12 probed fix clusters closed on the
+first pass and CAUGHT THREE ESCAPES the fixes had missed — all three closed in `959e7a0` and
+covered by new RED-first tests. Suite at addendum time: **902/902** (moderniser 302/302 within it).
+
+### Disposition table (F1–F27 + L1–L15)
+
+| Finding | Disposition | Commit(s) | Independent verification |
+|---|---|---|---|
+| F1 [HIGH] ratchet diff fail-open | FIXED | 885c74a | ALL-FIXED (29 probes) |
+| F2 [HIGH] applyProgress terminal bypass | FIXED | 98d2b25 | ALL-FIXED (23 probes incl. CLI) |
+| F3 [HIGH] re-entry stale verdict | FIXED | 98d2b25 | ALL-FIXED (two-layer void proven unavoidable by FSM enumeration) |
+| F4 [HIGH] attestation binding | FIXED + escape closed | 98d2b25, 959e7a0 | probes B/C closed; verifier caught the `plan --force` same-run-id leak → run_epoch binding added |
+| F5 [HIGH] baseline second writer | FIXED | d8167eb | contract propagation verified on all 4 surfaces |
+| F6 [MED] analyser CSP test tautology | **OPERATOR CONSULT** (analyser no-touch) | — | — |
+| F7 [MED] corrupt ceiling/floor fail-open | FIXED | 885c74a | ALL-FIXED |
+| F8 [MED] seal taxonomy round 2 | FIXED + escapes closed | 407d37f, 959e7a0 | 9 constructs seal; verifier caught INSERT INTO (var) + PERFORM…IN PROGRAM…ON COMMIT → 3 patterns added |
+| F9 [MED] synthetic-edge token space | **DEFERRED → Phase D5** (augmentFromCpg adapter, operator decision) | — | — |
+| F10 [MED] stale verdict over PARK/seam re-entry | FIXED (with F3) | 98d2b25 | ALL-FIXED incl. production `reprobe` path |
+| F11 [MED] dispatch seal veto | FIXED + escape closed | e30519e, 959e7a0 | dispatch veto held; verifier caught `progress GROUNDED` bypass → applyProgress refuses GROUNDED, applyOutcome refuses non-terminals |
+| F12 [MED] augment→assemble shape no-op | **DEFERRED → Phase D5** | — | — |
+| F13 [MED] removed DCL invisible to loss | FIXED | 858be7a | ALL-FIXED (13 probes) |
+| F14 [MED] privileged re-count | FIXED | 858be7a | ALL-FIXED |
+| F15 [MED] auth_delta unconsumed | **DEFERRED → Phase D1** (wire auth attestation) | — | — |
+| F16 [MED] sweep swept/failed conflation | FIXED | e30519e | confirmed + PENDING-only guard |
+| F17 [MED] re-park audit row dropped | FIXED | e30519e | park cluster ALL-FIXED |
+| F18 [MED] SKILL unwired promises | FIXED (option a) | 60a0523 | `reprobe`/`packets` verbs confirmed working end-to-end |
+| F19 [MED] L1 artifact skeleton surface | **DEFERRED → Phase D2** | — | — |
+| F20 [MED] auth attestation doc-promised | **DEFERRED → Phase D1** | — | — |
+| F21 [MED] per-node state-file drift | **DEFERRED → Phase D3** (amend design to single-file) | — | — |
+| F22 [MED] exception family partial wiring | PARTIALLY FIXED (packets/reprobe); rest → **Phase D4** | 60a0523 | — |
+| F23 [MED] spec asserts moderniser UNBUILT | FIXED + leftovers closed | cf1a0c9, a213259 | verifier confirmed the 4 cited surfaces, caught 2 leftover lines → fixed |
+| F24 [MED] contradictory old handoff | SUPERSEDED | 566cb62 | — |
+| F25 [MED] zero-node plan vacuously complete | FIXED | e30519e | confirmed (missing section + empty list both fail loud) |
+| F26 [MED] park lifecycle incomplete | FIXED | e30519e, 60a0523 | confirmed (replace-not-skip + reprobe re-entry) |
+| F27 [LOW] conflict groups not collapsed | **OPERATOR CONSULT** (ratify code semantics vs implement collapse) | — | verifier: severity rationale refuted (mutex+frontier mitigate); drift real |
+| L1 topoWaves recursion (analyser) | CONFIRMED — **OPERATOR CONSULT** | — | verified: RangeError at ~10k chain |
+| L2 fragment mode (analyser) | CONFIRMED — **OPERATOR CONSULT** | — | verified: consumer-less |
+| L3 canonicalJSON non-plain "{}" | FIXED (verified inline — verifier died on session limit) | 0300e80 | inline probe: Date/Map→"{}", distinct dates hashed equal |
+| L4 stripComment indented '*' | FIXED | 1cfce13 | CONFIRMED; verifier corrected the probe vector (legal ABAP) |
+| L5 RESOLVABLE once per line | FIXED | 1cfce13 | CONFIRMED |
+| L6 ENHANCEMENT prose over-seal | FIXED | 1cfce13 | CONFIRMED; verifier corrected the artifact's regex (still matched prose) |
+| L7 loadPlan waves tamper | FIXED | 0300e80 | CONFIRMED; stored-waves-into-hash form per verifier |
+| L8 freezePlan duplicate ids | FIXED | 0300e80 | CONFIRMED |
+| L9 PARK malformed evidence | FIXED | 06db436 | CONFIRMED; verifier extended probe list (auth/warn-delta) — covered |
+| L10 parity successor_kind seam | FIXED (pinned + normaliser) | 06db436 | CONFIRMED; name-only contract shape recorded as extractor debt |
+| L11 vacuous throws-assertions | FIXED (throwsWith on stderr, 14 sites) | 4f061b8 | CONFIRMED |
+| L12 SKILL offline exit wedge | FIXED | a213259 | CONFIRMED; exit covers BLOCK/PARK/NMS; retry instruction added |
+| L13 §3.2#4 persisted-FAILED claim | FIXED (doc amendment + docstring) | 06db436, a213259 | CONFIRMED |
+| L14 design residual staleness bundle | FIXED | a213259 | CONFIRMED; verifier's per-item corrections applied |
+| L15 verdict-before-baselines tear | FIXED (verifier-corrected order) | 4f061b8 | CONFIRMED; GATED-guard-first shape preserves the no-out-of-lifecycle invariant |
+
+### Verifier-noted residuals (recorded, not defects)
+- Quoted-literal dynamic parens (`UPDATE ('ZTAB')`) and colon-chained statements (`CALL TRANSACTION: lv…`) are
+  statically resolvable / rare shapes outside the seal scan — candidates for the design's known-limits register.
+- F25's guard lives in cmdPlan; the library API (savePlan/saveState) could still persist a zero-node run —
+  unreachable through the CLI today.
+- Frozen-plan `dynamic_seal` never clears, so a human-confirmed seam re-enters via REPLAN only — undocumented
+  (relevant to Phase D4's cycle-gate wiring).
+
+### Open for the operator (Phase D + analyser consult)
+D1 auth-attestation wiring (F15/F20) · D2 L1 full artifact surface (F19) · D3 single-file state design
+amendment (F21) · D4 cycle-gate verbs (F22 rest) · D5 augmentFromCpg adapter + token normalisation (F9/F12) ·
+F27 conflict-collapse ratification · analyser items (F6 CSP test, L1 topoWaves, L2 fragment mode) ·
+`/analyze`→`/analyse` rename.
