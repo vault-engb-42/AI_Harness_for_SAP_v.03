@@ -7,9 +7,12 @@
  * SCOPE/build phase (offline: the bundled corpus; live: ADT `get_source`), and ABSENT
  * on the raw analyser artifact — is scanned for:
  *   - `CALL FUNCTION <var>`, dynamic method (`->(` / `=>(` / `CALL METHOD (`), dynamic
- *     `SELECT ... FROM (tab)`, dynamic `PERFORM (form)`, BTE/FQEVENTS dispatchers,
- *     `ENHANCEMENT`/`ENHO`/`ENHSPOT` → UNRESOLVED target → `dynamic_seal = NEEDS_MANUAL_SEAM`
- *     (blocks signature-changing modernisation until a human confirms the caller set).
+ *     `SELECT ... FROM (tab)`, dynamic write-DML `UPDATE/INSERT/MODIFY/DELETE (tab)`,
+ *     dynamic `PERFORM (form)`, `PERFORM form(prog) ON COMMIT`, `CALL/LEAVE TO TRANSACTION
+ *     <var>`, `CREATE OBJECT … TYPE (var)`, kernel `GET/CALL BADI`, BTE/FQEVENTS
+ *     dispatchers, `ENHANCEMENT`/`ENHO`/`ENHSPOT` → UNRESOLVED target →
+ *     `dynamic_seal = NEEDS_MANUAL_SEAM` (blocks signature-changing modernisation until a
+ *     human confirms the caller set).
  *   - `PERFORM <form> ON COMMIT`, `SET HANDLER <m> FOR <o>` (literal target) → synthetic edge.
  * A synthetic edge whose target already reaches its source over the code edges closes a
  * cycle and is tagged `possible_cycle`. Design principle (L5): fail toward "human decides
@@ -37,6 +40,12 @@ const SEAL_PATTERNS = [
   /\bCALL\s+TRANSFORMATION\s*\(/i, //          dynamic CALL TRANSFORMATION (name)
   /\bCALL\s+CUSTOMER-FUNCTION\b/i, //          classic customer exit (customizing-driven)
   /OPEN_FI_PERFORM|FQEVENTS|\bBTE_|SWE_EVENT_CREATE/i, // BTE / FQEVENTS / workflow-event dispatch (table-driven)
+  // --- round-2 families (branch-review F8 — L5: over-approximate, never under) ---
+  /\b(?:UPDATE|INSERT|MODIFY|DELETE)\s+\(\s*[\w~/]+\s*\)/i, // dynamic write-DML target (the read side seals via FROM ( above)
+  /\b(?:CALL|LEAVE\s+TO)\s+TRANSACTION\s+(?!')\S/i, //       dynamic transaction (a literal tcode opens with ')
+  /\bCREATE\s+OBJECT\s+\S+\s+TYPE\s*\(/i, //                 dynamic class instantiation TYPE (var)
+  /\b(?:GET|CALL)\s+BADI\b/i, //                             kernel BAdI dispatch (filter/customizing-driven callee set)
+  /\bPERFORM\s+[\w~/]+\s*\(\s*[\w~/]+\s*\)\s+ON\s+COMMIT/i, // PERFORM form(prog) ON COMMIT — cross-program late call
 ];
 
 // Enhancement markers are load-bearing COMMENTS in abapGit-serialized source

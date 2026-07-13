@@ -235,6 +235,42 @@ test("runtime-codegen and dynamic-dispatch families all seal (taxonomy completen
   }
 });
 
+test("round-2 taxonomy (F8): dynamic write-DML, dynamic transaction, dynamic CREATE OBJECT, kernel BAdI, PERFORM form(prog) ON COMMIT all seal", () => {
+  const cases = {
+    updDyn: "UPDATE (lv_tab) SET amount = 0.",
+    insDyn: "INSERT (lv_tab) FROM @ls_row.",
+    modDyn: "MODIFY (lv_tab) FROM TABLE @lt.",
+    delDyn: "DELETE (lv_tab) FROM TABLE @lt.",
+    callTx: "CALL TRANSACTION lv_tcode.",
+    leaveTx: "LEAVE TO TRANSACTION lv_tcode.",
+    createDyn: "CREATE OBJECT lo TYPE (lv_class).",
+    getBadi: "GET BADI lr_badi.",
+    callBadi: "CALL BADI lr_badi->process.",
+    performProgCommit: "PERFORM upd_db(zprog) ON COMMIT.",
+  };
+  for (const [name, src] of Object.entries(cases)) {
+    const cpg = { nodes: [{ id: "A", source: src }], edges: [] };
+    assert.equal(seal(overApproximateEdges(cpg), "A"), SEAL, name);
+  }
+});
+
+test("round-2 taxonomy (F8): static forms of the same statements stay UNSEALED — no over-trigger", () => {
+  const cases = {
+    updStatic: "UPDATE ztab SET amount = 0.",
+    insStatic: "INSERT ztab FROM @ls_row.",
+    delItab: "DELETE lt_rows WHERE amount = 0.",
+    modScreen: "MODIFY SCREEN.",
+    callTxLit: "CALL TRANSACTION 'MM01' AND SKIP FIRST SCREEN.",
+    createStatic: "CREATE OBJECT lo TYPE zcl_static.",
+    performPlain: "PERFORM update_totals USING lv_x.",
+    performCommitLocal: "PERFORM upd_db ON COMMIT.", // local form → RESOLVABLE synthetic edge, not a seal
+  };
+  for (const [name, src] of Object.entries(cases)) {
+    const cpg = { nodes: [{ id: "A", source: src }], edges: [] };
+    assert.equal(seal(overApproximateEdges(cpg), "A"), undefined, name);
+  }
+});
+
 function hasNoCycle(nodes, edges) {
   const indeg = new Map(nodes.map((n) => [n, 0]));
   const adj = new Map(nodes.map((n) => [n, []]));
