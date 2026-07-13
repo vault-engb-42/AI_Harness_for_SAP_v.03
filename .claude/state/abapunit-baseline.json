@@ -1,5 +1,5 @@
 {
   "coverage_floor_pct": 0,
   "per_object": {},
-  "_note": "ABAP Unit coverage ratchet floor. Only grows — coverage may only go up. Updated by abap-evaluator on PASS; never lowered."
+  "_note": "ABAP Unit coverage ratchet floor. SPLIT FIELD OWNERSHIP (MODERNISER_DESIGN 3.3#4): abap-evaluator owns coverage_floor_pct (only grows, on PASS); the moderniser CLI (verdict --record) owns per_object (per-sig {pct, bite_proven}, pct only up). Each writer read-modify-writes, preserving the other writer's fields verbatim. Never lowered."
 }

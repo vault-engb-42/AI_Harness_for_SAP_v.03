@@ -115,6 +115,7 @@ The Karpathy ratchet tightens, never loosens. On a PASS (or a WARN with no open 
 
 - Fold newly-accepted priority-2/3 ATC findings into `.claude/state/atc-baseline.json` **only** when the lane/operator accepts them — the floor may only shrink.
 - Update `.claude/state/abapunit-baseline.json` coverage **upward** only if the measured coverage exceeds the recorded baseline. Never write a lower number.
+- **Split field ownership (MODERNISER_DESIGN §3.3 #4):** this lane's writer (the evaluator) owns `accepted_priority_2_3` / `coverage_floor_pct` ONLY. The `per_object` maps in both files belong to the moderniser CLI — every baseline write is a read-modify-write that preserves `per_object` (and any unrecognised field) verbatim; a whole-file rewrite would silently reset the moderniser's ratchet ceilings to seed-∞.
 - Log the run (group ID, verdict roll-up, heal cycles used) to `.claude/state/iteration-log.md`.
 - On BLOCK, touch neither baseline — a failed run never moves the ratchet.
 

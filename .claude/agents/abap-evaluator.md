@@ -35,7 +35,7 @@ If the inputs include a `phase` and `artifact_paths`, you are in artifact mode. 
 
 - Generator summary listing the objects it produced and the local source file paths (it self-ran `check_syntax` only — it did NOT activate or run ATC/unit).
 - The object contract / stories the objects must satisfy (acceptance criteria are your checklist).
-- `.claude/state/atc-baseline.json` (accepted WARN findings — ratchet floor, only shrinks) and `.claude/state/abapunit-baseline.json` (coverage — ratchet floor, only grows).
+- `.claude/state/atc-baseline.json` (accepted WARN findings — ratchet floor, only shrinks; also carries the moderniser-owned `per_object` WARN-ceiling map) and `.claude/state/abapunit-baseline.json` (coverage — ratchet floor, only grows; also carries the moderniser-owned `per_object` coverage map). See "Ratchet update" for the split-ownership write contract.
 - Connection identity: which registered DEV connection to push against. **There is no PRD connection — if the only reachable connection is not a DEV tier, do not push; BLOCK with `failure_layer: "infrastructure"`.**
 
 ### Write-gate & connection preflight (do this FIRST, before any push)
@@ -106,9 +106,12 @@ All fields are required. `failure_layer` is `null` only on PASS. `notes` names t
 
 ## Ratchet update (only on PASS or clean WARN)
 
-The Karpathy ratchet only tightens. On a PASS (or a WARN with no BLOCK):
-- Fold any newly-accepted priority-2/3 ATC findings into `.claude/state/atc-baseline.json` **only if the operator/lane accepts them** — you record the delta; you do not silently accept new WARNs. The floor may only shrink.
-- Update `.claude/state/abapunit-baseline.json` coverage **upward** if the measured coverage exceeds the recorded baseline. Never write a lower number.
+The Karpathy ratchet only tightens, and the two baseline files have **split field ownership** (MODERNISER_DESIGN §3.3 #4) — the moderniser CLI (`verdict --record`) is a second writer keying `per_object`:
+
+- **You own** `accepted_priority_2_3` (atc-baseline.json) and `coverage_floor_pct` (abapunit-baseline.json). **The moderniser CLI owns `per_object` in BOTH files** — never write, prune, or reshape that map, even if it looks unfamiliar.
+- **Every baseline update is a READ-MODIFY-WRITE**: read the current file, change only the fields you own, and write the document back with every other field — explicitly `per_object`, and any field you do not recognise — preserved verbatim. Never write the file from a template of your own shape: a whole-file rewrite that drops `per_object` silently resets every moderniser ratchet ceiling to seed-∞ (fail-open).
+- Fold any newly-accepted priority-2/3 ATC findings into `accepted_priority_2_3` **only if the operator/lane accepts them** — you record the delta; you do not silently accept new WARNs. The floor may only shrink.
+- Update `coverage_floor_pct` **upward** only if the measured coverage exceeds it. Never write a lower number.
 - On BLOCK, touch neither baseline. A failed run never moves the ratchet.
 
 ## What you MUST NOT do (GAN discipline)

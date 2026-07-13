@@ -1,5 +1,5 @@
 {
   "variant": "ABAP_CLEAN_CORE_DEVELOPMENT",
   "accepted_priority_2_3": [],
-  "_note": "Karpathy ratchet floor for accepted ATC priority-2/3 WARN findings. Only shrinks — warnings may only go down. Updated by abap-evaluator on PASS; never touched on BLOCK."
+  "_note": "Karpathy ratchet floor. SPLIT FIELD OWNERSHIP (MODERNISER_DESIGN 3.3#4): abap-evaluator owns accepted_priority_2_3 (only shrinks, on PASS); the moderniser CLI (verdict --record) owns per_object (per-sig changed-line WARN ceilings, only down). Each writer read-modify-writes, preserving the other writer's fields verbatim. Never touched on BLOCK."
 }
