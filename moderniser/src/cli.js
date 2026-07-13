@@ -186,12 +186,18 @@ function cmdVerdict(io, pos, flags) {
   // closed (F1 — the erasure here made a missing diff indistinguishable from an empty one).
   const gateNode = { canonical_sig: sig, parity_required: node.parity_required, diff_changed_lines: evidence.diff_changed_lines };
   const r = renderVerdict(gateNode, checkpoint, evidence, baselines);
-  saveState(io, runId, recordVerdict(plan, state, sig, r)); // GATED-gated; refuses out-of-lifecycle
+  const nextState = recordVerdict(plan, state, sig, r); // PURE + GATED-gated: throws on out-of-lifecycle BEFORE anything persists
+  // Baselines BEFORE state (L15 review): the crash residue between the two writes must be
+  // fail-SAFE. Old order left verdict_green durably true with per_object never written —
+  // GREEN earnable on ceilings that were never established (fail-open). This order's residue
+  // is advanced-baselines-without-verdict: over-blocking, healed idempotently by the retry —
+  // matching cli-io's "residual tear is fail-safe by monotonicity" doctrine.
   if (r.green && flags.record !== undefined) {
     const updated = onPass(gateNode, evidence, baselines); // copy-on-write; throws on BLOCK
     writeBaselinePair(io.stateDir, updated);
     log(io, runId, "baselines-recorded", { sig, delta: r.gate.delta });
   }
+  saveState(io, runId, nextState);
   log(io, runId, "verdict", { sig, green: r.green, gate: r.gate.verdict });
   return r;
 }

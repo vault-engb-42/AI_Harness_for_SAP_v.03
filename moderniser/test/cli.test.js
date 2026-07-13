@@ -27,6 +27,15 @@ function run(args, opts = {}) {
   return JSON.parse(out);
 }
 
+/**
+ * L11: execFileSync's thrown message ("Command failed: <full argv>") matches almost any
+ * alternative regex, making `/reason|Command failed/` assertions vacuous. Assert on the
+ * CLI's actual stderr so the refusal REASON is what the test verifies.
+ */
+function throwsWith(fn, re, msg) {
+  assert.throws(fn, (e) => re.test(String(e.stderr ?? e.message)), msg);
+}
+
 function freshDirs() {
   const base = mkdtempSync(join(tmpdir(), "modernise-cli-"));
   writeFileSync(join(base, "cp.json"), JSON.stringify(GREEN_CP), "utf8");
@@ -82,7 +91,7 @@ test("outcome GREEN without a green verdict is REFUSED through the CLI (gate not
     const r1 = cli("next", rid);
     cli("dispatch", rid, r1.ready[0].sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, r1.ready[0].sig, s);
-    assert.throws(() => cli("outcome", rid, r1.ready[0].sig, "GREEN"), /verdict|Command failed/i);
+    throwsWith(() => cli("outcome", rid, r1.ready[0].sig, "GREEN"), /verdict/i);
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }
@@ -96,7 +105,7 @@ test("verdict is refused unless the node is at GATED (no out-of-lifecycle baseli
     const sig = nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR").sig;
     assert.throws(
       () => cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "cp.json"), "--evidence", join(dirs.base, "ev.json"), "--record"),
-      /GATED|Command failed/i,
+      /GATED/i,
     );
     assert.ok(!existsSync(join(dirs.state, "atc-baseline.json")), "no baseline moved");
   } finally {
@@ -135,7 +144,7 @@ test("resume verifies both hashes; a tampered state fails CLOSED", () => {
     const st = JSON.parse(readFileSync(statePath, "utf8"));
     st.plan_hash = "f".repeat(64);
     writeFileSync(statePath, JSON.stringify(st), "utf8");
-    assert.throws(() => cli("resume", rid), /plan_hash|Command failed/i);
+    throwsWith(() => cli("resume", rid), /plan_hash/i);
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }
@@ -145,15 +154,15 @@ test("guards: run-id traversal, non-positive team-size, un-ready dispatch, exist
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);
   try {
-    assert.throws(() => cli("plan", FIXTURE, "--run-id", "../../evil/pwn"), /run-id|Command failed/i, "path traversal rejected");
+    throwsWith(() => cli("plan", FIXTURE, "--run-id", "../../evil/pwn"), /run.id/i, "path traversal rejected");
     assert.ok(!existsSync(join(dirs.base, "evil")), "nothing written outside containment");
-    assert.throws(() => cli("plan", FIXTURE, "--team-size", "0"), /team-size|Command failed/i);
-    assert.throws(() => cli("plan", FIXTURE, "--team-size", "abc"), /team-size|Command failed/i);
+    throwsWith(() => cli("plan", FIXTURE, "--team-size", "0"), /team-size/i);
+    throwsWith(() => cli("plan", FIXTURE, "--team-size", "abc"), /team-size/i);
 
     const { run_id: rid, nodes } = cli("plan", FIXTURE);
     const gl = nodes.find((n) => n.object === "ZFICO_BTC_CSV_GL").sig;
-    assert.throws(() => cli("dispatch", rid, gl), /ready|Command failed/i, "GL's closure is not green");
-    assert.throws(() => cli("plan", FIXTURE), /exists|resume|Command failed/i, "re-planning a live run refused");
+    throwsWith(() => cli("dispatch", rid, gl), /ready/i, "GL's closure is not green");
+    throwsWith(() => cli("plan", FIXTURE), /exists|resume/i, "re-planning a live run refused");
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }
@@ -203,8 +212,8 @@ test("sweep-mark fails closed on unknown sigs and bogus results; re-mark is idem
   try {
     const { run_id: rid, nodes } = cli("plan", FIXTURE);
     const sig = nodes[0].sig;
-    assert.throws(() => cli("sweep-mark", rid, "9".repeat(64), "--result", "drafted"), /unknown|Command failed/i);
-    assert.throws(() => cli("sweep-mark", rid, sig, "--result", "shiny"), /result|Command failed/i);
+    throwsWith(() => cli("sweep-mark", rid, "9".repeat(64), "--result", "drafted"), /unknown/i);
+    throwsWith(() => cli("sweep-mark", rid, sig, "--result", "shiny"), /result/i);
     cli("sweep-mark", rid, sig, "--result", "failed");
     const again = cli("sweep-mark", rid, sig, "--result", "failed"); // idempotent repeat
     assert.equal(again.result, "failed");
@@ -236,8 +245,8 @@ test("escalation wiring: escalate → escalations (rate-limited) → decide writ
     assert.equal(row.decision, "RESEED_GENERATOR");
     assert.equal(row.resolved_by, "j.doe", "audited row persisted");
 
-    assert.throws(() => cli("decide", rid, raised.id, "JUST_PASS_IT", "--by", "j.doe"), /decision|Command failed/i);
-    assert.throws(() => cli("escalate", rid, "--kind", "RETRY_CEILING", "--nodes", sig), /kind|Command failed/i);
+    throwsWith(() => cli("decide", rid, raised.id, "JUST_PASS_IT", "--by", "j.doe"), /decision/i);
+    throwsWith(() => cli("escalate", rid, "--kind", "RETRY_CEILING", "--nodes", sig), /kind/i);
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }
@@ -254,7 +263,7 @@ test("PARK through the CLI enforces sign-off + justification and writes the audi
     cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
     assert.throws(
       () => cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR", "--signed-by", "j.doe"),
-      /justif|Command failed/i,
+      /justif/i,
       "no justification → refused at the executable path",
     );
     cli("outcome", rid, sig, "PARK", "--reason", "NO_RELEASED_SUCCESSOR", "--signed-by", "j.doe",
@@ -586,7 +595,7 @@ test("escalate validates sigs against the plan; decide's receipt names the CORRE
   try {
     const { run_id: rid, nodes } = cli("plan", FIXTURE);
     const sig = nodes[0].sig;
-    assert.throws(() => cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", "NOT_A_NODE"), /plan|unknown|Command failed/i);
+    throwsWith(() => cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", "NOT_A_NODE"), /plan|unknown/i);
 
     const e1 = cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig);
     cli("decide", rid, e1.id, "DEFER", "--by", "j.doe");
