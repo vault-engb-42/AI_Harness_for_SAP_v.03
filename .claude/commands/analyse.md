@@ -1,10 +1,10 @@
 ---
-name: analyze
+name: analyse
 description: Run the standalone ABAP analyser over a local abapGit bundle directory and render the code graph, findings, S/4 readiness, and blast radius here in the session.
 argument-hint: "<path-to-bundle-dir> [--package NAME]"
 ---
 
-# /analyze — run the standalone ABAP analyser on a bundle
+# /analyse — run the standalone ABAP analyser on a bundle
 
 Run the offline analyser over the bundle directory the user passed as the argument
 and present the result **in this session**. This is the no-MCP path: it invokes
@@ -34,7 +34,7 @@ comes straight back here.
 ## Notes
 
 - The report at `specs/brownfield/analyser-findings.json` is the canonical input
-  the `/readiness` lane consumes in analyser mode — running `/analyze` first, then
+  the `/readiness` lane consumes in analyser mode — running `/analyse` first, then
   `/readiness`, feeds the retire/re-platform/keep-and-clean tiering.
 - The analyser only **statically parses** the source (read-only, no execution).
   Still, for a fresh third-party clone the external-code-ingestion scan
