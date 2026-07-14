@@ -36,7 +36,7 @@ const NEST_HIGH = 8; // >=8 is deeply nested
  */
 export function codeHealth(g, findings, reg) {
   const inputs = clarityInputs(reg);
-  const { clarity, clarity_breakdown } = clarityScore(inputs);
+  const { clarity, clarity_breakdown, clarity_coverage } = clarityScore(inputs);
   const stability = stabilityScore(g, abstractnessByObject(reg));
   const performance = performanceScore(g, findings);
   const compound = Math.round((clarity + stability + performance) / 3);
@@ -44,6 +44,7 @@ export function codeHealth(g, findings, reg) {
     clean_core_grade: aggregateGrade(g?.nodes ?? []),
     clarity,
     clarity_breakdown,
+    clarity_coverage,
     stability,
     performance,
     compound,
@@ -126,6 +127,16 @@ function clarityScore(inputs) {
   return {
     clarity: objectPenalties.length ? Math.round(100 * (1 - mean(objectPenalties))) : 100,
     clarity_breakdown: { cyclomatic: axis(dim.cyclomatic), length: axis(dim.length), nesting: axis(dim.nesting), lcom: axis(dim.lcom) },
+    // Per-axis COVERAGE — how many objects each axis was measured from (LCOM* is
+    // classes-only, so a procedural package scores cohesion from few or no objects). The
+    // report renders this so a score from 1 object is never read like one from 15.
+    clarity_coverage: {
+      cyclomatic: dim.cyclomatic.length,
+      length: dim.length.length,
+      nesting: dim.nesting.length,
+      lcom: dim.lcom.length,
+      objects: objectPenalties.length,
+    },
   };
 }
 

@@ -150,16 +150,35 @@ export function codeHealthTab(doc) {
   };
   const bars = ["Clarity", "Stability", "Performance", "Compound"].map((k) => `${bar(k, ch[k.toLowerCase()])}<p class="muted small">${esc(note[k])}</p>`).join("");
   return `<h2>Code Health — grade ${esc(ch.clean_core_grade ?? "?")}</h2>${bars}
-${clarityBreakdown(ch.clarity_breakdown)}
+${clarityBreakdown(ch.clarity_breakdown, ch.clarity_coverage)}
 <h3>By object <span class="muted">(worst first)</span></h3>${perObjectHealthTable(ch.by_object)}`;
 }
 
-/** The four clarity sub-axes as bars, so the clarity number is explainable. */
-function clarityBreakdown(b) {
+// An axis measured from too few objects is not a trustworthy score — a package with one
+// class reports "cohesion" from that one class. Below the floor we render N/A instead of a
+// misleading percentage (the vacuous-100 trap). Floor: fewer than 3 objects, or under 20%
+// of the clarity population.
+const LOW_CONFIDENCE = (n, total) => n < 3 || (total > 0 && n / total < 0.2);
+
+/** The four clarity sub-axes as bars WITH coverage, so the clarity number is explainable. */
+function clarityBreakdown(b, cov = {}) {
   if (!b) return "";
+  const total = cov.objects ?? 0;
+  const KEY = { Cyclomatic: "cyclomatic", "Routine length": "length", Nesting: "nesting", "Cohesion (LCOM*)": "lcom" };
   const rows = [["Cyclomatic", b.cyclomatic], ["Routine length", b.length], ["Nesting", b.nesting], ["Cohesion (LCOM*)", b.lcom]]
-    .filter(([, v]) => v != null).map(([l, v]) => bar(l, v)).join("");
-  return `<h3>Clarity breakdown <span class="muted">(lower axis = the readability fault)</span></h3>${rows}`;
+    .map(([label, v]) => {
+      const n = cov[KEY[label]];
+      if (n === undefined) return v == null ? "" : bar(label, v); // no coverage data (legacy doc): fall back
+      if (n === 0) return "";
+      // denominator is the clarity population (code objects); LCOM* covers only the
+      // classes among them, which the h3 note explains.
+      const meta = `<span class="muted small">measured from ${n} of ${total} objects</span>`;
+      if (LOW_CONFIDENCE(n, total)) {
+        return `<div class="axis-na"><b>${esc(label)}</b> — <span class="pill">N/A</span> measured from only ${n} of ${total} objects — insufficient sample</div>`;
+      }
+      return `${bar(label, v)}${meta}`;
+    }).join("");
+  return `<h3>Clarity breakdown <span class="muted">(lower axis = the readability fault; LCOM* is defined for classes only)</span></h3>${rows}`;
 }
 
 /** Per-object health drill-down — which objects, and why, drag the package scores down. */

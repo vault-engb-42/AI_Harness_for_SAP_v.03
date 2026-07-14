@@ -43,6 +43,23 @@ test("renderHtml emits a self-contained document with all tabs", () => {
   assert.ok(html.includes("77") && html.includes("ZR"), "code_health + object data rendered");
 });
 
+test("clarity breakdown shows per-axis coverage, and renders a thin axis as N/A not a misleading %", () => {
+  const base = { package: "P", generated_at: "t", findings: [], graph: { nodes: [], edges: [] }, s4_readiness: { s4_readiness_pct: 100, cloud_readiness_pct: 0 } };
+  // well-sampled cohesion (10 of 18 classes) → shows the % WITH coverage
+  const wide = renderHtml({ ...base, code_health: { clean_core_grade: "A", clarity: 53, stability: 17, performance: 56, compound: 42,
+    clarity_breakdown: { cyclomatic: 100, length: 100, nesting: 100, lcom: 44 },
+    clarity_coverage: { cyclomatic: 15, length: 15, nesting: 15, lcom: 10, objects: 18 }, by_object: [] } });
+  assert.match(wide, /Cohesion \(LCOM\*\)[\s\S]*?44%/, "well-sampled cohesion shows its score");
+  assert.match(wide, /10\s*(?:of|\/)\s*18/, "and its coverage (10 of 18)");
+  // thin cohesion (1 of 19) → N/A, NOT '100%' (the vacuous-100 trap)
+  const thin = renderHtml({ ...base, code_health: { clean_core_grade: "D", clarity: 61, stability: 5, performance: 53, compound: 40,
+    clarity_breakdown: { cyclomatic: 83, length: 62, nesting: 96, lcom: 100 },
+    clarity_coverage: { cyclomatic: 19, length: 19, nesting: 19, lcom: 1, objects: 19 }, by_object: [] } });
+  assert.match(thin, /Cohesion \(LCOM\*\)[\s\S]*?N\/A/i, "a 1-object cohesion axis reads N/A");
+  assert.match(thin, /1\s*(?:of|\/)\s*19|classes only/i, "and explains why (1 class only)");
+  assert.doesNotMatch(thin.match(/Cohesion \(LCOM\*\)[\s\S]{0,120}/)[0], /100%/, "the vacuous 100% is never shown");
+});
+
 test("the report is labelled 'analyse output for <package>' — header, title, and executive summary", () => {
   const html = renderHtml(DOC); // DOC.package === "ZX"
   assert.match(html, /<title>analyse output for ZX<\/title>/, "browser-tab title names the package");

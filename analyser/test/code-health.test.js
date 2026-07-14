@@ -59,6 +59,21 @@ test("clarity = 100*(1 - worst-attribute penalty): short simple methods, LCOM*=0
   assert.equal(ch.compound, Math.round((50 + 100 + 100) / 3), "compound = mean of the three");
 });
 
+test("clarity_coverage reports how many objects each axis was measured from (LCOM* = classes only)", () => {
+  // one class + one procedural program: cyclomatic/length/nesting apply to BOTH,
+  // but LCOM* only to the class — so lcom coverage is 1, the others 2.
+  const reg = loadRegistry([
+    { filename: "zcl_calc.clas.abap", source: CALC },
+    { filename: "zr_proc.prog.abap", source: "REPORT zr_proc.\nFORM go.\n  IF sy-subrc = 0.\n    WRITE 'hi'.\n  ENDIF.\nENDFORM." },
+  ]);
+  const g = { nodes: [{ id: "ZCL_CALC", kind: "class", object: "ZCL_CALC" }, { id: "ZR_PROC", kind: "report", object: "ZR_PROC" }], edges: [] };
+  const ch = codeHealth(g, [], reg);
+  assert.ok(ch.clarity_coverage, "coverage emitted");
+  assert.equal(ch.clarity_coverage.lcom, 1, "LCOM* measured from the single class only");
+  assert.equal(ch.clarity_coverage.cyclomatic, 2, "cyclomatic covers both code objects");
+  assert.equal(ch.clarity_coverage.objects, 2, "total clarity population");
+});
+
 test("clarity catches a long-but-simple routine that cyclomatic misses (the FORM/monolith fix)", () => {
   // A 200-line method with ZERO branches: cyclomatic says pristine, but it reads
   // terribly. The length axis must register it -> clarity near 0. This is the exact
