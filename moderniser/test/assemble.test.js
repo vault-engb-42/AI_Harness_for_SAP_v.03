@@ -129,12 +129,16 @@ test("a RAP Business Object target expands to the L1 artifact-set skeleton in tr
     n.artifacts,
     [
       { obj_type: "cds", transport_rank: 1, name: null },
-      { obj_type: "intf", transport_rank: 2, name: null },
-      { obj_type: "class", transport_rank: 3, name: null },
-      { obj_type: "bdef", transport_rank: 4, name: null },
-      { obj_type: "test_class", transport_rank: 5, name: null },
+      { obj_type: "dcls", transport_rank: 2, name: null },
+      { obj_type: "ddlx", transport_rank: 3, name: null },
+      { obj_type: "intf", transport_rank: 4, name: null },
+      { obj_type: "class", transport_rank: 5, name: null },
+      { obj_type: "bdef", transport_rank: 6, name: null },
+      { obj_type: "srvd", transport_rank: 7, name: null },
+      { obj_type: "srvb", transport_rank: 8, name: null },
+      { obj_type: "test_class", transport_rank: 9, name: null },
     ],
-    "§3.3 #6: the full Clean-Core surface as ONE super-node; names are filled at TRANSFORM",
+    "L1/D2: the FULL Clean-Core surface as ONE super-node (incl. DCL, metadata ext, service def+binding); names are filled at TRANSFORM",
   );
 });
 

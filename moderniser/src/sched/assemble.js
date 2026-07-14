@@ -128,11 +128,19 @@ function superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper, transportOf
   return buildConflictGraph(conflictNodes).keysOf;
 }
 
-// §3.3 #6 (L1): a RAP Business Object target expands to the full Clean-Core surface as ONE
+// §3.3 #6 (L1): a RAP Business Object target expands to the FULL Clean-Core surface as ONE
 // super-node, activation-ordered by the moderniser's own _TRANSPORT_ORDER. Artifact NAMES
 // are generation-time (the node driver fills them at TRANSFORM); the plan carries the typed
 // skeleton so transport ranking and multi-artifact reconciliation are pinned up front.
-const RAP_SURFACE = [["cds", 1], ["intf", 2], ["class", 3], ["bdef", 4], ["test_class", 5]];
+// D2 (operator-ratified 2026-07-13): the surface includes the pieces L1's HIGH-severity
+// rationale mandates — .dcls (row-level auth: the P4a relocation target), .ddlx (metadata
+// extension), service definition + binding (the exposure surface IAM/comm arrangements hang
+// off). Order = activation dependency: data definition → auth → metadata → code → behaviour
+// → exposure → tests.
+const RAP_SURFACE = [
+  ["cds", 1], ["dcls", 2], ["ddlx", 3], ["intf", 4], ["class", 5],
+  ["bdef", 6], ["srvd", 7], ["srvb", 8], ["test_class", 9],
+];
 
 function artifactSkeleton(members, scopedByObject) {
   const isRap = members.some((m) => scopedByObject.get(m).modernization_target === "RAP Business Object");
