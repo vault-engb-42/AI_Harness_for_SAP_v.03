@@ -34,7 +34,21 @@ export function assemblePlan(doc, opts = {}) {
   const og = buildObjectGraph(doc);
   const scoped = scopeNodes(doc, og);
   // Stage 1 seam: augmented dynamic edges join the graph BEFORE condensation (§3.1 —
-  // a synthetic back-edge that closes a cycle must reach Tarjan); seals arrive per object.
+  // a synthetic back-edge that closes a cycle must reach Tarjan); seals arrive per object
+  // (the graph/adapt.js `augmentFromCpg` collapse — D5). FAIL CLOSED on shape drift: a seal
+  // key or edge endpoint the object graph does not know would otherwise silently no-op
+  // through condense — under-approximation, the direction L5 forbids (F12).
+  const knownIds = new Set(og.nodes.map((n) => n.id));
+  for (const k of Object.keys(opts.augment?.seals ?? {})) {
+    if (!knownIds.has(k)) {
+      throw new Error(`assemble: augment seal key '${k}' is not an object-graph node — emit OBJECT ids (graph/adapt.js), never CPG node ids`);
+    }
+  }
+  for (const e of opts.augment?.edges ?? []) {
+    if (!knownIds.has(e.source) || !knownIds.has(e.target)) {
+      throw new Error(`assemble: augment edge '${e.source}' → '${e.target}' has an endpoint unknown to the object graph — a dropped edge is exactly the cycle Tarjan exists to catch`);
+    }
+  }
   const edges = [...og.edges, ...(opts.augment?.edges ?? [])];
   const seals = opts.augment?.seals ?? {};
   const cond = tarjanCondense(og.nodes.map((n) => n.id), precedenceEdges(edges));
