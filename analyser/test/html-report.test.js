@@ -43,6 +43,14 @@ test("renderHtml emits a self-contained document with all tabs", () => {
   assert.ok(html.includes("77") && html.includes("ZR"), "code_health + object data rendered");
 });
 
+test("the report is labelled 'analyse output for <package>' — header, title, and executive summary", () => {
+  const html = renderHtml(DOC); // DOC.package === "ZX"
+  assert.match(html, /<title>analyse output for ZX<\/title>/, "browser-tab title names the package");
+  assert.match(html, /<h1>analyse output for ZX<\/h1>/, "top header names the package");
+  assert.match(html, /<h2>analyse output for ZX<\/h2>/, "executive summary carries the same label");
+  assert.ok(!html.includes("Analyse — "), "the old em-dash label is gone");
+});
+
 test("renderHtml renders the modernization Plan tab (waves + expandable transformations)", () => {
   const html = renderHtml(DOC);
   assert.ok(html.includes("Modernization Plan"), "plan heading present");

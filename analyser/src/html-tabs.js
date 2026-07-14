@@ -92,7 +92,7 @@ export function summaryTab(doc) {
     ["Customer objects", num(ns.customer_total), false], ["Clean-core grade", ch.clean_core_grade ?? "?", false],
   ].map(([l, v, hot]) => card(l, v, hot)).join("");
   const top = themes(doc).slice(0, 3).map(([fam, g]) => `<li><b>${esc(THEME[fam].t)}</b> — ${g.count} findings across ${g.objs.size} objects (${esc(THEME[fam].impact)})</li>`).join("");
-  return `<h2>Executive Summary — ${esc(doc.package ?? "")}</h2><div class="cards">${cards}</div>
+  return `<h2>analyse output for ${esc(doc.package ?? "package")}</h2><div class="cards">${cards}</div>
 ${codebaseSection(doc.metrics)}
 ${readinessSection(doc.s4_readiness)}
 ${legacyDebtSection(doc.debt)}
