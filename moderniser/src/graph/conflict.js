@@ -17,11 +17,12 @@
  *                 5) by intersecting a candidate's keys with the keys of already-chosen
  *                 nodes; direct sharing, NOT transitive group membership, so two nodes in
  *                 one cluster that share nothing directly may still co-generate.
- *   - `buckets` — node ids per shared resource key (observability + the collapse input).
- *   - `groups`  — TRANSITIVE connected components of size ≥2: the co-tenant clusters that
- *                 must move together. Plan-freeze collapses each into one ordered
- *                 (expand→contract) scheduling super-node (L4) and the per-transport
- *                 activate mutex serialises them; the ordering is applied by the
+ *   - `buckets` — node ids per shared resource key (observability).
+ *   - `groups`  — TRANSITIVE connected components of size ≥2: the co-tenant clusters.
+ *                 INFORMATIONAL output only (observability, human gate packets) — ratified
+ *                 F27 (operator 2026-07-14): no scheduler path consumes it. Serialization
+ *                 is `keysOf` (frontier direct-conflict exclusion) + the per-transport
+ *                 activate mutex; the expand→contract intra-order belongs to the
  *                 migration-safety step, not here.
  *
  * Pure. Resource metadata is injected (absent on the raw analyser CPG → empty graph).
