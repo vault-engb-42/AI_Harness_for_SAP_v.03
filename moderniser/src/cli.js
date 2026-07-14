@@ -11,7 +11,7 @@
  * a crash between state-commit and log-append is a no-op, never an FSM wedge).
  *
  * Commands:
- *   plan <findings.json> [--run-id id] [--team-size N] [--force]
+ *   plan <findings.json> [--bundle dir] [--run-id id] [--team-size N] [--force]
  *   next <run_id> · dispatch <run_id> <sig...> · progress <run_id> <sig> <STATUS>
  *   outcome <run_id> <sig> <STATUS> [--reason r] [--signed-by name]
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
@@ -25,6 +25,8 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { assemblePlan } from "./sched/assemble.js";
+import { augmentFromCpg } from "./graph/adapt.js";
+import { readBundleSources } from "./graph/sources.js";
 import { savePlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, renderVerdict, recordVerdict, runComplete } from "./sched/loop.js";
 import { onPass } from "./state/ratchet.js";
@@ -63,7 +65,12 @@ function cmdPlan(io, pos, flags) {
     throw new Error("plan: the findings doc has no modernization_plan.objects — an adt-only/subset analyser artifact cannot drive /modernise; re-run /abap-analyser in a plan-emitting mode");
   }
   const teamSize = parseTeamSize(flags["team-size"]);
-  const { plan } = assemblePlan(doc, { generator_team_size: teamSize });
+  // --bundle <dir> (gap-1, 2026-07-14): run the Stage-1 dynamic scan over the SAME abapGit
+  // bundle the analyser read — seals + synthetic cycle edges join the graph BEFORE Tarjan
+  // and become part of the frozen, hashed plan. Offline, omitting it plans an UNSEALED
+  // graph; the /modernise skill instructs passing it whenever a bundle exists (L5).
+  const augment = flags.bundle !== undefined ? augmentFromCpg(doc, readBundleSources(flags.bundle)) : undefined;
+  const { plan } = assemblePlan(doc, { generator_team_size: teamSize, ...(augment !== undefined ? { augment } : {}) });
   if (plan.nodes.length === 0) {
     throw new Error("plan: modernization_plan.objects is empty — nothing to modernise; refusing a zero-node run that would vacuously report complete");
   }

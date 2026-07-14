@@ -341,6 +341,52 @@ test("an attestation is bound to the ARTIFACT: a retry voids it; another run can
   }
 });
 
+test("gap-1: plan --bundle wires the Stage-1 dynamic scan — seals land on plan nodes and gate dispatch", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  const BUNDLE = join(HERE, "fixtures", "bundle");
+  try {
+    const sealed = cli("plan", FIXTURE, "--bundle", BUNDLE);
+    const rid = sealed.run_id;
+    // the SCR source carries CALL FUNCTION <var> → its plan node must be sealed
+    const scr = sealed.nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR");
+    assert.ok(scr, "SCR is planned");
+    const next = cli("next", rid);
+    assert.ok(!next.ready.some((r) => r.sig === scr.sig), "a sealed node never reaches the frontier (L5)");
+    assert.throws(
+      () => cli("dispatch", rid, scr.sig),
+      (e) => /seal|caller|L5/i.test(String(e.stderr ?? e.message)),
+      "direct dispatch of the sealed node is refused",
+    );
+    // without --bundle the same doc plans UNSEALED — and the plan hash records the difference
+    const dirs2 = freshDirs();
+    const { cli: cli2 } = mkCli(dirs2);
+    try {
+      const plain = cli2("plan", FIXTURE);
+      assert.notEqual(plain.plan_hash, sealed.plan_hash, "the augment is part of the frozen, hashed plan");
+      const scr2 = plain.nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR");
+      assert.deepEqual(cli2("next", plain.run_id).ready.map((r) => r.sig), [scr2.sig], "the plain plan schedules SCR first, unsealed");
+    } finally {
+      rmSync(dirs2.base, { recursive: true, force: true });
+    }
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("gap-1: plan --bundle fails loud on a missing dir — never a silent unsealed plan", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    assert.throws(
+      () => cli("plan", FIXTURE, "--bundle", join(dirs.base, "no-such-bundle")),
+      (e) => /bundle/i.test(String(e.stderr ?? e.message)),
+    );
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("plan fails LOUD on a findings doc without modernization_plan — never a vacuous complete run (F25)", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);
