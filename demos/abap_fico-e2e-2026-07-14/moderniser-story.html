@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brownfield ABAP modernisation — measured on abap_fico</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%8F%AD</text></svg>">
+</head>
+<body>
+<style>
+  :root{
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+    --ink:#eef2f8; --panel:#ffffff; --panel2:#f4f7fb; --line:#d7e0ee;
+    --text:#0a1324; --muted:#54648a;
+    --accent:#0d9488; --accent-dim:#0f766e; --win:#047857; --win-bg:#d1fae5;
+    --warn:#b45309; --crit:#b91c1c; --grid:rgba(13,148,136,.05); --shadow:0 1px 2px rgba(10,19,36,.06),0 8px 30px rgba(10,19,36,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#0a0f1a; --panel:#111a2b; --panel2:#0c1422; --line:#233149;
+      --text:#e6edf7; --muted:#8a9ab4; --accent:#2dd4bf; --accent-dim:#5eead4;
+      --win:#34d399; --win-bg:#0c3b30; --warn:#f59e0b; --crit:#f87171; --grid:rgba(45,212,191,.06); --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 40px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{ --ink:#eef2f8; --panel:#ffffff; --panel2:#f4f7fb; --line:#d7e0ee; --text:#0a1324; --muted:#54648a; --accent:#0d9488; --accent-dim:#0f766e; --win:#047857; --win-bg:#d1fae5; --warn:#b45309; --crit:#b91c1c; --grid:rgba(13,148,136,.05); --shadow:0 1px 2px rgba(10,19,36,.06),0 8px 30px rgba(10,19,36,.06); }
+  :root[data-theme="dark"]{ --ink:#0a0f1a; --panel:#111a2b; --panel2:#0c1422; --line:#233149; --text:#e6edf7; --muted:#8a9ab4; --accent:#2dd4bf; --accent-dim:#5eead4; --win:#34d399; --win-bg:#0c3b30; --warn:#f59e0b; --crit:#f87171; --grid:rgba(45,212,191,.06); --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 40px rgba(0,0,0,.35); }
+  *{box-sizing:border-box}
+  .wrap{ font-family:var(--sans); color:var(--text); background:var(--ink);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:44px 44px; margin:0; padding:0; line-height:1.62; overflow-x:hidden; }
+  .col{max-width:1000px; margin:0 auto; padding:0 24px}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); font-weight:600}
+  h1,h2,h3{text-wrap:balance; margin:0}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600}
+
+  .hero{padding:84px 0 54px; border-bottom:1px solid var(--line)}
+  .hero h1{font-size:clamp(29px,4.8vw,48px); line-height:1.1; letter-spacing:-.02em; font-weight:670; margin:18px 0 16px; max-width:22ch}
+  .hero p.lede{font-size:clamp(16px,1.9vw,18.5px); color:var(--muted); max-width:66ch; margin:0}
+  .transform{display:flex; flex-wrap:wrap; gap:14px; margin-top:38px}
+  .tcard{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 22px; box-shadow:var(--shadow); flex:1; min-width:210px; position:relative; overflow:hidden}
+  .tcard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--win)}
+  .tcard .lab{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .tcard .row{display:flex; align-items:baseline; gap:10px; margin-top:10px}
+  .tcard .from{font-family:var(--mono); font-size:21px; color:var(--muted); font-variant-numeric:tabular-nums}
+  .tcard .arw{color:var(--accent); font-size:17px}
+  .tcard .to{font-family:var(--mono); font-size:38px; font-weight:680; color:var(--win); font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+  .provenance{margin-top:32px; font-family:var(--mono); font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:8px 20px}
+  .provenance b{color:var(--text); font-weight:600}
+
+  section.band{padding:60px 0; border-bottom:1px solid var(--line)}
+  .band h2{font-size:clamp(21px,3vw,28px); letter-spacing:-.015em; font-weight:650; margin-bottom:6px}
+  .band .sub{color:var(--muted); max-width:66ch; margin-bottom:28px}
+
+  .gauges{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px}
+  .gauge{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow)}
+  .gauge .g-lab{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  .gauge .g-val{display:flex; align-items:baseline; gap:8px; margin:10px 0 12px}
+  .gauge .g-before{font-family:var(--mono); font-size:15px; color:var(--muted); font-variant-numeric:tabular-nums}
+  .gauge .g-after{font-family:var(--mono); font-size:30px; font-weight:680; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+  .gauge .g-after.up{color:var(--win)} .gauge .g-after.zero{color:var(--accent)}
+  .track{height:8px; background:var(--panel2); border:1px solid var(--line); border-radius:6px; overflow:hidden}
+  .track i{display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--win)); width:0; transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .track.rev i{background:linear-gradient(90deg,var(--win),var(--accent))}
+  .g-delta{font-family:var(--mono); font-size:12px; color:var(--win); margin-top:8px; font-variant-numeric:tabular-nums}
+
+  .scale{display:grid; grid-template-columns:1.15fr .85fr; gap:26px; align-items:center}
+  @media (max-width:760px){ .scale{grid-template-columns:1fr} }
+  .scale p{color:var(--muted); font-size:15.5px; margin:0 0 14px; max-width:60ch}
+  .scale p b{color:var(--text); font-weight:600}
+  .flowstat{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:26px; box-shadow:var(--shadow); text-align:center}
+  .flowstat .big{font-family:var(--mono); font-size:52px; font-weight:700; letter-spacing:-.02em; color:var(--win); font-variant-numeric:tabular-nums; line-height:1}
+  .flowstat .cap{font-family:var(--mono); font-size:12px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; margin-top:10px}
+  .flowstat .fdiv{height:1px; background:var(--line); margin:18px 0}
+  .flowstat .small{font-size:13px; color:var(--muted)}
+  .flowstat .small b{color:var(--text)}
+
+  .pipe{display:grid; gap:2px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden}
+  .step{background:var(--panel); padding:22px 24px; display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:start}
+  .step .n{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--accent); border:1px solid var(--accent); border-radius:8px; padding:6px 10px; letter-spacing:.05em}
+  .step h3{font-size:16px; font-weight:640; margin-bottom:4px}
+  .step h3 .k{font-family:var(--mono); font-size:12px; color:var(--muted); font-weight:500; margin-left:10px; letter-spacing:.04em}
+  .step p{margin:0; color:var(--muted); font-size:14.5px}
+
+  .honest{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:14px; padding:26px 28px; box-shadow:var(--shadow)}
+  .honest h2{font-size:21px; margin-bottom:12px}
+  .honest p{color:var(--muted); max-width:72ch; margin:0 0 12px; font-size:15px}
+  .honest p b{color:var(--text); font-weight:600}
+  .grounding{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+  .chip{font-family:var(--mono); font-size:12px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px 10px; color:var(--text)}
+  .chip s{color:var(--muted)} .chip b{color:var(--win)}
+
+  .close{padding:62px 0 80px}
+  .close h2{font-size:clamp(23px,3.2vw,32px); letter-spacing:-.02em; max-width:24ch}
+  .close .lede{color:var(--muted); font-size:17.5px; max-width:64ch; margin:14px 0 26px}
+  .artifacts{display:flex; flex-wrap:wrap; gap:12px}
+  .art{font-family:var(--mono); font-size:13px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 16px; color:var(--text); display:flex; gap:10px; align-items:center}
+  .art .d{width:7px; height:7px; border-radius:50%; background:var(--win)}
+  .foot{border-top:1px solid var(--line); padding:22px 0; font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .foot .col{display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px}
+
+  .reveal{opacity:0; transform:translateY(16px)}
+  .reveal.in{opacity:1; transform:none; transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+  @media (prefers-reduced-motion:reduce){ .reveal{opacity:1; transform:none} .track i{transition:none} }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="col">
+      <div class="eyebrow reveal">SAP ABAP · brownfield modernisation</div>
+      <h1 class="reveal">A repeatable way to move legacy ABAP toward S/4HANA Clean Core.</h1>
+      <p class="lede reveal">Modernising custom ABAP is mostly mechanical work at large scale: find the unreleased APIs, replace them with released equivalents, restructure to ABAP Cloud, keep the security intact, and verify. The moderniser does that bulk automatically and consistently — offline, grounded on SAP's released-API registry — and asks a person only where the answer genuinely needs judgment.</p>
+
+      <div class="transform">
+        <div class="tcard reveal"><div class="lab">Clean-Core grade</div><div class="row"><span class="from">D</span><span class="arw">→</span><span class="to">A</span></div></div>
+        <div class="tcard reveal"><div class="lab">S/4HANA-ready</div><div class="row"><span class="from">36%</span><span class="arw">→</span><span class="to num" data-count="100" data-suffix="%">0%</span></div></div>
+        <div class="tcard reveal"><div class="lab">ABAP Cloud-ready</div><div class="row"><span class="from">27%</span><span class="arw">→</span><span class="to num" data-count="82" data-suffix="%">0%</span></div></div>
+      </div>
+
+      <div class="provenance reveal">
+        <span>Measured on <b>abap_fico</b> — a real FI batch-posting package</span>
+        <span><b>11</b> objects</span>
+        <span><b>one</b> run</span>
+        <span><b>no</b> system connection</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="band">
+    <div class="col">
+      <h2 class="reveal">What one run produced</h2>
+      <p class="sub reveal">The analyser measured the package before, and measured the generated code after. These are the actual deltas.</p>
+      <div class="gauges">
+        <div class="gauge reveal"><div class="g-lab">S/4HANA-ready</div><div class="g-val"><span class="g-before">36%</span><span class="g-after up num" data-count="100" data-suffix="%">36%</span></div><div class="track"><i data-w="100"></i></div><div class="g-delta">+64 points</div></div>
+        <div class="gauge reveal"><div class="g-lab">ABAP Cloud-ready</div><div class="g-val"><span class="g-before">27%</span><span class="g-after up num" data-count="82" data-suffix="%">27%</span></div><div class="track"><i data-w="82"></i></div><div class="g-delta">+55 points</div></div>
+        <div class="gauge reveal"><div class="g-lab">S/4 blocker findings</div><div class="g-val"><span class="g-before">28</span><span class="g-after zero num" data-count="0">28</span></div><div class="track rev"><i data-w="4"></i></div><div class="g-delta">−28 · all cleared</div></div>
+        <div class="gauge reveal"><div class="g-lab">Unreleased-API uses</div><div class="g-val"><span class="g-before">10</span><span class="g-after zero num" data-count="0">10</span></div><div class="track rev"><i data-w="4"></i></div><div class="g-delta">−10 · all cleared</div></div>
+        <div class="gauge reveal"><div class="g-lab">Priority-1 findings</div><div class="g-val"><span class="g-before">42</span><span class="g-after up num" data-count="11">42</span></div><div class="track rev"><i data-w="26"></i></div><div class="g-delta">−31 · −74%</div></div>
+        <div class="gauge reveal"><div class="g-lab">Lint errors in output</div><div class="g-val"><span class="g-after zero num" data-count="0" style="font-size:30px">0</span></div><div class="track"><i data-w="100"></i></div><div class="g-delta">across all 11 objects</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="col">
+      <h2 class="reveal">Built for whole packages, not single objects</h2>
+      <p class="sub reveal">This is the part that matters for a real migration backlog: the work scales because a person is needed for the exceptions, not for every object.</p>
+      <div class="scale">
+        <div class="reveal">
+          <p>The unit of work is the <b>package</b>, not the object. The moderniser freezes one dependency-ordered plan across everything, then builds each object that's ready in parallel — dependencies first, the entry point last.</p>
+          <p>A person is pulled in only for the genuinely ambiguous: a dependency cycle, a piece of dynamic code whose targets can't be known statically, a security change that needs sign-off. <b>Review effort tracks the number of those exceptions, not the number of objects.</b></p>
+          <p>Running offline is what keeps that affordable. A whole package is planned and built without spending a live SAP connection per object — scarce DEV-system time is used only at the end, on the parts a human is releasing. A package of hundreds of objects is the same loop with a wider frontier.</p>
+        </div>
+        <div class="flowstat reveal">
+          <div class="big">9<span style="color:var(--muted);font-size:30px"> / 11</span></div>
+          <div class="cap">objects flowed with no human flag</div>
+          <div class="fdiv"></div>
+          <div class="small"><b>2</b> objects auto-sealed for review — the exception list, not the whole diff. At scale, that ratio is the advantage.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="col">
+      <h2 class="reveal">How it works</h2>
+      <p class="sub reveal">Four stages, in order. The control flow is deterministic code — the AI writes and evaluates the ABAP; it does not decide the schedule or the verdict.</p>
+      <div class="pipe">
+        <div class="step reveal"><div class="n">01</div><div><h3>Analyse <span class="k">offline · static</span></h3><p>A code-property-graph analyser diagnoses the legacy package — released-API compliance, dependencies, S/4 readiness — and produces a modernisation plan. No system connection; the same engine later re-checks the result.</p></div></div>
+        <div class="step reveal"><div class="n">02</div><div><h3>Plan <span class="k">dependency-ordered · frozen</span></h3><p>One immutable, bottom-up plan across the whole package. A dynamic-code scan seals any object whose runtime behaviour can't be resolved statically — those wait for a person; they are not guessed.</p></div></div>
+        <div class="step reveal"><div class="n">03</div><div><h3>Build loop <span class="k">per object, in parallel</span></h3><p>Ground → transform → check. Every proposed API is verified against the released-API registry; the target is written as Clean-Core ABAP Cloud; a rules-based check gates it before it advances. Anything unresolvable is left behind a named seam for a person.</p></div></div>
+        <div class="step reveal"><div class="n">04</div><div><h3>Review &amp; release <span class="k">human decides</span></h3><p>The run produces modernised objects and the evidence behind them. Offline it never marks an object done — the output is a reviewed draft, and a person releases the transport.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="col">
+      <div class="honest reveal">
+        <h2>Where a person stays in the loop</h2>
+        <p>The moderniser produces the work and the evidence for it — it does not sign off its own output. Offline it never declares an object finished; a person reviews the draft and releases it.</p>
+        <p>It also doesn't fill gaps by guessing. The classic blockers weren't hidden — they were <b>replaced</b> with the released successors the registry named, in code the analyser then re-measured:</p>
+        <div class="grounding">
+          <span class="chip"><s>CALL FUNCTION</s> → <b>released API</b></span>
+          <span class="chip"><s>CL_SALV_TABLE</s> → <b>Fiori Elements</b></span>
+          <span class="chip"><s>T001</s> → <b>I_CompanyCode</b></span>
+          <span class="chip"><s>SKB1</s> → <b>I_GLAccountInCompanyCode</b></span>
+          <span class="chip"><s>TBSL</s> → <b>I_PostingKey</b></span>
+          <span class="chip"><s>BSEG</s> → <b>I_OperationalAcctgDocItem</b></span>
+        </div>
+        <p style="margin-top:18px">And it reports honestly, even against itself: when the analyser re-scanned the generated code it flagged low cohesion in a few classes the rules-check had passed — a design note worth a reviewer's attention. The point is to hand you a precise, honest to-do list, not a false all-clear.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="close">
+    <div class="col">
+      <h2 class="reveal">What it changes, in plain terms</h2>
+      <p class="lede reveal">S/4 migration stops being an object-by-object manual effort. The mechanical majority — grounding, transformation, Clean-Core checking — runs automatically and repeatably, and people spend their time on the decisions that actually need them. On abap_fico that meant every S/4 blocker cleared, every unreleased-API use replaced, and a Clean-Core grade of A — from one offline run, with two objects flagged for review.</p>
+      <div class="artifacts reveal">
+        <div class="art"><span class="d"></span>analyse output — abap_fico (before)</div>
+        <div class="art"><span class="d"></span>analyse output — modernised abap_fico (after)</div>
+        <div class="art"><span class="d"></span>before → after comparison</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><div class="col"><span>SAP ABAP Harness · brownfield modernisation</span><span>offline pipeline — analyser · moderniser · released-API registry</span></div></div>
+</div>
+
+<script>
+  (function(){
+    var rm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+    var revs = [].slice.call(document.querySelectorAll(".reveal"));
+    function countUp(el){
+      var target = +el.getAttribute("data-count"), suf = el.getAttribute("data-suffix") || "", t0 = null, dur = 900;
+      if (rm){ el.textContent = target + suf; return; }
+      function tick(ts){ if(!t0) t0 = ts; var p = Math.min(1,(ts-t0)/dur), e = 1-Math.pow(1-p,3); el.textContent = Math.round(target*e) + suf; if(p<1) requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    }
+    if (!("IntersectionObserver" in window)){ revs.forEach(function(r){ r.classList.add("in"); }); return; }
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!e.isIntersecting) return;
+        var el = e.target; el.classList.add("in");
+        [].forEach.call(el.querySelectorAll("[data-count]"), countUp);
+        if (el.matches("[data-count]")) countUp(el);
+        [].forEach.call(el.querySelectorAll(".track i[data-w]"), function(i){ i.style.width = i.getAttribute("data-w")+"%"; });
+        io.unobserve(el);
+      });
+    }, {threshold:.2});
+    revs.forEach(function(r){ io.observe(r); });
+    var hero = [].slice.call(document.querySelectorAll(".hero .reveal"));
+    hero.forEach(function(r,i){ setTimeout(function(){ r.classList.add("in"); [].forEach.call(r.querySelectorAll("[data-count]"),countUp); }, rm?0:110*i); });
+  })();
+</script>
+
+</body>
+</html>

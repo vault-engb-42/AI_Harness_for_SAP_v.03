@@ -1,0 +1,14 @@
+{
+  "before": {
+    "s4": 36,
+    "cloud": 27,
+    "findings": 879,
+    "grade": "D"
+  },
+  "after": {
+    "s4": 100,
+    "cloud": 82,
+    "findings": 646,
+    "grade": "A"
+  }
+}

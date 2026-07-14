@@ -1,0 +1,109 @@
+{
+  "ZCREATE_ASSET": {
+    "errorCount": 0,
+    "warningCount": 13,
+    "files": [
+      "ZBP_ZASSETCOPYCC.clas.abap",
+      "ZC_ZASSETCOPYCC.asddls",
+      "ZI_ZASSETCOPYCC.asddls",
+      "ZR_ZASSETCOPYCC.asbdef"
+    ]
+  },
+  "ZFICO_BTC_CSV_GL": {
+    "errorCount": 0,
+    "warningCount": 43,
+    "files": [
+      "zbeh_fico_btc_csv_gl.bdef.asbdef",
+      "zbp_i_fico_btc_csv_gl.clas.abap",
+      "zcl_fico_btc_csv_gl_svc.clas.abap",
+      "zc_fico_btc_csv_gl.asddls",
+      "zc_fico_btc_csv_gl.bdef.asbdef",
+      "zi_fico_btc_csv_gl.asddls",
+      "zsd_fico_btc_csv_gl_param.asddls"
+    ]
+  },
+  "ZFICO_BTC_CSV_SCR": {
+    "errorCount": 0,
+    "warningCount": 4,
+    "files": [
+      "zcl_fico_btc_csv_params.clas.abap",
+      "zcl_fico_btc_csv_params.clas.testclasses.abap"
+    ]
+  },
+  "ZFICO_BTC_CSV_TOP": {
+    "errorCount": 0,
+    "warningCount": 8,
+    "files": [
+      "zcl_fico_btc_csv_context.clas.abap",
+      "zcl_fico_btc_csv_context.clas.testclasses.abap"
+    ]
+  },
+  "ZFICO_FUNCTIONS": {
+    "errorCount": 0,
+    "warningCount": 0,
+    "files": [
+      "zcl_fico_functions.clas.abap",
+      "zcl_fico_functions.clas.testclasses.abap"
+    ]
+  },
+  "ZFI_BTE": {
+    "errorCount": 0,
+    "warningCount": 4,
+    "files": [
+      "zcl_fi_bte.clas.abap",
+      "zcl_fi_bte.clas.testclasses.abap"
+    ]
+  },
+  "ZFI_C0001": {
+    "errorCount": 0,
+    "warningCount": 0,
+    "files": [
+      "ZBP_I_FiSubstConfig.abap",
+      "ZCL_FiSubstConfigTest.abap",
+      "ZC_FiSubstConfig.asbdef",
+      "ZC_FiSubstConfig.asddls",
+      "ZI_FiSubstConfig.asbdef",
+      "ZI_FiSubstConfig.asddls",
+      "ZSD_FiSubstConfig.asddls"
+    ]
+  },
+  "ZFI_C0002": {
+    "errorCount": 0,
+    "warningCount": 0,
+    "files": [
+      "ZBP_I_FiPaymentSubst.abap",
+      "ZCL_FiPaymentSubstTest.abap",
+      "ZC_FiPaymentSubst.asbdef",
+      "ZC_FiPaymentSubst.asddls",
+      "ZI_FiPaymentSubst.asbdef",
+      "ZI_FiPaymentSubst.asddls",
+      "ZSD_FiPaymentSubst.asddls"
+    ]
+  },
+  "ZFI_FIELDSTATUS_ANALYZE": {
+    "errorCount": 0,
+    "warningCount": 0,
+    "files": [
+      "zbeh_fldsts_glaccount.bdef.asbdef",
+      "zcl_fi_fldsts_helper.clas.abap",
+      "zc_fldsts_glaccount.asddls",
+      "zi_fldsts_glaccount.asddls"
+    ]
+  },
+  "ZFI_RGGBR000": {
+    "errorCount": 0,
+    "warningCount": 37,
+    "files": [
+      "ZCL_FI_RGGBR000.clas.abap",
+      "ZCL_FI_RGGBR000.clas.testclasses.abap"
+    ]
+  },
+  "ZFI_RGGBS000": {
+    "errorCount": 0,
+    "warningCount": 12,
+    "files": [
+      "zcl_zfi_rggbs000.clas.abap",
+      "zcl_zfi_rggbs000.clas.testclasses.abap"
+    ]
+  }
+}
