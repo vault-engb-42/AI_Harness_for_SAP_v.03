@@ -460,3 +460,34 @@ D1 auth-attestation wiring (F15/F20) · D2 L1 full artifact surface (F19) · D3 
 amendment (F21) · D4 cycle-gate verbs (F22 rest) · D5 augmentFromCpg adapter + token normalisation (F9/F12) ·
 F27 conflict-collapse ratification · analyser items (F6 CSP test, L1 topoWaves, L2 fragment mode) ·
 `/analyze`→`/analyse` rename.
+
+---
+
+## Approved-items addendum — 2026-07-14
+
+The operator approved ALL nine open items ("ALL are approved, proceed with the same TDD +
+independent-verification discipline"). Every item is implemented, TDD'd RED-first, and verified by a
+SECOND 6-cluster adversarial workflow (164 probes, **all clusters HOLD, zero escapes**). Suite: **916/916**.
+
+| Item | Disposition | Commit(s) | Independent verification |
+|---|---|---|---|
+| D1 auth-equivalence attestation (F15+F20) | WIRED — `passesAuth` conjunct (`auth-delta-unattested`), register-only join via `AUTH_EQUIVALENCE`/`ATTEST`, same run+epoch+generation binding as parity | dba93d8 | HOLDS (32 probes: forged fields, regen void, REJECT, pre-artifact, `--force` epoch, cross-kind/node/run bleed — all fail closed) |
+| D2 full Clean-Core RAP surface (F19) | EXTENDED — 9-type skeleton cds→dcls→ddlx→intf→class→bdef→srvd→srvb→test_class, design table matched | d743210 | HOLDS (12 probes) |
+| D3 single-file state model (F21) | DESIGN RATIFIED — `runs/<run_id>.state.json`; per-node sketch marked superseded | 4e8649f | HOLDS |
+| D4 cycle-gate verbs (F22 rest) | WIRED — `seams` (learned prior + min-FAS candidates) + `resolve-cycle` (seam-memory learn + audited BREAK_CYCLE decision) | f39d114 | HOLDS (28 probes incl. crash-retry replay) |
+| D5 augment adapter (F9+F12) | BUILT — `graph/adapt.js augmentFromCpg` (object-space collapse, token normalisation, unresolvable→seal) + assemblePlan fail-closed validation | d81cbe6 | HOLDS (47 probes; the original F9/F12 probes now condense the cycle into ONE break_gate super-node) |
+| F27 conflict `groups` | RATIFIED — informational output; keysOf+frontier+mutex are the serialization contract | 54ed8b1 | HOLDS (grep-verified: zero scheduler consumers) |
+| F6 CSP test tautology (analyser) | FIXED — emitted-`<script>`-bytes assertion; mutation probe confirms a wrapping regression now fails the suite | 294780b | HOLDS |
+| L1 topoWaves recursion (analyser) | FIXED — iterative explicit stack, semantics identical (chain/cycle/diamond equivalence probes); 12k-chain renders | 294780b | HOLDS |
+| L2 fragment mode (analyser) | REMOVED — no consumer; reintroduction bar documented | 294780b | HOLDS |
+| `/analyze`→`/analyse` rename | DONE — git-mv + frontmatter + spec records | 7c66cde | HOLDS (no live doc still says /analyze) |
+
+**Verifier residuals closed in `57c9da6`** (RED-first): (1) interleaved dual-row revocation — the
+attestation join now selects the latest EVENT so a temporally-final REJECT governs; (2) `resolve-cycle`
+refuses resolutions naming non-members (a typo can never become a learned prior); (3) design L1 prose
+no longer lists IAM as a typed artifact (hangs off srvd/srvb); pre-D3 `node-state.json` mentions point
+at the built store. **Recorded as intended** (no change): `passesAuth`'s `auth_delta !== true` fail-open
+(ratified L7 doctrine); D5's over-seal on non-prefixed member ids (conservative direction); F6's
+attribute-less `<script>` anchor (fails loud on regression).
+
+**Every finding in this review is now closed, ratified, or recorded-as-intended. Nothing remains open.**
