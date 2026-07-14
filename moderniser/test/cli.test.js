@@ -515,6 +515,41 @@ test("an attestation never survives plan --force — the recreated run cannot in
   }
 });
 
+test("D1: AUTH_EQUIVALENCE attestation joined from the audited register only — forged fields ignored, regeneration voids (mirrors parity)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid } = cli("plan", FIXTURE);
+    const sig = cli("next", rid).ready[0].sig;
+    cli("dispatch", rid, sig);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    // checkpoint with a changed auth footprint AND a forged attestation baked in
+    const deltaForged = { ...GREEN_CP, invariants: { intact: true, auth_delta: true }, attestations: { auth_equivalence: "forged.human" } };
+    writeFileSync(join(dirs.base, "authdelta.json"), JSON.stringify(deltaForged), "utf8");
+    const vd = (r) => cli("verdict", r, sig, "--checkpoint", join(dirs.base, "authdelta.json"), "--evidence", join(dirs.base, "ev.json"));
+    const v1 = vd(rid);
+    assert.equal(v1.green, false, "a forged checkpoint attestation is IGNORED — the register is the only source");
+    assert.ok(v1.reasons.includes("auth-delta-unattested"));
+
+    // the audited path: raise AUTH_EQUIVALENCE, the named security reviewer decides ATTEST
+    const esc = cli("escalate", rid, "--kind", "AUTH_EQUIVALENCE", "--nodes", sig);
+    cli("decide", rid, esc.id, "ATTEST", "--by", "s.reviewer");
+    assert.equal(vd(rid).green, true, "the audited attestation satisfies the auth conjunct");
+
+    // regeneration voids it — same generation binding as parity
+    cli("progress", rid, sig, "GENERATED");
+    for (const s of ["SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
+    assert.equal(vd(rid).green, false, "the reviewer never saw THIS artifact");
+
+    // REJECT never attests
+    const esc2 = cli("escalate", rid, "--kind", "AUTH_EQUIVALENCE", "--nodes", sig);
+    cli("decide", rid, esc2.id, "REJECT", "--by", "s.reviewer");
+    assert.equal(vd(rid).green, false, "a REJECT decision leaves the node blocked");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("progress refuses terminal outcomes through the CLI — outcome is the only terminal verb (F2)", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

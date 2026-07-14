@@ -5,6 +5,7 @@
  *
  *   GREEN ⇔ activated ∧ reconciled ∧ atc_p1 == 0 ∧ unit.green ∧ P4.intact
  *            ∧ auth_coverage.not_lost
+ *            ∧ (auth_delta ⇒ attested_auth)   — L7 attestation conjunct (wired 2026-07-13, D1)
  *            ∧ (parity ∈ {equivalent, PASS_STRUCTURAL} ∨ attested(needs_review))   — §6.1 attestation branch
  *            ∧ atc_warn_delta ≤ 0
  *   BLOCK ⇔ any conjunct false
@@ -43,6 +44,19 @@ function passesParity(cp) {
   return typeof att === "string" && att.length > 0;
 }
 
+/**
+ * The AUTH-attestation conjunct (operator-ratified 2026-07-13, D1 — L7: "on any non-empty
+ * auth delta, an abap-security-reviewer must sign an auth-equivalence attestation before
+ * PASS"). Mirrors parity: the attestation is joined from the audited AUTH_EQUIVALENCE
+ * register row ONLY (the CLI overwrites checkpoint-supplied fields), extra evidence on top
+ * of the green machine conjuncts, never a substitute. No footprint change → nothing owed.
+ */
+function passesAuth(cp) {
+  if (cp.invariants?.auth_delta !== true) return true;
+  const att = cp.attestations?.auth_equivalence;
+  return typeof att === "string" && att.length > 0;
+}
+
 export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   const cp = checkpoint;
   const warn = ratchet.atc_warn_delta;
@@ -60,6 +74,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
     (present(cp.atc_p1) && cp.atc_p1 !== 0) ||
     (present(cp.unit) && cp.unit?.green !== true) ||
     (present(cp.parity) && !passesParity(cp)) ||
+    !passesAuth(cp) || // an unattested footprint change was ATTEMPTED — never a clean PARK (D1)
     (present(warn) && !(Number.isFinite(warn) && warn <= 0));
   if (cp.block_reason === NO_RELEASED_SUCCESSOR && !hasDefect) {
     return { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] };
@@ -71,6 +86,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   if (cp.unit?.green !== true) reasons.push("unit-not-green");
   if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken"); // fail-closed: must PROVE intact
   if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost"); // fail-open: block only on proven loss
+  if (!passesAuth(cp)) reasons.push("auth-delta-unattested"); // L7: attestation owed BEFORE PASS (D1)
   if (!passesParity(cp)) reasons.push(`parity-not-equivalent:${cp.parity?.verdict ?? "missing"}`);
   if (!(Number.isFinite(warn) && warn <= 0)) reasons.push("warn-delta-regressed"); // non-number/missing → fail-closed
 

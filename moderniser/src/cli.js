@@ -125,18 +125,20 @@ function cmdOutcome(io, pos, flags) {
 }
 
 /**
- * The LATEST register row for (PARITY_REVIEW, sig) → the attester's name, IFF the decision
- * is temporally bound to THIS run and THIS artifact (the node's current GENERATION — it
- * bumps on every entry to GENERATED, so a retry, a re-entry re-walk, or a pre-artifact
+ * The LATEST register row for (kind, sig) → the attester's name, IFF the decision is the
+ * kind's ATTEST verb and is temporally bound to THIS run (run_id + run_epoch — `plan
+ * --force` reuses the id, never the epoch) and THIS artifact (the node's current GENERATION
+ * — it bumps on every entry to GENERATED, so a retry, a re-entry re-walk, or a pre-artifact
  * decision all mismatch). Unstamped/older rows fail closed — the human attested code this
- * artifact is not.
+ * artifact is not. Serves BOTH attestation kinds: PARITY_REVIEW/ATTEST_EQUIVALENT (§6.1)
+ * and AUTH_EQUIVALENCE/ATTEST (L7, wired 2026-07-13 — D1).
  */
-function parityAttestation(io, sig, runId, state) {
-  const rows = readEscalations(io).escalations.filter((e) => e.kind === "PARITY_REVIEW" && e.node_ids.includes(sig));
+function registerAttestation(io, sig, runId, state, kind, attestDecision) {
+  const rows = readEscalations(io).escalations.filter((e) => e.kind === kind && e.node_ids.includes(sig));
   const latest = rows[rows.length - 1];
-  if (latest?.status !== "RESOLVED" || latest?.decision !== "ATTEST_EQUIVALENT") return null;
+  if (latest?.status !== "RESOLVED" || latest?.decision !== attestDecision) return null;
   if (latest.run_id !== runId) return null;
-  if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null; // plan --force reuses the run id; the epoch does not
+  if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null;
   if ((latest.decided_generations?.[sig] ?? -1) !== (state.generation?.[sig] ?? 0)) return null;
   return latest.resolved_by;
 }
@@ -169,16 +171,18 @@ function cmdVerdict(io, pos, flags) {
   const node = plan.nodes.find((n) => n.id === sig);
   if (!node) throw new Error(`verdict: unknown node ${sig}`);
   const fileCp = JSON.parse(readFileSync(flags.checkpoint, "utf8"));
-  // Attestations are joined from the AUDITED escalations register ONLY (ratified
+  // BOTH attestations are joined from the AUDITED escalations register ONLY (ratified
   // 2026-07-12/13): checkpoint-supplied attestation fields are overwritten, so the typed
-  // `decide … ATTEST_EQUIVALENT --by <name>` verb is the single path to attest. The
-  // LATEST register row governs, and it must be TEMPORALLY BOUND to this run + this
-  // artifact (the node's current refinement cycle) — a regenerated artifact or another
-  // run can never inherit an attestation. auth_equivalence is nulled until its consumer
-  // is wired (build-step 7) — a forged field must not lie in wait.
+  // `decide … <ATTEST-verb> --by <name>` verbs are the single path to attest. The LATEST
+  // register row governs, temporally bound to this run (id + epoch) and this artifact
+  // (generation) — a regenerated artifact, a --force-recreated run, or another run can
+  // never inherit an attestation.
   const checkpoint = {
     ...fileCp,
-    attestations: { parity_equivalence: parityAttestation(io, sig, runId, state), auth_equivalence: null },
+    attestations: {
+      parity_equivalence: registerAttestation(io, sig, runId, state, "PARITY_REVIEW", "ATTEST_EQUIVALENT"),
+      auth_equivalence: registerAttestation(io, sig, runId, state, "AUTH_EQUIVALENCE", "ATTEST"),
+    },
   };
   const evidence = JSON.parse(readFileSync(flags.evidence, "utf8"));
   const baselines = readBaselines(io.stateDir);

@@ -106,6 +106,29 @@ test("PARK is REFUSED for a DEFECTIVE-output no-successor block — never a defe
   assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR }, { atc_warn_delta: 3 }).verdict, "BLOCK", "WARN regressed");
 });
 
+// --- AUTH_EQUIVALENCE attestation consumption (operator-ratified 2026-07-13, D1 — mirrors parity) ---
+
+test("D1: a non-empty auth delta BLOCKs without an audited auth-equivalence attestation (L7 'owed before PASS')", () => {
+  const delta = { invariants: { intact: true, auth_delta: true } };
+  const r = verdict(delta);
+  assert.equal(r.verdict, "BLOCK");
+  assert.ok(r.reasons.includes("auth-delta-unattested"));
+  // attested → the conjunct is satisfied; every other conjunct still required
+  const attested = { invariants: { intact: true, auth_delta: true }, attestations: { auth_equivalence: "s.reviewer" } };
+  assert.equal(verdict(attested).verdict, "GREEN");
+  assert.equal(verdict({ ...attested, unit: { green: false } }).verdict, "BLOCK", "attestation neutralises ONLY auth");
+  // null/empty is not an attestation
+  assert.equal(verdict({ ...delta, attestations: { auth_equivalence: null } }).verdict, "BLOCK");
+  assert.equal(verdict({ ...delta, attestations: { auth_equivalence: "" } }).verdict, "BLOCK");
+  // no footprint change → nothing owed
+  assert.equal(verdict({ invariants: { intact: true, auth_delta: false } }).verdict, "GREEN");
+});
+
+test("D1: an unattested auth delta is a DEFECT for the PARK guard too", () => {
+  const r = nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, invariants: { intact: true, auth_delta: true } }, {});
+  assert.equal(r.verdict, "BLOCK", "a footprint change was attempted — never a clean PARK");
+});
+
 test("L9: malformed-but-PRESENT evidence is a defect for the PARK guard — 'absent' means the KEY is absent", () => {
   const park = (cp, ratchet = {}) => nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, ...cp }, ratchet).verdict;
   assert.equal(park({}), "PARK", "genuinely absent conjuncts → the deterministic PARK class");
