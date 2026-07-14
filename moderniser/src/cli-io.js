@@ -42,6 +42,8 @@ export const readEscalations = (io) => readJson(join(io.stateDir, "escalations.j
 export const saveEscalations = (io, reg) => writeDurable(join(io.stateDir, "escalations.json"), JSON.stringify(reg, null, 2));
 export const readParkRegister = (io) => readJson(join(io.stateDir, "park-register.json"), { parked: [] });
 export const saveParkRegister = (io, reg) => writeDurable(join(io.stateDir, "park-register.json"), JSON.stringify(reg, null, 2));
+export const readSeamMemory = (io) => readJson(join(io.stateDir, "seam-memory.json"), { learned: {} });
+export const saveSeamMemory = (io, mem) => writeDurable(join(io.stateDir, "seam-memory.json"), JSON.stringify(mem, null, 2));
 
 export const saveState = (io, runId, state) => writeDurable(statePath(io, runId), JSON.stringify(state, null, 2));
 

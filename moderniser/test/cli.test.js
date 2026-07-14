@@ -515,6 +515,83 @@ test("an attestation never survives plan --force — the recreated run cannot in
   }
 });
 
+// D4 (operator-ratified): cycle-gate verbs over a minimal 2-object cycle doc
+const CYCLE_DOC = {
+  findings: [],
+  graph: {
+    nodes: [
+      { id: "ZA", object: "ZA", kind: "report", namespace: "Z" },
+      { id: "ZB", object: "ZB", kind: "report", namespace: "Z" },
+    ],
+    edges: [
+      { source: "ZA", target: "ZB", kind: "calls" },
+      { source: "ZB", target: "ZA", kind: "calls" },
+    ],
+  },
+  modernization_plan: {
+    objects: [
+      { object: "ZA", kind: "report", transformation_count: 1, transformations: [{ rule_id: "r1" }], migration_complexity: 0 },
+      { object: "ZB", kind: "report", transformation_count: 1, transformations: [{ rule_id: "r1" }], migration_complexity: 0 },
+    ],
+  },
+};
+
+test("D4: seams proposes cuts for a break_gate super-node; resolve-cycle learns + audits (F22)", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    writeFileSync(join(dirs.base, "cycle.json"), JSON.stringify(CYCLE_DOC), "utf8");
+    const { run_id: rid, nodes } = cli("plan", join(dirs.base, "cycle.json"));
+    assert.equal(nodes.length, 1, "the 2-cycle condenses to ONE break_gate super-node");
+    const sig = nodes[0].sig;
+
+    const prop = cli("seams", rid, sig, "--findings", join(dirs.base, "cycle.json"), "--budget", "1");
+    assert.equal(prop.learned, null, "no prior for a first-seen cycle");
+    assert.ok(Array.isArray(prop.seams) && prop.seams.length >= 1, "at least one cut candidate");
+    assert.ok(prop.sub_components.every((c) => c.length <= 1), "budget 1 → singleton residuals");
+
+    // the human approves a CUT — learned into seam-memory + audited BREAK_CYCLE decision
+    const r1 = cli("resolve-cycle", rid, sig, "--kind", "CUT", "--edge", "ZA,ZB", "--by", "j.doe");
+    assert.equal(r1.confidence, 0.6, "first confirmation is a strong prior, not certainty");
+    const mem = JSON.parse(readFileSync(join(dirs.state, "seam-memory.json"), "utf8"));
+    const entries = Object.values(mem.learned);
+    assert.equal(entries.length, 1);
+    assert.deepEqual(entries[0].resolution, { kind: "CUT", edge: ["ZA", "ZB"] });
+    const reg = JSON.parse(readFileSync(join(dirs.state, "escalations.json"), "utf8"));
+    const row = reg.escalations.find((e) => e.kind === "BREAK_CYCLE" && e.status === "RESOLVED");
+    assert.equal(row.decision, "CUT");
+    assert.equal(row.resolved_by, "j.doe", "audited: the named human, the typed decision");
+
+    // an identical cycle later auto-proposes the prior with RAISED (never certain) confidence
+    const r2 = cli("resolve-cycle", rid, sig, "--kind", "CUT", "--edge", "ZA,ZB", "--by", "j.doe");
+    assert.equal(r2.confidence, 0.75);
+    const prop2 = cli("seams", rid, sig, "--findings", join(dirs.base, "cycle.json"), "--budget", "1");
+    assert.equal(prop2.learned.confidence, 0.75, "the learned prior leads the next proposal");
+
+    // guards: free-form kind refused; missing signer refused; non-break_gate node refused
+    assert.throws(() => cli("resolve-cycle", rid, sig, "--kind", "JUST_REORDER", "--edge", "ZA,ZB", "--by", "j"),
+      (e) => /kind|CUT/i.test(String(e.stderr ?? e.message)));
+    assert.throws(() => cli("resolve-cycle", rid, sig, "--kind", "CUT", "--edge", "ZA,ZB"),
+      (e) => /by|human|decided/i.test(String(e.stderr ?? e.message)));
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("D4: seams refuses a non-break_gate node — nothing to cut", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    assert.throws(
+      () => cli("seams", rid, nodes[0].sig, "--findings", FIXTURE),
+      (e) => /break_gate|nothing to cut/i.test(String(e.stderr ?? e.message)),
+    );
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("D1: AUTH_EQUIVALENCE attestation joined from the audited register only — forged fields ignored, regeneration voids (mirrors parity)", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);

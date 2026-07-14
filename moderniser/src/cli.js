@@ -18,6 +18,8 @@
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
  *   packets <run_id> [--max N]                  (surfaced escalations as GatePackets, §3.4 #8)
+ *   seams <run_id> <sig> [--findings f] [--budget N]   (cycle-gate cut proposals, §3.4 #4)
+ *   resolve-cycle <run_id> <sig> --kind K [--edge a,b] --by <name>   (learn + audit the approval)
  *   status <run_id> · resume <run_id>
  * Common flags: --state-dir (default .claude/state) --runs-dir (default specs/runs)
  */
@@ -31,6 +33,7 @@ import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRe
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide } from "./cli-escalations.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
+import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -42,6 +45,8 @@ const COMMANDS = {
   "sweep-order": cmdSweepOrder,
   "sweep-mark": cmdSweepMark,
   reprobe: cmdReprobe,
+  seams: cmdSeams,
+  "resolve-cycle": cmdResolveCycle,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
   packets: cmdPackets,
