@@ -5,10 +5,11 @@
 // the report to the terminal so the analysis can be produced and read here.
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { filesFromBundle } from "./src/modes.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
 import { renderHtml } from "./src/html-report.js";
+import { compareReports, renderCompareHtml } from "./src/compare.js";
 import { toSarif } from "./src/sarif.js";
 
 const DEFAULT_OUT = "specs/brownfield/analyser-findings.json";
@@ -67,7 +68,28 @@ export function renderReport(doc, fileCount, outPath) {
 }
 
 function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const raw = process.argv.slice(2);
+  if (raw[0] === "compare") {
+    const rest = raw.slice(1);
+    const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--out", "--html", "--package", "--sarif"].includes(rest[i - 1])));
+    if (positional.length < 2) {
+      process.stderr.write("usage: node analyser/cli.js compare <before.json> <after.json> [--html file]\n");
+      process.exit(2);
+    }
+    const flags = parseArgs(rest);
+    const before = JSON.parse(readFileSync(resolve(positional[0]), "utf8"));
+    const after = JSON.parse(readFileSync(resolve(positional[1]), "utf8"));
+    const delta = compareReports(before, after);
+    if (flags.html) {
+      const htmlPath = resolve(flags.html);
+      writeFileSync(htmlPath, renderCompareHtml(delta), "utf8");
+      process.stdout.write(`before → after comparison HTML: ${htmlPath}\n`);
+    } else {
+      process.stdout.write(JSON.stringify(delta, null, 2) + "\n");
+    }
+    return;
+  }
+  const opts = parseArgs(raw);
   if (!opts.path) {
     process.stderr.write("usage: node analyser/cli.js <bundle-dir> [--package NAME] [--out file] [--html file] [--sarif file] [--json]\n");
     process.exit(2);

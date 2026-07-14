@@ -87,3 +87,29 @@ test("CLI exits non-zero on a source-less directory (no silent empty report)", (
     assert.throws(() => execFileSync(process.execPath, [CLI, dir], { encoding: "utf8", stdio: "pipe" }));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("CLI `compare before.json after.json --html` writes a self-contained before/after report", () => {
+  const dir = mkdtempSync(join(tmpdir(), "analyser-cmp-"));
+  const mk = (pkg, s4, cloud, grade) => ({ package: pkg, findings: [], code_health: { clean_core_grade: grade, clarity: 0, stability: 0, performance: 0, compound: 0, clarity_breakdown: { cyclomatic: 0, length: 0, nesting: 0, lcom: null }, clarity_coverage: { cyclomatic: 0, length: 0, nesting: 0, lcom: 0, objects: 0 } }, s4_readiness: { s4_readiness_pct: s4, cloud_readiness_pct: cloud, s4_blocker_findings: 0, cloud_blocker_findings: 0 } });
+  const before = join(dir, "b.json");
+  const after = join(dir, "a.json");
+  const html = join(dir, "cmp.html");
+  writeFileSync(before, JSON.stringify(mk("abap_fico", 36, 27, "D")), "utf8");
+  writeFileSync(after, JSON.stringify(mk("modernised abap_fico", 100, 82, "A")), "utf8");
+  try {
+    const stdout = execFileSync(process.execPath, [CLI, "compare", before, after, "--html", html], { encoding: "utf8" });
+    assert.match(stdout, /comparison HTML:/);
+    const doc = readFileSync(html, "utf8");
+    assert.match(doc, /^<!doctype html>/i);
+    assert.ok(doc.includes("abap_fico") && doc.includes("100") && doc.includes("82"), "both sides + headline numbers");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI `compare` with too few args exits non-zero", () => {
+  const dir = mkdtempSync(join(tmpdir(), "analyser-cmp2-"));
+  const b = join(dir, "b.json");
+  writeFileSync(b, "{}", "utf8");
+  try {
+    assert.throws(() => execFileSync(process.execPath, [CLI, "compare", b], { encoding: "utf8", stdio: "pipe" }));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
