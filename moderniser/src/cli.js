@@ -140,7 +140,11 @@ function cmdOutcome(io, pos, flags) {
  */
 function registerAttestation(io, sig, runId, state, kind, attestDecision) {
   const rows = readEscalations(io).escalations.filter((e) => e.kind === kind && e.node_ids.includes(sig));
-  const latest = rows[rows.length - 1];
+  // The latest EVENT governs, not the latest RAISE: an OPEN row's event is its opened_at
+  // (a re-raise voids), a RESOLVED row's is its resolved_at — so the human's temporally
+  // FINAL decision wins even across interleaved rows with overlapping node sets (the
+  // D1-verifier's revocation-gap probe). Array order breaks timestamp ties.
+  const latest = rows.reduce((a, b) => ((b.resolved_at ?? b.opened_at ?? "") >= (a.resolved_at ?? a.opened_at ?? "") ? b : a), rows[0]);
   if (latest?.status !== "RESOLVED" || latest?.decision !== attestDecision) return null;
   if (latest.run_id !== runId) return null;
   if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null;

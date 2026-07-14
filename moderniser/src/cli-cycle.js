@@ -45,6 +45,12 @@ export function cmdResolveCycle(io, pos, flags) {
   if (flags.edge !== undefined) resolution.edge = String(flags.edge).split(",").map((s) => s.trim()).filter(Boolean);
   if (flags.members !== undefined) resolution.members = String(flags.members).split(",").map((s) => s.trim()).filter(Boolean);
   if (flags.member !== undefined) resolution.member = flags.member;
+  // every named object must belong to THIS cycle — a typo'd edge/member would otherwise be
+  // learned as a 0.6-confidence nonsense prior (D4-verifier residual)
+  const memberSet = new Set(node.members);
+  for (const m of [...(resolution.edge ?? []), ...(resolution.members ?? []), ...(resolution.member !== undefined ? [resolution.member] : [])]) {
+    if (!memberSet.has(m)) throw new Error(`resolve-cycle: '${m}' is not a member of ${sig}'s cycle — refusing to learn a resolution naming foreign objects`);
+  }
   const ts = new Date().toISOString();
   // 1. LEARN (validates kind + required field; throws before anything persists)
   const memory = applyResolution(readSeamMemory(io), node.members, resolution, { ts });

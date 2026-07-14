@@ -578,6 +578,48 @@ test("D4: seams proposes cuts for a break_gate super-node; resolve-cycle learns 
   }
 });
 
+test("D1 residual: the temporally-FINAL decision governs across interleaved escalation rows", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const sigA = cli("next", rid).ready[0].sig;
+    const sigB = nodes.find((n) => n.sig !== sigA).sig;
+    cli("dispatch", rid, sigA);
+    for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sigA, s);
+    const delta = { ...GREEN_CP, invariants: { intact: true, auth_delta: true } };
+    writeFileSync(join(dirs.base, "delta.json"), JSON.stringify(delta), "utf8");
+    const vd = () => cli("verdict", rid, sigA, "--checkpoint", join(dirs.base, "delta.json"), "--evidence", join(dirs.base, "ev.json"));
+    // two OPEN rows for sigA (different node sets, so the anti-storm dedupe allows both)
+    const e1 = cli("escalate", rid, "--kind", "AUTH_EQUIVALENCE", "--nodes", sigA);
+    const e2 = cli("escalate", rid, "--kind", "AUTH_EQUIVALENCE", "--nodes", `${sigA},${sigB}`);
+    cli("decide", rid, e2.id, "ATTEST", "--by", "s.reviewer");
+    assert.equal(vd().green, true, "attested via the two-node row");
+    cli("decide", rid, e1.id, "REJECT", "--by", "s.reviewer"); // the human's LAST word
+    assert.equal(vd().green, false, "a temporally-final REJECT must not be shadowed by raise order");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
+test("D4 residual: resolve-cycle refuses a resolution naming non-members — a typo is never learned", () => {
+  const dirs = freshDirs();
+  const { cli } = mkCli(dirs);
+  try {
+    writeFileSync(join(dirs.base, "cycle.json"), JSON.stringify(CYCLE_DOC), "utf8");
+    const { run_id: rid, nodes } = cli("plan", join(dirs.base, "cycle.json"));
+    const sig = nodes[0].sig;
+    assert.throws(
+      () => cli("resolve-cycle", rid, sig, "--kind", "CUT", "--edge", "ZFOO,ZBAR", "--by", "j.doe"),
+      (e) => /member/i.test(String(e.stderr ?? e.message)),
+      "a typo'd edge must fail loud, never become a 0.6-confidence prior",
+    );
+    assert.ok(!existsSync(join(dirs.state, "seam-memory.json")), "nothing was learned");
+  } finally {
+    rmSync(dirs.base, { recursive: true, force: true });
+  }
+});
+
 test("D4: seams refuses a non-break_gate node — nothing to cut", () => {
   const dirs = freshDirs();
   const { cli } = mkCli(dirs);
