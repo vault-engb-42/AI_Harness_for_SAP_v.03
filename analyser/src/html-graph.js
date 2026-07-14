@@ -218,21 +218,49 @@ function stronglyConnected(objects, adj) {
   return comp;
 }
 
-/** Topological depth from leaves (dependencies first); cycle back-edge -> 0, no loop. */
+/**
+ * Topological depth from leaves (dependencies first); a cycle back-edge reads as depth 0
+ * at the re-entered node (contributing 1 to its caller), no loop. ITERATIVE explicit
+ * stack — this runs over the UNCAPPED object list, and a ~10k-deep dependency chain
+ * overflowed the recursive form's call stack (review L1). Result identical.
+ */
 function topoWaves(objects, adj) {
   const set = new Set(objects);
   const wave = new Map();
   const visiting = new Set();
-  const compute = (o) => {
-    if (wave.has(o)) return wave.get(o);
-    if (visiting.has(o)) return 0;
-    visiting.add(o);
-    let w = 0;
-    for (const d of adj.get(o)?.keys() ?? []) if (set.has(d)) w = Math.max(w, compute(d) + 1);
-    visiting.delete(o);
-    wave.set(o, w);
-    return w;
-  };
-  for (const o of objects) compute(o);
+  for (const root of objects) {
+    if (wave.has(root)) continue;
+    const stack = [{ o: root, deps: null, i: 0, w: 0 }];
+    while (stack.length) {
+      const f = stack[stack.length - 1];
+      if (f.deps === null) {
+        if (wave.has(f.o) || visiting.has(f.o)) {
+          stack.pop();
+          continue;
+        }
+        visiting.add(f.o);
+        f.deps = [...(adj.get(f.o)?.keys() ?? [])].filter((d) => set.has(d));
+      }
+      let descended = false;
+      while (f.i < f.deps.length) {
+        const d = f.deps[f.i];
+        if (wave.has(d)) {
+          f.w = Math.max(f.w, wave.get(d) + 1);
+          f.i += 1;
+        } else if (visiting.has(d)) {
+          f.w = Math.max(f.w, 1); // back-edge: the visiting node reads as 0 → contributes 1
+          f.i += 1;
+        } else {
+          stack.push({ o: d, deps: null, i: 0, w: 0 });
+          descended = true;
+          break;
+        }
+      }
+      if (descended) continue;
+      visiting.delete(f.o);
+      wave.set(f.o, f.w);
+      stack.pop();
+    }
+  }
   return wave;
 }

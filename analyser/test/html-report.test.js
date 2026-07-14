@@ -95,11 +95,16 @@ test("CSP hardening: script-src is hash-based (no unsafe-inline), zero inline ev
   const csp = html.match(/Content-Security-Policy" content="([^"]+)"/)[1];
   // The script XSS vector is closed: the inline script is allow-listed by SHA-256
   // hash, NOT by 'unsafe-inline'. A wrong/absent hash means the browser blocks the
-  // script and the report's interactivity dies — so assert the hash matches the bytes.
+  // script and the report's interactivity dies — so assert the hash covers the bytes
+  // the document actually EMITS, not the constant both sides share (F6: hashing APP_JS
+  // on both sides was constant-to-constant — a wrapping regression in the emitted
+  // <script> would keep the suite green while the browser blocked every control).
   assert.ok(/script-src 'sha256-[A-Za-z0-9+/=]+'/.test(csp), "script-src uses a sha256 hash allow-list");
   assert.ok(!/script-src[^;]*'unsafe-inline'/.test(csp), "script-src does NOT allow unsafe-inline");
-  const expected = createHash("sha256").update(APP_JS).digest("base64");
-  assert.ok(csp.includes("'sha256-" + expected + "'"), "CSP hash matches the emitted APP_JS bytes exactly");
+  const emitted = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  assert.equal(emitted, APP_JS, "the emitted script body IS the constant — no wrapper bytes the hash misses");
+  const expected = createHash("sha256").update(emitted).digest("base64");
+  assert.ok(csp.includes("'sha256-" + expected + "'"), "CSP hash matches the EMITTED script bytes exactly");
   // No inline HTML event-handler attributes anywhere (all converted to addEventListener),
   // so even a hypothetical escaping slip could not execute an on*= handler.
   assert.ok(!/\son[a-z]+\s*=\s*["']/i.test(html), "no inline on*= event-handler attributes");
@@ -107,6 +112,15 @@ test("CSP hardening: script-src is hash-based (no unsafe-inline), zero inline ev
   // which cannot be hashed or classed; inline styles are not a script-execution vector
   // and default-src 'none' blocks any exfiltration. Documented residual, not an oversight.
   assert.ok(/style-src 'unsafe-inline'/.test(csp), "style-src retains unsafe-inline for dynamic bar widths");
+});
+
+test("L1: a 10k-deep dependency chain renders without stack overflow (iterative topoWaves)", () => {
+  const N = 10000;
+  const nodes = Array.from({ length: N }, (_, i) => ({ id: `Z${i}`, kind: "report", object: `Z${i}`, namespace: "Z", rank: 1, clean_core_grade: "C" }));
+  const edges = Array.from({ length: N - 1 }, (_, i) => ({ source: `Z${i}`, target: `Z${i + 1}`, kind: "calls" }));
+  const deep = { ...DOC, graph: { nodes, edges } };
+  const html = renderHtml(deep); // pre-fix: RangeError (maximum call stack) inside topoWaves
+  assert.ok(html.startsWith("<!doctype html>"), "the linear-chain corpus renders");
 });
 
 test("renderHtml HTML-escapes untrusted finding-derived text (P8)", () => {

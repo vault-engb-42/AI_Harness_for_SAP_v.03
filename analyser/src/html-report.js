@@ -14,12 +14,15 @@ import { graphTab } from "./html-graph.js";
  * business-readable Recommendations tab. Renderers live in html-tabs.js; shared
  * helpers in html-util.js; CSS + client JS in html-assets.js.
  *
+ * Always a FULL standalone document: the former `opts.fragment` mode was removed (review
+ * L2, operator-ratified 2026-07-14) — it had no consumer, no test, and silently handed the
+ * script-hash CSP obligation to a host with no helper to compute it. Reintroduce it only
+ * together with a real embedding host, a test, and an exported hash helper.
+ *
  * @param {object} doc analyser-findings document
- * @param {{fragment?: boolean}} [opts] fragment=true -> body-embeddable content
- *   (host supplies skeleton + CSP); default = a full standalone document.
  * @returns {string} HTML
  */
-export function renderHtml(doc, opts = {}) {
+export function renderHtml(doc) {
   const tabs = [
     ["summary", "Summary", summaryTab(doc)],
     ["recs", "Recommendations", recommendationsTab(doc)],
@@ -38,7 +41,6 @@ export function renderHtml(doc, opts = {}) {
   const inner = `<style>${CSS}</style>
 <header><h1>Analyse — ${esc(doc.package ?? "package")}</h1><span class="chip">${(doc.graph?.nodes?.length ?? 0)} nodes · ${(doc.graph?.edges?.length ?? 0)} edges · ${(doc.findings ?? []).length} findings · S/4 ${num(doc.s4_readiness?.s4_readiness_pct)}% · run ${esc(String(doc.run_id ?? "").slice(0, 10))}</span></header>
 <nav class="tabs">${nav}</nav>${panels}<script>${APP_JS}</script>`;
-  if (opts.fragment) return inner;
   // Hash-based CSP: the single inline <script> is allow-listed by the SHA-256 of its
   // exact bytes (deterministic — APP_JS is a constant), so 'unsafe-inline' is dropped
   // from script-src, closing the XSS vector while the self-contained file keeps working.
