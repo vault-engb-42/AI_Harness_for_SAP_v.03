@@ -244,6 +244,15 @@ function setStatus(plan, state, sig, to, ctx = {}) {
       delete verdict_provisional[sig];
       next.verdict_provisional = verdict_provisional;
     }
+    // A GENERATED re-entry via the verdict-retry edge (SYNTAX_OK/GATED/PROVISIONAL_GATED→GENERATED)
+    // is a fresh generation episode, so the driver's per-episode syntax-attempt count must reset too
+    // — else the pre-detour failures shorten the new artifact's ceiling (review F1). A no-op on the
+    // first PENDING→GENERATED entry (the counter is not set yet); the PARK re-entry clears it earlier.
+    if (next.syntax_attempts?.[sig] !== undefined) {
+      const syntax_attempts = { ...next.syntax_attempts };
+      delete syntax_attempts[sig];
+      next.syntax_attempts = syntax_attempts;
+    }
   }
   if (retry) next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
   return next;

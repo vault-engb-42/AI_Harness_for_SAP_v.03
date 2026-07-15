@@ -107,6 +107,21 @@ test("driveReport rejects an unknown node (fail-closed)", () => {
   assert.throws(() => driveReport(PLAN, initRun(PLAN), "NOPE", "syntax_ok"), /unknown node/i);
 });
 
+test("a verdict-retry regen (SYNTAX_OK → GENERATED) resets syntax_attempts for the fresh episode (review F1)", () => {
+  // The counter is per-generation-episode: a re-walk (post-verdict retry, cycle-gated) is a FRESH
+  // artifact, so the pre-detour syntax failures must not shorten the new episode's ceiling.
+  let s = driveReport(PLAN, initRun(PLAN), "N1", "syntax_fail").state; // attempts 1, GENERATED
+  s = driveReport(PLAN, s, "N1", "syntax_fail").state; // attempts 2, GENERATED
+  s = driveReport(PLAN, s, "N1", "syntax_ok").state; // SYNTAX_OK — the count survives the pass
+  assert.equal(s.syntax_attempts.N1, 2, "count persists within the episode");
+  s = applyProgress(PLAN, s, "N1", "GENERATED"); // the verdict-retry regen edge — a new episode
+  assert.equal(s.syntax_attempts.N1, undefined, "the fresh episode starts with a clean ceiling");
+  // and the first failure of the new episode gets a full budget, not a premature SYNTAX_CEILING
+  const r = driveReport(PLAN, s, "N1", "syntax_fail");
+  assert.equal(r.state.syntax_attempts.N1, 1);
+  assert.equal(r.action.action, "generate", "fresh episode retries; not an immediate ceiling block");
+});
+
 test("re-entry (PARK → PENDING) clears the syntax_attempts counter", () => {
   // A node accrues a syntax attempt, then parks and re-enters; the counter must reset so the
   // re-walk starts fresh (mirrors the verdict_green/verdict_provisional voiding on re-entry).
