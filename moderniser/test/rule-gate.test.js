@@ -41,9 +41,13 @@ test("ignores a target rule_id that is not priority-1 severity", () => {
   assert.equal(g.blocked, false);
 });
 
-test("matches on either rule_id or id (analyser findings carry both)", () => {
-  const g = ruleGate({ findings: [{ id: "talos-rap-modify-no-guard", severity: "priority-1" }] });
-  assert.equal(g.blocked, true);
+test("blocks on all four scoped rules, incl. the now-precise no-guard and read-handler", () => {
+  // no-guard and read-handler were made precise in the analyser (constructor-driver skip;
+  // method-scoped read-handler) after an earlier version false-blocked valid RAP, so all four
+  // are now in scope and each blocks on a genuine priority-1 hit.
+  for (const rule_id of GAP2A_RULE_IDS) {
+    assert.equal(ruleGate({ findings: [finding({ rule_id })] }).blocked, true, `${rule_id} blocks`);
+  }
 });
 
 test("clean generated artifacts do not block", () => {
@@ -51,7 +55,7 @@ test("clean generated artifacts do not block", () => {
   assert.equal(ruleGate({}).blocked, false);
 });
 
-test("the four gap-2a rule ids are exactly the RAP-modelling + N+1 set", () => {
+test("gap-2a scope is the four analyser rules proven PRECISE on real RAP artifacts", () => {
   assert.deepEqual([...GAP2A_RULE_IDS].sort(), [
     "talos-rap-modify-entities-in-read-handler",
     "talos-rap-modify-in-loop",
