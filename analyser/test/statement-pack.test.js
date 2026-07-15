@@ -158,3 +158,31 @@ test("a MODIFY in an action method is NOT flagged just because another local cla
     "lhc_b::process is an action handler; lhc_a::process being FOR READ must not implicate it",
   );
 });
+
+// review F2: a class's FOR READ def and the offending MODIFY impl can serialize to SEPARATE
+// abapGit includes (.clas.locals_def / .clas.locals_imp). Read handlers must be gathered across
+// ALL of the object's files before any file's MODIFY is checked — a per-file set misses it.
+test("MODIFY in a read handler is flagged even when the class DEF and IMPL are in separate abapGit files (F2)", () => {
+  const def = [
+    "CLASS lhc_x DEFINITION INHERITING FROM cl_abap_behavior_handler.",
+    "  PRIVATE SECTION.",
+    "    METHODS read FOR READ IMPORTING keys FOR READ x RESULT result.",
+    "ENDCLASS.",
+  ].join("\n");
+  const imp = [
+    "CLASS lhc_x IMPLEMENTATION.",
+    "  METHOD read.",
+    "    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = k ) ) FAILED DATA(failed).",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const reg = loadRegistry([
+    { filename: "zbp_i_x.clas.locals_def.abap", source: def },
+    { filename: "zbp_i_x.clas.locals_imp.abap", source: imp },
+  ]);
+  const f = statementPack.check({ reg });
+  assert.ok(
+    f.some((x) => x.rule_id === "talos-rap-modify-entities-in-read-handler"),
+    "a read handler whose def and impl live in separate includes must still be correlated across the object's files",
+  );
+});

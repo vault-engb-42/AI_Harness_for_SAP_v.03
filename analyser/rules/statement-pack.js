@@ -98,8 +98,11 @@ export const statementPack = {
     const ddic = buildDdicIndex(ctx.reg);
     for (const obj of objectsOf(ctx.reg)) {
       if (!(obj instanceof ABAPObject)) continue;
+      // Object-scoped read-handler pre-pass (F2): a class's FOR READ defs and the MODIFY that
+      // violates them can serialize to separate includes, so gather them across ALL files first.
+      const readHandlers = collectReadHandlers(obj);
       for (const file of obj.getABAPFiles()) {
-        scanStatements(file, obj, findings, ddic);
+        scanStatements(file, obj, findings, ddic, readHandlers);
       }
     }
     return findings;
@@ -126,9 +129,9 @@ function buildDdicIndex(reg) {
   return ddic;
 }
 
-function scanStatements(file, obj, findings, ddic = new Map()) {
+function scanStatements(file, obj, findings, ddic = new Map(), readHandlers = new Set()) {
   const stmts = file.getStatements();
-  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set(), readHandlers: new Set(), ddic };
+  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set(), readHandlers, ddic };
   let depth = 0;
   let blockDepth = 0;
   let enhDepth = 0;
@@ -215,6 +218,24 @@ function trackSelect(text, st, fileState) {
     const into = /\bINTO\s+TABLE\s+@?(?:DATA\()?(\w+)\)?/i.exec(text);
     if (into) fileState.unorderedTables.add(into[1].toUpperCase());
   }
+}
+
+/**
+ * Object-scoped read-handler collection (review F2). A class's FOR READ definitions and the MODIFY
+ * ENTITIES that would violate them can serialize to SEPARATE abapGit includes (.clas.locals_def vs
+ * .clas.locals_imp), so the read handlers are gathered across ALL of the object's files BEFORE any
+ * single file's MODIFY is checked — a per-file set misses the split-file case. Scope resets per file.
+ * @returns {Set<string>} CLASS::METHOD keys of every FOR READ handler in the object.
+ */
+function collectReadHandlers(obj) {
+  const readHandlers = new Set();
+  for (const file of obj.getABAPFiles()) {
+    const scope = { cls: null, method: null };
+    for (const st of file.getStatements()) {
+      trackScope(st.get()?.constructor?.name, st.concatTokens(), readHandlers, scope);
+    }
+  }
+  return readHandlers;
 }
 
 /**
