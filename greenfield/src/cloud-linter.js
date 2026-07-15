@@ -5,7 +5,7 @@ import {
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
   AUTHCHECK_SPEC, AUTHCHECK_AFTER_WRITE_SPEC, RAP_DB_WRITE_SPEC,
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
-  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
+  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings, commitInRapPoolFindings,
 } from "./cloud-linter-checks.js";
 import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
@@ -39,6 +39,7 @@ export function lintAbapCloud(files) {
   // Raw-source rules read the original files directly (parse-independent).
   findings.push(...cdsClassicViewFindings(list));
   findings.push(...modMarkerFindings(list));
+  findings.push(...commitInRapPoolFindings(list));
   findings.push(...releasedApiFindings(list));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;

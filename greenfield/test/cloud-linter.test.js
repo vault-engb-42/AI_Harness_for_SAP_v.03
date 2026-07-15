@@ -63,6 +63,53 @@ test("clean ABAP-Cloud class raises no CLOUD-forbidden finding", () => {
   assert.deepEqual(ruleIds(res).filter((r) => forbidden.includes(r)), []);
 });
 
+// ---------------------------------------------------------------- C4: forbidden-construct completeness
+
+test("gf-cloud-no-db-cursor fires on OPEN/CLOSE CURSOR (C4)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    OPEN CURSOR @DATA(cur) FOR SELECT vbeln FROM vbak.\n    CLOSE CURSOR @cur.") }]);
+  assert.equal(finding(res, "gf-cloud-no-db-cursor")?.severity, "error");
+});
+
+test("gf-cloud-no-db-cursor fires on FETCH NEXT CURSOR (C4)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lt TYPE STANDARD TABLE OF vbak.\n    FETCH NEXT CURSOR cur INTO TABLE lt.") }]);
+  assert.equal(finding(res, "gf-cloud-no-db-cursor")?.severity, "error");
+});
+
+test("gf-cloud-no-client-specified fires on SELECT … CLIENT SPECIFIED (C4)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    SELECT SINGLE vbeln FROM vbak CLIENT SPECIFIED INTO @DATA(y) WHERE mandt = @sy-mandt AND vbeln = '1'.") }]);
+  assert.equal(finding(res, "gf-cloud-no-client-specified")?.severity, "error");
+});
+
+test("EXIT FROM SQL native SQL is flagged as gf-cloud-no-native-sql (C4)", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    EXEC SQL.\n      SELECT 1 FROM dual\n      EXIT FROM SQL\n    ENDEXEC.") }]);
+  assert.equal(finding(res, "gf-cloud-no-native-sql")?.severity, "error");
+});
+
+test("gf-rap-no-commit-in-pool fires on explicit COMMIT WORK inside a RAP behaviour pool (C4/P4b)", () => {
+  const pool = "CLASS lhc_zi_x DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS save FOR MODIFY IMPORTING keys FOR ACTION zi_x~save.\nENDCLASS.\nCLASS lhc_zi_x IMPLEMENTATION.\n  METHOD save.\n    COMMIT WORK.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zbp_zi_x.clas.locals_imp.abap", source: pool }]);
+  assert.equal(finding(res, "gf-rap-no-commit-in-pool")?.severity, "error");
+});
+
+test("gf-rap-no-commit-in-pool fires on ROLLBACK WORK in a RAP pool, ignores COMMIT in a comment", () => {
+  const pool = "CLASS lhc_zi_x DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS save FOR MODIFY IMPORTING keys FOR ACTION zi_x~save.\nENDCLASS.\nCLASS lhc_zi_x IMPLEMENTATION.\n  METHOD save.\n    \" never COMMIT WORK here\n    ROLLBACK WORK.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zbp_zi_x.clas.locals_imp.abap", source: pool }]);
+  const f = finding(res, "gf-rap-no-commit-in-pool");
+  assert.equal(f?.severity, "error");
+  assert.equal(f.line, 8, "flags the ROLLBACK statement (line 8), not the COMMIT-in-a-comment on line 7");
+});
+
+test("gf-rap-no-commit-in-pool does NOT fire on COMMIT WORK in a plain (non-RAP) class", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    COMMIT WORK.") }]);
+  assert.equal(finding(res, "gf-rap-no-commit-in-pool"), undefined);
+});
+
+test("a clean RAP behaviour pool (no explicit COMMIT/ROLLBACK WORK) raises no gf-rap-no-commit-in-pool", () => {
+  const pool = "CLASS lhc_zi_x DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS save FOR MODIFY IMPORTING keys FOR ACTION zi_x~save.\nENDCLASS.\nCLASS lhc_zi_x IMPLEMENTATION.\n  METHOD save.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zbp_zi_x.clas.locals_imp.abap", source: pool }]);
+  assert.equal(finding(res, "gf-rap-no-commit-in-pool"), undefined);
+});
+
 // ---------------------------------------------------------------- performance / loop
 
 test("gf-cloud-select-star fires on SELECT *", () => {

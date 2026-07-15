@@ -25,6 +25,9 @@ const INJECTION_SINKS = [
   { sink: "call-system", re: /CALL\s+'SYSTEM'/i },
   { sink: "dynamic-submit", re: /\bSUBMIT\s+\(/i },
   { sink: "dynamic-from", re: /\bFROM\s+\(/i },
+  // C4/P8: native SQL bypasses Open SQL parameter binding (injection risk) and is forbidden in
+  // ABAP Cloud — use Open SQL over released CDS entities.
+  { sink: "native-sql", re: /\bEXEC\s+SQL\b/i },
 ];
 
 // Returns [{sink, snippet}] for each dangerous ABAP construct in the source.

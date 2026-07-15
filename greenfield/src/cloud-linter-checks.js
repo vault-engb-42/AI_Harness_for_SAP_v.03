@@ -56,6 +56,10 @@ export const KIND_RULES = {
 export const TEXT_RULES = [
   { rule_id: "gf-cloud-no-classic-alv", severity: "error", family: "abap-cloud", message: "CL_SALV_TABLE=>FACTORY is the classic ALV — not available in ABAP Cloud; expose data through RAP/OData", re: /\bCL_SALV_TABLE\s*=>\s*FACTORY\b/i },
   { rule_id: "gf-cloud-no-using-client", severity: "error", family: "abap-cloud", message: "USING CLIENT cross-client access is forbidden in ABAP Cloud; operate in the current client only", re: /\bUSING\s+CLIENT\b/i },
+  // C4 — cloud-forbidden DB access completeness. EXEC SQL (native SQL, incl. EXIT FROM SQL) is the
+  // ExecSQL kind rule above; USING CLIENT is the rule above; these add the DB cursor + CLIENT SPECIFIED.
+  { rule_id: "gf-cloud-no-db-cursor", severity: "error", family: "abap-cloud", message: "a database cursor (OPEN / FETCH / CLOSE CURSOR) is not available in ABAP Cloud; read released CDS entities with Open SQL", re: /\b(?:OPEN|CLOSE)\s+CURSOR\b|\bFETCH\s+NEXT\s+CURSOR\b/i },
+  { rule_id: "gf-cloud-no-client-specified", severity: "error", family: "abap-cloud", message: "CLIENT SPECIFIED explicit-client access is forbidden in ABAP Cloud; operate in the current client only", re: /\bCLIENT\s+SPECIFIED\b/i },
   // Batch 3 text rules — construct is not a distinct kind (SY-time read, ref to a
   // legacy-UI / SEGW / BOPF class) or a definition prefix (user exit / CI include).
   { rule_id: "gf-cloud-sy-time-direct", severity: "warning", family: "abap-cloud", message: "direct SY-UZEIT/DATUM/TIMLO/TZONE read is time-zone-unsafe in ABAP Cloud — use CL_ABAP_CONTEXT_INFO or a released time API", re: /\bSY-(?:UZEIT|DATUM|TIMLO|TZONE|ZONLO)\b/i },
@@ -168,6 +172,37 @@ export function cdsClassicViewFindings(files) {
     if (idx >= 0) {
       findings.push({ rule_id: "gf-cds-classic-view", severity: "error", object: objNameOf(f.filename), object_type: "DDLS", file: f.filename, line: idx + 1, message: "classic DEFINE VIEW is not Clean-Core; generate a CDS view entity (DEFINE VIEW ENTITY)", family: "cds" });
     }
+  }
+  return findings;
+}
+
+// A file is a RAP behaviour pool when it declares a handler/saver on cl_abap_behavior_*
+// or carries a `… FOR MODIFY/READ/DETERMINE/…` handler method (unambiguous RAP syntax).
+const RAP_POOL_MARKER_RE = /\bINHERITING\s+FROM\s+cl_abap_behavior_(?:handler|saver)\b|\bFOR\s+(?:MODIFY|READ|DETERMINE|VALIDATE|LOCK|FEATURES|GLOBAL\s+AUTHORIZATION|INSTANCE\s+AUTHORIZATION)\b/i;
+const COMMIT_ROLLBACK_WORK_RE = /\b(?:COMMIT|ROLLBACK)\s+WORK\b/i;
+
+/**
+ * gf-rap-no-commit-in-pool (P4(b)) — explicit `COMMIT WORK` / `ROLLBACK WORK` inside a RAP
+ * behaviour pool is a RUNTIME ERROR: the RAP framework owns persistence via `COMMIT ENTITIES`.
+ * Raw-source (parse-independent, so a pool with RAP handler syntax abaplint can't fully parse is
+ * still covered). Scoped to files that carry a RAP-pool marker, so a plain classic class that
+ * legitimately commits is never flagged. ABAP comments (`"` inline, `*` full-line) are stripped
+ * first so a `" … COMMIT WORK …` note does not false-fire.
+ * @param {Array<{filename: string, source: string}>} files
+ * @returns {object[]}
+ */
+export function commitInRapPoolFindings(files) {
+  const findings = [];
+  for (const f of files) {
+    const source = String(f.source ?? "");
+    if (!RAP_POOL_MARKER_RE.test(source)) continue;
+    source.split(/\r?\n/).forEach((line, idx) => {
+      if (/^\s*\*/.test(line)) return; // full-line comment
+      const code = line.replace(/".*$/, ""); // strip inline comment ('"' is always a comment in ABAP)
+      if (COMMIT_ROLLBACK_WORK_RE.test(code)) {
+        findings.push({ rule_id: "gf-rap-no-commit-in-pool", severity: "error", object: objNameOf(f.filename), object_type: undefined, file: f.filename, line: idx + 1, message: "explicit COMMIT WORK / ROLLBACK WORK inside a RAP behaviour pool is a runtime error (P4(b)); the RAP framework owns persistence via COMMIT ENTITIES — remove it", family: "invariant" });
+      }
+    });
   }
   return findings;
 }

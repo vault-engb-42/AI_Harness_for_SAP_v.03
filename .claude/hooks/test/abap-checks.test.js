@@ -24,6 +24,7 @@ test("detectInjectionSinks flags codegen/OS/dynamic sinks, not static SQL", () =
   assert.equal(detectInjectionSinks("CALL 'SYSTEM' ID 'COMMAND' FIELD lv_cmd.").length, 1);
   assert.equal(detectInjectionSinks("SUBMIT (lv_prog) VIA SELECTION-SCREEN.").length, 1);
   assert.equal(detectInjectionSinks("SELECT * FROM (lv_tabname) INTO TABLE lt.").length, 1);
+  assert.equal(detectInjectionSinks("EXEC SQL.").length, 1); // native SQL bypasses Open SQL binding (C4/P8)
   assert.equal(detectInjectionSinks("SELECT * FROM mara INTO TABLE @lt WHERE matnr = @iv.").length, 0);
   assert.equal(detectInjectionSinks("SUBMIT zmy_report AND RETURN.").length, 0);
 });
