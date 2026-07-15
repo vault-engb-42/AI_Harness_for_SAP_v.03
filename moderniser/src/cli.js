@@ -17,6 +17,7 @@
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
  *   lint-rules <sig> --files <dir>   (gap-2a: analyser RAP/N+1 rule gate; exit 2 on a hit)
  *   findings-brief <object> --findings <analyser-findings.json>   (pre-gen "avoid these" grounding)
+ *   drive <run_id>   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked})
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
  *   packets <run_id> [--max N]                  (surfaced escalations as GatePackets, §3.4 #8)
@@ -39,6 +40,7 @@ import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
 import { cmdLintRules, cmdFindingsBrief } from "./cli-selfcheck.js";
+import { cmdDrive } from "./cli-drive.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -60,6 +62,7 @@ const COMMANDS = {
   resume: cmdResume,
   "lint-rules": cmdLintRules,
   "findings-brief": cmdFindingsBrief,
+  drive: cmdDrive,
 };
 
 function cmdPlan(io, pos, flags) {
