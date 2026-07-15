@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { initRun, dispatch, applyProgress, recordProvisionalVerdict, renderOfflineVerdict } from "../src/sched/loop.js";
+import { initRun, dispatch, applyProgress } from "../src/sched/loop.js";
+import { recordProvisionalVerdict, renderOfflineVerdict } from "../src/sched/verdict-ops.js";
 
 // Phase 2 offline seam in the reducer: SYNTAX_OK forks to PROVISIONAL_GATED (the offline rest
 // state), recordProvisionalVerdict records the offline verdict there (mirroring recordVerdict's

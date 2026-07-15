@@ -12,16 +12,14 @@
  *   - PARK is FSM-gated to NO_RELEASED_SUCCESSOR (L7); PARK → PENDING re-enters.
  *   - The per-transport activate mutex (L4) serializes registration+activation among
  *     co-transport nodes even when generation is parallel; a terminal outcome releases it.
- *   - `renderVerdict` composes ratchetGate → nodeVerdict with the SIGNED atc_warn_delta
- *     (the ratchet-review contract) so gate and verdict can never disagree.
+ *   - The node's verdict lives in `verdict-ops.js` (the gate → verdict COMPOSITION +
+ *     the earned-GREEN record); it shares this file's `bind` guard, exported for it.
  *
  * Every entry point re-checks `state.plan_hash === plan.plan_hash` (fail-closed resume:
  * a state file from another plan is rejected — REPLAN is the only legal crossover, L6).
  */
 import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
 import { nextFrontier } from "./frontier.js";
-import { ratchetGate, offlineRatchetGate } from "../state/ratchet.js";
-import { nodeVerdict, offlineVerdict } from "../node/verdict.js";
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -52,36 +50,6 @@ export function initRun(plan, opts = {}) {
     activate_mutex: {}, // transport_id -> owning sig
     cancel_token: opts.cancel_token ?? null,
   };
-}
-
-/**
- * Record the rendered verdict for a node AT ITS CHECKPOINT (status must be GATED — a node
- * that has not reached the checkpoint has nothing to verdict, and baselines must never move
- * outside the lifecycle). `applyOutcome(GREEN)` refuses without a recorded GREEN verdict:
- * the reducer, not the orchestrating prose, decides GREEN (GAN separation, §3.2).
- */
-export function recordVerdict(plan, state, sig, verdictResult) {
-  bind(plan, state);
-  if (state.status[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
-  if (state.status[sig] !== "GATED") {
-    throw new Error(`loop: verdict for ${sig} refused — the node is ${state.status[sig]}, not GATED`);
-  }
-  return { ...state, verdict_green: { ...state.verdict_green, [sig]: verdictResult.green === true } };
-}
-
-/**
- * The OFFLINE sibling of recordVerdict: record the offline verdict at PROVISIONAL_GATED (the
- * offline rest state — a node that has not reached the offline checkpoint has nothing to
- * verdict). Kept separate from recordVerdict's GATED-only guard so the live-GREEN record path is
- * untouched; offline NEVER GREENs (P6), so this records only a provisional-pass flag.
- */
-export function recordProvisionalVerdict(plan, state, sig, verdictResult) {
-  bind(plan, state);
-  if (state.status[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
-  if (state.status[sig] !== "PROVISIONAL_GATED") {
-    throw new Error(`loop: provisional verdict for ${sig} refused — the node is ${state.status[sig]}, not PROVISIONAL_GATED`);
-  }
-  return { ...state, verdict_provisional: { ...state.verdict_provisional, [sig]: verdictResult.provisional === true } };
 }
 
 /** The next parallel batch: both-graph independent, worst-first, capped (§3.1 Stage 5). */
@@ -239,48 +207,14 @@ export function releaseActivation(plan, state, sig) {
   return { ...state, activate_mutex };
 }
 
-/**
- * The ratchetGate → nodeVerdict composition (one coherent answer): the gate's SIGNED
- * `atc_warn_delta` is what the verdict conjunct consumes — never the absolute count.
- * @returns {{gate: object, verdict: object, green: boolean, reasons: string[]}}
- */
-export function renderVerdict(planNode, checkpoint, evidence, baselines) {
-  const gate = ratchetGate(planNode, evidence, baselines);
-  const verdict = nodeVerdict(checkpoint, { atc_warn_delta: gate.atc_warn_delta });
-  return {
-    gate,
-    verdict,
-    green: gate.verdict === "PASS" && verdict.verdict === "GREEN",
-    reasons: [...new Set([...gate.reasons, ...verdict.reasons])],
-  };
-}
-
-/**
- * The OFFLINE composition (Phase 2, Option A): offlineRatchetGate → offlineVerdict with the SIGNED
- * `atc_warn_delta`, mirroring renderVerdict. Both partition out their DEV-only conjuncts (ratchet:
- * coverage/bite; verdict: activated/reconciled/unit), so a full pass rests in `provisional` — never
- * `green` (offline NEVER GREENs, P6). The warn/checkpoint evidence is fed by the gap-2b extractor.
- * @returns {{gate: object, verdict: object, provisional: boolean, reasons: string[]}}
- */
-export function renderOfflineVerdict(planNode, checkpoint, evidence, baselines) {
-  const gate = offlineRatchetGate(planNode, evidence, baselines);
-  const verdict = offlineVerdict(checkpoint, { atc_warn_delta: gate.atc_warn_delta });
-  return {
-    gate,
-    verdict,
-    provisional: gate.verdict === "PASS" && verdict.verdict === "PROVISIONAL",
-    reasons: [...new Set([...gate.reasons, ...verdict.reasons])],
-  };
-}
-
 /** Done ⇔ EVERY plan node is GREEN — a quarantined/parked node leaves the run incomplete. */
 export function runComplete(plan, state) {
   bind(plan, state);
   return plan.nodes.every((n) => state.status[n.id] === "GREEN");
 }
 
-/** Fail-closed plan↔state binding: a state from another plan must never drive this one. */
-function bind(plan, state) {
+/** Fail-closed plan↔state binding: a state from another plan must never drive this one. Exported for the verdict-ops record* verbs, which are reducer entries too. */
+export function bind(plan, state) {
   if (state.plan_hash !== plan.plan_hash) {
     throw new Error(`loop: state plan_hash ${state.plan_hash} does not match plan ${plan.plan_hash} — resume through REPLAN`);
   }
