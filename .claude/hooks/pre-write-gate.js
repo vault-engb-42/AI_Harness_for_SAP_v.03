@@ -51,7 +51,7 @@ if (isAbapSource(filePath)) {
   }
   const inv = detectInvariantWeakening(oldText, newText);
   if (inv.length) {
-    block(`immutable invariant regression (${inv.map((i) => i.type).join(", ")}). AUTHORITY-CHECK / COMMIT WORK / SY-SUBRC are un-loosenable (P4) — restore the guard.`);
+    block(`immutable invariant regression (${inv.map((i) => i.type).join(", ")}). AUTHORITY-CHECK / COMMIT ENTITIES (RAP save; or COMMIT WORK in classic code) / SY-SUBRC are un-loosenable (P4) — restore the guard.`);
   }
 }
 

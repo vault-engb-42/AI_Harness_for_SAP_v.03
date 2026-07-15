@@ -47,9 +47,15 @@ export function detectInvariantWeakening(oldText, newText) {
   if (countMatches(oldText, authRe) > countMatches(newText, authRe)) {
     findings.push({ type: "authority-check-removed", detail: "an AUTHORITY-CHECK present in the baseline is gone" });
   }
-  const commitRe = /COMMIT\s+WORK/i;
-  if (commitRe.test(oldText) && !commitRe.test(newText)) {
+  const commitWorkRe = /COMMIT\s+WORK/i;
+  if (commitWorkRe.test(oldText) && !commitWorkRe.test(newText)) {
     findings.push({ type: "commit-work-suppressed", detail: "a COMMIT WORK present in the baseline is gone" });
+  }
+  // P4(b), ABAP Cloud / RAP: the save is COMMIT ENTITIES (COMMIT WORK is a runtime error in a
+  // behaviour pool). Suppressing the RAP save is the same invariant regression as dropping COMMIT WORK.
+  const commitEntitiesRe = /COMMIT\s+ENTITIES/i;
+  if (commitEntitiesRe.test(oldText) && !commitEntitiesRe.test(newText)) {
+    findings.push({ type: "commit-entities-suppressed", detail: "the RAP save (COMMIT ENTITIES) present in the baseline is gone" });
   }
   // Every AUTHORITY-CHECK in the new source must be followed (within ~250 chars) by an sy-subrc read.
   if (/AUTHORITY-CHECK/i.test(newText) && !/AUTHORITY-CHECK[\s\S]{0,250}?sy-subrc/i.test(newText)) {

@@ -39,6 +39,18 @@ test("detectInvariantWeakening catches AUTHORITY-CHECK / COMMIT WORK / SY-SUBRC 
   assert.equal(detectInvariantWeakening(withAuth, withAuth).length, 0);
 });
 
+test("detectInvariantWeakening catches COMMIT ENTITIES (the RAP save) suppression — P4(b), C1", () => {
+  // In ABAP Cloud / RAP the save is COMMIT ENTITIES, not COMMIT WORK (which is a runtime error in a
+  // behaviour pool). Dropping the RAP save from a consumer is the P4(b) invariant regression.
+  const withSave = "MODIFY ENTITIES OF zi_x ENTITY e UPDATE FIELDS ( f ) WITH lt FAILED DATA(lf).\nIF lf IS INITIAL.\nCOMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(cf).\nENDIF.";
+  const noSave = "MODIFY ENTITIES OF zi_x ENTITY e UPDATE FIELDS ( f ) WITH lt FAILED DATA(lf).";
+  assert.ok(
+    detectInvariantWeakening(withSave, noSave).some((f) => f.type === "commit-entities-suppressed"),
+    "dropping the RAP save (COMMIT ENTITIES) is flagged",
+  );
+  assert.equal(detectInvariantWeakening(withSave, withSave).length, 0, "an unchanged RAP save is clean");
+});
+
 test("inCustomerNamespace accepts Z/Y and /NS/, rejects SAP standard", () => {
   assert.equal(inCustomerNamespace("ZCL_ORDER"), true);
   assert.equal(inCustomerNamespace("YI_Thing"), true);
