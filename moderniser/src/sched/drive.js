@@ -15,7 +15,8 @@
  * proof bundle), never `complete`. A starved PENDING dependent (indegree > 0, its dep never
  * GREENed offline) is a sweep target, not a wedge — only a genuinely stuck node is `blocked`.
  */
-import { nextDispatch, runComplete } from "./loop.js";
+import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from "./loop.js";
+import { MAX_PHASE_RETRY_CYCLES } from "../state/node-status.js";
 
 // The states a node may legitimately rest in when the frontier is empty (offline or terminal).
 const RESTED = new Set(["GREEN", "SYNTAX_OK", "PROVISIONAL_GATED", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]);
@@ -49,6 +50,56 @@ export function driveDecision(plan, state) {
   const wedged = plan.nodes.filter((n) => !RESTED.has(state.status[n.id]) && !isStarved(state, n.id));
   if (wedged.length === 0) return { action: "provisional_complete" };
   return { action: "blocked", nodes: wedged.map((n) => ({ sig: n.id, status: state.status[n.id] })) };
+}
+
+/**
+ * Increment 2 (Option A): the driver OWNS retry-vs-ceiling. The fulfiller reports the SYNTAX
+ * self-check outcome for `sig`; the driver orchestrates the reducer, counts the failed attempts
+ * (`syntax_attempts` — a SEPARATE counter from the FSM post-verdict `cycle`, since a self-check
+ * failure never reaches SYNTAX_OK so the FSM cycle never sees it — this is what the SKILL counted
+ * "in prose"), decides, and returns the next action + the state to persist:
+ *
+ *   syntax_ok                     → advance `sig` to SYNTAX_OK (idempotent), then driveDecision
+ *   syntax_fail | generator_error → bump syntax_attempts; below the ceiling re-issue the SAME node
+ *                                   to regenerate ({generate, [{…, retry:true}]}); AT the ceiling
+ *                                   quarantine it (BLOCK / SYNTAX_CEILING) then driveDecision
+ *
+ * The driver does NOT thread the repair brief — the fulfiller already holds it from its own
+ * `lint-rules` call; `drive` only says "regenerate `<sig>`". The generation-counter/attestation
+ * binding on a regenerate is deferred to Phase 3 (only matters once attestations exist), so a
+ * retry rests the node at GENERATED without re-entering it. Pure over (plan, state).
+ * @returns {{state: object, action: {action: string, packets?: object[], nodes?: any[]}}}
+ */
+export function driveReport(plan, state, sig, outcome) {
+  if (state.status[sig] === undefined) throw new Error(`drive: unknown node ${sig}`);
+  if (outcome === "syntax_ok") {
+    const next = advanceToSyntaxOk(plan, state, sig);
+    return { state: next, action: driveDecision(plan, next) };
+  }
+  // syntax_fail | generator_error — a failed generation attempt against the same node.
+  const attempts = (state.syntax_attempts?.[sig] ?? 0) + 1;
+  let next = ensureGenerated(plan, state, sig);
+  next = { ...next, syntax_attempts: { ...next.syntax_attempts, [sig]: attempts } };
+  if (attempts >= MAX_PHASE_RETRY_CYCLES) {
+    next = applyOutcome(plan, next, sig, { status: "BLOCK", reason: "SYNTAX_CEILING" });
+    return { state: next, action: driveDecision(plan, next) };
+  }
+  return { state: next, action: { action: "generate", packets: [{ ...packetOf(plan, sig), retry: true }] } };
+}
+
+/** Advance `sig` to SYNTAX_OK from wherever it rests (idempotent if a report is replayed). */
+function advanceToSyntaxOk(plan, state, sig) {
+  if (state.status[sig] === "SYNTAX_OK") return state; // idempotent report repeat
+  const generated = ensureGenerated(plan, state, sig);
+  return applyProgress(plan, generated, sig, "SYNTAX_OK"); // GENERATED → SYNTAX_OK
+}
+
+/** Bring `sig` to GENERATED along the forward chain (a no-op once it is already there). */
+function ensureGenerated(plan, state, sig) {
+  let next = state;
+  if (next.status[sig] === "PENDING") next = dispatch(plan, next, [sig]); // PENDING → GROUNDED
+  if (next.status[sig] === "GROUNDED") next = applyProgress(plan, next, sig, "GENERATED"); // GROUNDED → GENERATED
+  return next;
 }
 
 function packetOf(plan, sig) {

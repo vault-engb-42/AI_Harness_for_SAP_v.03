@@ -17,7 +17,7 @@
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
  *   lint-rules <sig> --files <dir>   (gap-2a: analyser RAP/N+1 rule gate; exit 2 on a hit)
  *   findings-brief <object> --findings <analyser-findings.json>   (pre-gen "avoid these" grounding)
- *   drive <run_id>   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked})
+ *   drive <run_id> [--report <sig>=<syntax_ok|syntax_fail|generator_error>]   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked}; --report is the driver's retry-vs-ceiling channel, Option A)
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
  *   packets <run_id> [--max N]                  (surfaced escalations as GatePackets, §3.4 #8)

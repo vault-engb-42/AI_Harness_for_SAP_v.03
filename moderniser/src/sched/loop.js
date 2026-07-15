@@ -43,6 +43,7 @@ export function initRun(plan, opts = {}) {
     indegree,
     status,
     cycle: {}, // per-sig generator-refinement retries used (MAX_PHASE_RETRY_CYCLES gate)
+    syntax_attempts: {}, // per-sig failed syntax self-check attempts (offline, pre-SYNTAX_OK) — SEPARATE from `cycle`; the driver's ceiling counter (Phase 2 increment 2). Cleared on re-entry.
     generation: {}, // per-sig artifact generation — bumps on EVERY entry to GENERATED (attestation binding)
     verdict_green: {}, // per-sig recorded verdict result — GREEN is EARNED, never asserted
     verdict_provisional: {}, // per-sig offline provisional-pass flag (recorded at PROVISIONAL_GATED; offline never GREENs)
@@ -152,10 +153,15 @@ export function applyProgress(plan, state, sig, nextStatus) {
     delete verdict_green[sig];
     const verdict_provisional = { ...next.verdict_provisional };
     delete verdict_provisional[sig];
+    // The driver's syntax-attempt counter is per-generation-episode: a re-walk starts a fresh
+    // artifact, so the pre-detour failed attempts must not shorten the new episode's ceiling.
+    const syntax_attempts = { ...next.syntax_attempts };
+    delete syntax_attempts[sig];
     next = {
       ...next,
       verdict_green,
       verdict_provisional,
+      syntax_attempts,
       park_register: next.park_register.filter((p) => p.sig !== sig),
       deferral_track: next.deferral_track.filter((d) => d.sig !== sig),
     };
