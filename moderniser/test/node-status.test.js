@@ -29,12 +29,25 @@ test("skipping a forward step is illegal", () => {
 });
 
 test("the syntax/checkpoint retry loops back to GENERATED only while under the cycle ceiling", () => {
-  for (const from of ["SYNTAX_OK", "GATED"]) {
+  for (const from of ["SYNTAX_OK", "GATED", "PROVISIONAL_GATED"]) {
     assert.equal(canTransition(from, "GENERATED", { cycle: 0 }), true, `${from} cycle 0`);
     assert.equal(canTransition(from, "GENERATED", { cycle: MAX_PHASE_RETRY_CYCLES - 1 }), true);
     assert.equal(canTransition(from, "GENERATED", { cycle: MAX_PHASE_RETRY_CYCLES }), false, `${from} at ceiling`);
     assert.equal(canTransition(from, "GENERATED"), true, "no ctx → cycle defaults to 0, under the ceiling");
   }
+});
+
+test("PROVISIONAL_GATED is the offline verdict rest state — from SYNTAX_OK, retryable, escalatable, never GREEN", () => {
+  // offline SYNTAX_OK forks to PROVISIONAL_GATED, parallel to the live SYNTAX_OK→PUSHED path.
+  assert.equal(canTransition("SYNTAX_OK", "PROVISIONAL_GATED"), true);
+  assert.equal(canTransition("SYNTAX_OK", "PUSHED"), true, "the live push path is unaffected");
+  // an unfixable offline block escalates; offline NEVER GREENs (P6) — no PROVISIONAL_GATED→GREEN edge.
+  assert.equal(canTransition("PROVISIONAL_GATED", "BLOCK"), true);
+  assert.equal(canTransition("PROVISIONAL_GATED", "NEEDS_MANUAL_SEAM"), true);
+  assert.equal(canTransition("PROVISIONAL_GATED", "GREEN"), false, "offline never GREENs");
+  assert.equal(canTransition("PROVISIONAL_GATED", "PUSHED"), false, "offline does not push to DEV");
+  assert.equal(isActive("PROVISIONAL_GATED"), true, "an in-flight state, not terminal");
+  assert.equal(STATUSES.includes("PROVISIONAL_GATED"), true);
 });
 
 test("any active state may escalate to BLOCK or NEEDS_MANUAL_SEAM", () => {
@@ -73,8 +86,8 @@ test("assertTransition returns the target on a legal move and throws on an illeg
   assert.throws(() => assertTransition("SYNTAX_OK", "GENERATED", { cycle: MAX_PHASE_RETRY_CYCLES }), /illegal|ceiling|cycle/i);
 });
 
-test("isActive marks exactly the seven in-flight states", () => {
+test("isActive marks exactly the eight in-flight states", () => {
   for (const s of ACTIVE_STATES) assert.equal(isActive(s), true, s);
   for (const s of ["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]) assert.equal(isActive(s), false, s);
-  assert.equal(ACTIVE_STATES.length, 7);
+  assert.equal(ACTIVE_STATES.length, 8);
 });

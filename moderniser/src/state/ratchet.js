@@ -60,9 +60,40 @@ export function ratchetGate(node, evidence = {}, baselines) {
 
   if (node.parity_required === true && evidence.coverage?.bite_proven !== true) reasons.push("bite-not-proven");
 
-  // BOTH sides of the warn/diff join are shape-validated fail-closed (review F1: the warn
-  // side alone left a missing/malformed diff silently joining to delta 0 — a gated node has
-  // by definition been regenerated, so an absent diff means the diff tool errored, §3.2 5.3).
+  // The diff-validity + WARNs-on-changed-lines ratchet — shared with the offline gate.
+  const wd = warnDelta(node, evidence, baselines);
+  reasons.push(...wd.reasons);
+
+  const pct = evidence.coverage?.pct;
+  const covEntry = baselines.covBaseline.per_object?.[key];
+  const rawFloor = baselines.covBaseline.coverage_floor_pct;
+  if (!Number.isFinite(pct)) {
+    reasons.push("coverage-missing"); // fail-closed
+  } else if (covEntry !== undefined && !Number.isFinite(covEntry.pct)) {
+    reasons.push("baseline-corrupt"); // an entry with no finite pct must not fall back to the floor
+  } else if (rawFloor !== undefined && !Number.isFinite(rawFloor)) {
+    reasons.push("baseline-corrupt"); // a corrupt shipped floor must not silently read as floor-0
+  } else {
+    const floor = covEntry?.pct ?? rawFloor ?? 0;
+    if (pct < floor) reasons.push(`coverage-regressed:${pct}<${floor}`);
+  }
+
+  return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta: wd.delta, atc_warn_delta: wd.atc_warn_delta };
+}
+
+/**
+ * The warn-delta ratchet core (L6(2)), shared by the online `ratchetGate` and the offline
+ * `offlineRatchetGate`: diff-validity + WARNs-on-changed-lines vs the per-object ceiling (seed ∞
+ * → establish-pass 0). Both sides of the warn/diff join are shape-validated fail-closed (review
+ * F1: the warn side alone left a missing/malformed diff silently joining to delta 0 — a gated
+ * node has by definition been regenerated, so an absent diff means the diff tool errored).
+ * Returns its own reasons so both callers collect them in the same position; atc_p1 and the
+ * DEV-only coverage/bite conjuncts stay in the callers.
+ * @returns {{reasons: string[], delta: number, atc_warn_delta: number}}
+ */
+function warnDelta(node, evidence, baselines) {
+  const key = node.canonical_sig;
+  const reasons = [];
   const diff = node.diff_changed_lines;
   const diffValid =
     Array.isArray(diff) && diff.every((d) => typeof d.file === "string" && Array.isArray(d.lines) && d.lines.every(Number.isInteger));
@@ -85,22 +116,23 @@ export function ratchetGate(node, evidence = {}, baselines) {
       if (ceiling !== undefined && delta > ceiling) reasons.push(`warn-delta-regressed:${delta}>${ceiling}`);
     }
   }
+  return { reasons, delta, atc_warn_delta };
+}
 
-  const pct = evidence.coverage?.pct;
-  const covEntry = baselines.covBaseline.per_object?.[key];
-  const rawFloor = baselines.covBaseline.coverage_floor_pct;
-  if (!Number.isFinite(pct)) {
-    reasons.push("coverage-missing"); // fail-closed
-  } else if (covEntry !== undefined && !Number.isFinite(covEntry.pct)) {
-    reasons.push("baseline-corrupt"); // an entry with no finite pct must not fall back to the floor
-  } else if (rawFloor !== undefined && !Number.isFinite(rawFloor)) {
-    reasons.push("baseline-corrupt"); // a corrupt shipped floor must not silently read as floor-0
-  } else {
-    const floor = covEntry?.pct ?? rawFloor ?? 0;
-    if (pct < floor) reasons.push(`coverage-regressed:${pct}<${floor}`);
-  }
-
-  return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta, atc_warn_delta };
+/**
+ * The OFFLINE ratchet (MODERNISER_DRIVER_AND_GAP2_DESIGN Phase 2, Option A): `ratchetGate`
+ * PARTITIONED to the offline-computable conjuncts — atc_p1 + the shared warn-delta core. The
+ * DEV-only coverage % and parity-bite conjuncts are EXCLUDED (offline can't run ABAP Unit),
+ * exactly as `offlineVerdict` excludes activated/reconciled/unit. The warn EVIDENCE (atc_warns on
+ * changed lines) is fed by the gap-2b offline extractor. Pure.
+ * @returns {{verdict: "PASS"|"BLOCK", reasons: string[], delta: number, atc_warn_delta: number}}
+ */
+export function offlineRatchetGate(node, evidence = {}, baselines) {
+  const reasons = [];
+  if (evidence.atc_p1 !== 0) reasons.push("atc-p1-nonzero"); // hard invariant; missing → fail-closed
+  const wd = warnDelta(node, evidence, baselines);
+  reasons.push(...wd.reasons);
+  return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta: wd.delta, atc_warn_delta: wd.atc_warn_delta };
 }
 
 /**

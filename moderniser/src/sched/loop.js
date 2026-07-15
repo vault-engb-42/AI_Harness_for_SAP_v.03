@@ -20,8 +20,8 @@
  */
 import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
 import { nextFrontier } from "./frontier.js";
-import { ratchetGate } from "../state/ratchet.js";
-import { nodeVerdict } from "../node/verdict.js";
+import { ratchetGate, offlineRatchetGate } from "../state/ratchet.js";
+import { nodeVerdict, offlineVerdict } from "../node/verdict.js";
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -45,6 +45,7 @@ export function initRun(plan, opts = {}) {
     cycle: {}, // per-sig generator-refinement retries used (MAX_PHASE_RETRY_CYCLES gate)
     generation: {}, // per-sig artifact generation — bumps on EVERY entry to GENERATED (attestation binding)
     verdict_green: {}, // per-sig recorded verdict result — GREEN is EARNED, never asserted
+    verdict_provisional: {}, // per-sig offline provisional-pass flag (recorded at PROVISIONAL_GATED; offline never GREENs)
     deferral_track: [],
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig
@@ -65,6 +66,21 @@ export function recordVerdict(plan, state, sig, verdictResult) {
     throw new Error(`loop: verdict for ${sig} refused — the node is ${state.status[sig]}, not GATED`);
   }
   return { ...state, verdict_green: { ...state.verdict_green, [sig]: verdictResult.green === true } };
+}
+
+/**
+ * The OFFLINE sibling of recordVerdict: record the offline verdict at PROVISIONAL_GATED (the
+ * offline rest state — a node that has not reached the offline checkpoint has nothing to
+ * verdict). Kept separate from recordVerdict's GATED-only guard so the live-GREEN record path is
+ * untouched; offline NEVER GREENs (P6), so this records only a provisional-pass flag.
+ */
+export function recordProvisionalVerdict(plan, state, sig, verdictResult) {
+  bind(plan, state);
+  if (state.status[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
+  if (state.status[sig] !== "PROVISIONAL_GATED") {
+    throw new Error(`loop: provisional verdict for ${sig} refused — the node is ${state.status[sig]}, not PROVISIONAL_GATED`);
+  }
+  return { ...state, verdict_provisional: { ...state.verdict_provisional, [sig]: verdictResult.provisional === true } };
 }
 
 /** The next parallel batch: both-graph independent, worst-first, capped (§3.1 Stage 5). */
@@ -134,9 +150,12 @@ export function applyProgress(plan, state, sig, nextStatus) {
     // the artifact it produces (branch review F3 — defense in depth with the setStatus void).
     const verdict_green = { ...next.verdict_green };
     delete verdict_green[sig];
+    const verdict_provisional = { ...next.verdict_provisional };
+    delete verdict_provisional[sig];
     next = {
       ...next,
       verdict_green,
+      verdict_provisional,
       park_register: next.park_register.filter((p) => p.sig !== sig),
       deferral_track: next.deferral_track.filter((d) => d.sig !== sig),
     };
@@ -230,6 +249,24 @@ export function renderVerdict(planNode, checkpoint, evidence, baselines) {
   };
 }
 
+/**
+ * The OFFLINE composition (Phase 2, Option A): offlineRatchetGate → offlineVerdict with the SIGNED
+ * `atc_warn_delta`, mirroring renderVerdict. Both partition out their DEV-only conjuncts (ratchet:
+ * coverage/bite; verdict: activated/reconciled/unit), so a full pass rests in `provisional` — never
+ * `green` (offline NEVER GREENs, P6). The warn/checkpoint evidence is fed by the gap-2b extractor.
+ * @returns {{gate: object, verdict: object, provisional: boolean, reasons: string[]}}
+ */
+export function renderOfflineVerdict(planNode, checkpoint, evidence, baselines) {
+  const gate = offlineRatchetGate(planNode, evidence, baselines);
+  const verdict = offlineVerdict(checkpoint, { atc_warn_delta: gate.atc_warn_delta });
+  return {
+    gate,
+    verdict,
+    provisional: gate.verdict === "PASS" && verdict.verdict === "PROVISIONAL",
+    reasons: [...new Set([...gate.reasons, ...verdict.reasons])],
+  };
+}
+
 /** Done ⇔ EVERY plan node is GREEN — a quarantined/parked node leaves the run incomplete. */
 export function runComplete(plan, state) {
   bind(plan, state);
@@ -247,7 +284,7 @@ function bind(plan, state) {
 function setStatus(plan, state, sig, to, ctx = {}) {
   const from = state.status[sig];
   if (from === undefined) throw new Error(`loop: unknown node ${sig}`);
-  const retry = to === "GENERATED" && (from === "SYNTAX_OK" || from === "GATED");
+  const retry = to === "GENERATED" && (from === "SYNTAX_OK" || from === "GATED" || from === "PROVISIONAL_GATED");
   assertTransition(from, to, { cycle: retry ? state.cycle[sig] ?? 0 : ctx.cycle ?? 0, reason: ctx.reason });
   const next = { ...state, status: { ...state.status, [sig]: to } };
   if (to === "GENERATED") {
@@ -261,6 +298,11 @@ function setStatus(plan, state, sig, to, ctx = {}) {
       const verdict_green = { ...next.verdict_green };
       delete verdict_green[sig];
       next.verdict_green = verdict_green;
+    }
+    if (next.verdict_provisional?.[sig] !== undefined) {
+      const verdict_provisional = { ...next.verdict_provisional };
+      delete verdict_provisional[sig];
+      next.verdict_provisional = verdict_provisional;
     }
   }
   if (retry) next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };

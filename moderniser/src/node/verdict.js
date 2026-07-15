@@ -92,3 +92,48 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
 
   return reasons.length === 0 ? { verdict: "GREEN", reasons: [] } : { verdict: "BLOCK", reasons };
 }
+
+/**
+ * The OFFLINE sibling of nodeVerdict (MODERNISER_DRIVER_AND_GAP2_DESIGN BUILD SPEC Phase 2).
+ * Offline NEVER GREENs (P6): activation, reconciliation, and ABAP Unit need a live DEV tier, so
+ * a byte-identical nodeVerdict would always BLOCK on `not-activated-or-reconciled`. offlineVerdict
+ * therefore PARTITIONS the conjuncts — it EXCLUDES the three DEV-only ones (activated, reconciled,
+ * unit) and enforces the six offline-computable ones: atc_p1 (asserted 0 by the gap-2a gate),
+ * invariants.intact, auth_coverage.lost, the auth_delta→attestation conjunct, parity, and
+ * warn_delta. Every hard conjunct still fails CLOSED; auth stays the one fail-OPEN conjunct.
+ *
+ * A full pass is PROVISIONAL (a provisional-pass floor pending live confirmation), never GREEN.
+ * The checkpoint shape is IDENTICAL to nodeVerdict's — only the producer (an offline extractor)
+ * and this reduced conjunct set differ.
+ *
+ * Pure. No I/O.
+ * @param {object} checkpoint same shape as nodeVerdict; activated/reconciled/unit are ignored
+ * @param {{atc_warn_delta?: number}} ratchet
+ * @returns {{verdict: "PROVISIONAL"|"BLOCK"|"PARK", reasons: string[]}}
+ */
+export function offlineVerdict(checkpoint = {}, ratchet = {}) {
+  const cp = checkpoint;
+  const warn = ratchet.atc_warn_delta;
+  const present = (x) => x !== undefined;
+  // The PARK class mirrors nodeVerdict, minus the DEV-only `unit` defect (offline can't run it).
+  const hasDefect =
+    (present(cp.invariants) && cp.invariants?.intact !== true) ||
+    (present(cp.auth_coverage) && cp.auth_coverage?.lost !== false) ||
+    (present(cp.atc_p1) && cp.atc_p1 !== 0) ||
+    (present(cp.parity) && !passesParity(cp)) ||
+    !passesAuth(cp) ||
+    (present(warn) && !(Number.isFinite(warn) && warn <= 0));
+  if (cp.block_reason === NO_RELEASED_SUCCESSOR && !hasDefect) {
+    return { verdict: "PARK", reasons: [NO_RELEASED_SUCCESSOR] };
+  }
+
+  const reasons = [];
+  if (cp.atc_p1 !== 0) reasons.push("atc-p1-nonzero");
+  if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken");
+  if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost");
+  if (!passesAuth(cp)) reasons.push("auth-delta-unattested");
+  if (!passesParity(cp)) reasons.push(`parity-not-equivalent:${cp.parity?.verdict ?? "missing"}`);
+  if (!(Number.isFinite(warn) && warn <= 0)) reasons.push("warn-delta-regressed");
+
+  return reasons.length === 0 ? { verdict: "PROVISIONAL", reasons: [] } : { verdict: "BLOCK", reasons };
+}
