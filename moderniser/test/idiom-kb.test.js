@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { IDIOM_KB, groundingBrief, repairBrief } from "../src/node/idiom-kb.js";
+import { analyzePackage } from "../../analyser/src/orchestrator.js";
+import { ruleGate } from "../src/node/rule-gate.js";
 
 // The idiom KB is the shared first-pass-intelligence asset: rule_id → {cause, fix, before→after
 // exemplar}. It renders in TWO framings — a pre-generation "avoid these anti-patterns" grounding
@@ -46,4 +48,26 @@ test("empty / missing input yields an empty brief (no noise)", () => {
   assert.equal(groundingBrief([]), "");
   assert.equal(repairBrief(undefined), "");
   assert.equal(groundingBrief(null), "");
+});
+
+// The AFTER exemplar must itself be gap-2a gate-clean — a fix that trips ANOTHER gate rule
+// mis-teaches the generator (it would pass one rule and immediately fail the next). Wrap each
+// method-body exemplar in a class and run it through the REAL analyser gate.
+const BODY_EXEMPLARS = ["talos-rap-modify-in-loop", "talos-select-in-loop", "talos-rap-modify-no-guard", "talos-rap-commit-in-loop"];
+test("every method-body AFTER exemplar is gap-2a gate-clean (a fix must not trip another rule)", () => {
+  for (const id of BODY_EXEMPLARS) {
+    const src = [
+      "CLASS zcl_ex DEFINITION PUBLIC FINAL CREATE PUBLIC.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS zcl_ex IMPLEMENTATION.",
+      "  METHOD run.",
+      IDIOM_KB[id].after,
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+    ].join("\n");
+    const g = ruleGate(analyzePackage([{ filename: "zcl_ex.clas.abap", source: src }]));
+    assert.equal(g.blocked, false, `${id} AFTER exemplar trips: ${g.hits.map((h) => h.rule_id).join(", ")}`);
+  }
 });

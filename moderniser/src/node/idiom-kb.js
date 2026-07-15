@@ -18,13 +18,13 @@ export const IDIOM_KB = Object.freeze({
     cause: "MODIFY ENTITIES was issued once per loop iteration — N EML round-trips instead of one.",
     fix: "Collect every instance into one internal table inside the loop, then issue a SINGLE MODIFY ENTITIES … WITH lt_instances AFTER the loop.",
     before: "LOOP AT keys ASSIGNING FIELD-SYMBOL(<k>).\n  MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x\n    UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = <k>-%tky f = <k>-f ) ).\nENDLOOP.",
-    after: "LOOP AT keys ASSIGNING FIELD-SYMBOL(<k>).\n  APPEND VALUE #( %tky = <k>-%tky f = <k>-f ) TO lt_upd.\nENDLOOP.\nMODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x\n  UPDATE FIELDS ( f ) WITH lt_upd REPORTED DATA(rep) FAILED DATA(fail).",
+    after: "LOOP AT keys ASSIGNING FIELD-SYMBOL(<k>).\n  APPEND VALUE #( %tky = <k>-%tky f = <k>-f ) TO lt_upd.\nENDLOOP.\nIF lt_upd IS NOT INITIAL.\n  MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x\n    UPDATE FIELDS ( f ) WITH lt_upd REPORTED DATA(rep) FAILED DATA(fail).\nENDIF.",
   },
   "talos-select-in-loop": {
     cause: "A SELECT inside the loop makes one DB round-trip per iteration (N+1).",
     fix: "Pre-load all needed rows once BEFORE the loop with a single set-based read; READ TABLE inside the loop.",
     before: "LOOP AT keys INTO DATA(k).\n  SELECT SINGLE * FROM ztab INTO @DATA(w) WHERE id = @k-id.\nENDLOOP.",
-    after: "IF keys IS NOT INITIAL.\n  SELECT id, val FROM ztab FOR ALL ENTRIES IN @keys\n    WHERE id = @keys-id INTO TABLE @DATA(rows).\n  SORT rows BY id.\nENDIF.\nLOOP AT keys INTO DATA(k).\n  READ TABLE rows INTO DATA(w) WITH KEY id = k-id BINARY SEARCH.\nENDLOOP.",
+    after: "IF keys IS NOT INITIAL.\n  SELECT id, val FROM ztab FOR ALL ENTRIES IN @keys\n    WHERE id = @keys-id ORDER BY id INTO TABLE @DATA(rows).\nENDIF.\nLOOP AT keys INTO DATA(k).\n  READ TABLE rows INTO DATA(w) WITH KEY id = k-id BINARY SEARCH.\nENDLOOP.",
   },
   "talos-rap-modify-entities-in-read-handler": {
     cause: "A FOR READ handler mutated buffer state with MODIFY ENTITIES — read paths must be side-effect-free.",
@@ -41,8 +41,8 @@ export const IDIOM_KB = Object.freeze({
   "talos-rap-commit-in-loop": {
     cause: "COMMIT ENTITIES inside the loop commits once per iteration instead of once per logical unit of work.",
     fix: "Issue COMMIT ENTITIES once, after the loop completes.",
-    before: "LOOP AT keys INTO DATA(k).\n  MODIFY ENTITIES … .\n  COMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(f).\nENDLOOP.",
-    after: "LOOP AT keys INTO DATA(k).\n  \" collect into lt_upd\nENDLOOP.\nMODIFY ENTITIES … WITH lt_upd.\nCOMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(f).",
+    before: "LOOP AT keys INTO DATA(k).\n  MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = k ) ).\n  COMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(f).\nENDLOOP.",
+    after: "LOOP AT keys INTO DATA(k).\n  APPEND VALUE #( %tky = k ) TO lt_upd.\nENDLOOP.\nIF lt_upd IS NOT INITIAL.\n  MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH lt_upd.\nENDIF.\nCOMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(f).",
   },
 });
 
