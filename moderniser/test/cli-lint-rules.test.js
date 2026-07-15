@@ -50,6 +50,15 @@ test("lint-rules blocks (exit 2) on a SELECT-in-loop artifact and reports the hi
   assert.ok(res.hits.some((h) => h.rule_id === "talos-select-in-loop"), "the hit must name the rule for repair context");
 });
 
+test("lint-rules includes an exemplar-backed repair brief on a hit (repair context for regeneration)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "gap2a-"));
+  writeFileSync(join(dir, "zcl_dirty.clas.abap"), SELECT_IN_LOOP);
+  const { out } = runLintRules(dir);
+  const res = JSON.parse(out);
+  assert.match(res.repair, /talos-select-in-loop/);
+  assert.match(res.repair, /FOR ALL ENTRIES|pre-load/i, "repair carries the pre-load exemplar, not just the one-line message");
+});
+
 test("lint-rules passes (exit 0) on a clean artifact", () => {
   const dir = mkdtempSync(join(tmpdir(), "gap2a-"));
   writeFileSync(join(dir, "zcl_clean.clas.abap"), CLEAN);
