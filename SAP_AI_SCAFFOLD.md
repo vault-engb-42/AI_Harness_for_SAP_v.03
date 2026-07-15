@@ -12,7 +12,7 @@
 > `CLAUDE.md` and `analyser/rules/PARITY.md` for the current architecture; this
 > doc awaits a full rewrite.
 
-The **SAP AI Scaffold** is a loadable Claude Code plugin — prompts, hooks, templates, and settings, with **no backend of its own** — modelled one-to-one on the engineering harness at `C:/Users/panag/claude_harness_eng_v5`. It copies that harness's anatomy (the `CLAUDE.md` spine, the GAN generator/evaluator split, the 8-gate Karpathy ratchet, the lane model, the `.mcp.json` substrate wiring) and retargets every component for **serious ABAP SDLC/PDLC against a live SAP system**. It is **not a product and it does not replace Forge**: Forge keeps generating ABAP through its FastAPI pipeline; this scaffold is a *developer-side harness* that drives Claude Code against SAP, reusing the existing **TALOS substrate** — the live **MCP-ADT** sidecar and the **Analyser** (scanner + Apache AGE code graph + GraphRAG + Cloudification Registry) — **as MCP servers** rather than re-implementing any of it. Its entire value is *discipline*: an agent team that cannot grade its own work, lanes that enforce fit-to-standard-first and the DEV→QA→PRD landscape, model tiers that spend Opus where a defect is expensive, and hooks that make Clean Core and the immutable ABAP invariants impossible to violate in real time.
+The **SAP AI Scaffold** is a loadable Claude Code plugin — prompts, hooks, templates, and settings, with **no backend of its own** — modelled one-to-one on the engineering harness at `C:/Users/panag/claude_harness_eng_v5`. It copies that harness's anatomy (the `CLAUDE.md` spine, the GAN generator/evaluator split, the 8-gate Karpathy ratchet, the lane model, the `.mcp.json` substrate wiring) and retargets every component for **serious ABAP SDLC/PDLC against a live SAP system**. It is **not a product and it does not replace Forge**: Forge keeps generating ABAP through its FastAPI pipeline; this scaffold is a *developer-side harness* that drives Claude Code against SAP, reusing the existing **TALOS substrate** — the live **MCP-ADT** sidecar and the **Analyser** (scanner + Apache AGE code graph + GraphRAG + Cloudification Registry) — **as MCP servers** rather than re-implementing any of it. Its entire value is *discipline*: an agent team that cannot grade its own work, lanes that enforce fit-to-standard-first and the DEV→QAS→PRD landscape, model tiers that spend Opus where a defect is expensive, and hooks that make Clean Core and the immutable ABAP invariants impossible to violate in real time.
 
 ## 0. What a scaffold is (the model this copies)
 
@@ -43,7 +43,7 @@ Read this first — the SAP AI Scaffold *is* this, retargeted for ABAP.
 - **Reuse story.** The scaffold owns no engine. `.mcp.json` declares the TALOS gateway (`backend/mcp_gateway/server.py`, a single stdio dispatcher for ~99 tools) and the live MCP-ADT sidecar (`docker/sap-adt/adapter.py`, 17 real `aws_abap_cb_*` tools) as servers. The only genuinely new code is one optional offline `cloudification_mcp` wrapper over `engine/cloudification_registry.py`.
 - **The four biggest SAP-best-practice accelerators:**
   1. **Clean Core / released-API-only at generation time** — the generator must ground on the Cloudification Registry before it writes, so output is Level-A and upgrade-stable by construction; no "unreleased-API rewrite" loop days later.
-  2. **ATC + ABAP Unit + activation on a live non-prod tier as the GAN evaluator** — the SAP system itself (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1-zero), not the writer, renders the verdict; defects are caught at Realize, not at the QA gate.
+  2. **ATC + ABAP Unit + activation on a live non-prod tier as the GAN evaluator** — the SAP system itself (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1-zero), not the writer, renders the verdict; defects are caught at Realize, not at the QAS gate.
   3. **Immutable ABAP invariants enforced as un-loosenable hooks** — AUTHORITY-CHECK preservation, COMMIT WORK non-suppression, SY-SUBRC-after-AUTHORITY-CHECK fail closed before activation; no per-diff human re-audit for the three highest-blast-radius mistakes.
   4. **Non-prod-only writes + transport governance** — writes target DEV only and fail closed without a live connection; promotion is human-released CTS/gCTS transport. The scaffold structurally cannot reach PRD.
 
@@ -76,7 +76,7 @@ The harness keeps `CLAUDE.md` small and **stable** because it is the cached prom
 | P2 | **Released-API-only, verified offline.** Every SAP API/table/CDS the agent proposes is checked against the **Cloudification Registry** (`backend/src/engine/cloudification_registry.py`) before code is written. | C1 release contract (ABAP Cloud) | Kills the slowest brownfield loop — write → activate → discover not-released → rewrite. The registry answers at planning time. |
 | P3 | **ABAP Cloud development model.** Default object set is RAP (managed/unmanaged behavior definitions, draft), CDS view entities, ABAP classes; no classic Dynpro/module-pool/`SELECT *`-into-workarea patterns in new code. | ABAP Cloud, RAP, CDS | Output is already the SAP-strategic target → no second modernization pass. |
 | P4 | **Immutable invariants (hard-fail, agent-proof).** (a) `AUTHORITY-CHECK` gates may never be removed/weakened; (b) `COMMIT WORK` flags may never be suppressed; (c) `SY-SUBRC` must be checked after every `AUTHORITY-CHECK`. Enforced by `backend/src/engine/invariant_checker.py` via MCP. | TALOS Mode AA invariants; `.claude/rules/abap.md` | A security/transactional regression cannot ship even under full autonomy → no human re-audit of the three highest-blast-radius mistakes. |
-| P5 | **Non-prod-only writes.** All write tools (`create/update_source`, `activate`, `push_objects`) target **DEV in a DEV→QA→PRD landscape** and **fail closed without a live connection**. Promotion is via **CTS/gCTS transport**, never direct write. | CTS/gCTS, transport of copies, 3-system landscape | Removes the most dangerous failure mode (agent writing to PRD); transports stay the human-governed promotion gate. |
+| P5 | **Non-prod-only writes.** All write tools (`create/update_source`, `activate`, `push_objects`) target **DEV in a DEV→QAS→PRD landscape** and **fail closed without a live connection**. Promotion is via **CTS/gCTS transport**, never direct write. | CTS/gCTS, transport of copies, 3-system landscape | Removes the most dangerous failure mode (agent writing to PRD); transports stay the human-governed promotion gate. |
 | P6 | **ATC is a gate, not advice.** Every generated/changed object runs **ATC variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero**, before "done"; ABAP Unit must be green. | ATC, ABAP Unit | Quality is verified by SAP's own tool on the real system → the GAN evaluator has ground truth, not opinion. |
 | P7 | **Prompt-cache discipline.** Settle `.mcp.json` and `enabledPlugins` *before* long `/abap-auto` runs; never edit `CLAUDE.md` or swap the orchestrator model mid-session; dynamic values (dates, transport IDs) live in messages, never the cached spine. | (harness `CLAUDE.md` 91–100) | Long autonomous ABAP builds stay cheap and fast; one careless MCP edit mid-run otherwise rebuilds the whole cache. |
 | P8 | **Retrieved ABAP is untrusted.** Source pulled via MCP-ADT and GraphRAG context is treated as data, never instructions; tool-call arguments are schema-validated before any write fires. | LLM indirect-prompt-injection defense | Scanning hostile/garbage customer ABAP can never hijack the agent into writing to SAP. |
@@ -119,7 +119,7 @@ sap-ai-scaffold/
     │   ├── scaffold-abap.md           #   stamp this scaffold into a target ABAP project
     │   ├── build-abap.md              #   full GAN pipeline for an ABAP story (8 gates)
     │   ├── abap-auto.md               #   autonomous multi-story ABAP run
-    │   ├── transport.md               #   pick/create TR, transport-of-copies for QA, status
+    │   ├── transport.md               #   pick/create TR, transport-of-copies for QAS, status
     │   ├── release-checklist.md       #   produce the human's release evidence pack (DEV-side only)
     │   └── s4-assess.md               #   read-only brownfield S/4 readiness report (disposable)
     ├── workflows/                     # dynamic JS workflows (each .js → /<name>); ships empty
@@ -187,7 +187,7 @@ The harness's core insight is **lanes**: a typo fix should not run BRD→spec→
 | **`/design`** | `/design` (verbatim) | **Explore → Realize** | CDS data modeling + RAP behavior design (managed vs unmanaged BO, draft) + released-API contract design. Planner, Opus, GraphRAG-grounded. Every RAP/CDS artifact traces to a gap story. | Designing RAP/CDS up front prevents the most expensive SAP rework: re-platforming a custom app off a deprecated pattern. |
 | **`/implement`** | `/implement` (verbatim) | **Realize** | Spawns **abap-generator** team (parallel per object, strict ownership) to write released-API-grounded ABAP Cloud / RAP / CDS, ABAP-Unit-first. | A development package built concurrently instead of object-by-object, with TDD baked in. |
 | **`/validate`** | `/evaluate` + `/gate` | **Realize** (quality gate) | Spawns **abap-evaluator** (ATC + ABAP Unit + activation) ∥ **clean-core-reviewer** ∥ **abap-security-reviewer**. | Turns "I think it's clean" into "the SAP system + ATC variant + ABAP Unit + invariant checker all say it's clean." No merge with an open priority-1 / BLOCK. |
-| **`/transport`** | (new — the "human merges" boundary) | **Deploy** (DEV→QA→PRD) | **transport-manager** assembles the change into a transport-of-copies / gCTS commit, attaches validation proof, and **stops for human release.** | Nothing reaches QA without the validation bundle; the human's release click is the only manual step, and it's informed. |
+| **`/transport`** | (new — the "human merges" boundary) | **Deploy** (DEV→QAS→PRD) | **transport-manager** assembles the change into a transport-of-copies / gCTS commit, attaches validation proof, and **stops for human release.** | Nothing reaches QAS without the validation bundle; the human's release click is the only manual step, and it's informed. |
 | **`/vibe`** | `/vibe` (verbatim, SAP guardrails) | any (small bounded fix) | CV0–CV2 only. **Hard escalation triggers**: any touch to AUTHORITY-CHECK, COMMIT WORK, released-API surface, or a transport-relevant DDIC object escalates to `/change`. | Keeps a copy-correction proportionate, but makes security/landscape-relevant edits *structurally* ineligible for the fast lane. |
 
 **Lane escalation ladder:** `/vibe` (≤3 objects, no invariant/released-API/transport-DDIC touch) → `/change` (one object's behavior changes, ABAP-Unit-first) → `/design` → `/implement` → `/validate` → `/transport`. The full pipeline is `/fit-to-standard` → `/brownfield` (if brownfield) → `/design` → `/implement` → `/validate` → `/transport`, with human gates after fit-to-standard, after design, and before transport release — the same human-gate placement as `skills/build/SKILL.md` Phases 1–3.
@@ -198,7 +198,7 @@ The harness's core insight is **lanes**: a typo fix should not run BRD→spec→
 SAP Activate:   Discover ─ Prepare ──── Explore ──────── Realize ───────── Deploy ── Run
                    │         │             │                  │               │
 Scaffold lane:  /brownfield  /readiness  /fit-to-standard   /design          /transport
-                            (S4 readiness) (FIT FIRST)       /implement      (DEV→QA→PRD)
+                            (S4 readiness) (FIT FIRST)       /implement      (DEV→QAS→PRD)
                                                              /validate
                                                           (ATC+AUnit+activate)
 ```
@@ -212,7 +212,7 @@ SAP delivery teams already think in Activate phases and fit-to-standard workshop
 
 ## 4. The SAP quality ratchet (gates)
 
-> **Thesis.** The harness's 8 ratchet gates are re-targeted from web-app evidence (API + Playwright + schema) to **SAP-native evidence produced on a live non-prod ABAP system** (ATC + ABAP Unit + activation), with the **writer never grading its own work** preserved end-to-end. The acceleration comes from moving the failure point as far *left* as it can go — a Clean-Core violation or an ATC priority-1 error is caught against a real QAS/sandbox **before** a developer ever opens the transport, not weeks later in QA.
+> **Thesis.** The harness's 8 ratchet gates are re-targeted from web-app evidence (API + Playwright + schema) to **SAP-native evidence produced on a live non-prod ABAP system** (ATC + ABAP Unit + activation), with the **writer never grading its own work** preserved end-to-end. The acceleration comes from moving the failure point as far *left* as it can go — a Clean-Core violation or an ATC priority-1 error is caught against a real QAS/sandbox **before** a developer ever opens the transport, not weeks later in QAS.
 
 Every gate is a **prompt + hook** that calls the existing TALOS substrate over MCP. The gate logic already exists in `s4_gate_evaluator.py` and `runtime/sap_validation_phase.py`; the scaffold's job is to *orchestrate and enforce* it, not re-implement it.
 
@@ -324,7 +324,7 @@ Run → ASSURE
 | **Prepare** | `/brownfield` → `/brd` | `ASSESS` — classification + readiness + auto-derived spec | **Fit-to-standard**: SCMON usage + SMODILOG mods classify each object *retire / re-platform / keep-and-clean* | Eliminates "migrate everything" — only live, non-standard custom code enters the backlog |
 | **Explore** | `/spec` → `/design` | `WAVE_PLAN` — dependency DAG via `S4WavePlan`/`S4WaveAssignment` | **Agile increments + 3-system landscape**: wave 0 foundational, waves 1+ dependency-ordered; each wave a transportable increment | Parallelizable, reversible increments instead of a big-bang cutover |
 | **Realize** | `/change` (test-first) or `/auto` | `IMPLEMENT + TEST + PACKAGE_VALIDATE` | **RAP / CDS / Clean Core (Level A target)** + **ABAP Unit** + **ATC `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1-zero** | Generated code is released-API-only by construction; the gate proves it before commit |
-| **Deploy** | `/gate` → human merge | `REVIEW + DEPLOY` — `adt_push_objects` + `get_transport_requests` | **Transport management (CTS/gCTS, transport of copies)** through DEV→QA→PRD | Harness produces the commit + transport; the human moves it |
+| **Deploy** | `/gate` → human merge | `REVIEW + DEPLOY` — `adt_push_objects` + `get_transport_requests` | **Transport management (CTS/gCTS, transport of copies)** through DEV→QAS→PRD | Harness produces the commit + transport; the human moves it |
 | **Run** | Re-run `/brownfield` deltas | `ASSURE` — re-scan via SCMON drift | **abapGit** round-trip + continued ATC | Post-go-live drift is a graph diff, not a re-audit |
 
 The harness CLAUDE.md declares that *architecture/ARB narratives, BRDs, and analysis reports are disposable artifacts that must NOT go through the GAN loop, ratchet gates, security review, or TDD.* So **Prepare/Explore** (BRD, fit-to-standard analysis, wave plan) run the lightweight `/design --doc-only` and `/brd` lanes — fast, no ceremony. Only **Realize** (ABAP that ships) enters the 8-gate pipeline. Governance ceremony is spent only where code ships, never on the analysis that precedes it.
@@ -429,7 +429,7 @@ The scaffold introduces **no new data store**. Grounding rides entirely on TALOS
 
 ## 7. Delivery, landscape & guardrails
 
-The scaffold turns generated ABAP into *delivered* ABAP without ever touching production. The harness law "**the human merges**" becomes "**the human releases the transport**." The scaffold's job ends at **activated objects in DEV with green ATC + ABAP Unit proof attached to an open transport request**; a human in transport management (STMS / gCTS pull request) moves that transport DEV→QA→PRD. Every write funnels through the TALOS MCP-ADT surface and is fenced by a **write-gate hook** that mirrors the harness's `pre-write-gate.js` exit-2 model — except here a blocked write means "this would violate the SAP landscape contract."
+The scaffold turns generated ABAP into *delivered* ABAP without ever touching production. The harness law "**the human merges**" becomes "**the human releases the transport**." The scaffold's job ends at **activated objects in DEV with green ATC + ABAP Unit proof attached to an open transport request**; a human in transport management (STMS / gCTS pull request) moves that transport DEV→QAS→PRD. Every write funnels through the TALOS MCP-ADT surface and is fenced by a **write-gate hook** that mirrors the harness's `pre-write-gate.js` exit-2 model — except here a blocked write means "this would violate the SAP landscape contract."
 
 ### 7.1 The delivery contract
 
@@ -437,7 +437,7 @@ The scaffold turns generated ABAP into *delivered* ABAP without ever touching pr
 |-------|----------|-------------------|---------------|
 | **Build (DEV)** | Scaffold agents via MCP-ADT | Created/updated + **activated** objects on a single TR, with ATC report + ABAP Unit results | Writes only to a connection whose `system_role=DEV` |
 | **Verify (DEV)** | Scaffold gate skills | ATC `ABAP_CLEAN_CORE_DEVELOPMENT` zero-priority-1; ABAP Unit green; immutable-invariant pre-activate pass; Clean-Core Level-A check | A red gate blocks the commit + transport hand-off |
-| **Integration (QA)** | **Human** releases a *transport of copies* | Objects validated in QA without locking the original TR | Scaffold may *read* QA (ATC re-run) but **never releases** the TR |
+| **Integration (QAS)** | **Human** releases a *transport of copies* | Objects validated in QAS without locking the original TR | Scaffold may *read* QAS (ATC re-run) but **never releases** the TR |
 | **Release (PRD)** | **Human** (segregation of duties) | Original TR imported to PRD via STMS/gCTS | Scaffold has **no** PRD connection registered — structurally impossible |
 
 The developer receives a **release-ready transport with evidence already attached**, collapsing the usual DEV iteration + manual ATC + manual unit-test cycle into one autonomous pass — the human spends review time on the *decision to release*.
@@ -452,16 +452,16 @@ The scaffold treats a **transport request as the unit of delivery** and binds it
 - `backend/src/service/abapgit_push_service.py` — pushes the abapGit package structure to a git provider over REST.
 - `backend/src/service/abapgit_service.py` / `abapgit_collector.py` — sync an abapGit repo back (reads `.abapgit.xml` `STARTING-FOLDER`, default `/src/`).
 
-**Transport of copies for QA.** The `/transport` command guides creating a **transport of copies** (type `T`): objects ship to QA for an integration ATC/unit run while the original workbench TR stays open and unreleased in DEV — the SAP-native "test the change on a throwaway branch before merging." DEV iteration and QA validation overlap instead of serializing.
+**Transport of copies for QAS.** The `/transport` command guides creating a **transport of copies** (type `T`): objects ship to QAS for an integration ATC/unit run while the original workbench TR stays open and unreleased in DEV — the SAP-native "test the change on a throwaway branch before merging." DEV iteration and QAS validation overlap instead of serializing.
 
-### 7.3 The three-system landscape — DEV → QA → PRD
+### 7.3 The three-system landscape — DEV → QAS → PRD
 
 The TALOS connection registry is **project-scoped and encrypted (AES-256-GCM, ADR-054)** — `backend/src/repo/models.py:456` (`ProjectConnectionModel`, `encrypted_config`) — and every connection carries a `connection_type` (`adt_system`), validated before decryption in `adt_connector.py:67`. The scaffold extends this with a **`system_role` discriminator** declared per connection in the scaffold's own config (not in product code):
 
 | `system_role` | SID convention | Scaffold capability | Rationale (SAP best practice) |
 |---------------|----------------|---------------------|-------------------------------|
 | `DEV` | e.g. `D01` | read **+ write + activate** | Custom-code build & unit/ATC happen only where change is allowed |
-| `QA` | e.g. `Q01` | **read-only** (ATC re-run, unit re-run) | Integration validation, never a write target |
+| `QAS` | e.g. `Q01` | **read-only** (ATC re-run, unit re-run) | Integration validation, never a write target |
 | `PRD` | e.g. `P01` | **not registered** | Segregation of duties — the scaffold cannot reach prod |
 
 The landscape is data, so onboarding a new customer system is a one-line connection registration, not a code change.
@@ -474,7 +474,7 @@ The harness's `pre-write-gate.js` runs as a `PreToolUse(Write|Edit|MultiEdit)` h
 |---|-----------|-------------------|-----------------------------|
 | 1 | **Non-prod-only** | Resolve target connection's `system_role`; block unless `DEV`. Reinforced — no PRD connection exists (`ProjectConnectionModel`, `adt_connector.py:54-75`) | Removes the largest delivery risk (prod write); agents run fully autonomous in DEV |
 | 2 | **Transport isolation** | Every write asserts an assigned target TR via `get_transport_requests` (`adapter.py:263`); reject objects not bound to the active dependency-group TR | One TR = one reviewable, releasable unit; no orphaned objects at release time |
-| 3 | **Immutable-invariant pre-activate** | `engine/invariant_checker.py` (11 invariants) — block on **#6 AUTHORITY-CHECK Preservation**, **#7 COMMIT WORK Isolation**, #3 Audit-Trail Immutability, #5 Cost Ceiling | Catches security-fatal regressions *before* activation; the QA/PRD review never bounces for an auth/commit defect |
+| 3 | **Immutable-invariant pre-activate** | `engine/invariant_checker.py` (11 invariants) — block on **#6 AUTHORITY-CHECK Preservation**, **#7 COMMIT WORK Isolation**, #3 Audit-Trail Immutability, #5 Cost Ceiling | Catches security-fatal regressions *before* activation; the QAS/PRD review never bounces for an auth/commit defect |
 | 4 | **Clean-Core Level-A** | Generated objects must classify **Level A** — `clean_core_kpi_calculator` / `CleanCoreLevel.LEVEL_A` (`api/routes/governance.py:632,653,669`); enforce at the **target** | Upgrade-stable on first write → no re-work at the customer's next upgrade |
 | 5 | **Audit** | Every ADT operation wrapped in `adt_audit(...)` (`api/routes/adt.py:184-205`) recording operation/target/connection/user; invariant #3 makes the trail append-only | Release reviewers get a complete who-did-what ledger for free; SoD evidence is automatic |
 | 6 | **Cost ceiling** | Invariant **#5 Cost Ceiling Enforcement** (`invariant_checker.py:49`) caps LLM spend per run | Runaway agent loops are halted before they burn budget |
@@ -487,12 +487,12 @@ The 8-gate ratchet from §4 is the same spine that gates delivery: (1) ABAP Unit
 
 ### 7.6 Observability — reuse the harness opt-in model
 
-Telemetry stays **off by default, opt-in** exactly as the harness ships it (`CLAUDE_CODE_ENABLE_TELEMETRY=1` + OTEL env vars in `.claude/settings.json`, with `telemetry/prometheus.yml`, `telemetry/otel-collector-config.yml`, `telemetry/grafana/` provisioning — harness `CLAUDE.md:100`, `telemetry/CACHE_MONITORING.md`). The scaffold adds SAP-delivery dashboards on the same Prometheus/Grafana stack rather than a new one: **transports opened/released**, **ATC priority-1 trend**, **ABAP Unit pass rate**, **Clean-Core Level-A share** (`clean_core_kpi_calculator`), and **cost-per-run** from the invariant #5 ledger. The human releasing transports sees objective quality trends, spotting a regression at gate 2 (ATC) instead of in QA.
+Telemetry stays **off by default, opt-in** exactly as the harness ships it (`CLAUDE_CODE_ENABLE_TELEMETRY=1` + OTEL env vars in `.claude/settings.json`, with `telemetry/prometheus.yml`, `telemetry/otel-collector-config.yml`, `telemetry/grafana/` provisioning — harness `CLAUDE.md:100`, `telemetry/CACHE_MONITORING.md`). The scaffold adds SAP-delivery dashboards on the same Prometheus/Grafana stack rather than a new one: **transports opened/released**, **ATC priority-1 trend**, **ABAP Unit pass rate**, **Clean-Core Level-A share** (`clean_core_kpi_calculator`), and **cost-per-run** from the invariant #5 ledger. The human releasing transports sees objective quality trends, spotting a regression at gate 2 (ATC) instead of in QAS.
 
 ### 7.7 Governance summary
 
-- **Transport governance**: one TR per dependency group; transport of copies for QA pre-validation; gCTS/abapGit for git-native ABAP source and reviewable commits.
-- **Triple landscape**: DEV (write+activate) → QA (read-only validation) → PRD (unregistered). Enforced as connection `system_role` data, not code.
+- **Transport governance**: one TR per dependency group; transport of copies for QAS pre-validation; gCTS/abapGit for git-native ABAP source and reviewable commits.
+- **Triple landscape**: DEV (write+activate) → QAS (read-only validation) → PRD (unregistered). Enforced as connection `system_role` data, not code.
 - **Segregation of duties**: the scaffold builds and proves in DEV; a *different human* releases through STMS/gCTS. The scaffold structurally **cannot** reach PRD — the strongest possible SoD control.
 
 ## 8. SAP best practices baked in — and how they accelerate delivery
@@ -502,13 +502,13 @@ Telemetry stays **off by default, opt-in** exactly as the harness ships it (`CLA
 | **Clean Core / Level-A / released-API-only** | P1+P2; `ground.released` mandatory before any emitted API/table/FM (`cloudification_registry.classify/get_successor`); clean-core-reviewer; CLOUD-019..030 offline lint (`abap_cloud_linter_clean_core.py`) | Output is upgrade-stable by construction; removes the unreleased-API rewrite loop that only surfaces at ATC days later, and the re-work at the customer's next upgrade |
 | **Released-API check verified OFFLINE** | `sap-cloudification` MCP wrapper over `engine/cloudification_registry.py`; Apache-licensed dataset; degrades to `unknown` | A non-released API is caught at planning time, on a laptop with no DEV system — kills the slowest brownfield loop |
 | **ABAP Cloud development model (RAP/CDS)** | P3; `/design` produces managed/unmanaged RAP BOs, draft, CDS view entities; RAP/CDS templates | Output is the SAP-strategic target → no second modernization pass; no re-platforming off deprecated patterns |
-| **ATC variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1-zero** | P6, Gate 2/5 (HARD); pinned as immutable constant (`sap_validation_phase.py:266`, `adt_connector.py:372`); `gate` hook refuses laxer variants | Every object judged against the published Clean-Core standard from the first push; collapses the DEV→QA transport bounce |
-| **ATC + ABAP Unit + activation on a LIVE non-prod tier as the GAN evaluator** | abap-evaluator three layers (`run_atc_check`/`run_unit_tests`/`activate_object`); `_compute_verdict`; fail-closed without ADT connection (`sap_validation_phase.py:179-183`) | The SAP system, not the writer, renders the verdict; defects caught at Realize, not in QA |
+| **ATC variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1-zero** | P6, Gate 2/5 (HARD); pinned as immutable constant (`sap_validation_phase.py:266`, `adt_connector.py:372`); `gate` hook refuses laxer variants | Every object judged against the published Clean-Core standard from the first push; collapses the DEV→QAS transport bounce |
+| **ATC + ABAP Unit + activation on a LIVE non-prod tier as the GAN evaluator** | abap-evaluator three layers (`run_atc_check`/`run_unit_tests`/`activate_object`); `_compute_verdict`; fail-closed without ADT connection (`sap_validation_phase.py:179-183`) | The SAP system, not the writer, renders the verdict; defects caught at Realize, not in QAS |
 | **Coverage ratchet (Karpathy)** | `abapunit-baseline.json` coverage monotonically up, `atc-baseline.json` warnings monotonically down; `ratchet-guard.js` | Accepted technical debt has a hard, visible ceiling instead of silently growing |
 | **Immutable invariants — AUTHORITY-CHECK / COMMIT WORK / SY-SUBRC** | P4, Gate 7 (HARD), `pre-activate-gate.js`/`invariant-guard.js` over `engine/invariant_checker.py` + AGE security-boundary diff | The three highest-blast-radius mistakes can't ship even under autonomy; removes per-diff human re-audit and the late security-rework loop |
 | **Non-prod-only writes + fail-closed** | P5; `system_role` discriminator on `ProjectConnectionModel`; `adt_connector.push_objects` fails closed; PRD never registered | Removes the most dangerous failure mode (prod write); agents run autonomous in DEV without a human guarding every write |
-| **Transport governance (CTS/gCTS, transport of copies, one TR per group)** | `/transport` + transport-manager; `get_transport_requests`; `abapgit_connector.py`/`abapgit_push_service.py`/`abapgit_service.py` | Each TR is a single reviewable/releasable unit; QA validation overlaps DEV iteration; git-native review without manual SE80 export |
-| **Three-system landscape + segregation of duties** | DEV→QA→PRD as connection data; the scaffold builds in DEV, a different human releases via STMS/gCTS | "Human releases the transport"; the human spends review time on the release decision, not reproducing checks |
+| **Transport governance (CTS/gCTS, transport of copies, one TR per group)** | `/transport` + transport-manager; `get_transport_requests`; `abapgit_connector.py`/`abapgit_push_service.py`/`abapgit_service.py` | Each TR is a single reviewable/releasable unit; QAS validation overlaps DEV iteration; git-native review without manual SE80 export |
+| **Three-system landscape + segregation of duties** | DEV→QAS→PRD as connection data; the scaffold builds in DEV, a different human releases via STMS/gCTS | "Human releases the transport"; the human spends review time on the release decision, not reproducing checks |
 | **Fit-to-standard FIRST** | `/fit-to-standard` ordered before any build lane; GraphRAG + Cloudification-Registry lookup; gaps→stories, fits→config | Eliminates the largest source of SAP waste — custom code for capability SAP already ships |
 | **SAP Activate alignment (Discover→Run)** | Lanes map 1:1 to `S4PipelinePhase` (`types/s4_pipeline.py:29-39`); disposable phases use `/brd` + `/design --doc-only` (no GAN) | Drops into an existing SAP project plan with zero methodology translation; ceremony spent only where code ships |
 | **Brownfield custom-code migration / S/4 readiness** | `/brownfield` (AGE graph + DDIC + `s4_dependency_walker` blast radius); `/readiness` (quality registry + `get_migration_analysis`) | Scope and remediation backlog are graph-derived on day one — weeks of SE84/SE11 spelunking become a query |
@@ -516,7 +516,7 @@ Telemetry stays **off by default, opt-in** exactly as the harness ships it (`CLA
 | **Indirect-prompt-injection defense** | P8; retrieved ABAP treated as data; tool-call args schema-validated before any write | Scanning hostile customer brownfield code cannot hijack writes to SAP |
 | **Model-tier cost discipline** | `model-tier.js` cost/balanced/max-quality; Sonnet for generation, Opus for every defect-letting judgment | Spends the most capable model exactly where a Clean-Core or AUTHORITY-CHECK miss reaching PRD is most expensive |
 | **Audit trail + cost ceiling** | `adt_audit` context manager (`adt.py:184-205`, append-only via invariant #3); invariant #5 cost ceiling | Free SoD/audit evidence for reviewers; autonomous loops stay economically predictable |
-| **Opt-in observability** | Harness OTEL/Prometheus/Grafana reused, off by default; SAP-delivery dashboards | Release decisions are data-driven; regressions surface at the ATC gate, not in QA |
+| **Opt-in observability** | Harness OTEL/Prometheus/Grafana reused, off by default; SAP-delivery dashboards | Release decisions are data-driven; regressions surface at the ATC gate, not in QAS |
 
 ## 9. Reused-from-TALOS vs new-in-scaffold
 

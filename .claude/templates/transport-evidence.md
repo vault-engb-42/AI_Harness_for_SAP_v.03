@@ -108,7 +108,7 @@ Zero BLOCK correctness findings required. `pass = <diff_review_verdict.pass>` (M
 
 | | |
 |-|-|
-| Next action | `<release_gates.next_action>`  *(e.g. human releases transport DEV → QA)* |
+| Next action | `<release_gates.next_action>`  *(e.g. human releases transport DEV → QAS)* |
 | Owner | **`<release_gates.owner>` — human** |
 | Confirm first | `<release_gates.notes>`  *(e.g. transport binding is unverified because the signal is stubbed)* |
 

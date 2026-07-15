@@ -10,7 +10,7 @@ agent: transport-manager
 
 Deliver phase. The terminal lane in the pipeline (`/fit-to-standard → /abap-brownfield → /abap-design → /abap-implement → /abap-validate → /abap-transport`). It spawns a single `transport-manager` agent to **assemble** an already-gate-passed change into **ONE dependency-group transport** and build a **transport-evidence pack** under `specs/delivery/` — then **STOP** at a release-ready state for a human to release.
 
-> **The harness assembles and attests; the human releases (P5).** DEV → QA → PRD is a human action, segregation of duties, never the harness's. This lane never calls a release/import tool, never activates, never edits ABAP, never reaches QA or PRD. Its terminal state is "here is one transport, every changed object bound to it (or the binding gap surfaced), with proof the gates passed — a human may now release it."
+> **The harness assembles and attests; the human releases (P5).** DEV → QAS → PRD is a human action, segregation of duties, never the harness's. This lane never calls a release/import tool, never activates, never edits ABAP, never reaches QAS or PRD. Its terminal state is "here is one transport, every changed object bound to it (or the binding gap surfaced), with proof the gates passed — a human may now release it."
 
 > **Fail-closed is the whole posture (P5/P6).** This lane refuses to assemble a ready transport on top of a failed or missing gate. A `BLOCK`/missing `sap-verdict.json`, a failed security or diff verdict, or a not-Level-A target ⇒ the pack is still written, but with `bundle_status` reflecting the blocker so the human sees WHY it is not releasable — never a `release-ready` bundle. A stubbed/unavailable signal is never treated as clean.
 
@@ -68,7 +68,7 @@ The `transport-manager` calls `aws_abap_cb_get_transport_requests` for the devel
 
 ### Step 4 — Confirm the Dependency Group is ONE Transport
 
-The whole point of the lane: a RAP/CDS change whose objects activate as a unit must **release as a unit**. If the transport list shows the objects split across two requests (e.g. the CDS entity in TR-A, the behavior class in TR-B), that is a **split-delivery finding** — releasing one without the other imports a half-activated feature into QA. Report it as a blocker (`bundle_status: split-delivery`); the objects must be consolidated into one dependency-group transport before release. When `data_available:false`, the split cannot be detected — say so explicitly; the human checks. Do not staple two independent features into one transport to "save a release."
+The whole point of the lane: a RAP/CDS change whose objects activate as a unit must **release as a unit**. If the transport list shows the objects split across two requests (e.g. the CDS entity in TR-A, the behavior class in TR-B), that is a **split-delivery finding** — releasing one without the other imports a half-activated feature into QAS. Report it as a blocker (`bundle_status: split-delivery`); the objects must be consolidated into one dependency-group transport before release. When `data_available:false`, the split cannot be detected — say so explicitly; the human checks. Do not staple two independent features into one transport to "save a release."
 
 ### Step 5 — Aggregate the Transport-Evidence Pack
 
@@ -78,13 +78,13 @@ The `transport-manager` writes the machine-readable pack to `specs/delivery/tran
 - The transport id / description / modifiable flag / bound objects (or `null` + the stub reason when `data_available:false`).
 - `transport_binding` — `verified`, `reason`, `objects_expected` (from `sap-verdict.json` `objects[]`), `objects_unbound_or_split`.
 - The evidence roll-up: verdict, activation log, ATC (variant + priority-1 empty + priority-2/3), ABAP Unit (failed empty + coverage vs baseline), `clean_core_level:A`, `invariant_diff` (all three false), and the security/diff verdict pointers with `pass:true`.
-- `release_gates` — `next_action: "human releases transport DEV → QA"`, `owner: "human"`, and the one thing the human must confirm first (e.g. "transport binding unverified — signal stubbed").
+- `release_gates` — `next_action: "human releases transport DEV → QAS"`, `owner: "human"`, and the one thing the human must confirm first (e.g. "transport binding unverified — signal stubbed").
 
 `bundle_status` is `release-ready` ONLY when every Step 1 precondition passed AND `transport_binding.verified:true` AND `objects_unbound_or_split` is empty. With the stub returning `data_available:false`, the honest status today is `binding-unverified` — do not inflate it.
 
 ### Step 6 — STOP at Release-Ready (human gate)
 
-The lane's terminal state is a written pack and a STOP. The `transport-manager` does not release, import, or transport-of-copies any request — not DEV→QA, not QA→PRD, not a preliminary import. Present the human companion pack and the single sentence: **release action is yours.** The harness never releases the transport (P5).
+The lane's terminal state is a written pack and a STOP. The `transport-manager` does not release, import, or transport-of-copies any request — not DEV→QAS, not QAS→PRD, not a preliminary import. Present the human companion pack and the single sentence: **release action is yours.** The harness never releases the transport (P5).
 
 ---
 
@@ -95,13 +95,13 @@ The lane's terminal state is a written pack and a STOP. The `transport-manager` 
 | `specs/delivery/transport-evidence.json` | Machine-readable release pack: bundle status, transport binding, aggregated gate evidence |
 | `specs/delivery/transport-evidence.md` | One-screen human companion: transport id (or binding-unverified banner), object list, ATC priority-1 count (0), unit result (green), Clean-Core level (A), invariant diff (all false), "release action is yours" |
 
-No ABAP source, no transport release, no QA/PRD contact — this lane produces evidence and stops.
+No ABAP source, no transport release, no QAS/PRD contact — this lane produces evidence and stops.
 
 ---
 
 ## Gotchas
 
-- **Dependency-group integrity is the whole job.** A RAP feature is a *set* (CDS entity + projection + behavior definition + implementation + service definition/binding + test class). Releasing a subset half-activates the feature in QA. The single most important check is: are ALL of them in ONE transport? When the transport signal is stubbed (`data_available:false`), this cannot be confirmed — say so explicitly; never paper over it.
+- **Dependency-group integrity is the whole job.** A RAP feature is a *set* (CDS entity + projection + behavior definition + implementation + service definition/binding + test class). Releasing a subset half-activates the feature in QAS. The single most important check is: are ALL of them in ONE transport? When the transport signal is stubbed (`data_available:false`), this cannot be confirmed — say so explicitly; never paper over it.
 - **Stub-signal honesty (P6).** `aws_abap_cb_get_transport_requests` returns `data_available:false` today. Branch on the flag every time. Unavailable ≠ empty ≠ clean. `binding-unverified` is the honest status, never a silent flip to `release-ready`.
 - **Fail-closed on a missing verdict.** A missing `sap-verdict.json` / `security-verdict.json` / `diff-review-verdict.json` is a BLOCK, not a pass. No verdict ⇒ nothing to attest ⇒ `blocked-upstream`. "Assume it passed because the signal was unavailable" is exactly the failure this lane refuses.
 - **WARN is deliverable, BLOCK is not.** A `WARN` sap-verdict (priority-2/3 ATC within the accepted ratchet, or a coverage note) is release-ready with the WARNs recorded for the human to weigh. A `BLOCK`, a non-empty `atc.priority1`, or a non-empty `abap_unit.failed` is never assembled into a ready transport.

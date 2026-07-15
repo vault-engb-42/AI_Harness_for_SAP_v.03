@@ -136,7 +136,7 @@ All five must exist before the group verdict is complete; a missing output is it
 ## Rules
 
 - **Push UNCHANGED source (P5, GAN).** The evaluator activates the generator's ABAP byte-for-byte. No reviewer edits, patches, or "quick-fixes" source to make a gate pass — a BLOCK returns to the generator via Step 4.
-- **DEV only, human releases the transport (P5).** This lane activates in DEV and produces the proof bundle. It releases nothing into the transport chain. `/abap-transport` assembles the evidence; the human releases DEV→QA→PRD.
+- **DEV only, human releases the transport (P5).** This lane activates in DEV and produces the proof bundle. It releases nothing into the transport chain. `/abap-transport` assembles the evidence; the human releases DEV→QAS→PRD.
 - **Invariants are un-loosenable (P4).** An AUTHORITY-CHECK removed/weakened, a COMMIT WORK suppressed, or an SY-SUBRC check dropped after an AUTHORITY-CHECK is always a Gate-7 BLOCK — never downgraded by "low blast radius" and never waived on operator instruction.
 - **No baseline, no certification.** A modified object with no established pre-change baseline cannot be certified for the invariants — that is a FAIL for the object, recorded as such.
 - **Fail-closed everywhere (P6).** Missing verdict, incomplete ATC, `data_available:false`, stubbed tool, dropped connection — all BLOCK. Never read an absent signal as a clean one.
