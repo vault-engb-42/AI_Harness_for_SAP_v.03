@@ -15,6 +15,7 @@
  *   next <run_id> · dispatch <run_id> <sig...> · progress <run_id> <sig> <STATUS>
  *   outcome <run_id> <sig> <STATUS> [--reason r] [--signed-by name]
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
+ *   lint-rules <sig> --files <dir>   (gap-2a: analyser RAP/N+1 rule gate; exit 2 on a hit)
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
  *   packets <run_id> [--max N]                  (surfaced escalations as GatePackets, §3.4 #8)
@@ -36,6 +37,7 @@ import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide } from "./cli-escala
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
+import { cmdLintRules } from "./cli-selfcheck.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -55,6 +57,7 @@ const COMMANDS = {
   decide: cmdDecide,
   status: cmdStatus,
   resume: cmdResume,
+  "lint-rules": cmdLintRules,
 };
 
 function cmdPlan(io, pos, flags) {
@@ -273,6 +276,10 @@ function main(argv) {
   const io = { stateDir: flags["state-dir"] || ".claude/state", runsDir: flags["runs-dir"] || "specs/runs" }; // || so an empty value falls back
   const result = handler(io, pos, flags);
   process.stdout.write(`${JSON.stringify(result, null, 1)}\n`);
+  // A gate verb (lint-rules) signals a blocking outcome via `blocked:true` while still
+  // emitting its structured findings on stdout — surface it as a non-zero exit so the
+  // SELF_CHECK treats a rule hit exactly like a lint failure (2 = gate blocked, ≠ 1 = error).
+  if (result?.blocked === true) process.exit(2);
 }
 
 try {
