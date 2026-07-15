@@ -17,3 +17,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Session handoffs — ephemeral, session-scoped continuity notes; never commit (rules/handoffs.md)
+.handoffs/
