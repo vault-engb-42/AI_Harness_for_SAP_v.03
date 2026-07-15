@@ -132,11 +132,11 @@ function scanStatements(file, obj, findings, ddic = new Map()) {
   let depth = 0;
   let blockDepth = 0;
   let enhDepth = 0;
-  let currentMethod = null;
+  const scope = { cls: null, method: null };
   for (let i = 0; i < stmts.length; i++) {
     const name = stmts[i].get()?.constructor?.name;
     const text = stmts[i].concatTokens();
-    currentMethod = trackMethod(name, text, fileState.readHandlers, currentMethod);
+    trackScope(name, text, fileState.readHandlers, scope);
 
     // Check target BEFORE adjusting depth: a top-level SELECT..ENDSELECT is not
     // "inside a loop"; a nested one (depth > 0) is.
@@ -145,7 +145,7 @@ function scanStatements(file, obj, findings, ddic = new Map()) {
       matchPatterns(IN_LOOP_PATTERNS, name, text, findings, obj, file, stmts[i]);
     }
     matchPatterns(STATEMENT_PATTERNS, name, text, findings, obj, file, stmts[i]);
-    checkContext(stmts, i, name, text, { blockDepth, enhDepth, fileState, currentMethod }, obj, file, findings);
+    checkContext(stmts, i, name, text, { blockDepth, enhDepth, fileState, currentMethod: scope.method, currentClass: scope.cls }, obj, file, findings);
 
     if (LOOP_OPEN.has(name)) depth++;
     else if (LOOP_CLOSE.has(name)) depth = Math.max(0, depth - 1);
@@ -168,9 +168,10 @@ function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   }
   if (name === "ModifyEntities") {
     checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings);
-    // Method-scoped (not the file-level regex it replaced): a MODIFY ENTITIES only violates
+    // Class+method-scoped (not the file-level regex it replaced): a MODIFY ENTITIES only violates
     // ABAP-PERF-78 when it sits inside a FOR READ handler — a read path must not mutate buffer state.
-    if (ctx.currentMethod && ctx.fileState.readHandlers.has(ctx.currentMethod)) {
+    // The key is CLASS::METHOD so a same-named action method in a sibling local class is not implicated (F3).
+    if (ctx.currentClass && ctx.currentMethod && ctx.fileState.readHandlers.has(`${ctx.currentClass}::${ctx.currentMethod}`)) {
       push(findings, { id: "talos-rap-modify-entities-in-read-handler", family: "rap-odata", severity: "priority-1", message: "EML MODIFY ENTITIES inside a FOR READ handler — read paths must not change buffer state; model side effects as an action/determination (ABAP-PERF-78)." }, obj, file, stmts[i]);
     }
   }
@@ -217,20 +218,33 @@ function trackSelect(text, st, fileState) {
 }
 
 /**
- * RAP handler method context (gap-2a read-handler precision). A `METHODS <name> FOR READ …`
- * definition marks a read handler; the current method is tracked across MethodImplementation →
- * EndMethod so a MODIFY ENTITIES can be scoped to the method it sits in — a file-level regex
- * cannot (it over-matches any behaviour pool). @returns {string|null} current method, UPPERCASE.
+ * RAP handler scope tracking (gap-2a read-handler precision). Tracks the current local class and
+ * method across the statement stream so a MODIFY ENTITIES can be scoped to the exact handler it
+ * sits in — a file-level regex cannot (it over-matches any behaviour pool). A `METHODS <name> FOR
+ * READ …` def marks that class's method as a read handler, keyed CLASS::METHOD so a same-named
+ * method in a sibling local class is never conflated (review F3). Mutates `scope` in place.
  */
-function trackMethod(name, text, readHandlers, currentMethod) {
+function trackScope(name, text, readHandlers, scope) {
+  if (name === "ClassDefinition" || name === "ClassImplementation") {
+    scope.cls = /^CLASS\s+(\w+)/i.exec(text)?.[1]?.toUpperCase() ?? null;
+    scope.method = null;
+    return;
+  }
+  if (name === "EndClass") {
+    scope.cls = null;
+    scope.method = null;
+    return;
+  }
   if (name === "MethodDef") {
     const md = /^METHODS\s+(\w+)\s+FOR\s+READ\b/i.exec(text);
-    if (md) readHandlers.add(md[1].toUpperCase());
-    return currentMethod;
+    if (md && scope.cls) readHandlers.add(`${scope.cls}::${md[1].toUpperCase()}`);
+    return;
   }
-  if (name === "MethodImplementation") return /^METHOD\s+(\w+)/i.exec(text)?.[1]?.toUpperCase() ?? null;
-  if (name === "EndMethod") return null;
-  return currentMethod;
+  if (name === "MethodImplementation") {
+    scope.method = /^METHOD\s+(\w+)/i.exec(text)?.[1]?.toUpperCase() ?? null;
+    return;
+  }
+  if (name === "EndMethod") scope.method = null;
 }
 
 /** Apply a pattern table to one statement. */

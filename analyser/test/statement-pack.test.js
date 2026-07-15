@@ -128,3 +128,33 @@ test("MODIFY ENTITIES inside a FOR MODIFY/action handler is NOT flagged read-han
   const f = findings(src, "lhc_x.clas.abap");
   assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-entities-in-read-handler"), [], "an action handler is not a read handler");
 });
+
+// review F3: read-handler identity must be CLASS-qualified. A bare method-name key false-flags a
+// MODIFY in a same-named action method of a DIFFERENT local class in the same behaviour pool.
+test("a MODIFY in an action method is NOT flagged just because another local class has a same-named FOR READ method (F3)", () => {
+  const src = [
+    "CLASS lhc_a DEFINITION INHERITING FROM cl_abap_behavior_handler.",
+    "  PRIVATE SECTION.",
+    "    METHODS process FOR READ IMPORTING keys FOR READ x RESULT result.",
+    "ENDCLASS.",
+    "CLASS lhc_b DEFINITION INHERITING FROM cl_abap_behavior_handler.",
+    "  PRIVATE SECTION.",
+    "    METHODS process FOR MODIFY IMPORTING keys FOR ACTION x~process.",
+    "ENDCLASS.",
+    "CLASS lhc_a IMPLEMENTATION.",
+    "  METHOD process.",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+    "CLASS lhc_b IMPLEMENTATION.",
+    "  METHOD process.",
+    "    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = k ) ) FAILED DATA(failed).",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+  const f = findings(src, "lhc_x.clas.abap");
+  assert.deepEqual(
+    f.filter((x) => x.rule_id === "talos-rap-modify-entities-in-read-handler"),
+    [],
+    "lhc_b::process is an action handler; lhc_a::process being FOR READ must not implicate it",
+  );
+});
