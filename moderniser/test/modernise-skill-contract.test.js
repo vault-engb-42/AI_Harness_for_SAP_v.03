@@ -29,10 +29,13 @@ function cliCommands() {
   return verbs;
 }
 
-/** Every CLI verb the SKILL invokes in the unambiguous full form `cli.js <verb>` (the loop steps use it). */
+/** Every CLI verb the SKILL invokes — the full `cli.js <verb>` form OR the SKILL's own `...` abbreviation for it. */
 function skillInvokedVerbs() {
   const verbs = new Set();
-  for (const m of SKILL.matchAll(/cli\.js\s+([a-z][a-z-]*)/g)) verbs.add(m[1]);
+  // SKILL.md declares `...` abbreviates `node moderniser/src/cli.js`; the escalation/park/cycle gates
+  // invoke verbs ONLY through that abbreviation, so the contract must resolve BOTH forms (review F5).
+  // Safe against prose ellipsis: the SKILL uses the unicode `…` for prose, ASCII `...` only for the CLI.
+  for (const m of SKILL.matchAll(/(?:cli\.js|\.\.\.)\s+([a-z][a-z-]*)/g)) verbs.add(m[1]);
   return verbs;
 }
 
@@ -46,6 +49,11 @@ test("every CLI verb the /modernise SKILL invokes is a registered command (no da
   assert.ok(invoked.size >= 5, `the verb extractor should find the SKILL's CLI calls (found ${invoked.size})`);
   const dangling = [...invoked].filter((v) => !commands.has(v));
   assert.deepEqual(dangling, [], `SKILL invokes verbs that do not exist in cli.js COMMANDS: ${dangling.join(", ")}`);
+  // the `...`-abbreviated escalation/park/cycle verbs must be COVERED, not just non-dangling — a rename
+  // of any of them must trip this test rather than ship a broken SKILL green (review F5).
+  for (const v of ["decide", "escalate", "seams", "resolve-cycle", "reprobe"]) {
+    assert.ok(invoked.has(v), `the contract must validate the '...'-invoked verb '${v}' (F5 regression guard)`);
+  }
 });
 
 test("the SKILL drives the loop with `drive` and owns retry-vs-ceiling via `--report`", () => {
@@ -57,7 +65,9 @@ test("the SKILL documents every drive-loop action branch — and each matches an
   // A fulfiller that does not branch on all five actions can silently stall on an unhandled one.
   const ACTIONS = ["generate", "await_human", "provisional_complete", "complete", "blocked"];
   for (const a of ACTIONS) {
-    assert.match(SKILL, new RegExp(a), `the SKILL must document the '${a}' drive action`);
+    // Anchor to the SKILL's **`action`** branch-bullet form. An un-anchored /generate/ or /complete/
+    // matches 'regenerate' / 'provisional_complete' and would NOT catch a deleted branch (review F6).
+    assert.match(SKILL, new RegExp("\\*\\*`" + a + "`\\*\\*"), `the SKILL must document the '${a}' drive-action branch (as a **\`${a}\`** bullet)`);
     assert.match(DRIVE, new RegExp(`"${a}"`), `drive.js must actually emit the '${a}' action the SKILL documents`);
   }
 });
