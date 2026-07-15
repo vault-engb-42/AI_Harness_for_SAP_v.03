@@ -96,6 +96,35 @@ test("MODIFY ENTITIES ... WITH an inline VALUE constructor is NOT flagged no-gua
   assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-no-guard"), [], "an inline literal is never INITIAL — no runtime guard applies");
 });
 
+// review F4: a VALUE #( FOR .. IN <tab> ) / CORRESPONDING #( <tab> ) constructor iterates a source
+// that CAN be empty — the blanket constructor-skip was a false negative. Guard-check the source
+// table when it is a locally-declared itab; leave framework-guaranteed params (keys) alone.
+test("MODIFY ENTITIES ... WITH VALUE #( FOR .. IN <declared itab> ) and NO guard IS flagged no-guard (F4)", () => {
+  const f = findings(wrapClass(`    DATA lt_unbounded TYPE STANDARD TABLE OF zi_x WITH EMPTY KEY.
+    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( FOR r IN lt_unbounded ( %tky = r-k f = r-f ) ) FAILED DATA(failed).`));
+  const hit = f.find((x) => x.rule_id === "talos-rap-modify-no-guard");
+  assert.ok(hit, "a constructor iterating an unguarded declared itab must be flagged");
+  assert.match(hit.message, /LT_UNBOUNDED/, "the finding names the real source table, not the VALUE keyword");
+});
+
+test("MODIFY ENTITIES ... WITH VALUE #( FOR .. IN <itab> ) WITH a preceding guard is NOT flagged (F4)", () => {
+  const f = findings(wrapClass(`    DATA lt_x TYPE STANDARD TABLE OF zi_x WITH EMPTY KEY.
+    IF lt_x IS NOT INITIAL.
+      MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( FOR r IN lt_x ( %tky = r-k ) ) FAILED DATA(failed).
+    ENDIF.`));
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-no-guard"), [], "the source table is proven non-empty by the guard");
+});
+
+test("MODIFY ENTITIES ... WITH VALUE #( FOR key IN keys ) is NOT flagged — keys is a framework param, not a declared itab (F4 no-FP)", () => {
+  const src = behaviorPool(
+    "METHODS doit FOR MODIFY IMPORTING keys FOR ACTION x~doit.",
+    "doit",
+    "MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( FOR key IN keys ( %tky = key-x ) ) FAILED DATA(failed).",
+  );
+  const f = findings(src, "lhc_x.clas.abap");
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-no-guard"), [], "the RAP importing keys table is framework-guaranteed non-empty; no guard required, no false BLOCK");
+});
+
 const behaviorPool = (methodDef, methodName, body) =>
   [
     "CLASS lhc_x DEFINITION INHERITING FROM cl_abap_behavior_handler.",

@@ -163,14 +163,14 @@ function scanStatements(file, obj, findings, ddic = new Map(), readHandlers = ne
 /** Per-statement context rules (guards, lookbacks, file-state accumulation). */
 function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   if (name === "Select" || name === "SelectLoop") {
-    checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings);
+    checkGuard(stmts, i, FAE_RE, "talos-fae-no-guard", "SELECT ... FOR ALL ENTRIES on %D% without a preceding IS NOT INITIAL guard (an empty driver reads the whole table) (ABAP-PERF-13)", obj, file, findings, ctx.fileState.declared);
     checkFaePrefix(text, obj, file, stmts[i], findings, ctx.fileState.ddic);
     checkSelectSinglePartialKey(text, obj, file, stmts[i], findings, ctx.fileState.ddic);
     countSelectSingle(text, stmts[i], ctx.fileState.selectSingles);
     trackSelect(text, stmts[i], ctx.fileState);
   }
   if (name === "ModifyEntities") {
-    checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings);
+    checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings, ctx.fileState.declared);
     // Class+method-scoped (not the file-level regex it replaced): a MODIFY ENTITIES only violates
     // ABAP-PERF-78 when it sits inside a FOR READ handler — a read path must not mutate buffer state.
     // The key is CLASS::METHOD so a same-named action method in a sibling local class is not implicated (F3).
@@ -283,11 +283,21 @@ function matchPatterns(patterns, name, text, findings, obj, file, st) {
  * Flag a statement whose driver table (captured by `capRe`) is not proven
  * non-empty by a preceding IS NOT INITIAL / lines( ) check.
  */
-function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
-  const m = capRe.exec(stmts[i].concatTokens());
+function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings, declared = new Set()) {
+  const text = stmts[i].concatTokens();
+  const m = capRe.exec(text);
   if (!m) return;
-  const driver = m[1].toUpperCase();
-  if (CONSTRUCTOR_OPS.has(driver)) return; // inline constructor collection — non-empty by construction, no guard applies
+  let driver = m[1].toUpperCase();
+  if (CONSTRUCTOR_OPS.has(driver)) {
+    // A pure literal element list (VALUE #( ( … ) )) is non-empty by construction — skip. But a
+    // VALUE #( FOR x IN <tab> … ) / CORRESPONDING #( <tab> ) iterates a source that CAN be empty:
+    // if that source is a locally-declared itab, guard-check THAT table instead of skipping (F4).
+    // Framework-guaranteed params (a handler's `keys`) are not declared locals, so they are never
+    // newly flagged — no false BLOCK on the generator's own constructor idioms.
+    const src = constructorSource(text);
+    if (!src || !declared.has(src)) return;
+    driver = src;
+  }
   for (let j = i - 1; j >= Math.max(0, i - GUARD_LOOKBACK); j--) {
     const t = stmts[j].concatTokens().toUpperCase();
     // Both guard polarities count: `IF drv IS NOT INITIAL.` (wrapping) and
@@ -303,6 +313,19 @@ function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
     file,
     stmts[i]
   );
+}
+
+/**
+ * The source table iterated by a constructor collection: a VALUE/REDUCE/FILTER `FOR x IN <tab>` or
+ * a `CORRESPONDING #( <tab> )`. Null for a pure literal element list (VALUE #( ( … ) )), which is
+ * non-empty by construction. @returns {string|null} the source table name, UPPERCASE.
+ */
+function constructorSource(text) {
+  const forIn = /\bFOR\s+\w+\s+IN\s+@?(\w+)/i.exec(text);
+  if (forIn) return forIn[1].toUpperCase();
+  const corr = /\bCORRESPONDING\b[^(]*\(\s*@?(\w+)/i.exec(text);
+  if (corr) return corr[1].toUpperCase();
+  return null;
 }
 
 /**
