@@ -69,6 +69,12 @@ const FAE_RE = /FOR\s+ALL\s+ENTRIES\s+IN\s+@?(\w+)/i;
 const MODIFY_WITH_RE = /\bWITH\s+@?(\w+)/i;
 const GUARD_LOOKBACK = 6;
 
+// ABAP constructor operators. When a FAE/MODIFY driver is captured as one of these, the
+// collection is an inline `WITH VALUE #( … )` / `NEW …` literal — non-empty by construction,
+// so a runtime IS NOT INITIAL guard is meaningless and the no-guard finding is a false
+// positive. The capture is the operator keyword, not a table variable, so skip it.
+const CONSTRUCTOR_OPS = new Set(["VALUE", "NEW", "CONV", "CORRESPONDING", "CAST", "REF", "EXACT", "REDUCE", "FILTER", "COND", "SWITCH"]);
+
 // PERF-14 heuristic: common leading primary-key fields across SAP tables.
 // Without DDIC metadata a prefix allowlist is the strongest portable check;
 // the finding message states the heuristic.
@@ -122,13 +128,15 @@ function buildDdicIndex(reg) {
 
 function scanStatements(file, obj, findings, ddic = new Map()) {
   const stmts = file.getStatements();
-  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set(), ddic };
+  const fileState = { selectSingles: new Map(), unorderedTables: new Set(), fromTables: new Set(), firstSelect: null, declared: new Set(), readHandlers: new Set(), ddic };
   let depth = 0;
   let blockDepth = 0;
   let enhDepth = 0;
+  let currentMethod = null;
   for (let i = 0; i < stmts.length; i++) {
     const name = stmts[i].get()?.constructor?.name;
     const text = stmts[i].concatTokens();
+    currentMethod = trackMethod(name, text, fileState.readHandlers, currentMethod);
 
     // Check target BEFORE adjusting depth: a top-level SELECT..ENDSELECT is not
     // "inside a loop"; a nested one (depth > 0) is.
@@ -137,7 +145,7 @@ function scanStatements(file, obj, findings, ddic = new Map()) {
       matchPatterns(IN_LOOP_PATTERNS, name, text, findings, obj, file, stmts[i]);
     }
     matchPatterns(STATEMENT_PATTERNS, name, text, findings, obj, file, stmts[i]);
-    checkContext(stmts, i, name, text, { blockDepth, enhDepth, fileState }, obj, file, findings);
+    checkContext(stmts, i, name, text, { blockDepth, enhDepth, fileState, currentMethod }, obj, file, findings);
 
     if (LOOP_OPEN.has(name)) depth++;
     else if (LOOP_CLOSE.has(name)) depth = Math.max(0, depth - 1);
@@ -160,6 +168,11 @@ function checkContext(stmts, i, name, text, ctx, obj, file, findings) {
   }
   if (name === "ModifyEntities") {
     checkGuard(stmts, i, MODIFY_WITH_RE, "talos-rap-modify-no-guard", "MODIFY ENTITIES on %D% without a preceding IS NOT INITIAL guard on the input collection (ABAP-PERF-12)", obj, file, findings);
+    // Method-scoped (not the file-level regex it replaced): a MODIFY ENTITIES only violates
+    // ABAP-PERF-78 when it sits inside a FOR READ handler — a read path must not mutate buffer state.
+    if (ctx.currentMethod && ctx.fileState.readHandlers.has(ctx.currentMethod)) {
+      push(findings, { id: "talos-rap-modify-entities-in-read-handler", family: "rap-odata", severity: "priority-1", message: "EML MODIFY ENTITIES inside a FOR READ handler — read paths must not change buffer state; model side effects as an action/determination (ABAP-PERF-78)." }, obj, file, stmts[i]);
+    }
   }
   if (name === "Sort") {
     checkSortAfterSelect(stmts, i, text, obj, file, findings);
@@ -203,6 +216,23 @@ function trackSelect(text, st, fileState) {
   }
 }
 
+/**
+ * RAP handler method context (gap-2a read-handler precision). A `METHODS <name> FOR READ …`
+ * definition marks a read handler; the current method is tracked across MethodImplementation →
+ * EndMethod so a MODIFY ENTITIES can be scoped to the method it sits in — a file-level regex
+ * cannot (it over-matches any behaviour pool). @returns {string|null} current method, UPPERCASE.
+ */
+function trackMethod(name, text, readHandlers, currentMethod) {
+  if (name === "MethodDef") {
+    const md = /^METHODS\s+(\w+)\s+FOR\s+READ\b/i.exec(text);
+    if (md) readHandlers.add(md[1].toUpperCase());
+    return currentMethod;
+  }
+  if (name === "MethodImplementation") return /^METHOD\s+(\w+)/i.exec(text)?.[1]?.toUpperCase() ?? null;
+  if (name === "EndMethod") return null;
+  return currentMethod;
+}
+
 /** Apply a pattern table to one statement. */
 function matchPatterns(patterns, name, text, findings, obj, file, st) {
   for (const p of patterns) {
@@ -222,6 +252,7 @@ function checkGuard(stmts, i, capRe, id, messageTpl, obj, file, findings) {
   const m = capRe.exec(stmts[i].concatTokens());
   if (!m) return;
   const driver = m[1].toUpperCase();
+  if (CONSTRUCTOR_OPS.has(driver)) return; // inline constructor collection — non-empty by construction, no guard applies
   for (let j = i - 1; j >= Math.max(0, i - GUARD_LOOKBACK); j--) {
     const t = stmts[j].concatTokens().toUpperCase();
     // Both guard polarities count: `IF drv IS NOT INITIAL.` (wrapping) and

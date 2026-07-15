@@ -84,3 +84,47 @@ test("nested loops still flag inner DB access", () => {
     ENDLOOP.`));
   assert.ok(f.some((x) => x.rule_id === "talos-select-in-loop"));
 });
+
+// gap-2a precision (2026-07-15). Two RAP-modelling rules were analyser-imprecise and
+// false-blocked valid RAP: no-guard fired on an inline WITH VALUE constructor (a literal is
+// never INITIAL), and read-handler (a file-level regex) matched any behaviour pool, not only
+// FOR READ methods. Fixed: constructor-driver skip in checkGuard; read-handler moved here with
+// real method-context.
+
+test("MODIFY ENTITIES ... WITH an inline VALUE constructor is NOT flagged no-guard", () => {
+  const f = findings(wrapClass(`    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = key f = 1 ) ) FAILED DATA(failed).`));
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-no-guard"), [], "an inline literal is never INITIAL — no runtime guard applies");
+});
+
+const behaviorPool = (methodDef, methodName, body) =>
+  [
+    "CLASS lhc_x DEFINITION INHERITING FROM cl_abap_behavior_handler.",
+    "  PRIVATE SECTION.",
+    `    ${methodDef}`,
+    "ENDCLASS.",
+    "CLASS lhc_x IMPLEMENTATION.",
+    `  METHOD ${methodName}.`,
+    `    ${body}`,
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n");
+
+test("MODIFY ENTITIES inside a FOR READ handler IS flagged read-handler", () => {
+  const src = behaviorPool(
+    "METHODS read FOR READ IMPORTING keys FOR READ x RESULT result.",
+    "read",
+    "MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = k ) ) FAILED DATA(failed).",
+  );
+  const f = findings(src, "lhc_x.clas.abap");
+  assert.ok(f.some((x) => x.rule_id === "talos-rap-modify-entities-in-read-handler"), "a MODIFY in a read handler is flagged");
+});
+
+test("MODIFY ENTITIES inside a FOR MODIFY/action handler is NOT flagged read-handler", () => {
+  const src = behaviorPool(
+    "METHODS doit FOR MODIFY IMPORTING keys FOR ACTION x~doit.",
+    "doit",
+    "MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY x UPDATE FIELDS ( f ) WITH VALUE #( ( %tky = k ) ) FAILED DATA(failed).",
+  );
+  const f = findings(src, "lhc_x.clas.abap");
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-modify-entities-in-read-handler"), [], "an action handler is not a read handler");
+});

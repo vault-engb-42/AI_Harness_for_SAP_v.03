@@ -950,20 +950,6 @@
     "counter_example": "    result = calculate_screen_size( )."
   },
   {
-    "id": "talos-rap-modify-entities-in-read-handler",
-    "family": "rap-odata",
-    "severity": "priority-1",
-    "pattern": "\\bMODIFY\\s+ENTITIES?\\b",
-    "flags": "i",
-    "message": "EML MODIFY ENTITIES inside a FOR READ handler — read paths must not change buffer state; model side effects as an action/determination (ABAP-PERF-78).",
-    "object_types": [
-      "CLAS"
-    ],
-    "when": "FOR\\s+READ|cl_abap_behavior_handler",
-    "example": "    MODIFY ENTITIES OF zi_travel IN LOCAL MODE.",
-    "counter_example": "    modify_flag = abap_true."
-  },
-  {
     "id": "talos-rap-update-task-in-late-save",
     "family": "rap-odata",
     "severity": "priority-1",
