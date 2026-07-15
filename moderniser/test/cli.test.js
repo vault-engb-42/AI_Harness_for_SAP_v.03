@@ -16,11 +16,11 @@ const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
 
 const GREEN_CP = {
-  activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
+  activated: true, reconciled: true, atc_p1: 0, atc_p2: 0, unit: { green: true },
   invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
 };
 // diff_changed_lines is REQUIRED evidence (F1): the gate fails closed without it
-const GREEN_EV = { atc_p1: 0, atc_warns: [], diff_changed_lines: [{ file: "zfico.abap", lines: [1] }], coverage: { pct: 0.55, bite_proven: true } };
+const GREEN_EV = { atc_p1: 0, atc_p2: 0, atc_warns: [], diff_changed_lines: [{ file: "zfico.abap", lines: [1] }], coverage: { pct: 0.55, bite_proven: true } };
 
 function run(args, opts = {}) {
   const out = execFileSync(process.execPath, [CLI, ...args], { encoding: "utf8", ...opts });

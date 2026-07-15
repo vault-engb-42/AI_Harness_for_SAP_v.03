@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { validateVerdict } from "./verdict-schema.js";
 
-/** HARD gates: any BLOCK / pass:false / priority-1 ATC / missing / invalid blocks the build. */
+/** HARD gates: any BLOCK / pass:false / priority-1 or priority-2 ATC / missing / invalid blocks the build. */
 const HARD = [
   { file: "sap-verdict.json", kind: "sap" },
   { file: "clean-core-verdict.json", kind: "clean-core" },
@@ -46,6 +46,8 @@ export function evaluateGate(dir) {
     if (kind === "sap") {
       if (doc.verdict === "BLOCK") blocks.push(`sap-verdict: BLOCK (failure_layer=${doc.failure_layer})`);
       if (doc.atc?.priority1?.length) blocks.push(`sap-verdict: ${doc.atc.priority1.length} priority-1 ATC finding(s)`);
+      // C3 (P6): SAP's transport-blocking config blocks priority-2 as well as priority-1 (P3 = notify only).
+      if (doc.atc?.priority2?.length) blocks.push(`sap-verdict: ${doc.atc.priority2.length} priority-2 ATC finding(s)`);
     } else if (doc.pass === false) {
       blocks.push(`${file}: pass=false`);
     }

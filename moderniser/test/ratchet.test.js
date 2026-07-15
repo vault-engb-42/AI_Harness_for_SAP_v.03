@@ -21,6 +21,7 @@ const node = (o = {}) => ({
 });
 const evidence = (o = {}) => ({
   atc_p1: 0,
+  atc_p2: 0,
   atc_warns: [],
   coverage: { pct: 0.5, bite_proven: false },
   ...o,
@@ -71,6 +72,13 @@ test("atc_p1 != 0 BLOCKs regardless of a passing delta — hard, non-overridable
   const r = ratchetGate(node(), evidence({ atc_p1: 1 }), empty());
   assert.equal(r.verdict, "BLOCK");
   assert.ok(r.reasons.includes("atc-p1-nonzero"));
+});
+
+test("C3: atc_p2 != 0 BLOCKs — priority-2 is hard-gated alongside priority-1 (P6)", () => {
+  const r = ratchetGate(node(), evidence({ atc_p2: 1 }), empty());
+  assert.equal(r.verdict, "BLOCK");
+  assert.ok(r.reasons.includes("atc-p2-nonzero"));
+  assert.equal(ratchetGate(node(), evidence({ atc_p2: undefined }), empty()).verdict, "BLOCK", "missing atc_p2 → fail-closed");
 });
 
 test("missing evidence fails CLOSED: absent atc_p1, non-array warns, non-finite coverage", () => {
@@ -151,7 +159,7 @@ test("gate returns the SIGNED atc_warn_delta nodeVerdict consumes (delta vs own 
 test("cross-module coherence: nodeVerdict fed the gate's atc_warn_delta agrees with the gate", async () => {
   const { nodeVerdict } = await import("../src/node/verdict.js");
   const greenCp = {
-    activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
+    activated: true, reconciled: true, atc_p1: 0, atc_p2: 0, unit: { green: true },
     invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
   };
   const n = node();

@@ -8,7 +8,7 @@
 const PASS_PARITY = new Set(["equivalent", "PASS_STRUCTURAL"]);
 
 /**
- * @param {Array<{sig: string, atc_p1?: number, parity?: string, touches_ddic?: boolean, touches_invariant?: boolean, touches_data_source?: boolean, touches_money?: boolean, blast_total?: number}>} levelNodes green nodes of the level
+ * @param {Array<{sig: string, atc_p1?: number, atc_p2?: number, parity?: string, touches_ddic?: boolean, touches_invariant?: boolean, touches_data_source?: boolean, touches_money?: boolean, blast_total?: number}>} levelNodes green nodes of the level
  * @param {{blastThreshold: number}} opts
  * @returns {{disposition: "AUTO"|"REVIEW", flagged: Array<{sig: string, reasons: string[]}>}}
  */
@@ -18,6 +18,7 @@ export function levelDisposition(levelNodes, { blastThreshold }) {
   for (const n of levelNodes ?? []) {
     const reasons = [];
     if (n.atc_p1 !== 0) reasons.push("atc-p1-nonzero-or-missing");
+    if (n.atc_p2 !== 0) reasons.push("atc-p2-nonzero-or-missing"); // C3 (P6): priority-2 blocks like priority-1
     if (!PASS_PARITY.has(n.parity)) reasons.push(`parity:${n.parity ?? "missing"}`);
     if (n.touches_ddic !== false) reasons.push("touches-ddic-or-unknown");
     if (n.touches_invariant !== false) reasons.push("touches-invariant-or-unknown");

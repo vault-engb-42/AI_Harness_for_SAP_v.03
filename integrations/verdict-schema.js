@@ -56,6 +56,8 @@ function validateSap(doc, errors) {
   else if (doc.failure_layer != null && !FAILURE_LAYER.has(doc.failure_layer)) errors.push(`sap-verdict bad failure_layer: ${doc.failure_layer}`);
   if (badEnum(doc, "clean_core_level", CLEAN_CORE_LEVEL)) errors.push(`sap-verdict bad clean_core_level: ${doc.clean_core_level}`);
   if (doc?.atc != null && !Array.isArray(doc.atc.priority1)) errors.push("sap-verdict atc.priority1 must be an array");
+  // C3 (P6): priority-2 is a distinct hard-block tier; require it as an array when atc is present (fail-closed, mirrors priority1).
+  if (doc?.atc != null && !Array.isArray(doc.atc.priority2)) errors.push("sap-verdict atc.priority2 must be an array");
   if (doc?.invariant_diff != null) {
     for (const k of ["authority_check_weakened", "commit_work_suppressed", "sy_subrc_check_dropped"]) {
       if (typeof doc.invariant_diff[k] !== "boolean") errors.push(`sap-verdict invariant_diff.${k} must be a boolean`);

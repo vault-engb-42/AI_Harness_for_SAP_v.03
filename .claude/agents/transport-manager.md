@@ -73,7 +73,7 @@ Write the machine-readable pack (create `specs/delivery/` if needed). This is th
     "sap_verdict": "specs/reviews/sap-verdict.json",
     "verdict": "PASS | WARN",
     "activation": { "activated": ["..."], "errors": [] },
-    "atc": { "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "priority1": [], "priority2_3": [] },
+    "atc": { "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "priority1": [], "priority2": [], "priority2_3": [] },
     "abap_unit": { "failed": [], "coverage_pct": 0, "coverage_baseline_pct": 0 },
     "clean_core_level": "A",
     "invariant_diff": { "authority_check_weakened": false, "commit_work_suppressed": false, "sy_subrc_check_dropped": false },

@@ -13,6 +13,7 @@ const green = () => ({
   activated: true,
   reconciled: true,
   atc_p1: 0,
+  atc_p2: 0,
   unit: { green: true },
   invariants: { intact: true },
   auth_coverage: { lost: false },
@@ -150,4 +151,26 @@ test("a non-number WARN delta fails closed (no coercion past the ratchet guard)"
   assert.equal(verdict({}, { atc_warn_delta: "0" }).verdict, "BLOCK");
   assert.equal(verdict({}, { atc_warn_delta: "-3" }).verdict, "BLOCK");
   assert.equal(verdict({}, { atc_warn_delta: NaN }).verdict, "BLOCK");
+});
+
+// --- C3: the P6 ATC gate blocks priority-2 as well as priority-1 ---
+// SAP's recommended transport-blocking config blocks BOTH P1 and P2 (P3 = notify only).
+// atc_p2 mirrors atc_p1: a hard, fail-closed conjunct.
+
+test("C3: a priority-2 ATC finding BLOCKs — P6 requires priority-1 AND priority-2 zero", () => {
+  assert.equal(verdict({ atc_p2: 1 }).verdict, "BLOCK");
+  assert.deepEqual(verdict({ atc_p2: 3 }).reasons.filter((r) => r.startsWith("atc-p2")), ["atc-p2-nonzero"]);
+});
+
+test("C3: atc_p2 fails CLOSED when its evidence is missing", () => {
+  assert.equal(verdict({ atc_p2: undefined }).verdict, "BLOCK");
+});
+
+test("C3: a PRESENT P2 finding is a defect for the PARK guard; an ABSENT atc_p2 does not forbid PARK", () => {
+  assert.equal(nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, atc_p2: 5 }, {}).verdict, "BLOCK", "P2>0 is a defect, never a clean PARK");
+  assert.equal(
+    nodeVerdict({ block_reason: NO_RELEASED_SUCCESSOR, atc_p1: 0, atc_p2: 0, unit: { green: true }, auth_coverage: { lost: false } }, {}).verdict,
+    "PARK",
+    "well-typed passing evidence never forbids PARK",
+  );
 });

@@ -8,7 +8,7 @@ import { offlineRatchetGate, ratchetGate } from "../src/state/ratchet.js";
 // (atc_warns on changed lines) is fed by the gap-2b offline extractor; here it is synthetic.
 
 const node = { canonical_sig: "N1", parity_required: true, diff_changed_lines: [{ file: "z", lines: [1] }] };
-const cleanEvidence = { atc_p1: 0, atc_warns: [] }; // offline has NO coverage evidence
+const cleanEvidence = { atc_p1: 0, atc_p2: 0, atc_warns: [] }; // offline has NO coverage evidence
 const baselines = { atcBaseline: {}, covBaseline: {} };
 
 test("offlineRatchetGate PASSes without coverage/bite — the DEV-only conjuncts are excluded", () => {
@@ -26,7 +26,7 @@ test("the SAME inputs BLOCK the online ratchetGate (proves offline drops coverag
 });
 
 test("offlineRatchetGate keeps the warn-delta and diff conjuncts", () => {
-  const ev = { atc_p1: 0, atc_warns: [{ file: "z", line: 1 }] };
+  const ev = { atc_p1: 0, atc_p2: 0, atc_warns: [{ file: "z", line: 1 }] };
   const bl = { atcBaseline: { per_object: { N1: 0 } }, covBaseline: {} };
   const r = offlineRatchetGate(node, ev, bl);
   assert.equal(r.verdict, "BLOCK");
@@ -36,4 +36,9 @@ test("offlineRatchetGate keeps the warn-delta and diff conjuncts", () => {
 
 test("offlineRatchetGate keeps the atc_p1 hard conjunct", () => {
   assert.ok(offlineRatchetGate(node, { atc_p1: 2, atc_warns: [] }, baselines).reasons.includes("atc-p1-nonzero"));
+});
+
+test("C3: offlineRatchetGate keeps the atc_p2 hard conjunct (P6 gate = P1=0 AND P2=0)", () => {
+  assert.ok(offlineRatchetGate(node, { atc_p1: 0, atc_p2: 2, atc_warns: [] }, baselines).reasons.includes("atc-p2-nonzero"));
+  assert.equal(offlineRatchetGate(node, { atc_p1: 0, atc_warns: [] }, baselines).verdict, "BLOCK", "missing atc_p2 → fail-closed");
 });

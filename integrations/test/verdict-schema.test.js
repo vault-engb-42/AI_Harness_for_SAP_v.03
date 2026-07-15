@@ -16,7 +16,7 @@ const SAP_OK = {
   verdict: "PASS", timestamp: "2026-07-07T00:00:00Z", connection: "DEV",
   objects: ["ZCL_X"], failure_layer: null,
   activation: { activated: ["ZCL_X"], errors: [] },
-  atc: { ran: true, variant: "ABAP_CLEAN_CORE_DEVELOPMENT", priority1: [], priority2_3: [] },
+  atc: { ran: true, variant: "ABAP_CLEAN_CORE_DEVELOPMENT", priority1: [], priority2: [], priority2_3: [] },
   abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 },
   clean_core_level: "A",
   invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false },
@@ -77,6 +77,11 @@ test("sap-verdict: missing invariant_diff and non-boolean invariant flags are ca
 test("sap-verdict: clean_core_level and atc.priority1 shape are enforced", () => {
   assert.match(validateVerdict("sap", { ...SAP_OK, clean_core_level: "B" }).errors.join(), /clean_core_level/);
   assert.match(validateVerdict("sap", { ...SAP_OK, atc: { ran: true, variant: "x", priority1: "none", priority2_3: [] } }).errors.join(), /priority1/);
+});
+
+test("C3: sap-verdict atc.priority2 must be an array — P6 gates priority-2, fail-closed", () => {
+  assert.match(validateVerdict("sap", { ...SAP_OK, atc: { ran: true, variant: "x", priority1: [], priority2: "none" } }).errors.join(), /priority2/);
+  assert.match(validateVerdict("sap", { ...SAP_OK, atc: { ran: true, variant: "x", priority1: [] } }).errors.join(), /priority2/, "missing priority2 fails closed");
 });
 
 test("pass-style verdicts require gate const + boolean pass", () => {

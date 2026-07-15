@@ -9,7 +9,7 @@ import { evaluateGate } from "../ci-gate.js";
 // verdicts, validates their shape (fail-closed), and blocks on any hard failure.
 // Tests write REAL verdict JSON to a temp dir and run the real evaluator.
 
-const SAP_PASS = { verdict: "PASS", timestamp: "t", connection: "DEV", objects: ["ZCL_X"], failure_layer: null, activation: { activated: [], errors: [] }, atc: { ran: true, variant: "v", priority1: [], priority2_3: [] }, abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 }, clean_core_level: "A", invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false }, ratchet: { atc_regressed: false, coverage_regressed: false }, notes: "" };
+const SAP_PASS = { verdict: "PASS", timestamp: "t", connection: "DEV", objects: ["ZCL_X"], failure_layer: null, activation: { activated: [], errors: [] }, atc: { ran: true, variant: "v", priority1: [], priority2: [], priority2_3: [] }, abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 }, clean_core_level: "A", invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false }, ratchet: { atc_regressed: false, coverage_regressed: false }, notes: "" };
 const CLEAN_PASS = { gate: "clean-core", pass: true, atc: { variant: "v", completed: true, priority_1: 0 }, grounding: {}, summary: {}, findings: [] };
 const SEC_PASS = { gate: "security", pass: true, block_severities: [], invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", baseline_established: true }, summary: {}, findings: [] };
 const DIFF_PASS = { gate: "abap-diff-review", pass: true, range: "r", acceptance_criteria_source: "s", summary: {}, findings: [] };
@@ -39,8 +39,14 @@ test("a BLOCK sap-verdict fails the gate", () => {
 });
 
 test("a priority-1 ATC finding fails the gate even on a PASS verdict", () => {
-  const dir = seed({ ...ALL_PASS, "sap-verdict.json": { ...SAP_PASS, atc: { ran: true, variant: "v", priority1: [{ object: "ZCL_X", rule: "R", message: "m" }], priority2_3: [] } } });
+  const dir = seed({ ...ALL_PASS, "sap-verdict.json": { ...SAP_PASS, atc: { ran: true, variant: "v", priority1: [{ object: "ZCL_X", rule: "R", message: "m" }], priority2: [], priority2_3: [] } } });
   try { const r = evaluateGate(dir); assert.equal(r.pass, false); assert.match(r.blocks.join(), /priority-1/); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a priority-2 ATC finding fails the gate (C3: P6 blocks priority-1 AND priority-2)", () => {
+  const dir = seed({ ...ALL_PASS, "sap-verdict.json": { ...SAP_PASS, atc: { ran: true, variant: "v", priority1: [], priority2: [{ object: "ZCL_X", rule: "R", message: "m" }] } } });
+  try { const r = evaluateGate(dir); assert.equal(r.pass, false); assert.match(r.blocks.join(), /priority-2/); }
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

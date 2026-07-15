@@ -58,8 +58,8 @@ test("regenerating voids a recorded provisional verdict (a stale verdict must no
 // analogue of renderVerdict, resting in `provisional` (never `green`). Warn evidence is synthetic
 // here; gap-2b feeds it live.
 const planNode = { canonical_sig: "N1", parity_required: false, diff_changed_lines: [{ file: "z", lines: [1] }] };
-const cleanCheckpoint = { atc_p1: 0, invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "equivalent" } };
-const cleanEvidence = { atc_p1: 0, atc_warns: [] };
+const cleanCheckpoint = { atc_p1: 0, atc_p2: 0, invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "equivalent" } };
+const cleanEvidence = { atc_p1: 0, atc_p2: 0, atc_warns: [] };
 const baselines = { atcBaseline: {}, covBaseline: {} };
 
 test("renderOfflineVerdict → provisional when both the offline ratchet and offlineVerdict pass", () => {
@@ -72,7 +72,7 @@ test("renderOfflineVerdict → provisional when both the offline ratchet and off
 });
 
 test("renderOfflineVerdict is NOT provisional when the offline ratchet blocks on a warn-delta regression", () => {
-  const ev = { atc_p1: 0, atc_warns: [{ file: "z", line: 1 }] };
+  const ev = { atc_p1: 0, atc_p2: 0, atc_warns: [{ file: "z", line: 1 }] };
   const bl = { atcBaseline: { per_object: { N1: 0 } }, covBaseline: {} };
   const r = renderOfflineVerdict(planNode, cleanCheckpoint, ev, bl);
   assert.equal(r.provisional, false);

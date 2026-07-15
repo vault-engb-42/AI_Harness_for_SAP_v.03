@@ -2,8 +2,9 @@
  * Deterministic ratchet gate (MODERNISER_DESIGN §3.3 #4, §6.4 — L6, L10). Quality only
  * tightens FROM AN ESTABLISHED BASELINE:
  *
- *   - `atc_p1 == 0` — the hard, non-overridable clean-core conjunct (separate from and
- *     orthogonal to the WARN-delta ratchet).
+ *   - `atc_p1 == 0` AND `atc_p2 == 0` — the hard, non-overridable clean-core conjuncts (C3/P6:
+ *     SAP blocks transport on ATC priority-1 AND priority-2; both separate from and orthogonal
+ *     to the WARN-delta ratchet, which is now the priority-3 notify tier).
  *   - WARN delta = warns on THIS node's changed lines only (L6(2) — pre-existing package
  *     debt is carried, not counted). Compared to `atcBaseline.per_object[sig] ?? ∞`: a node
  *     with no prior baseline has no ceiling to violate (seed ∞ — L10, establish-then-tighten,
@@ -26,7 +27,7 @@
 /**
  * Count WARNs landing on this node's changed lines (L6(2)).
  * @param {Array<{file: string, lines: number[]}>} diffChangedLines
- * @param {Array<{file: string, line: number}>} atcWarns priority-2/3 findings
+ * @param {Array<{file: string, line: number}>} atcWarns priority-3 (WARN/notify-tier) findings — priority-2 hard-gates via atc_p2 (C3)
  * @returns {number}
  */
 export function warnOnChangedLines(diffChangedLines, atcWarns) {
@@ -45,7 +46,7 @@ export function warnOnChangedLines(diffChangedLines, atcWarns) {
  * fail-open, which is why warn elements are shape-VALIDATED (fail-closed) below.
  *
  * @param {{canonical_sig: string, parity_required?: boolean, diff_changed_lines: Array<{file: string, lines: number[]}>}} node internal typed record (scope.js emits boolean parity_required); the diff is REQUIRED — absence fails closed (F1)
- * @param {{atc_p1?: number, atc_warns?: Array<{file: string, line: number}>, coverage?: {pct?: number, bite_proven?: boolean}}} evidence
+ * @param {{atc_p1?: number, atc_p2?: number, atc_warns?: Array<{file: string, line: number}>, coverage?: {pct?: number, bite_proven?: boolean}}} evidence
  * @param {{atcBaseline: {per_object?: Record<string, number>}, covBaseline: {per_object?: Record<string, {pct: number, bite_proven: boolean}>, coverage_floor_pct?: number}}} baselines
  * @returns {{verdict: "PASS"|"BLOCK", reasons: string[], delta: number, atc_warn_delta: number}}
  *   `delta` = absolute changed-line warn count; `atc_warn_delta` = the SIGNED delta-vs-own-
@@ -57,6 +58,7 @@ export function ratchetGate(node, evidence = {}, baselines) {
   const reasons = [];
 
   if (evidence.atc_p1 !== 0) reasons.push("atc-p1-nonzero"); // hard invariant; missing → fail-closed
+  if (evidence.atc_p2 !== 0) reasons.push("atc-p2-nonzero"); // C3 (P6): SAP blocks transport on P1 AND P2; missing → fail-closed
 
   if (node.parity_required === true && evidence.coverage?.bite_proven !== true) reasons.push("bite-not-proven");
 
@@ -130,6 +132,7 @@ function warnDelta(node, evidence, baselines) {
 export function offlineRatchetGate(node, evidence = {}, baselines) {
   const reasons = [];
   if (evidence.atc_p1 !== 0) reasons.push("atc-p1-nonzero"); // hard invariant; missing → fail-closed
+  if (evidence.atc_p2 !== 0) reasons.push("atc-p2-nonzero"); // C3 (P6): P1 AND P2 both hard-block; missing → fail-closed
   const wd = warnDelta(node, evidence, baselines);
   reasons.push(...wd.reasons);
   return { verdict: reasons.length === 0 ? "PASS" : "BLOCK", reasons, delta: wd.delta, atc_warn_delta: wd.atc_warn_delta };

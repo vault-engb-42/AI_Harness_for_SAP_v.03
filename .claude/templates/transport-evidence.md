@@ -73,10 +73,11 @@
 | Verdict | `<verdict>` | PASS or WARN (BLOCK ⇒ blocked-upstream) |
 | ATC variant | `ABAP_CLEAN_CORE_DEVELOPMENT` | fixed (P6) |
 | **ATC priority-1 count** | **`<atc.priority1.count>`** | **MUST be 0** (P6) |
-| ATC priority-2/3 count | `<atc.priority2_3.count>` | recorded for the human to weigh |
+| **ATC priority-2 count** | **`<atc.priority2.count>`** | **MUST be 0** (P6 — SAP blocks transport on priority-2) |
+| ATC priority-3 (notify) count | `<atc.priority2_3.count>` | recorded for the human to weigh |
 | Activation errors | `<activation.errors — MUST be empty>` | none |
 
-<!-- If atc.priority1 is non-empty, bundle_status is blocked-upstream, not release-ready. -->
+<!-- If atc.priority1 or atc.priority2 is non-empty, bundle_status is blocked-upstream, not release-ready. -->
 
 ### Gate 5 — ABAP Unit + coverage ratchet
 

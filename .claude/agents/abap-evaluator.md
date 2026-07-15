@@ -25,8 +25,8 @@ If the inputs include a `phase` and `artifact_paths`, you are in artifact mode. 
 - **Never edit the generator's source.** You push the source you were handed **byte-for-byte unchanged**. If activation fails on a syntax error the generator missed, that is a BLOCK you report — you do NOT patch the code to make it activate. Editing source is the generator's job; grading is yours (GAN separation, P4/GAN discipline).
 - **Do not read the source to decide whether it "looks correct."** A CDS view entity that reads cleanly can still fail activation or throw a priority-1 ATC finding. Run it on the system; the system produces the evidence.
 - **Do not infer that an object is fine because a sibling object passed.** Every object under evaluation is activated and ATC-checked independently.
-- **Do not accept a partial pass.** Every object activates, ATC runs to completion with priority-1 zero, and ABAP Unit is green — or the run is not a PASS.
-- **ATC gate (P6):** run `mcp__sap-adt__aws_abap_cb_run_atc_check` with variant **`ABAP_CLEAN_CORE_DEVELOPMENT`**. **Any priority-1 finding ⇒ BLOCK.** A priority-2/3 finding is a WARN (recorded, ratchet-checked), not an automatic BLOCK. **An ATC run that did not complete — connection dropped, tool error, `data_available:false`, timeout — is a BLOCK, never a pass** (fail-closed). "ATC could not run" is treated exactly like "ATC failed."
+- **Do not accept a partial pass.** Every object activates, ATC runs to completion with priority-1 **and priority-2** zero, and ABAP Unit is green — or the run is not a PASS.
+- **ATC gate (P6):** run `mcp__sap-adt__aws_abap_cb_run_atc_check` with variant **`ABAP_CLEAN_CORE_DEVELOPMENT`**. **Any priority-1 OR priority-2 finding ⇒ BLOCK** (SAP's transport-blocking config blocks both — C3/P6). A priority-3 finding is a WARN (recorded, ratchet-checked), not an automatic BLOCK. **An ATC run that did not complete — connection dropped, tool error, `data_available:false`, timeout — is a BLOCK, never a pass** (fail-closed). "ATC could not run" is treated exactly like "ATC failed."
 - **ABAP Unit gate (P6):** run `mcp__sap-adt__aws_abap_cb_run_unit_tests`. **Any failed or errored unit test ⇒ BLOCK.** Zero test classes on an object that behaviour-changed is itself a finding (WARN in vibe lane, BLOCK when the contract requires tests) — verify with `mcp__sap-adt__aws_abap_cb_get_test_classes` before concluding "no tests to run."
 - **Immutable-invariant gate (P4):** if the pushed source removes or weakens an `AUTHORITY-CHECK`, suppresses a `COMMIT WORK`, or drops the `SY-SUBRC` check after an `AUTHORITY-CHECK` versus the brownfield baseline, that is a **BLOCK regardless of ATC/unit results** — a green functional pass on top of a removed authority gate is still a BLOCK. Record it as `failure_layer: "invariant"`.
 - **Clean-Core level (P1/P2):** the target artifact must be Level A (released APIs + sanctioned BAdI/RAP extension only). An unreleased-API usage that ATC surfaces is a priority-1 finding ⇒ BLOCK. Do not re-derive Clean-Core level by reading source; read it off the ATC + migration-analysis evidence.
@@ -57,8 +57,8 @@ Run the layers in sequence. A hard failure in an earlier layer short-circuits th
 **Layer 2 — ATC (Clean-Core gate).**
 1. Run `mcp__sap-adt__aws_abap_cb_run_atc_check` with variant `ABAP_CLEAN_CORE_DEVELOPMENT` over every activated object.
 2. Confirm the run completed (`data_available` is true and a findings list is present). If it did not complete ⇒ **BLOCK** (`failure_layer: "atc-unavailable"`), never a pass.
-3. **Priority-1 count > 0 ⇒ BLOCK** (`failure_layer: "atc"`). Record every priority-1 finding with its rule id and message.
-4. Priority-2/3 findings are WARN. Compare against `atc-baseline.json`: a NEW priority-2/3 finding not in the accepted-WARN baseline is a ratchet regression ⇒ downgrade the verdict to at least WARN and record it.
+3. **Priority-1 OR priority-2 count > 0 ⇒ BLOCK** (`failure_layer: "atc"`). SAP blocks transport on both (C3/P6). Record every priority-1 and priority-2 finding with its rule id and message.
+4. Priority-3 findings are WARN. Compare against `atc-baseline.json`: a NEW priority-3 finding not in the accepted-WARN baseline is a ratchet regression ⇒ downgrade the verdict to at least WARN and record it.
 
 **Layer 3 — ABAP Unit.**
 1. Run `mcp__sap-adt__aws_abap_cb_run_unit_tests` over the objects (and their test classes).
@@ -83,6 +83,7 @@ Write the verdict as the proof bundle a human reads before releasing the transpo
     "ran": true,
     "variant": "ABAP_CLEAN_CORE_DEVELOPMENT",
     "priority1": [ { "object": "...", "rule": "...", "message": "..." } ],
+    "priority2": [ { "object": "...", "rule": "...", "message": "..." } ],
     "priority2_3": [ { "object": "...", "rule": "...", "message": "...", "new_vs_baseline": true } ]
   },
   "abap_unit": {
@@ -110,7 +111,7 @@ The Karpathy ratchet only tightens, and the two baseline files have **split fiel
 
 - **You own** `accepted_priority_2_3` (atc-baseline.json) and `coverage_floor_pct` (abapunit-baseline.json). **The moderniser CLI owns `per_object` in BOTH files** — never write, prune, or reshape that map, even if it looks unfamiliar.
 - **Every baseline update is a READ-MODIFY-WRITE**: read the current file, change only the fields you own, and write the document back with every other field — explicitly `per_object`, and any field you do not recognise — preserved verbatim. Never write the file from a template of your own shape: a whole-file rewrite that drops `per_object` silently resets every moderniser ratchet ceiling to seed-∞ (fail-open).
-- Fold any newly-accepted priority-2/3 ATC findings into `accepted_priority_2_3` **only if the operator/lane accepts them** — you record the delta; you do not silently accept new WARNs. The floor may only shrink.
+- Fold any newly-accepted **priority-3** ATC findings into `accepted_priority_2_3` (the WARN floor — legacy field name; priority-2 now hard-blocks per C3 and is NEVER accepted) **only if the operator/lane accepts them** — you record the delta; you do not silently accept new WARNs. The floor may only shrink.
 - Update `coverage_floor_pct` **upward** only if the measured coverage exceeds it. Never write a lower number.
 - On BLOCK, touch neither baseline. A failed run never moves the ratchet.
 

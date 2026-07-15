@@ -1,6 +1,6 @@
 ---
 name: abap-validate
-description: Run the 8 SAP-native ratchet gates on a completed story group — spawn abap-evaluator, clean-core-reviewer, abap-security-reviewer, abap-design-critic, and abap-diff-reviewer concurrently, then apply the gate semantics. No merge with an open BLOCK or a priority-1 ATC finding.
+description: Run the 8 SAP-native ratchet gates on a completed story group — spawn abap-evaluator, clean-core-reviewer, abap-security-reviewer, abap-design-critic, and abap-diff-reviewer concurrently, then apply the gate semantics. No merge with an open BLOCK or a priority-1 / priority-2 ATC finding.
 argument-hint: "[group-id]"
 context: fork
 ---
@@ -50,7 +50,7 @@ This lane realizes all eight gates through five agents. Each agent writes one ca
 | 2 | Clean-Core Level-A + syntax/activation | `clean-core-reviewer` | `specs/reviews/clean-core-verdict.json` | HARD |
 | 3 | ABAP Unit coverage ≥ baseline ratchet | `abap-evaluator` | `specs/reviews/sap-verdict.json` | HARD |
 | 4 | Extensibility / architecture tier fit | `clean-core-reviewer` | `specs/reviews/clean-core-verdict.json` | HARD |
-| 5 | ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero) + activation on live DEV | `abap-evaluator` | `specs/reviews/sap-verdict.json` | HARD — the keystone |
+| 5 | ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 **and priority-2** zero) + activation on live DEV | `abap-evaluator` | `specs/reviews/sap-verdict.json` | HARD — the keystone |
 | 6 | RAP/CDS design critique | `abap-design-critic` | `specs/reviews/design-critique.json` | SOFT / WARN |
 | 7 | Immutable invariants (P4) + ABAP injection | `abap-security-reviewer` | `specs/reviews/security-verdict.json` | HARD |
 | 8 | Cold-read diff correctness vs acceptance criteria | `abap-diff-reviewer` | `specs/reviews/diff-review-verdict.json` | HARD |
@@ -92,11 +92,11 @@ Every spawn prompt begins with the P1–P8 summary, weights P4 (invariants) and 
 
 Read all five verdict files. The group verdict is the roll-up:
 
-- **HARD gates 1–5, 7, 8 — any BLOCK ⇒ group BLOCK.** Concretely: `sap-verdict.json#verdict == "BLOCK"` (activation error, priority-1 ATC finding, failed ABAP Unit, coverage regression, or invariant regression); `clean-core-verdict.json#pass == false` (a `notToBeReleased` consumption, a modification/source-code plug-in, a non-released extension point, or an ATC priority-1); `security-verdict.json#pass == false` (any invariant not `"ok"`, any object with no baseline, or a critical/high injection sink); `diff-review-verdict.json#pass == false` (a reachable correctness defect, a contract break with an identified consumer, or an acceptance criterion not implemented).
+- **HARD gates 1–5, 7, 8 — any BLOCK ⇒ group BLOCK.** Concretely: `sap-verdict.json#verdict == "BLOCK"` (activation error, priority-1 or priority-2 ATC finding, failed ABAP Unit, coverage regression, or invariant regression); `clean-core-verdict.json#pass == false` (a `notToBeReleased` consumption, a modification/source-code plug-in, a non-released extension point, or an ATC priority-1); `security-verdict.json#pass == false` (any invariant not `"ok"`, any object with no baseline, or a critical/high injection sink); `diff-review-verdict.json#pass == false` (a reachable correctness defect, a contract break with an identified consumer, or an acceptance criterion not implemented).
 - **Fail-closed on missing or incomplete signal (P6).** A **missing** verdict file is itself a BLOCK — a scan that did not run is never a pass. An ATC run that did not complete (`data_available:false`, connection dropped, tool error, timeout) is `failure_layer: "atc-unavailable"` ⇒ BLOCK. "ATC could not run" is treated exactly like "ATC failed." Never flip a BLOCK to PASS because a signal was absent.
-- **Priority-1 ATC is absolute.** Any priority-1 finding under `ABAP_CLEAN_CORE_DEVELOPMENT` is a BLOCK regardless of everything else being green (P6). A functional pass on top of a priority-1 finding is still a BLOCK.
+- **Priority-1 and priority-2 ATC are absolute.** Any priority-1 or priority-2 finding under `ABAP_CLEAN_CORE_DEVELOPMENT` is a BLOCK regardless of everything else being green (P6 — SAP's transport-blocking config blocks both; priority-3 = notify only). A functional pass on top of a priority-1/priority-2 finding is still a BLOCK.
 - **Gate 6 is SOFT.** `design-critique.json#verdict == "WARN"` does not block — it is recorded and proceeds only with explicit human acknowledgement. The critic's reserved `"BLOCK"` (a P1/P4 breach baked into the model) does block. WARNs never block.
-- **PASS** only when all seven HARD gates report `pass`/`PASS`, no priority-1 ATC finding exists, no invariant regressed, and no ratchet floor regressed — with every verdict file present.
+- **PASS** only when all seven HARD gates report `pass`/`PASS`, no priority-1 or priority-2 ATC finding exists, no invariant regressed, and no ratchet floor regressed — with every verdict file present.
 
 Do not merge or mark the group complete while any BLOCK remains open, and do not proceed past a Gate-6 WARN without human acknowledgement.
 
@@ -113,7 +113,7 @@ On any HARD BLOCK, the object goes back to the **writer**, not to a reviewer:
 
 The Karpathy ratchet tightens, never loosens. On a PASS (or a WARN with no open BLOCK):
 
-- Fold newly-accepted priority-2/3 ATC findings into `.claude/state/atc-baseline.json` **only** when the lane/operator accepts them — the floor may only shrink.
+- Fold newly-accepted priority-3 ATC findings into `.claude/state/atc-baseline.json` **only** when the lane/operator accepts them — the floor may only shrink (priority-2 now hard-blocks per C3 and is never accepted into the WARN floor).
 - Update `.claude/state/abapunit-baseline.json` coverage **upward** only if the measured coverage exceeds the recorded baseline. Never write a lower number.
 - **Split field ownership (MODERNISER_DESIGN §3.3 #4):** this lane's writer (the evaluator) owns `accepted_priority_2_3` / `coverage_floor_pct` ONLY. The `per_object` maps in both files belong to the moderniser CLI — every baseline write is a read-modify-write that preserves `per_object` (and any unrecognised field) verbatim; a whole-file rewrite would silently reset the moderniser's ratchet ceilings to seed-∞.
 - Log the run (group ID, verdict roll-up, heal cycles used) to `.claude/state/iteration-log.md`.
@@ -151,7 +151,7 @@ All five must exist before the group verdict is complete; a missing output is it
 - **`data_available:false` is not "clean."** Zero ATC findings with `data_available:true` is a legitimate pass; zero findings with `data_available:false` is `atc-unavailable` ⇒ BLOCK. Branch on the flag before celebrating an empty findings list. Same for `get_migration_analysis` — "no data" means release status is **unknown**, never "released."
 - **Interdependent objects fail one-at-a-time activation.** A CDS view entity, its behavior definition, and the handler class must activate as a unit — the evaluator uses `activate_objects_batch` for the dependency set. A single-object activation loop reports false forward-reference errors; do not read those as real BLOCKs.
 - **Do not feed the diff-reviewer the author's context.** Its power is the empty window. Pass the diff + acceptance criteria only. If you hand it the iteration log or planning docs, it inherits the generator's blind spots and Gate 8 stops catching drift.
-- **A WARN is not a rubber stamp.** Gate 6 (design) WARN proceeds only with explicit human acknowledgement; it is not a silent pass. And a priority-2/3 ATC WARN that is NEW versus `atc-baseline.json` is a ratchet regression — record it, do not fold it silently into the floor.
+- **A WARN is not a rubber stamp.** Gate 6 (design) WARN proceeds only with explicit human acknowledgement; it is not a silent pass. And a priority-3 ATC WARN that is NEW versus `atc-baseline.json` is a ratchet regression — record it, do not fold it silently into the floor.
 - **Write-tool blocked = infrastructure, not code.** If `create_object` / `update_source` / `activate_object` returns a write-blocked error, `HARNESS_ADT_ALLOW_WRITE` is off or the connection is not DEV (P5) — that is `failure_layer: "infrastructure"`, a BLOCK with a fix, not a code failure to route back to the generator.
 - **Never move the ratchet on a BLOCK.** Coverage and ATC baselines update only on PASS/clean-WARN. Writing a lower coverage number or accepting a new WARN on a failing run launders a regression into the new normal.
 

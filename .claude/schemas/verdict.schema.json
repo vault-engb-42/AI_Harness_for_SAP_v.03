@@ -26,7 +26,7 @@
         "objects": { "type": "array", "items": { "type": "string" } },
         "failure_layer": { "type": ["string", "null"], "enum": ["activation", "atc", "atc-unavailable", "abapunit", "invariant", "infrastructure", null] },
         "activation": { "type": "object", "properties": { "activated": { "type": "array" }, "errors": { "type": "array" } } },
-        "atc": { "type": "object", "properties": { "ran": { "type": "boolean" }, "variant": { "type": "string" }, "priority1": { "type": "array" }, "priority2_3": { "type": "array" } } },
+        "atc": { "type": "object", "properties": { "ran": { "type": "boolean" }, "variant": { "type": "string" }, "priority1": { "type": "array" }, "priority2": { "type": "array" }, "priority2_3": { "type": "array" } } },
         "abap_unit": { "type": "object", "properties": { "ran": { "type": "boolean" }, "failed": { "type": "array" }, "coverage_pct": { "type": "number" }, "coverage_baseline_pct": { "type": "number" } } },
         "clean_core_level": { "enum": ["A", "not-A"] },
         "invariant_diff": { "type": "object", "required": ["authority_check_weakened", "commit_work_suppressed", "sy_subrc_check_dropped"], "properties": { "authority_check_weakened": { "type": "boolean" }, "commit_work_suppressed": { "type": "boolean" }, "sy_subrc_check_dropped": { "type": "boolean" } } },

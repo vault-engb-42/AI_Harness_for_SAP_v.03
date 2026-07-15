@@ -10,6 +10,7 @@ import { levelDisposition } from "../src/exception/risk-gate.js";
 const clear = (sig) => ({
   sig,
   atc_p1: 0,
+  atc_p2: 0,
   parity: "equivalent",
   touches_ddic: false,
   touches_invariant: false,
@@ -43,6 +44,14 @@ test("each risk dimension flags REVIEW and names the reason", () => {
     assert.equal(r.flagged[0].sig, A);
     assert.ok(r.flagged[0].reasons.some((x) => reasonRe.test(x)), `${reasonRe}`);
   }
+});
+
+test("C3: a priority-2 ATC finding flags REVIEW (P6 gate blocks priority-1 AND priority-2)", () => {
+  const r = levelDisposition([{ ...clear(A), atc_p2: 1 }, clear(B)], { blastThreshold: 10 });
+  assert.equal(r.disposition, "REVIEW");
+  assert.equal(r.flagged.length, 1);
+  assert.equal(r.flagged[0].sig, A);
+  assert.ok(r.flagged[0].reasons.some((x) => /atc/i.test(x)));
 });
 
 test("blast at exactly the threshold is clear; one over is flagged", () => {

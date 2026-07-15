@@ -146,10 +146,10 @@ test("GREEN releases a held activation mutex automatically", () => {
 test("renderVerdict wires ratchetGate's SIGNED delta into nodeVerdict — one coherent answer", () => {
   const node = { canonical_sig: "s".repeat(64), parity_required: false, diff_changed_lines: [{ file: "z.abap", lines: [1] }] };
   const checkpoint = {
-    activated: true, reconciled: true, atc_p1: 0, unit: { green: true },
+    activated: true, reconciled: true, atc_p1: 0, atc_p2: 0, unit: { green: true },
     invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "PASS_STRUCTURAL" },
   };
-  const evidence = { atc_p1: 0, atc_warns: [{ file: "z.abap", line: 1 }], coverage: { pct: 0.5, bite_proven: false } };
+  const evidence = { atc_p1: 0, atc_p2: 0, atc_warns: [{ file: "z.abap", line: 1 }], coverage: { pct: 0.5, bite_proven: false } };
   const baselines = { atcBaseline: { per_object: {} }, covBaseline: { per_object: {} } };
   const r = renderVerdict(node, checkpoint, evidence, baselines);
   assert.equal(r.gate.verdict, "PASS", "establish-pass (seed ∞) despite 1 introduced warn");

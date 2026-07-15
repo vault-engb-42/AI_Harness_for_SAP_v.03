@@ -3,7 +3,7 @@
  * re-tokenised to §6.1's parity enum). There is NO author-settable soft path for the hard
  * gates (P4 invariants, ATC priority-1) [§3.2 7.1].
  *
- *   GREEN ⇔ activated ∧ reconciled ∧ atc_p1 == 0 ∧ unit.green ∧ P4.intact
+ *   GREEN ⇔ activated ∧ reconciled ∧ atc_p1 == 0 ∧ atc_p2 == 0 ∧ unit.green ∧ P4.intact
  *            ∧ auth_coverage.not_lost
  *            ∧ (auth_delta ⇒ attested_auth)   — L7 attestation conjunct (wired 2026-07-13, D1)
  *            ∧ (parity ∈ {equivalent, PASS_STRUCTURAL} ∨ attested(needs_review))   — §6.1 attestation branch
@@ -20,7 +20,7 @@
  *
  * Pure. No I/O.
  *
- * @param {{activated?: boolean, reconciled?: boolean, atc_p1?: number, unit?: {green?: boolean}, invariants?: {intact?: boolean}, auth_coverage?: {lost?: boolean}, parity?: {verdict?: string}, block_reason?: string}} checkpoint
+ * @param {{activated?: boolean, reconciled?: boolean, atc_p1?: number, atc_p2?: number, unit?: {green?: boolean}, invariants?: {intact?: boolean}, auth_coverage?: {lost?: boolean}, parity?: {verdict?: string}, block_reason?: string}} checkpoint
  * @param {{atc_warn_delta?: number}} ratchet
  * @returns {{verdict: "GREEN"|"BLOCK"|"PARK", reasons: string[]}}
  */
@@ -72,6 +72,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
     (present(cp.invariants) && cp.invariants?.intact !== true) ||
     (present(cp.auth_coverage) && cp.auth_coverage?.lost !== false) ||
     (present(cp.atc_p1) && cp.atc_p1 !== 0) ||
+    (present(cp.atc_p2) && cp.atc_p2 !== 0) || // C3: priority-2 is a defect just like priority-1
     (present(cp.unit) && cp.unit?.green !== true) ||
     (present(cp.parity) && !passesParity(cp)) ||
     !passesAuth(cp) || // an unattested footprint change was ATTEMPTED — never a clean PARK (D1)
@@ -83,6 +84,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
   const reasons = [];
   if (!(cp.activated === true && cp.reconciled === true)) reasons.push("not-activated-or-reconciled");
   if (cp.atc_p1 !== 0) reasons.push("atc-p1-nonzero");
+  if (cp.atc_p2 !== 0) reasons.push("atc-p2-nonzero"); // C3 (P6): SAP blocks transport on P1 AND P2; fail-closed (missing → nonzero → block)
   if (cp.unit?.green !== true) reasons.push("unit-not-green");
   if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken"); // fail-closed: must PROVE intact
   if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost"); // fail-open: block only on proven loss
@@ -98,7 +100,7 @@ export function nodeVerdict(checkpoint = {}, ratchet = {}) {
  * Offline NEVER GREENs (P6): activation, reconciliation, and ABAP Unit need a live DEV tier, so
  * a byte-identical nodeVerdict would always BLOCK on `not-activated-or-reconciled`. offlineVerdict
  * therefore PARTITIONS the conjuncts — it EXCLUDES the three DEV-only ones (activated, reconciled,
- * unit) and enforces the six offline-computable ones: atc_p1 (asserted 0 by the gap-2a gate),
+ * unit) and enforces the offline-computable ones: atc_p1 AND atc_p2 (both asserted 0 — C3/P6),
  * invariants.intact, auth_coverage.lost, the auth_delta→attestation conjunct, parity, and
  * warn_delta. Every hard conjunct still fails CLOSED; auth stays the one fail-OPEN conjunct.
  *
@@ -120,6 +122,7 @@ export function offlineVerdict(checkpoint = {}, ratchet = {}) {
     (present(cp.invariants) && cp.invariants?.intact !== true) ||
     (present(cp.auth_coverage) && cp.auth_coverage?.lost !== false) ||
     (present(cp.atc_p1) && cp.atc_p1 !== 0) ||
+    (present(cp.atc_p2) && cp.atc_p2 !== 0) || // C3: priority-2 is a defect just like priority-1
     (present(cp.parity) && !passesParity(cp)) ||
     !passesAuth(cp) ||
     (present(warn) && !(Number.isFinite(warn) && warn <= 0));
@@ -129,6 +132,7 @@ export function offlineVerdict(checkpoint = {}, ratchet = {}) {
 
   const reasons = [];
   if (cp.atc_p1 !== 0) reasons.push("atc-p1-nonzero");
+  if (cp.atc_p2 !== 0) reasons.push("atc-p2-nonzero"); // C3 (P6): P1 AND P2 both hard-block; fail-closed
   if (cp.invariants?.intact !== true) reasons.push("p4-invariant-broken");
   if (cp.auth_coverage?.lost === true) reasons.push("auth-coverage-lost");
   if (!passesAuth(cp)) reasons.push("auth-delta-unattested");

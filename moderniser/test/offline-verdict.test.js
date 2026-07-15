@@ -8,7 +8,7 @@ import { offlineVerdict } from "../src/node/verdict.js";
 // attestation, parity, warn_delta). A full pass is PROVISIONAL, never GREEN (offline never
 // GREENs, P6). Same checkpoint shape as nodeVerdict; only the conjunct set differs.
 
-const clean = { atc_p1: 0, invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "equivalent" } };
+const clean = { atc_p1: 0, atc_p2: 0, invariants: { intact: true }, auth_coverage: { lost: false }, parity: { verdict: "equivalent" } };
 const ratchet = { atc_warn_delta: 0 };
 
 test("a checkpoint passing the offline conjuncts is PROVISIONAL, even with NO activated/reconciled/unit", () => {
@@ -53,4 +53,13 @@ test("parity not equivalent blocks; a warn-delta regression blocks; missing warn
 
 test("a no-released-successor node with no defect PARKs (same class as nodeVerdict)", () => {
   assert.equal(offlineVerdict({ block_reason: "NO_RELEASED_SUCCESSOR" }, {}).verdict, "PARK");
+});
+
+// --- C3: the offline P6 gate also blocks priority-2 (P1=0 AND P2=0) ---
+
+test("C3: a priority-2 ATC finding BLOCKs offline too; missing atc_p2 fails closed", () => {
+  const r = offlineVerdict({ ...clean, atc_p2: 2 }, ratchet);
+  assert.equal(r.verdict, "BLOCK");
+  assert.ok(r.reasons.includes("atc-p2-nonzero"));
+  assert.equal(offlineVerdict({ ...clean, atc_p2: undefined }, ratchet).verdict, "BLOCK", "fail-closed on missing atc_p2");
 });
