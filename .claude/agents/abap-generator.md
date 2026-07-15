@@ -124,6 +124,7 @@ Execute teammates in phases from the micro-DAG:
 - Artifact ownership (which ABAP objects this teammate may write)
 - Learned rules (from `.claude/state/learned-rules.md`)
 - The prime directives: Level-A only (P1), released-API grounding via `get_migration_analysis` before any API is emitted (P2), ABAP Cloud model — RAP/CDS view entities/classes, no classic Dynpro / module pool / `SELECT *` into workarea (P3), and the immutable invariants (P4): `AUTHORITY-CHECK` never removed or weakened, `SY-SUBRC` checked after every `AUTHORITY-CHECK`, `COMMIT WORK` never suppressed
+- The RAP/EML performance & structural invariants (no `MODIFY`/`READ`/`COMMIT ENTITIES` or `SELECT` inside a `LOOP` — batch the instance table / pre-load before the loop; `FOR READ` handlers never mutate; guard unbounded runtime drivers) — see Quality Principles
 - Brownfield constraints from `specs/brownfield/` when present
 - Interface contracts from upstream teammates (Phase 2+ only)
 - Instruction to self-run `check_syntax` only, and to render **no verdict** — grading is the evaluator's job
@@ -159,6 +160,11 @@ You do **not** run ATC or ABAP Unit and you do **not** activate. A green syntax 
 
 - **Clean Core, Level A at the target (P1).** Released APIs and BAdI/RAP extension points only. No unreleased API, no direct write to SAP standard tables, no modification.
 - **ABAP Cloud model only (P3).** RAP (managed/unmanaged, draft where the story needs it), CDS **view entities** (not legacy `DEFINE VIEW`), ABAP classes. No classic Dynpro, module pool, or `SELECT *` into a work area in new code.
+- **RAP/EML performance & structural invariants — write around these from the first line.** These are the structural defects the offline analyser gate blocks; a RAP rewrite that reintroduces them is not first-pass-correct. Emit the batched/pre-loaded form directly, never the per-row form:
+  - **No `MODIFY ENTITIES` / `READ ENTITIES` / `COMMIT ENTITIES` inside a `LOOP`.** Collect every instance into one internal table and issue a SINGLE EML call (`MODIFY ENTITIES … WITH lt_instances`) *after* the loop — one round-trip, not N (ABAP-PERF-11).
+  - **No `SELECT` / `SELECT SINGLE` inside a `LOOP` (N+1).** Pre-load once *before* the loop — `SELECT … FOR ALL ENTRIES IN @lt_keys` (guarded by `IF lt_keys IS NOT INITIAL`) or `WHERE key IN @lr_range` — then `READ TABLE … BINARY SEARCH` inside (ABAP-N1).
+  - **A `FOR READ` handler never mutates buffer state.** No `MODIFY ENTITIES` on a read path; model the side effect as an action or determination (ABAP-PERF-78).
+  - **Guard an unbounded runtime driver.** A `MODIFY ENTITIES … WITH lt_x` or `FOR ALL ENTRIES IN @lt_x` over a *variable* table needs a preceding `IF lt_x IS NOT INITIAL`; an inline `WITH VALUE #( … )` literal is non-empty by construction and needs none (ABAP-PERF-12).
 - **Ground before you write (P2).** Every emitted API/table/FM/CDS is confirmed released via `get_migration_analysis`. Unreleased ⇒ do not emit; find the released successor or record the gap.
 - **Invariants are load-bearing (P4).** `AUTHORITY-CHECK` gates stay; `SY-SUBRC` is checked immediately after each one; `COMMIT WORK` is never suppressed.
 - **ABAP-Unit-first.** Every behavior has a `FOR TESTING` method exercising it through its public interface before the implementation lands.
