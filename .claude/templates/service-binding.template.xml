@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  SERVICE BINDING  (SRVB)  —  OData exposure of a service definition
+  ============================================================================
+  HARNESS FILL-IN TEMPLATE (G2). The OData EXPOSURE layer's second half: a
+  service binding takes a service definition (SRVD — service-definition.template
+  .abap) and PUBLISHES it under one protocol. It is binding *configuration*,
+  NOT free-text DDL — there is no ABAP source to write; the object is defined by
+  its binding type, protocol version, category, and the SRVD it references.
+
+  PUBLISH != ACTIVATE  (read before wiring the live path — G3/G10)
+  ----------------------------------------------------------------------------
+  "Activating" a service binding in ADT does NOT merely activate an object: it
+  PUBLISHES the OData service (registers the service group + $metadata at the
+  gateway). The harness sidecar therefore treats an SRVB "activate" as a
+  publish POST (…/publishjobs), not an object activation. The published service
+  URL + a $metadata probe are the delivery proof (see specs/reviews/sap-verdict.json).
+
+  PROTOCOL / CATEGORY OPTIONS
+  ----------------------------------------------------------------------------
+    bindingType="ODATA" protocol="V2" category="UI"      OData V2 — UI (legacy Fiori)
+    bindingType="ODATA" protocol="V4" category="UI"      OData V4 — UI   <== DEFAULT (Fiori Elements)
+    bindingType="ODATA" protocol="V4" category="WEBAPI"  OData V4 — Web API (A2A / integration)
+  The harness DEFAULTS to OData V4 UI: List Report + Object Page Fiori Elements
+  apps bind to a V4 UI service. Switch category to WEBAPI for a headless remote
+  API (release contract C2), or protocol to V2 only for a legacy UI that requires it.
+
+  SCHEMA NOTE (read before importing)
+  ----------------------------------------------------------------------------
+  The canonical SAP serialization of an SRVB is produced by ADT (business-
+  services persistence) and its exact element names differ by ABAP Platform
+  release. THIS FILE IS A CLEARLY STRUCTURED, REPRESENTATIVE FORM: it fixes the
+  binding type, protocol version, category, and the referenced service
+  definition explicitly, so a human (or the sidecar create-body builder) can
+  reproduce the binding faithfully. Treat those attributes as the contract;
+  treat the surrounding element nesting as illustrative.
+  ============================================================================
+-->
+<srvb:serviceBinding
+    xmlns:srvb="http://www.sap.com/adt/ddic/servicebindings"
+    srvb:name="Z<Name>_O4"
+    srvb:bindingType="ODATA"
+    srvb:protocol="V4"
+    srvb:category="UI"
+    srvb:published="false">
+
+  <!-- The service definition (SRVD) this binding exposes, and the version of
+       that definition. One binding publishes exactly one service definition. -->
+  <srvb:services
+      srvb:serviceDefinition="Z<Name>"
+      srvb:serviceDefinitionVersion="0001"/>
+
+  <!-- Publish state is set by the PUBLISH action (G10), never by editing this
+       file: published="true" + the assigned service URL appear only after a
+       successful publish POST. Do not hand-set published="true". -->
+</srvb:serviceBinding>

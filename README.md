@@ -50,7 +50,7 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 - **9 agents** (`.claude/agents/`) — planner, abap-generator, abap-evaluator, abap-design-critic, abap-security-reviewer, abap-diff-reviewer, clean-core-reviewer, abap-explorer, transport-manager
 - **23 skills/lanes** (`.claude/skills/`) — greenfield (net-new entry), abap-analyser (analyser producer), fit-to-standard, abap-brownfield, readiness, seam-finder, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + behaviour-preservation sub-skills
 - **Enforcement hooks + settings** (`.claude/hooks/`, `.claude/settings.json`) — pre-write-gate, adt-write-guard, artifact-guard over a unit-tested check library
-- **model-tier.js** (cost/balanced/max-quality), **templates** (RAP BO, CDS view entity, ABAP Unit, ATC variant, transport-evidence + claude-md/mcp-config stamps), **scaffold-abap** command, **state seeds**
+- **model-tier.js** (cost/balanced/max-quality), **templates** (RAP BO, CDS view entity, ABAP Unit, ATC variant, DDLX metadata-extension, SRVD service-definition, SRVB service-binding, transport-evidence + claude-md/mcp-config stamps), **scaffold-abap** command, **state seeds**
 
 **Not yet built:**
 - Advisory/telemetry hooks — `record-run`, `verify-on-save`, `review-on-stop`, `atc-on-activate`, `ratchet-guard` (then wired into `settings.json`).

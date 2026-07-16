@@ -155,6 +155,78 @@ test("G7: abap-evaluator gates test hygiene — no COMMIT/raw DB write in a test
   assert.match(ev, /assert/i, "evaluator must gate assertion presence");
 });
 
+// G2: the OData exposure layer. An SRVD service-definition template exposes ZC_*
+// projections ONLY (never ZI_ interface views), and an SRVB service-binding template
+// is binding *config* (not DDL) — default OData V4 UI for Fiori Elements, declaring a
+// protocol version. Publish != activate: the live SRVB publish path is G10. Real files.
+
+// Strip DDL/ABAP comments so a commented `expose …` never counts toward the contract
+// — the keyword-vs-comment defect class: /* … */ block comments (valid CDS DDL), then
+// *-prefixed banner lines, then // line comments.
+const stripDdlComments = (s) =>
+  String(s)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split(/\r?\n/)
+    .filter((l) => !/^\s*\*/.test(l))
+    .map((l) => l.replace(/\/\/.*$/, ""))
+    .join("\n");
+
+// Strip XML comments so the SRVB header's documented options table (which lists example
+// bindingType/protocol/category rows) can never satisfy the contract — only the ACTIVE
+// <srvb:serviceBinding> config counts.
+const stripXmlComments = (s) => String(s).replace(/<!--[\s\S]*?-->/g, "");
+
+test("G2: a service-definition (SRVD) template exists and exposes a projection view", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "service-definition.template.abap"), "utf8");
+  assert.match(tmpl, /define\s+service\s+Z/i, "must be a `define service Z…` definition");
+  assert.match(stripDdlComments(tmpl), /\bexpose\s+ZC_/i, "must expose a ZC_ projection entity");
+});
+
+test("G2: the SRVD template exposes ZC_ projections only — never a ZI_ interface view", () => {
+  const src = stripDdlComments(readFileSync(join(CLAUDE, "templates", "service-definition.template.abap"), "utf8"));
+  const exposed = [...src.matchAll(/\bexpose\s+([^\s;]+)/gi)].map((m) => m[1]);
+  assert.ok(exposed.length > 0, "the SRVD template must expose at least one entity");
+  const iface = exposed.filter((e) => /^ZI_/i.test(e));
+  assert.deepEqual(iface, [], `SRVD must not expose interface (ZI_) views: ${iface.join(", ")}`);
+});
+
+test("G2: a service-binding (SRVB) template exists, defaults to OData V4 UI, and declares a protocol version", () => {
+  // Assert against the ACTIVE binding (comments stripped) — the header's documented options
+  // table also lists protocol="V4" category="UI", which must not satisfy the contract by itself.
+  const active = stripXmlComments(readFileSync(join(CLAUDE, "templates", "service-binding.template.xml"), "utf8"));
+  assert.match(active, /bindingType\s*=\s*"ODATA"/i, "SRVB binding type must be ODATA");
+  assert.match(active, /protocol\s*=\s*"V4"/i, "SRVB must declare protocol version V4 (the Fiori Elements default)");
+  assert.match(active, /category\s*=\s*"UI"/i, "SRVB must default to the UI category (Fiori Elements)");
+});
+
+test("G2: the SRVB template binds its SRVD service and documents publish != activate (G10)", () => {
+  const raw = readFileSync(join(CLAUDE, "templates", "service-binding.template.xml"), "utf8");
+  const active = stripXmlComments(raw);
+  assert.match(active, /serviceDefinition\s*=/i, "the ACTIVE binding must reference the service definition (SRVD) it binds");
+  assert.match(raw, /publish/i, "the SRVB template must document that its activation is a publish, not object activation");
+});
+
+// G2 adversarial remediation: the two contract guards must discriminate the ACTIVE
+// config from documentation comments — the keyword-vs-comment defect class.
+test("G2: the SRVD ZC_-only guard ignores a block-commented expose (no false positive)", () => {
+  // A valid SRVD that retires a legacy ZI_ expose inside a /* … */ block comment must
+  // still pass the 'no interface view' contract — block comments are valid CDS DDL.
+  const valid = "define service ZTest {\n  expose ZC_Foo as Foo;\n  /* expose ZI_FooLegacy as FooLegacy; retired */\n}";
+  const exposed = [...stripDdlComments(valid).matchAll(/\bexpose\s+([^\s;]+)/gi)].map((m) => m[1]);
+  assert.deepEqual(exposed.filter((e) => /^ZI_/i.test(e)), [], "a block-commented ZI_ expose must not count as an interface exposure");
+  assert.deepEqual(exposed, ["ZC_Foo"], "only the active ZC_ expose is extracted");
+});
+
+test("G2: the SRVB contract checks the ACTIVE binding, not the commented options table (no false negative)", () => {
+  // A binding whose ACTIVE element is V2/WEBAPI must NOT satisfy the V4-UI contract, even
+  // when the header options table (which lists protocol="V4" category="UI") is kept verbatim.
+  const headerTable = '<!-- options: bindingType="ODATA" protocol="V4" category="UI" (default); protocol="V2"; category="WEBAPI" -->';
+  const brokenActive = '<srvb:serviceBinding srvb:bindingType="ODATA" srvb:protocol="V2" srvb:category="WEBAPI">';
+  const broken = stripXmlComments(`${headerTable}\n${brokenActive}`);
+  assert.doesNotMatch(broken, /protocol\s*=\s*"V4"/i, "a V2 active binding must not read as V4 once comments are stripped");
+  assert.doesNotMatch(broken, /category\s*=\s*"UI"/i, "a WEBAPI active binding must not read as UI once comments are stripped");
+});
+
 // GF-3d: the /greenfield entry-point must exist and stay a thin router over
 // /abap-build (delegation, not a duplicated pipeline).
 test("the /greenfield entry-point exists and delegates to /abap-build", () => {
