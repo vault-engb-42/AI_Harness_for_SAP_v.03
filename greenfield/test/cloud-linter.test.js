@@ -99,6 +99,12 @@ test("gf-rap-no-commit-in-pool fires on ROLLBACK WORK in a RAP pool, ignores COM
   assert.equal(f.line, 8, "flags the ROLLBACK statement (line 8), not the COMMIT-in-a-comment on line 7");
 });
 
+test("gf-rap-no-commit-in-pool fires on COMMIT WORK inside a cl_abap_behavior_saver (G1 saver is protected)", () => {
+  const saver = "CLASS lsc_travel DEFINITION INHERITING FROM cl_abap_behavior_saver.\n  PROTECTED SECTION.\n    METHODS save_modified REDEFINITION.\nENDCLASS.\nCLASS lsc_travel IMPLEMENTATION.\n  METHOD save_modified.\n    COMMIT WORK.\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zbp_i_travel.clas.locals_imp.abap", source: saver }]);
+  assert.equal(finding(res, "gf-rap-no-commit-in-pool")?.severity, "error");
+});
+
 test("gf-rap-no-commit-in-pool does NOT fire on COMMIT WORK in a plain (non-RAP) class", () => {
   const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    COMMIT WORK.") }]);
   assert.equal(finding(res, "gf-rap-no-commit-in-pool"), undefined);

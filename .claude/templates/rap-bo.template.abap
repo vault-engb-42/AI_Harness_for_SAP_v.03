@@ -30,12 +30,18 @@
 //=====================================================================
 // PART 1 — BEHAVIOR DEFINITION  (its own BDEF source object)
 //   Source type: Behavior Definition (BDEF) for root view <ZI_Entity>.
-//   Implementation type: managed, draft-enabled, with additional save.
-//   The abap-generator emits everything from here to the end of PART 1
-//   as a standalone BDEF; comments in this region use // (BDEF syntax).
+//   Implementation type: managed, draft-enabled. DEFAULT is plain `managed;`
+//   (the RAP framework owns the save — NO saver class). The abap-generator
+//   emits everything from here to the end of PART 1 as a standalone BDEF;
+//   comments in this region use // (BDEF syntax).
 //=====================================================================
 
-managed with additional save; // switch to unmanaged only if the story requires custom persistence
+managed;   // DEFAULT — the framework owns the save. Opt-in save modes, each of which
+           // REQUIRES the PART 2b saver class (save_modified REDEFINITION):
+           //   `managed with additional save;`  — write SECONDARY persistence alongside the managed save
+           //   `managed with unmanaged save;`   — you write the whole managed buffer in save_modified
+           //   `unmanaged;`                     — you own the full interaction phase + the save
+           // To use one: replace `managed;` here AND uncomment/adapt PART 2b below.
 with draft;
 
 define behavior for <ZI_Entity> alias Entity
@@ -307,9 +313,10 @@ CLASS <zcl_cut> IMPLEMENTATION.
         %param = entity ) ).
 
     " NOTE (INV-2): we never issue ROLLBACK and never suppress the save.
-    " The managed framework runs the save sequence and COMMIT ENTITIES
-    " (see save_modified below) unless a validation marked 'failed'. The
-    " caller-side commit is shown in the EML consumer skeleton below.
+    " With the default `managed;` impl-type the framework owns the save
+    " sequence and COMMIT ENTITIES entirely (no saver). If the BDEF switches
+    " to additional/unmanaged save, the DB write lives in save_modified
+    " (PART 2b below). The caller-side commit is in the EML consumer skeleton.
   ENDMETHOD.
 
   "====================================================================
@@ -365,6 +372,70 @@ CLASS <zcl_cut> IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+ENDCLASS.
+
+
+*&=====================================================================*
+*& PART 2b — SAVER CLASS  (OPT-IN — additional / unmanaged save only)
+*&
+*&   The DEFAULT impl-type in PART 1 is plain `managed;` — the RAP
+*&   framework owns persistence and NO saver is needed; leave this whole
+*&   part OUT. Add it ONLY when PART 1 declares one of:
+*&     `managed with additional save;`  → save_modified writes SECONDARY
+*&                                         persistence alongside the managed save.
+*&     `managed with unmanaged save;`   → save_modified writes the ENTIRE
+*&                                         managed buffer (you own the write).
+*&     `unmanaged;`                     → save_modified + the full interaction
+*&                                         phase (create/update/delete adopt).
+*&
+*&   The saver is a LOCAL class in the behaviour-pool (CCIMP) include,
+*&   INHERITING FROM cl_abap_behavior_saver. RAP save-sequence order:
+*&     finalize → check_before_save (read-only veto) → adjust_numbers
+*&     (LATE numbering only) → save_modified (the DB write) → cleanup →
+*&     cleanup_finalize.
+*&
+*&   INV-2: the saver NEVER issues COMMIT WORK / ROLLBACK WORK — that is a
+*&   runtime error inside a behaviour pool. The RAP runtime drives
+*&   COMMIT ENTITIES; save_modified only writes the buffer into persistence.
+*&   Saver methods import NO instance data (they read the transactional
+*&   buffer via create/update/delete) and act only where a field's
+*&   %control = if_abap_behv=>mk-on.
+*&=====================================================================*
+CLASS lsc_<entity> DEFINITION INHERITING FROM cl_abap_behavior_saver.
+  PROTECTED SECTION.
+    " Mandatory for additional/unmanaged save — the DB write of the buffer.
+    METHODS save_modified REDEFINITION.
+    " Optional save-sequence hooks — uncomment only the ones the story needs:
+    " METHODS finalize          REDEFINITION.   " last derivation before the veto
+    " METHODS check_before_save REDEFINITION.   " read-only veto (reject ⇒ no save)
+    " METHODS adjust_numbers    REDEFINITION.   " LATE numbering ONLY
+    " METHODS cleanup           REDEFINITION.
+    " METHODS cleanup_finalize  REDEFINITION.
+ENDCLASS.
+
+CLASS lsc_<entity> IMPLEMENTATION.
+  "====================================================================
+  " SAVE_MODIFIED — persist the transactional buffer. For 'additional
+  " save' this runs ALONGSIDE the managed save (write secondary data);
+  " for 'unmanaged save' it is the ONLY writer of the managed buffer.
+  " Write to your grounded <released_table> via released APIs / Open SQL
+  " (P2). NEVER COMMIT WORK / ROLLBACK WORK here (INV-2) — the framework
+  " commits via COMMIT ENTITIES.
+  "====================================================================
+  METHOD save_modified.
+    " 'create' = newly-created instances, 'update' = changed, 'delete' =
+    " removed keys — each already assembled in the transactional buffer.
+    "
+    " IF create IS NOT INITIAL.
+    "   " INSERT the created rows into <released_table> (grounded, P2).
+    " ENDIF.
+    " IF update IS NOT INITIAL.
+    "   " UPDATE the changed rows (act on %control-<field> = mk-on only).
+    " ENDIF.
+    " IF delete IS NOT INITIAL.
+    "   " DELETE the removed keys.
+    " ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 

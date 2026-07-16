@@ -89,6 +89,40 @@ test("the greenfield MCP server backing those tools is declared in .mcp.json", (
   assert.ok(mcp.mcpServers?.greenfield, ".mcp.json must declare the greenfield MCP server");
 });
 
+// G1: the managed RAP-BO template must carry a saver-class skeleton for the
+// additional-save / unmanaged-save modes. The old template declared `managed with
+// additional save;` yet pointed at a save_modified that did not exist (a dangling
+// contract). Its default is now plain `managed;` (framework owns the save); the saver
+// is an opt-in variant in PART 2b. Real files, no mocks.
+test("G1: the RAP-BO template carries a cl_abap_behavior_saver skeleton with save_modified REDEFINITION", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "rap-bo.template.abap"), "utf8");
+  assert.match(tmpl, /INHERITING FROM cl_abap_behavior_saver/i, "template must define a saver class");
+  assert.match(tmpl, /\bsave_modified\b/i, "template must declare save_modified");
+  assert.match(tmpl, /save_modified\s+REDEFINITION/i, "save_modified must be a REDEFINITION of the saver base");
+});
+
+test("G1: the RAP-BO template defaults to plain `managed;` and documents every save mode", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "rap-bo.template.abap"), "utf8");
+  assert.match(tmpl, /^\s*managed;/m, "the default ACTIVE impl-type must be plain `managed;` (no saver)");
+  const lower = tmpl.toLowerCase();
+  for (const mode of ["additional save", "unmanaged save", "unmanaged"]) {
+    assert.ok(lower.includes(mode), `template must document the '${mode}' save mode`);
+  }
+});
+
+test("G1: no dangling save_modified pointer — a 'see save_modified' note resolves to the declared method", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "rap-bo.template.abap"), "utf8");
+  if (/see save_modified/i.test(tmpl)) {
+    assert.match(tmpl, /save_modified\s+REDEFINITION/i, "a save_modified pointer must resolve to the saver method");
+  }
+});
+
+test("G1: abap-generator requires the saver class when the BDEF declares additional/unmanaged save", () => {
+  const gen = readFileSync(join(CLAUDE, "agents", "abap-generator.md"), "utf8");
+  assert.match(gen, /cl_abap_behavior_saver/i, "generator must require the saver base class");
+  assert.match(gen, /save_modified/i, "generator must require redefining save_modified");
+});
+
 // GF-3d: the /greenfield entry-point must exist and stay a thin router over
 // /abap-build (delegation, not a duplicated pipeline).
 test("the /greenfield entry-point exists and delegates to /abap-build", () => {
