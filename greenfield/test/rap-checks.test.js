@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isBdef, parseBdefHeader, bdefSaveConsistencyFindings } from "../src/rap-checks.js";
+import { isBdef, parseBdefHeader, parseBdefOps, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings } from "../src/rap-checks.js";
 
 // G4 — the BDEF-AST substrate + save-consistency lint. @abaplint/core registers a
 // .bdef.asbdef as a BehaviorDefinition but does NOT parse the BDL body, so parseBdefHeader
@@ -73,4 +73,99 @@ test("the saver is scoped to the implementation class — a saver for a DIFFEREN
   const otherSaver = { filename: "zbp_i_other.clas.locals_imp.abap", source: saverFile.source };
   const res = bdefSaveConsistencyFindings([{ filename: "zi_travel.bdef.asbdef", source: additional }, otherSaver]);
   assert.equal(res.length, 1, "the travel BDEF's saver must belong to zbp_i_travel, not zbp_i_other");
+});
+
+// --- G4b: parseBdefOps + gf-x-bdef-handler-reconciliation ---
+// FP traps (backlog-flagged): draft actions + `draft determine action Prepare` need no custom
+// handler; one FOR MODIFY method can service several actions via FOR ACTION Entity~act; a
+// determination REFERENCED inside Prepare (no `on save`) is not a fresh declaration.
+
+const fullBdef = `managed implementation in class zbp_i_travel unique;
+with draft;
+define behavior for ZI_Travel alias Travel
+persistent table ztravel
+lock master
+authorization master ( instance )
+{
+  create; update; delete;
+  draft action Resume;
+  draft action Edit;
+  draft action Activate optimized;
+  draft action Discard;
+  draft determine action Prepare { validation validateDates; determination setStatus; }
+  action ( features : instance ) copyTravel result [1] $self;
+  determination setStatus on save { create; }
+  validation validateDates on save { field BeginDate; }
+}`;
+
+const fullHandler = { filename: "zbp_i_travel.clas.locals_imp.abap", source: `CLASS lhc_travel DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS setStatus FOR DETERMINE ON SAVE IMPORTING keys FOR Travel~setStatus.
+    METHODS validateDates FOR VALIDATE ON SAVE IMPORTING keys FOR Travel~validateDates.
+    METHODS copyTravel FOR MODIFY IMPORTING keys FOR ACTION Travel~copyTravel RESULT result.
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION IMPORTING keys REQUEST req FOR Travel RESULT result.
+ENDCLASS.
+CLASS lhc_travel IMPLEMENTATION.
+ENDCLASS.` };
+
+test("parseBdefOps extracts custom det/val/action, excluding draft actions and the Prepare framework action", () => {
+  const ops = parseBdefOps(fullBdef);
+  assert.deepEqual(ops.determinations.sort(), ["setStatus"]);
+  assert.deepEqual(ops.validations.sort(), ["validateDates"]);
+  assert.deepEqual(ops.actions.sort(), ["copyTravel"], "draft actions (Resume/Edit/Activate/Discard) and Prepare are excluded");
+  assert.equal(ops.authInstance, true);
+  assert.equal(ops.authGlobal, false);
+});
+
+test("gf-x-bdef-handler-reconciliation is clean when every declared op has a handler binding", () => {
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: fullBdef }, fullHandler]);
+  assert.deepEqual(res, []);
+});
+
+test("gf-x-bdef-handler-reconciliation flags a determination with no handler method", () => {
+  const noSetStatus = { ...fullHandler, source: fullHandler.source.replace(/METHODS setStatus[^.]*\./, "") };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: fullBdef }, noSetStatus]);
+  assert.equal(res.length, 1);
+  assert.equal(res[0].rule_id, "gf-x-bdef-handler-reconciliation");
+  assert.match(res[0].message, /setStatus/);
+});
+
+test("gf-x-bdef-handler-reconciliation flags a custom action with no handler", () => {
+  const noCopy = { ...fullHandler, source: fullHandler.source.replace(/METHODS copyTravel[^.]*\./, "") };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: fullBdef }, noCopy]);
+  assert.equal(res.length, 1);
+  assert.match(res[0].message, /copyTravel/);
+});
+
+test("FP trap: draft actions and the Prepare determine-action never require a custom handler", () => {
+  // fullHandler has NO Resume/Edit/Activate/Discard/Prepare methods, yet the clean case passes.
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: fullBdef }, fullHandler]);
+  for (const draft of ["Resume", "Edit", "Activate", "Discard", "Prepare"]) {
+    assert.ok(!res.some((r) => r.message.includes(draft)), `${draft} must not be flagged`);
+  }
+});
+
+test("FP trap: one FOR MODIFY method servicing several actions via multiple FOR ACTION bindings is clean", () => {
+  const twoActions = `managed implementation in class zbp_i_x unique;
+define behavior for ZI_X alias X
+{ create;
+  action copyX result [1] $self;
+  action shareX result [1] $self;
+}`;
+  const oneMethod = { filename: "zbp_i_x.clas.locals_imp.abap", source: `CLASS lhc_x DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS actions FOR MODIFY IMPORTING keys FOR ACTION X~copyX keys2 FOR ACTION X~shareX.
+ENDCLASS.
+CLASS lhc_x IMPLEMENTATION.
+ENDCLASS.` };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_x.bdef.asbdef", source: twoActions }, oneMethod]);
+  assert.deepEqual(res, [], "both copyX and shareX are serviced by the one method's two FOR ACTION bindings");
+});
+
+test("a projection behaviour delegates and needs no custom handlers — never flagged", () => {
+  const proj = `projection;
+define behavior for ZC_Travel alias TravelProj
+use draft
+{ use create; use action copyTravel; }`;
+  assert.deepEqual(bdefHandlerReconciliationFindings([{ filename: "zc_travel.bdef.asbdef", source: proj }]), []);
 });

@@ -122,3 +122,72 @@ export function bdefSaveConsistencyFindings(files) {
   }
   return findings;
 }
+
+const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Extract the CUSTOM operations a BDEF declares that need a handler METHOD: determinations
+ * and validations (`… on save/modify`), and custom actions — EXCLUDING `draft action …` and
+ * the `draft determine action …` framework actions. Plus the auth scope. A determination/
+ * validation merely REFERENCED inside a `draft determine action Prepare { … }` block has no
+ * `on save/modify`, so it is not re-counted as a fresh declaration.
+ * @param {string} source
+ * @returns {{determinations: string[], validations: string[], actions: string[], authGlobal: boolean, authInstance: boolean}}
+ */
+export function parseBdefOps(source) {
+  const text = stripBdefComments(source);
+  const all = (re) => { const out = new Set(); const r = new RegExp(re.source, "gi"); let m; while ((m = r.exec(text))) out.add(m[1]); return [...out]; };
+  const draftActions = new Set(all(/\bdraft\s+(?:determine\s+)?action\s+(\w+)/).map((n) => n.toLowerCase()));
+  const authMaster = text.match(/\bauthorization\s+(?:master|dependent)\s*\(([^)]*)\)/i)?.[1] ?? "";
+  return {
+    determinations: all(/\bdetermination\s+(\w+)\s+on\s+(?:save|modify)\b/),
+    validations: all(/\bvalidation\s+(\w+)\s+on\s+(?:save|modify)\b/),
+    actions: all(/\baction\s+(?:\([^)]*\)\s*)?(\w+)/).filter((n) => !draftActions.has(n.toLowerCase())),
+    authGlobal: /\bglobal\b/i.test(authMaster),
+    authInstance: /\binstance\b/i.test(authMaster),
+  };
+}
+
+/** Concatenated (comment-stripped) source of the non-BDEF files of `implClass` (else all non-BDEF). */
+function poolSourceFor(implClass, files) {
+  const nonBdef = files.filter((c) => !isBdef(c.filename));
+  const pool = implClass ? nonBdef.filter((c) => String(c.filename ?? "").toLowerCase().includes(implClass.toLowerCase())) : nonBdef;
+  return pool.map((c) => stripBdefComments(c.source)).join("\n");
+}
+
+/** 1-based line of `name`'s first mention in the .bdef, else 1. */
+function bdefLineOf(source, name) {
+  const idx = String(source ?? "").split(/\r?\n/).findIndex((l) => new RegExp(`\\b${escapeRe(name)}\\b`).test(l.replace(/\/\/.*$/, "")));
+  return idx + 1 || 1;
+}
+
+/**
+ * gf-x-bdef-handler-reconciliation (GF-2 exceed ①, HIGH) — a determination / validation /
+ * custom action declared in the BDEF with no handler method in the behaviour pool. A handler
+ * is recognised by its `<alias>~<op>` binding, matched PER-OP (one FOR MODIFY method can bind
+ * several actions), so a shared method is not a false positive. Projections delegate (skipped);
+ * draft actions + the Prepare determine-action are framework-handled (excluded by parseBdefOps).
+ * @param {Array<{filename: string, source: string}>} files
+ * @returns {object[]}
+ */
+export function bdefHandlerReconciliationFindings(files) {
+  const list = Array.isArray(files) ? files : [];
+  const findings = [];
+  for (const f of list) {
+    if (!isBdef(f.filename)) continue;
+    const { implClass, isProjection } = parseBdefHeader(f.source);
+    if (isProjection) continue;
+    const ops = parseBdefOps(f.source);
+    const pool = poolSourceFor(implClass, list);
+    const declared = [
+      ...ops.determinations.map((name) => ({ name, kind: "determination" })),
+      ...ops.validations.map((name) => ({ name, kind: "validation" })),
+      ...ops.actions.map((name) => ({ name, kind: "action" })),
+    ];
+    for (const op of declared) {
+      if (new RegExp(`~\\s*${escapeRe(op.name)}\\b`, "i").test(pool)) continue;
+      findings.push({ rule_id: "gf-x-bdef-handler-reconciliation", severity: "error", object: objNameOf(f.filename), object_type: "BDEF", file: f.filename, line: bdefLineOf(f.source, op.name), message: `${op.kind} '${op.name}' is declared in the behaviour definition but has no handler method (a FOR ${op.kind === "action" ? "ACTION " : ""}…~${op.name} binding) in the behaviour pool${implClass ? ` ${implClass}` : ""}`, family: "rap-odata" });
+    }
+  }
+  return findings;
+}
