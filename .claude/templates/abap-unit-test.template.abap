@@ -21,8 +21,13 @@
 *"*     Never assert private state or an internal method (P3 model).
 *"*   - Isolate with the SAP test doubles - no live table write, no
 *"*     COMMIT WORK inside a test (that leaks state and breaks isolation):
-*"*       * RAP BO   -> cl_abap_behv_test_environment + insert_test_data
-*"*       * CDS view -> cl_cds_test_environment       + insert_test_data
+*"*       * RAP BO    -> cl_abap_behv_test_environment + insert_test_data
+*"*       * CDS view  -> cl_cds_test_environment       + insert_test_data
+*"*       * raw table -> cl_osql_test_environment      + insert_test_data
+*"*       * cross-BO  -> mock-EML (cl_botd_mockemlapi_bo_test_env) to stub
+*"*                     another BO's EML calls from the consumer under test
+*"*     Lifecycle: build in class_setup, clear_doubles( ) in setup,
+*"*     destroy( ) in class_teardown. Every FOR TESTING method asserts.
 *"*   - P4 invariants are load-bearing and MUST have their own methods:
 *"*       * AUTHORITY-CHECK is never removed, and SY-SUBRC is checked
 *"*         immediately after it -> pin a DENIED case: the authority

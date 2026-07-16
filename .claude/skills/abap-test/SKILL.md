@@ -81,7 +81,7 @@ Create `specs/test-artefacts/` if it does not exist.
 **`specs/test-artefacts/test-plan.md`**
 - Scope: which objects and ACs are under test; what is explicitly out of scope.
 - Test level: ABAP Unit via `LTCL_*` `FOR TESTING`, run on a live DEV tier by `abap-evaluator`.
-- Environment assumptions: the DEV connection/tier, the package, any test-double / CDS test-double (`CDS_TEST_ENVIRONMENT`) or RAP test-double (`CL_ABAP_BEHV_TEST_ENVIRONMENT`) needed to isolate the unit.
+- Environment assumptions: the DEV connection/tier, the package, any test-double / CDS test-double (`cl_cds_test_environment`) or RAP test-double (`cl_abap_behv_test_environment`) needed to isolate the unit.
 - Pass/fail criteria: all `FOR TESTING` methods green; coverage ≥ `.claude/state/abapunit-baseline.json` ratchet (Gate 3, HARD).
 
 **`specs/test-artefacts/test-cases.md`**
@@ -133,9 +133,15 @@ source under specs/abap/; you do NOT activate, run, or grade (GAN — Rule 1).
    the PUBLIC interface — a RAP modify/read/action via EML, a CDS projection select, a class
    method call — and asserts the observable outcome (reported/failed structure, projection
    value, return). Never assert private state.
-4. Isolate the unit with the RAP/CDS test doubles: CL_ABAP_BEHV_TEST_ENVIRONMENT for RAP BOs,
-   CDS_TEST_ENVIRONMENT for CDS entities. Seed via insert_test_data from the fixtures — no
-   live table write, no COMMIT in a test.
+4. Isolate the unit with the SAP test doubles — pick by the seam:
+   - cl_abap_behv_test_environment=>create( … ) for a RAP BO (managed/unmanaged/draft);
+   - cl_cds_test_environment=>create( … ) for a CDS entity read;
+   - cl_osql_test_environment=>create( … ) for a raw released-table Open SQL read;
+   - mock-EML (cl_botd_mockemlapi_bo_test_env) to stub a CROSS-BO consumer's EML calls.
+   Lifecycle: build the double in class_setup, clear_doubles( ) in setup (order-independent
+   tests), destroy( ) in class_teardown. Seed via insert_test_data from the fixtures — no
+   live table write, no COMMIT WORK in a test. Every FOR TESTING method carries >=1
+   cl_abap_unit_assert; the class pins RISK LEVEL HARMLESS DURATION SHORT.
 5. Every P4-invariant AC gets a method that asserts the AUTHORITY-CHECK denies (SY-SUBRC <> 0
    surfaces as the RAP failed/reported structure) and that COMMIT WORK is honoured. Never author
    a test that weakens or removes an invariant to make a green (P4) — refuse and surface it.
@@ -220,7 +226,7 @@ Resolve before handing off. `/abap-change` then implements the CR test-first aga
 
 - **Test methods not mapped to acceptance criteria.** Every `FOR TESTING` method must cite its AC id — the grounding gate blocks a `net_new` method or a `dropped` AC. Unmapped methods are noise.
 - **Testing private state instead of the public interface.** Assert observable behaviour through the RAP operation / CDS projection / class method — the `reported`/`failed` structure, the projection value, the return — never a private attribute or internal method. Tests bound to internals break on every refactor.
-- **Writing to live tables in a test.** Use the RAP/CDS test doubles (`CL_ABAP_BEHV_TEST_ENVIRONMENT`, `CDS_TEST_ENVIRONMENT`) and `insert_test_data`. A test that does a live `INSERT`/`MODIFY` + `COMMIT WORK` is not isolated, leaks state, and violates test-double discipline.
+- **Writing to live tables in a test.** Use the RAP/CDS test doubles (`cl_abap_behv_test_environment`, `cl_cds_test_environment`) and `insert_test_data`. A test that does a live `INSERT`/`MODIFY` + `COMMIT WORK` is not isolated, leaks state, and violates test-double discipline.
 - **Skipping error and invariant paths.** Every documented error path and every P4-invariant AC needs a method — an authority-denied case that asserts `SY-SUBRC <> 0` surfaces as the RAP `failed` structure. Happy-path-only is incomplete; an uncovered invariant is a hard-block `dropped` id.
 - **Floats for money.** Test data amounts use the CDS/DDIC currency/quantity type (packed / `CURR` / `Decimal`), never a float — a float fixture masks a real rounding defect.
 - **Treating syntax-green as done.** `abap-generator` self-runs `check_syntax` only and renders no verdict. The tests are not proven until `abap-evaluator` runs them on a live DEV tier and `sap-verdict.json` shows `abap_unit.failed:[]` with coverage ≥ baseline. Generator writes; evaluator runs (GAN).

@@ -138,6 +138,23 @@ test("G6/S3: a DDLX metadata-extension template exists for externalised @UI", ()
   assert.match(tmpl, /@Metadata\.layer/i, "must declare @Metadata.layer (e.g. #CUSTOMER)");
 });
 
+// G7: the RAP/CDS test-double contract must name the REAL SAP double classes (correct casing)
+// and cover the three doubles + mock-EML, with a create/destroy/clear lifecycle.
+test("G7: abap-test SKILL names the real test-double classes (correct casing) + mock-EML", () => {
+  const skill = readFileSync(join(CLAUDE, "skills", "abap-test", "SKILL.md"), "utf8");
+  for (const cls of ["cl_abap_behv_test_environment", "cl_cds_test_environment", "cl_osql_test_environment"]) {
+    assert.ok(skill.includes(cls), `SKILL must name ${cls}`);
+  }
+  assert.ok(!/\bCDS_TEST_ENVIRONMENT\b/.test(skill.replace(/cl_cds_test_environment/gi, "")), "the mis-cased CDS_TEST_ENVIRONMENT must be gone");
+  assert.match(skill, /clear_doubles|destroy\(/i, "must document the double lifecycle (clear_doubles / destroy)");
+});
+
+test("G7: abap-evaluator gates test hygiene — no COMMIT/raw DB write in a test, assertion presence, teardown", () => {
+  const ev = readFileSync(join(CLAUDE, "agents", "abap-evaluator.md"), "utf8");
+  assert.match(ev, /test double|cl_abap_behv_test_environment|cl_cds_test_environment/i, "evaluator must gate test-double usage");
+  assert.match(ev, /assert/i, "evaluator must gate assertion presence");
+});
+
 // GF-3d: the /greenfield entry-point must exist and stay a thin router over
 // /abap-build (delegation, not a duplicated pipeline).
 test("the /greenfield entry-point exists and delegates to /abap-build", () => {

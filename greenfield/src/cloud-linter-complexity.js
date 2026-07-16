@@ -20,6 +20,10 @@ const NEST_OPEN = new Set(["If", "Loop", "Do", "While", "Case", "Try"]);
 const NEST_CLOSE = new Set(["EndIf", "EndLoop", "EndDo", "EndWhile", "EndCase", "EndTry"]);
 const ASSERT_RE = /\bCL_A(?:BAP_UNIT|UNIT)_ASSERT\b/i;
 const CALL_RE = /->\w+\s*\(/g;
+// A FOR TESTING method that touches the DB directly while the class installs no RAP/CDS/OSQL
+// test double hits the real database (G7). Kinds are @abaplint statement constructor names.
+const DB_STMT_KINDS = new Set(["Select", "SelectLoop", "InsertDatabase", "UpdateDatabase", "ModifyDatabase", "DeleteDatabase"]);
+const TEST_DOUBLE_RE = /cl_(?:abap_behv|cds|osql)_test_environment/i;
 const NEW_PROD_RE = /\bNEW\s+z[ci]l_\w+\s*\(/i;
 const SECTION_RE = /\b(?:EXPORTING|CHANGING|RETURNING|RAISING|EXCEPTIONS|PREFERRED\s+PARAMETER)\b/i;
 const VISIBILITY_PUBLIC = 3;
@@ -67,7 +71,7 @@ function paramFindings(stmts, objName, objType, file, findings) {
 }
 
 /** Emit the accumulated metrics for one method body on ENDMETHOD. */
-function emitMethod(m, testMethods, objName, objType, file, findings) {
+function emitMethod(m, testMethods, hasDouble, objName, objType, file, findings) {
   const add = (id, sev, msg, fam) => sev && findings.push(mk(id, sev, msg, fam, objName, objType, file, m.st));
   add("gf-cx-method-length", tier(m.count, METHOD_LEN), `${m.count} statements in one method — extract cohesive steps into smaller methods`, "complexity");
   add("gf-cx-cyclomatic", tier(m.cyclo, CYCLO), `cyclomatic complexity ${m.cyclo} — too many decision paths; decompose the method`, "complexity");
@@ -76,17 +80,18 @@ function emitMethod(m, testMethods, objName, objType, file, findings) {
   add("gf-test-assert-count", tier(m.asserts, ASSERTS), `${m.asserts} assertions in one test method — a test should verify one behavior; split it`, "test-quality");
   add("gf-test-too-many-calls", tier(m.calls, CALLS), `${m.calls} production calls in one test method — the test exercises too much; narrow its scope`, "test-quality");
   if (m.newProd > 0) add("gf-test-instantiates-prod", "warning", "test instantiates a production class directly (NEW zcl_…) — inject the dependency or use a released test double", "test-quality");
+  if (m.db > 0 && !hasDouble) add("gf-x-test-hits-real-db", "warning", `test method hits the database directly (${m.db} DB statement(s)) but the class installs no test double — isolate with cl_abap_behv/cds/osql_test_environment and seed via insert_test_data, never a live table`, "test-quality");
 }
 
 /** Walk each method body: statement count, cyclomatic, nesting, and test metrics. */
-function bodyFindings(stmts, testMethods, objName, objType, file, findings) {
+function bodyFindings(stmts, testMethods, hasDouble, objName, objType, file, findings) {
   let m = null;
   for (const st of stmts) {
     const kind = st.get()?.constructor?.name;
     if (kind === "MethodImplementation" || kind === "Method") {
-      m = { name: /^METHOD\s+([\w~]+)/i.exec(st.concatTokens())?.[1]?.toUpperCase(), st, count: 0, cyclo: 1, depth: 0, maxDepth: 0, asserts: 0, calls: 0, newProd: 0 };
+      m = { name: /^METHOD\s+([\w~]+)/i.exec(st.concatTokens())?.[1]?.toUpperCase(), st, count: 0, cyclo: 1, depth: 0, maxDepth: 0, asserts: 0, calls: 0, newProd: 0, db: 0 };
     } else if (kind === "EndMethod") {
-      if (m) emitMethod(m, testMethods, objName, objType, file, findings);
+      if (m) emitMethod(m, testMethods, hasDouble, objName, objType, file, findings);
       m = null;
     } else if (m) {
       m.count++;
@@ -94,6 +99,7 @@ function bodyFindings(stmts, testMethods, objName, objType, file, findings) {
       if (CYCLO_KINDS.has(kind)) m.cyclo++;
       if (NEST_OPEN.has(kind)) m.maxDepth = Math.max(m.maxDepth, ++m.depth);
       else if (NEST_CLOSE.has(kind)) m.depth = Math.max(0, m.depth - 1);
+      if (DB_STMT_KINDS.has(kind)) m.db++;
       if (m.name && testMethods.has(m.name)) {
         if (ASSERT_RE.test(text)) m.asserts++;
         m.calls += (text.match(CALL_RE) || []).length;
@@ -112,8 +118,9 @@ export function complexityFindings(objName, objType, file) {
   const findings = [];
   const stmts = file.getStatements?.() ?? [];
   const testMethods = testMethodNames(stmts);
+  const hasDouble = TEST_DOUBLE_RE.test(file.getRaw?.() ?? "");
   paramFindings(stmts, objName, objType, file, findings);
-  bodyFindings(stmts, testMethods, objName, objType, file, findings);
+  bodyFindings(stmts, testMethods, hasDouble, objName, objType, file, findings);
   return findings;
 }
 

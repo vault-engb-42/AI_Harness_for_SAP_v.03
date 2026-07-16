@@ -500,6 +500,18 @@ test("gf-test-public-untested flags a public method the test never references (C
   assert.match(f.message, /SUBTRACT/);
 });
 
+test("gf-x-test-hits-real-db flags a FOR TESTING method with a raw DB SELECT and NO test double (G7)", () => {
+  const testcls = "CLASS ltc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc IMPLEMENTATION.\n  METHOD t1.\n    SELECT SINGLE vbeln FROM vbak INTO @DATA(v) WHERE vbeln = '1'.\n    cl_abap_unit_assert=>assert_not_initial( act = v exp = v ).\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.testclasses.abap", source: testcls }]);
+  assert.equal(finding(res, "gf-x-test-hits-real-db")?.severity, "warning");
+});
+
+test("gf-x-test-hits-real-db is clean when a test double IS installed (G7)", () => {
+  const testcls = "CLASS ltc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    CLASS-DATA env TYPE REF TO if_abap_behv_test_environment.\n    CLASS-METHODS class_setup.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc IMPLEMENTATION.\n  METHOD class_setup.\n    env = cl_abap_behv_test_environment=>create( i_for_entities = VALUE #( ( i_for_entity = 'ZI_X' ) ) ).\n  ENDMETHOD.\n  METHOD t1.\n    SELECT SINGLE mandt FROM zi_x INTO @DATA(v).\n    cl_abap_unit_assert=>assert_bound( v ).\n  ENDMETHOD.\nENDCLASS.";
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.testclasses.abap", source: testcls }]);
+  assert.equal(finding(res, "gf-x-test-hits-real-db"), undefined);
+});
+
 test("gf-test-friends-reach fires on LOCAL FRIENDS (CLEAN-020)", () => {
   const src = "CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_x DEFINITION LOCAL FRIENDS ltc_x.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n  ENDMETHOD.\nENDCLASS.";
   assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]), "gf-test-friends-reach")?.severity, "warning");
