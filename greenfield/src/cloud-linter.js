@@ -8,6 +8,7 @@ import {
   cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
 import { commitInRapPoolFindings, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings } from "./rap-checks.js";
+import { uiFeReadinessFindings } from "./cds-checks.js";
 import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
 /**
@@ -43,6 +44,7 @@ export function lintAbapCloud(files) {
   findings.push(...commitInRapPoolFindings(list));
   findings.push(...bdefSaveConsistencyFindings(list));
   findings.push(...bdefHandlerReconciliationFindings(list));
+  findings.push(...uiFeReadinessFindings(list));
   findings.push(...releasedApiFindings(list));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;

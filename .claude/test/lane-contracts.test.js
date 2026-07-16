@@ -123,6 +123,21 @@ test("G1: abap-generator requires the saver class when the BDEF declares additio
   assert.match(gen, /save_modified/i, "generator must require redefining save_modified");
 });
 
+// G6: the generator must author the minimum @UI Fiori-Elements set (List Report + Object
+// Page render with no hand-written UI), and S3 adds a DDLX template so @UI can be externalised.
+test("G6: abap-generator carries the @UI Fiori-Elements readiness contract", () => {
+  const gen = readFileSync(join(CLAUDE, "agents", "abap-generator.md"), "utf8");
+  for (const ann of ["headerInfo", "lineItem", "selectionField"]) {
+    assert.ok(gen.includes(ann), `generator must require @UI.${ann} on the ZC_ projection`);
+  }
+});
+
+test("G6/S3: a DDLX metadata-extension template exists for externalised @UI", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "metadata-extension.template.abap"), "utf8");
+  assert.match(tmpl, /annotate\s+(?:view\s+)?(?:entity\s+)?/i, "must be an `annotate … view` metadata extension");
+  assert.match(tmpl, /@Metadata\.layer/i, "must declare @Metadata.layer (e.g. #CUSTOMER)");
+});
+
 // GF-3d: the /greenfield entry-point must exist and stay a thin router over
 // /abap-build (delegation, not a duplicated pipeline).
 test("the /greenfield entry-point exists and delegates to /abap-build", () => {
