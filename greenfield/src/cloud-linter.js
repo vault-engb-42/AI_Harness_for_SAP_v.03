@@ -5,8 +5,9 @@ import {
   HEADER_LINE_SPEC, SELECT_STAR_SPEC, SELECT_IN_LOOP_SPEC, COMMIT_IN_LOOP_SPEC,
   AUTHCHECK_SPEC, AUTHCHECK_AFTER_WRITE_SPEC, RAP_DB_WRITE_SPEC,
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
-  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings, commitInRapPoolFindings,
+  cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
+import { commitInRapPoolFindings } from "./rap-checks.js";
 import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
 /**
