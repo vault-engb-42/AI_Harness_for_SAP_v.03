@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isBdef, parseBdefHeader, parseBdefOps, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings } from "../src/rap-checks.js";
+import { isBdef, parseBdefHeader, parseBdefOps, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings, commitInRapPoolFindings } from "../src/rap-checks.js";
 
 // G4 — the BDEF-AST substrate + save-consistency lint. @abaplint/core registers a
 // .bdef.asbdef as a BehaviorDefinition but does NOT parse the BDL body, so parseBdefHeader
@@ -24,7 +24,7 @@ test("isBdef matches .bdef and .bdef.asbdef, not .clas.abap", () => {
 test("parseBdefHeader reads the impl-type and whether a saver is required", () => {
   assert.deepEqual(
     { ...parseBdefHeader(managed) },
-    { implType: "managed", needsSaver: false, implClass: "zbp_i_travel", entity: "ZI_Travel", isProjection: false },
+    { implType: "managed", needsSaver: false, implClass: "zbp_i_travel", entity: "ZI_Travel", alias: "Travel", isProjection: false },
   );
   assert.equal(parseBdefHeader(additional).implType, "managed with additional save");
   assert.equal(parseBdefHeader(additional).needsSaver, true);
@@ -168,4 +168,72 @@ define behavior for ZC_Travel alias TravelProj
 use draft
 { use create; use action copyTravel; }`;
   assert.deepEqual(bdefHandlerReconciliationFindings([{ filename: "zc_travel.bdef.asbdef", source: proj }]), []);
+});
+
+// --- G4c: adversarial-review remediation (12 confirmed defects on valid, common RAP input) ---
+
+test("G4c/F1: parseBdefHeader captures NAMESPACED impl-class and entity (/DMO/…)", () => {
+  const ns = `managed implementation in class /DMO/BP_TRAVEL unique;\ndefine behavior for /DMO/I_Travel alias Travel\n{ create; }`;
+  const h = parseBdefHeader(ns);
+  assert.equal(h.implClass, "/DMO/BP_TRAVEL");
+  assert.equal(h.entity, "/DMO/I_Travel");
+});
+
+test("G4c/F1: namespaced additional-save BO with only an UNRELATED saver is still flagged", () => {
+  const ns = `managed with additional save implementation in class /DMO/BP_TRAVEL unique;\ndefine behavior for /DMO/I_Travel alias Travel { create; }`;
+  const otherSaver = { filename: "zbp_i_other.clas.locals_imp.abap", source: saverFile.source };
+  const res = bdefSaveConsistencyFindings([{ filename: "dmo_i_travel.bdef.asbdef", source: ns }, otherSaver]);
+  assert.equal(res.length, 1, "the /DMO/ BO's own saver is absent — the unrelated one must not satisfy it");
+});
+
+test("G4c/F2: a non-draft `determine action` is a framework construct — never a phantom missing handler", () => {
+  const src = `managed implementation in class zbp_i_x unique;\ndefine behavior for ZI_X alias X\n{ create; determine action checkAll { validation valA; determination detB; } }`;
+  assert.ok(!parseBdefOps(src).actions.includes("checkAll"), "determine action is excluded from custom actions");
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_x.bdef.asbdef", source: src }, { filename: "zbp_i_x.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\nENDCLASS." }]);
+  assert.ok(!res.some((r) => r.message.includes("checkAll")), "checkAll must not be flagged");
+});
+
+test("G4c/F3: a multi-entity BDEF with a per-entity op-name collision flags the entity whose handler is missing", () => {
+  const two = `managed implementation in class zbp_i_travel unique;\ndefine behavior for ZI_Travel alias Travel { create; determination setStatus on save { create; } }\ndefine behavior for ZI_Booking alias Booking { update; determination setStatus on save { create; } }`;
+  const pool = { filename: "zbp_i_travel.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS setStatus FOR DETERMINE ON SAVE IMPORTING keys FOR Travel~setStatus.\nENDCLASS." };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: two }, pool]);
+  assert.equal(res.length, 1, "Booking~setStatus has no handler even though Travel~setStatus does");
+  assert.match(res[0].message, /Booking/);
+});
+
+test("G4c/F4: an unrelated `alias~op` component-selector call is NOT a handler binding", () => {
+  const src = `managed implementation in class zbp_i_travel unique;\ndefine behavior for ZI_Travel alias Travel { create; determination setStatus on save { create; } }`;
+  const pool = { filename: "zbp_i_travel.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\nENDCLASS.\nCLASS lhc IMPLEMENTATION.\n  METHOD foo.\n    lo_helper->if_status~setStatus( ).\n  ENDMETHOD.\nENDCLASS." };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: src }, pool]);
+  assert.equal(res.length, 1, "a FOR Travel~setStatus binding is required, not any ~setStatus token");
+});
+
+test("G4c/F5: a handler that exists only inside an ABAP comment does NOT satisfy reconciliation", () => {
+  const src = `managed implementation in class zbp_i_travel unique;\ndefine behavior for ZI_Travel alias Travel { create; determination setStatus on save { create; } }`;
+  const pool = { filename: "zbp_i_travel.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n*   METHODS setStatus FOR DETERMINE ON SAVE IMPORTING keys FOR Travel~setStatus.\nENDCLASS." };
+  const res = bdefHandlerReconciliationFindings([{ filename: "zi_travel.bdef.asbdef", source: src }, pool]);
+  assert.equal(res.length, 1, "a commented-out handler is not a handler");
+});
+
+test("G4c/F6: a commented-out saver does NOT satisfy save-consistency", () => {
+  const commented = { filename: "zbp_i_travel.clas.locals_imp.abap", source: "* CLASS lsc DEFINITION INHERITING FROM cl_abap_behavior_saver.\n*   METHODS save_modified REDEFINITION." };
+  const res = bdefSaveConsistencyFindings([{ filename: "zi_travel.bdef.asbdef", source: additional }, commented]);
+  assert.equal(res.length, 1, "a commented-out saver is not a saver");
+});
+
+test("G4c/F7: a superstring class file (zbp_i_travel_ext) does NOT satisfy zbp_i_travel's saver", () => {
+  const extSaver = { filename: "zbp_i_travel_ext.clas.locals_imp.abap", source: saverFile.source };
+  const res = bdefSaveConsistencyFindings([{ filename: "zi_travel.bdef.asbdef", source: additional }, extSaver]);
+  assert.equal(res.length, 1, "zbp_i_travel_ext's saver belongs to a different BO");
+});
+
+test("G4c/F8: commitInRapPool does not FP on `FOR MODIFY` inside a comment of a plain class", () => {
+  const plain = { filename: "zcl_x.clas.abap", source: "CLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n    \" lock the row FOR MODIFY before update\n    COMMIT WORK.\n  ENDMETHOD.\nENDCLASS." };
+  assert.deepEqual(commitInRapPoolFindings([plain]), [], "a classic class with FOR MODIFY only in a comment is not a RAP pool");
+});
+
+test("G4c/F8: commitInRapPool still flags COMMIT WORK when a '\"' sits inside a quoted literal on the line", () => {
+  const pool = { filename: "zbp_i_x.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS m FOR MODIFY IMPORTING keys FOR ACTION X~a.\nENDCLASS.\nCLASS lhc IMPLEMENTATION.\n  METHOD m.\n    DATA(msg) = 'he said \"go\"'. COMMIT WORK.\n  ENDMETHOD.\nENDCLASS." };
+  const res = commitInRapPoolFindings([pool]);
+  assert.equal(res.length, 1, "the \" inside the '…' literal is data, not a comment — COMMIT WORK is still detected");
 });
