@@ -7,7 +7,7 @@ import {
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
   cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
-import { commitInRapPoolFindings } from "./rap-checks.js";
+import { commitInRapPoolFindings, bdefSaveConsistencyFindings } from "./rap-checks.js";
 import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
 /**
@@ -41,6 +41,7 @@ export function lintAbapCloud(files) {
   findings.push(...cdsClassicViewFindings(list));
   findings.push(...modMarkerFindings(list));
   findings.push(...commitInRapPoolFindings(list));
+  findings.push(...bdefSaveConsistencyFindings(list));
   findings.push(...releasedApiFindings(list));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;
