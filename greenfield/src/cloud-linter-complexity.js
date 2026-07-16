@@ -22,7 +22,7 @@ const ASSERT_RE = /\bCL_A(?:BAP_UNIT|UNIT)_ASSERT\b/i;
 const CALL_RE = /->\w+\s*\(/g;
 // A FOR TESTING method that touches the DB directly while the class installs no RAP/CDS/OSQL
 // test double hits the real database (G7). Kinds are @abaplint statement constructor names.
-const DB_STMT_KINDS = new Set(["Select", "SelectLoop", "InsertDatabase", "UpdateDatabase", "ModifyDatabase", "DeleteDatabase"]);
+const DB_STMT_KINDS = new Set(["Select", "SelectLoop", "InsertDatabase", "UpdateDatabase", "ModifyDatabase", "DeleteDatabase", "ExecSQL", "NativeSQL"]);
 const TEST_DOUBLE_RE = /cl_(?:abap_behv|cds|osql)_test_environment/i;
 const NEW_PROD_RE = /\bNEW\s+z[ci]l_\w+\s*\(/i;
 const SECTION_RE = /\b(?:EXPORTING|CHANGING|RETURNING|RAISING|EXCEPTIONS|PREFERRED\s+PARAMETER)\b/i;
@@ -83,19 +83,39 @@ function emitMethod(m, testMethods, hasDouble, objName, objType, file, findings)
   if (m.db > 0 && !hasDouble) add("gf-x-test-hits-real-db", "warning", `test method hits the database directly (${m.db} DB statement(s)) but the class installs no test double — isolate with cl_abap_behv/cds/osql_test_environment and seed via insert_test_data, never a live table`, "test-quality");
 }
 
-/** Walk each method body: statement count, cyclomatic, nesting, and test metrics. */
-function bodyFindings(stmts, testMethods, hasDouble, objName, objType, file, findings) {
-  let m = null;
+/**
+ * Per-test-class install of a RAP/CDS/OSQL double, keyed by IMPLEMENTATION class name. Scans
+ * STATEMENT text (never raw source), so a double name in a comment does not count; scoped per
+ * class, so a double in one local test class does not mask a real-DB hit in another.
+ */
+function classDoubleMap(stmts) {
+  const map = new Map();
+  let cls = null;
   for (const st of stmts) {
     const kind = st.get()?.constructor?.name;
+    if (kind === "ClassImplementation") cls = /^CLASS\s+([\w~]+)/i.exec(st.concatTokens())?.[1]?.toUpperCase() ?? null;
+    else if (kind === "EndClass") cls = null;
+    else if (cls && kind !== "Comment" && kind !== "CommentLine" && TEST_DOUBLE_RE.test(st.concatTokens())) map.set(cls, true);
+  }
+  return map;
+}
+
+/** Walk each method body: statement count, cyclomatic, nesting, and test metrics. */
+function bodyFindings(stmts, testMethods, doubles, objName, objType, file, findings) {
+  let m = null;
+  let cls = null;
+  for (const st of stmts) {
+    const kind = st.get()?.constructor?.name;
+    const text = st.concatTokens();
+    if (kind === "ClassImplementation") { cls = /^CLASS\s+([\w~]+)/i.exec(text)?.[1]?.toUpperCase() ?? null; continue; }
+    if (kind === "EndClass") { cls = null; continue; }
     if (kind === "MethodImplementation" || kind === "Method") {
-      m = { name: /^METHOD\s+([\w~]+)/i.exec(st.concatTokens())?.[1]?.toUpperCase(), st, count: 0, cyclo: 1, depth: 0, maxDepth: 0, asserts: 0, calls: 0, newProd: 0, db: 0 };
+      m = { name: /^METHOD\s+([\w~]+)/i.exec(text)?.[1]?.toUpperCase(), st, count: 0, cyclo: 1, depth: 0, maxDepth: 0, asserts: 0, calls: 0, newProd: 0, db: 0 };
     } else if (kind === "EndMethod") {
-      if (m) emitMethod(m, testMethods, hasDouble, objName, objType, file, findings);
+      if (m) emitMethod(m, testMethods, doubles.get(cls) === true, objName, objType, file, findings);
       m = null;
     } else if (m) {
       m.count++;
-      const text = st.concatTokens();
       if (CYCLO_KINDS.has(kind)) m.cyclo++;
       if (NEST_OPEN.has(kind)) m.maxDepth = Math.max(m.maxDepth, ++m.depth);
       else if (NEST_CLOSE.has(kind)) m.depth = Math.max(0, m.depth - 1);
@@ -118,9 +138,9 @@ export function complexityFindings(objName, objType, file) {
   const findings = [];
   const stmts = file.getStatements?.() ?? [];
   const testMethods = testMethodNames(stmts);
-  const hasDouble = TEST_DOUBLE_RE.test(file.getRaw?.() ?? "");
+  const doubles = classDoubleMap(stmts);
   paramFindings(stmts, objName, objType, file, findings);
-  bodyFindings(stmts, testMethods, hasDouble, objName, objType, file, findings);
+  bodyFindings(stmts, testMethods, doubles, objName, objType, file, findings);
   return findings;
 }
 

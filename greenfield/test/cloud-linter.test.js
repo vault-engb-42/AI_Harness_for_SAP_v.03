@@ -512,6 +512,21 @@ test("gf-x-test-hits-real-db is clean when a test double IS installed (G7)", () 
   assert.equal(finding(res, "gf-x-test-hits-real-db"), undefined);
 });
 
+test("G7c: a double name in a COMMENT does not mask a real DB hit in a test (FN)", () => {
+  const testcls = "CLASS ltc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc IMPLEMENTATION.\n  METHOD t1.\n    \" TODO later: switch to cl_osql_test_environment\n    SELECT SINGLE vbeln FROM vbak INTO @DATA(v) WHERE vbeln = '1'.\n    cl_abap_unit_assert=>assert_not_initial( act = v exp = v ).\n  ENDMETHOD.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.testclasses.abap", source: testcls }]), "gf-x-test-hits-real-db")?.severity, "warning");
+});
+
+test("G7c: a double in test class A does not mask a real DB hit in test class B (per-class scope, FN)", () => {
+  const src = "CLASS ltc_a DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    CLASS-DATA env TYPE REF TO if_osql_test_environment.\n    CLASS-METHODS class_setup.\n    METHODS a1 FOR TESTING.\nENDCLASS.\nCLASS ltc_a IMPLEMENTATION.\n  METHOD class_setup.\n    env = cl_osql_test_environment=>create( i_dependency_list = VALUE #( ( name = 'VBAK' type = 'TABLE' ) ) ).\n  ENDMETHOD.\n  METHOD a1.\n    cl_abap_unit_assert=>assert_true( abap_true ).\n  ENDMETHOD.\nENDCLASS.\nCLASS ltc_b DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS b1 FOR TESTING.\nENDCLASS.\nCLASS ltc_b IMPLEMENTATION.\n  METHOD b1.\n    SELECT SINGLE vbeln FROM vbak INTO @DATA(v) WHERE vbeln = '1'.\n    cl_abap_unit_assert=>assert_not_initial( act = v exp = v ).\n  ENDMETHOD.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.testclasses.abap", source: src }]), "gf-x-test-hits-real-db")?.severity, "warning");
+});
+
+test("G7c: native EXEC SQL in a test with no double is flagged as a real-DB hit (FN)", () => {
+  const testcls = "CLASS ltc DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.\n  PRIVATE SECTION.\n    METHODS t1 FOR TESTING.\nENDCLASS.\nCLASS ltc IMPLEMENTATION.\n  METHOD t1.\n    DATA v TYPE string.\n    EXEC SQL.\n      SELECT vbeln INTO :v FROM vbak\n    ENDEXEC.\n    cl_abap_unit_assert=>assert_not_initial( act = v exp = v ).\n  ENDMETHOD.\nENDCLASS.";
+  assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.testclasses.abap", source: testcls }]), "gf-x-test-hits-real-db")?.severity, "warning");
+});
+
 test("gf-test-friends-reach fires on LOCAL FRIENDS (CLEAN-020)", () => {
   const src = "CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_x DEFINITION LOCAL FRIENDS ltc_x.\nCLASS zcl_x IMPLEMENTATION.\n  METHOD run.\n  ENDMETHOD.\nENDCLASS.";
   assert.equal(finding(lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]), "gf-test-friends-reach")?.severity, "warning");

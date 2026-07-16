@@ -22,15 +22,25 @@ export function isDdlx(filename) {
 }
 
 // The minimum @UI set for a Fiori Elements List Report + Object Page to render with no
-// hand-written UI. These annotation names appear only in an @UI context in CDS.
+// hand-written UI. Matched in the ANNOTATION-KEY form (`<name>:`) so a CDS element literally
+// named `LineItem` / `Identification` is never mistaken for the annotation.
 const UI_MIN_SET = [
-  { key: "headerInfo", label: "@UI.headerInfo", re: /\bheaderInfo\b/i },
-  { key: "lineItem", label: "@UI.lineItem", re: /\blineItem\b/i },
-  { key: "selectionField", label: "@UI.selectionField", re: /\bselectionField\b/i },
-  { key: "objectPage", label: "@UI.facet / @UI.identification", re: /\b(?:facet|identification)\b/i },
+  { key: "headerInfo", label: "@UI.headerInfo", re: /\bheaderInfo\s*:/i },
+  { key: "lineItem", label: "@UI.lineItem", re: /\blineItem\s*:/i },
+  { key: "selectionField", label: "@UI.selectionField", re: /\bselectionField\s*:/i },
+  { key: "objectPage", label: "@UI.facet / @UI.identification", re: /\b(?:facet|identification)\s*:/i },
 ];
 const HAS_UI_RE = /@UI\b/;
 const PROJECTION_RE = /\bas\s+projection\s+on\b/i;
+
+/** Strip CDS line comments (`//…`) and block comments (slash-star … star-slash) so a commented @UI never counts. */
+function stripCdsComments(source) {
+  return String(source ?? "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\/\/.*$/, ""))
+    .join("\n");
+}
 
 /**
  * gf-x-ui-fe-readiness (G6) — a consumption/projection CDS view that carries @UI annotations
@@ -43,16 +53,16 @@ const PROJECTION_RE = /\bas\s+projection\s+on\b/i;
  */
 export function uiFeReadinessFindings(files) {
   const list = Array.isArray(files) ? files : [];
-  const ddlx = list.filter((f) => isDdlx(f.filename));
+  const ddlx = list.filter((f) => isDdlx(f.filename)).map((d) => ({ ...d, source: stripCdsComments(d.source) }));
   const findings = [];
   for (const f of list) {
     if (!isDdls(f.filename)) continue;
-    const own = String(f.source ?? "");
+    const own = stripCdsComments(f.source);
     if (!PROJECTION_RE.test(own)) continue; // only consumption/projection views carry the @UI contract
     const viewName = own.match(/define\s+view\s+entity\s+([\w/]+)/i)?.[1] ?? objNameOf(f.filename);
     const ext = ddlx
-      .filter((d) => new RegExp(`annotate\\s+(?:view\\s+)?(?:entity\\s+)?${escapeRe(viewName)}\\b`, "i").test(String(d.source ?? "")))
-      .map((d) => String(d.source ?? ""))
+      .filter((d) => new RegExp(`annotate\\s+(?:view\\s+)?(?:entity\\s+)?${escapeRe(viewName)}\\b`, "i").test(d.source))
+      .map((d) => d.source)
       .join("\n");
     const aggregated = `${own}\n${ext}`;
     if (!HAS_UI_RE.test(aggregated)) continue; // no @UI anywhere → not a UI-facing view

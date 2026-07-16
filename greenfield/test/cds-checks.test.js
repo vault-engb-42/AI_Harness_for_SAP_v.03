@@ -84,3 +84,40 @@ test("uiFeReadinessFindings is wired into lintAbapCloud", () => {
   const noHeader = fullProjection.replace(/@UI: \{ headerInfo[^\n]*\n/, "");
   assert.ok(finding(lintAbapCloud([file("zc_travel.ddls.asddls", noHeader)]), "gf-x-ui-fe-readiness"));
 });
+
+// --- G6c: adversarial-review remediation (comment + field-name FP/FN) ---
+
+test("G6c: a CDS field NAMED LineItem does not satisfy the @UI.lineItem annotation (FN)", () => {
+  const src = `@UI: { headerInfo: { typeName: 'X' } }
+define view entity ZC_DocItem as projection on ZI_DocItem
+{
+  @UI: { selectionField: [ { position: 10 } ], identification: [ { position: 10 } ] }
+  @UI.facet: [ { id: 'x', position: 10 } ]
+  key DocID,
+  LineItem
+}`;
+  const res = uiFeReadinessFindings([file("zc_docitem.ddls.asddls", src)]);
+  assert.equal(res.length, 1, "no @UI.lineItem annotation — the field name must not count");
+  assert.match(res[0].message, /lineItem/);
+});
+
+test("G6c: a projection whose only @UI is inside a // comment is NOT flagged (Web-API, FP)", () => {
+  const src = `// no @UI here — this projection backs a Web API only
+define view entity ZC_TravelApi as projection on ZI_Travel
+{ key TravelID, Description }`;
+  assert.deepEqual(uiFeReadinessFindings([file("zc_travelapi.ddls.asddls", src)]), []);
+});
+
+test("G6c: a commented-out @UI.lineItem does NOT count as present (FN)", () => {
+  const src = `@UI: { headerInfo: { typeName: 'X' } }
+define view entity ZC_Travel as projection on ZI_Travel
+{
+  @UI: { selectionField: [ { position: 10 } ], identification: [ { position: 10 } ] }
+  @UI.facet: [ { id: 'x', position: 10 } ]
+  // @UI: { lineItem: [ { position: 10 } ] }
+  key TravelID
+}`;
+  const res = uiFeReadinessFindings([file("zc_travel.ddls.asddls", src)]);
+  assert.equal(res.length, 1, "a commented-out lineItem is not a live annotation");
+  assert.match(res[0].message, /lineItem/);
+});
