@@ -1,5 +1,6 @@
 import { escapeXml, parseAdtXml, findAll, attr } from "../lib/adt-xml.js";
 import { OBJECT_URI, ACTIVATION, ATC_SOURCE_URI } from "../lib/adt-uris.js";
+import { publishServiceBinding } from "./write.js";
 
 /**
  * Quality-gate tools: syntax check, activation (single/batch), ATC, ABAP
@@ -74,7 +75,7 @@ function parseActivation(text) {
   return { success: errors.length === 0 && activated, errors, warnings };
 }
 
-/** activate_object: POST /sap/bc/adt/activation?method=activate. */
+/** activate_object: POST /sap/bc/adt/activation?method=activate. A service binding then PUBLISHES. */
 export async function activateObject(session, { object_name, object_type }) {
   const type = String(object_type ?? "").toUpperCase();
   const act = ACTIVATION[type];
@@ -93,7 +94,14 @@ export async function activateObject(session, { object_name, object_type }) {
     throw new Error(`activate_object ${object_name} failed: HTTP ${res.status} (${text.slice(0, 200)})`);
   }
   const parsed = parseActivation(text);
-  return { ...parsed, activated_count: parsed.success ? 1 : 0 };
+  const result = { ...parsed, activated_count: parsed.success ? 1 : 0 };
+  // A service binding must be PUBLISHED after activation (activate != publish — see adt-uris.js):
+  // repository activation makes the binding active; publishing registers the OData service. Only an
+  // activated binding is published (SAP requires activate-then-publish).
+  if (type === "SRVB" && parsed.success) {
+    return { ...result, ...(await publishServiceBinding(session, { object_name })) };
+  }
+  return result;
 }
 
 /** activate_objects_batch: POST /sap/bc/adt/activation/runs + long-poll. */

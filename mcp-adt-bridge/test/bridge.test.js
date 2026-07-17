@@ -125,7 +125,7 @@ test("unknown tools are rejected with a JSON-RPC error", async () => {
 // (create_object `service_definition` unadvertised; run_unit_tests `with_coverage`,
 // run_atc_check `transport_number`, search_object `package_name` advertised-but-unread).
 const SIDECAR_CONTRACT = {
-  aws_abap_cb_create_object: { reads: ["name", "type", "package", "description", "transport_request", "service_definition"], requires: ["name", "type", "package"] },
+  aws_abap_cb_create_object: { reads: ["name", "type", "package", "description", "transport_request", "service_definition", "binding_type"], requires: ["name", "type", "package"] },
   aws_abap_cb_update_source: { reads: ["object_name", "object_type", "source_code", "transport_request"], requires: ["object_name", "object_type", "source_code"] },
   aws_abap_cb_create_or_update_test_class: { reads: ["class_name", "test_source", "transport_request"], requires: ["class_name", "test_source"] },
   aws_abap_cb_check_syntax: { reads: ["object_name", "object_type"], requires: ["object_name", "object_type"] },

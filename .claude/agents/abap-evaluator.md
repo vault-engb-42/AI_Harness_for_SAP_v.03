@@ -54,6 +54,7 @@ Run the layers in sequence. A hard failure in an earlier layer short-circuits th
 1. For each generated object, push the UNCHANGED source: `mcp__sap-adt__aws_abap_cb_create_object` for new objects, `mcp__sap-adt__aws_abap_cb_update_source` for existing ones; test classes go via `mcp__sap-adt__aws_abap_cb_create_or_update_test_class`.
 2. Activate: `mcp__sap-adt__aws_abap_cb_activate_object` per object, or `mcp__sap-adt__aws_abap_cb_activate_objects_batch` when there are interdependent objects (CDS entity + behaviour definition + class must activate together — batch them so the dependency order resolves).
 3. An activation error (syntax, missing released API, unresolved dependency) is a **BLOCK** with `failure_layer: "activation"`. Capture the activation message verbatim. Do not edit the source to make it activate.
+4. **Service binding (SRVB) — activate THEN publish.** `activate_object` on an SRVB first activates the binding (repository activation), then **publishes** its OData service group in the same call (there is no separate publish tool; the two-step activate→publish is SAP-required). After a successful publish, record the published OData service URL and probe its `$metadata` for reachability. A published SRVB whose `$metadata` is unreachable is a **BLOCK** (`failure_layer: "activation"`) — an unreachable service is not delivered. The published URL + `$metadata` result are the service's delivery proof (`published_services` below).
 
 **Layer 2 — ATC (Clean-Core gate).**
 1. Run `mcp__sap-adt__aws_abap_cb_run_atc_check` with variant `ABAP_CLEAN_CORE_DEVELOPMENT` over every activated object.
@@ -80,6 +81,7 @@ Write the verdict as the proof bundle a human reads before releasing the transpo
   "objects": ["<object type + name, e.g. CDS_VIEW_ENTITY ZI_...>"],
   "failure_layer": "activation | atc | atc-unavailable | abapunit | invariant | infrastructure | null",
   "activation": { "activated": ["..."], "errors": [ { "object": "...", "message": "<verbatim>" } ] },
+  "published_services": [ { "service_binding": "...", "service_url": "<published OData V4 URL>", "metadata_reachable": true } ],
   "atc": {
     "ran": true,
     "variant": "ABAP_CLEAN_CORE_DEVELOPMENT",

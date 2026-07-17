@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { creationBody, createObject } from "../handlers/write.js";
+import { creationBody, createObject, publishBody, bindingProtocol, publishUrl } from "../handlers/write.js";
 import { CREATION } from "../lib/adt-uris.js";
 
 // G3: create-body construction is a PURE function so it can be asserted offline (no SAP).
@@ -40,4 +40,37 @@ test("createObject fails closed when an SRVB is created without its service_defi
     /service binding \(SRVB\) requires service_definition/,
     "SRVB create without service_definition must be refused",
   );
+});
+
+// G10: the SRVB binding type is parameterizable — OData V4 UI (default), V2 UI, or V4 Web API.
+test("creationBody maps binding_type ODATA_V2_UI to a V2 UI binding", () => {
+  const xml = creationBody(CREATION.SRVB, { name: "z_o2", responsible: "dev", pkg: "$tmp", service_definition: "z", binding_type: "ODATA_V2_UI" });
+  assert.match(xml, /srvb:version="V2"/, "V2 protocol");
+  assert.match(xml, /srvb:category="1"/, "category 1 = UI");
+});
+
+test("creationBody maps binding_type ODATA_V4_WEBAPI to a V4 Web-API binding (category 0)", () => {
+  const xml = creationBody(CREATION.SRVB, { name: "z_o4w", responsible: "dev", pkg: "$tmp", service_definition: "z", binding_type: "ODATA_V4_WEBAPI" });
+  assert.match(xml, /srvb:version="V4"/, "V4 protocol");
+  assert.match(xml, /srvb:category="0"/, "category 0 = Web API");
+});
+
+// G10: publishing a service binding is a DISTINCT action AFTER activation — an SCGR object
+// reference POSTed to the protocol-correct publishjobs endpoint.
+test("publishBody builds an SCGR object reference for the service binding", () => {
+  const xml = publishBody("zui_x_o4");
+  assert.match(xml, /<adtcore:objectReference[^>]*adtcore:name="ZUI_X_O4"/, "references the binding by upper-cased name");
+  assert.match(xml, /adtcore:type="SCGR"/, "publishes the service group (SCGR)");
+});
+
+test("bindingProtocol reads the protocol from a binding config, defaulting to V4", () => {
+  const cfg = (v) => `<srvb:serviceBinding xmlns:srvb="x"><srvb:binding srvb:type="ODATA" srvb:version="${v}" srvb:category="1"/></srvb:serviceBinding>`;
+  assert.equal(bindingProtocol(cfg("V4")), "V4");
+  assert.equal(bindingProtocol(cfg("V2")), "V2");
+  assert.equal(bindingProtocol(`<srvb:serviceBinding/>`), "V4", "default when no binding version is present");
+});
+
+test("publishUrl selects the protocol-correct publish endpoint (V2 uses the odatav2 job with query params)", () => {
+  assert.match(publishUrl("z_o4", "V4"), /\/sap\/bc\/adt\/businessservices\/odatav4\/publishjobs$/);
+  assert.match(publishUrl("z_o2", "V2"), /\/sap\/bc\/adt\/businessservices\/odatav2\/publishjobs\?servicename=Z_O2&serviceversion=0001/);
 });

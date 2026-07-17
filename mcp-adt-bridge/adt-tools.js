@@ -56,6 +56,7 @@ export const ADT_TOOLS = [
         package: str("Target package"),
         description: str("Short description (defaults to the object name)"),
         service_definition: str("Referenced service definition (SRVB service bindings only; defaults to the binding name)"),
+        binding_type: str("SRVB binding profile: ODATA_V4_UI (default) | ODATA_V2_UI | ODATA_V4_WEBAPI"),
         transport_request: str("Open transport request to assign the object to"),
       },
       ["name", "type", "package", "transport_request"],

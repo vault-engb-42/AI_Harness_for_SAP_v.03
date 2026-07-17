@@ -157,7 +157,8 @@ test("run_unit_tests executes the real ABAP Unit test", async () => {
 // because it needs a full RAP object graph this class-only fixture does not build:
 //   - TABL: create_object (TABL) -> update_source (a `define table zfoo { … }` DDL) -> activate_object.
 //   - SRVB: create_object (SRVB, service_definition = an ACTIVATED SRVD that in turn projects
-//     an activated CDS/RAP BO) -> activate_object -> PUBLISH (POST …/businessservices/odatav4/
-//     publishjobs — the publish step + published-URL/$metadata proof are G10, not G3).
+//     an activated CDS/RAP BO) -> activate_object, which PUBLISHES the service via POST
+//     …/businessservices/odatav4/publishjobs (G10) -> probe the published-URL / $metadata for
+//     reachability. The publish request + binding-type are unit-covered; the round-trip is live.
 // Per the repo's no-fake rule (README "Live tests are never skipped and never faked"), this
 // chain is added when DEV creds AND a seeded SRVD/CDS fixture graph exist — not stubbed here.
