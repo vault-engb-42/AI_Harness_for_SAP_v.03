@@ -149,3 +149,15 @@ test("run_unit_tests executes the real ABAP Unit test", async () => {
   assert.ok(results.length > 0, "unit tests ran");
   assert.ok(results.every((r) => r.status === "passed"), JSON.stringify(results));
 });
+
+// G3 live write-path for SRVB + TABL — BLOCKED-ON-DEV-CREDS (documented, not faked).
+// The G3 URI maps + create bodies for TABL (source-based, blue:blueSource) and SRVB
+// (config-only service binding) are wired and unit-covered offline (test/lib.test.js,
+// test/write.test.js). The LIVE round-trip is deferred, not because it is unimportant but
+// because it needs a full RAP object graph this class-only fixture does not build:
+//   - TABL: create_object (TABL) -> update_source (a `define table zfoo { … }` DDL) -> activate_object.
+//   - SRVB: create_object (SRVB, service_definition = an ACTIVATED SRVD that in turn projects
+//     an activated CDS/RAP BO) -> activate_object -> PUBLISH (POST …/businessservices/odatav4/
+//     publishjobs — the publish step + published-URL/$metadata proof are G10, not G3).
+// Per the repo's no-fake rule (README "Live tests are never skipped and never faked"), this
+// chain is added when DEV creds AND a seeded SRVD/CDS fixture graph exist — not stubbed here.

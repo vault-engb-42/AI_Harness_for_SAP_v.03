@@ -11,7 +11,6 @@ const obj = (properties, required = []) => ({
 
 const str = (description) => ({ type: "string", description });
 const int = (description) => ({ type: "integer", description });
-const bool = (description) => ({ type: "boolean", description });
 
 export const ADT_TOOLS = [
   {
@@ -38,11 +37,10 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_search_object",
     readOnly: true,
-    description: "Search objects by query, type, and/or package.",
+    description: "Search objects by query and/or type.",
     inputSchema: obj({
       query: str("Free-text query"),
       object_type: str("Restrict to an ADT object type"),
-      package_name: str("Restrict to a package"),
       max_results: int("Cap on results"),
     }),
   },
@@ -53,8 +51,10 @@ export const ADT_TOOLS = [
     inputSchema: obj(
       {
         name: str("Object name"),
-        type: str("ADT object type"),
+        type: str("ADT object type, e.g. CLAS/INTF/PROG/DDLS/BDEF/SRVD/SRVB/TABL"),
         package: str("Target package"),
+        description: str("Short description (defaults to the object name)"),
+        service_definition: str("Referenced service definition (SRVB service bindings only; defaults to the binding name)"),
         transport_request: str("Open transport request to assign the object to"),
       },
       ["name", "type", "package", "transport_request"],
@@ -65,8 +65,13 @@ export const ADT_TOOLS = [
     readOnly: false,
     description: "Replace the source code of an existing ABAP object.",
     inputSchema: obj(
-      { object_name: str("Object name"), object_type: str("ADT object type"), source: str("New source") },
-      ["object_name", "object_type"],
+      {
+        object_name: str("Object name"),
+        object_type: str("ADT object type"),
+        source_code: str("New source"),
+        transport_request: str("Open transport request to assign the change to"),
+      },
+      ["object_name", "object_type", "source_code"],
     ),
   },
   {
@@ -96,7 +101,7 @@ export const ADT_TOOLS = [
         objects: {
           type: "array",
           description: "Objects to activate",
-          items: obj({ name: str("Object name"), type: str("ADT object type") }, ["name", "type"]),
+          items: obj({ object_name: str("Object name"), object_type: str("ADT object type") }, ["object_name", "object_type"]),
         },
       },
       ["objects"],
@@ -108,17 +113,17 @@ export const ADT_TOOLS = [
     description: "Run ABAP Test Cockpit static analysis; returns prioritised findings.",
     inputSchema: obj({
       object_name: str("Object to check"),
+      object_type: str("ADT object type of the object to check (single-object ATC)"),
       package_name: str("Package to check"),
-      transport_number: str("Transport to check"),
-      variant: str("ATC check variant (harness pins ABAP_CLEAN_CORE_DEVELOPMENT)"),
+      check_variant: str("ATC check variant (harness pins ABAP_CLEAN_CORE_DEVELOPMENT)"),
     }),
   },
   {
     name: "aws_abap_cb_run_unit_tests",
     readOnly: true,
-    description: "Run ABAP Unit tests for a class, optionally with coverage.",
+    description: "Run ABAP Unit tests for a class.",
     inputSchema: obj(
-      { object_name: str("Class name"), object_type: str("ADT object type"), with_coverage: bool("Collect coverage") },
+      { object_name: str("Class name"), object_type: str("ADT object type") },
       ["object_name"],
     ),
   },
@@ -135,7 +140,14 @@ export const ADT_TOOLS = [
     name: "aws_abap_cb_create_or_update_test_class",
     readOnly: false,
     description: "Write (create or update) the test class for a class.",
-    inputSchema: obj({ class_name: str("Class name") }, ["class_name"]),
+    inputSchema: obj(
+      {
+        class_name: str("Class name"),
+        test_source: str("Test-class include source"),
+        transport_request: str("Open transport request to assign the change to"),
+      },
+      ["class_name", "test_source"],
+    ),
   },
   {
     name: "aws_abap_cb_get_transport_requests",

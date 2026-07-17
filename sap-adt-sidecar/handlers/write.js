@@ -14,18 +14,58 @@ import { OBJECT_URI, CREATION } from "../lib/adt-uris.js";
  * before any request reaches this sidecar.
  */
 
+/**
+ * Build the ADT creation payload for a type (pure — asserted offline in write.test.js).
+ * Source-based objects (CLAS/…/DDLS/SRVD/TABL) get the generic adtcore shell — created
+ * empty, then their source is PUT to /source/main. A service binding (SRVB, `spec.binding`)
+ * is CONFIG-only (no /source/main), so its body carries the referenced service definition +
+ * the binding block. Grounded on abap-adt-api objectcreator.ts; the default binding is OData
+ * V4 UI (category 1). G10 parameterizes the binding type and adds the publish step; the V4
+ * create-body attributes await live ADT confirmation (abap-adt-api encodes only the V2 body).
+ * @param {{root:string, ns:string, extra:string, binding?:boolean}} spec
+ * @param {{name:string, description?:string, responsible:string, pkg:string, service_definition?:string}} o
+ * @returns {string}
+ */
+export function creationBody(spec, { name, description, responsible, pkg, service_definition }) {
+  const nm = escapeXml(String(name).toUpperCase());
+  const desc = escapeXml(description ?? name);
+  const resp = escapeXml(String(responsible).toUpperCase());
+  const pkgRef = `<adtcore:packageRef adtcore:name="${escapeXml(String(pkg).toUpperCase())}"/>`;
+  const open = `<?xml version="1.0" encoding="UTF-8"?>
+<${spec.root} ${spec.ns} xmlns:adtcore="http://www.sap.com/adt/core"${spec.extra} adtcore:name="${nm}" adtcore:description="${desc}" adtcore:language="EN" adtcore:masterLanguage="EN" adtcore:responsible="${resp}">`;
+  if (spec.binding) {
+    const srvd = escapeXml(String(service_definition ?? name).toUpperCase());
+    return `${open}
+${pkgRef}
+<srvb:services srvb:name="${nm}">
+<srvb:content srvb:version="0001" srvb:releaseState="notReleased">
+<srvb:serviceDefinition adtcore:name="${srvd}"/>
+</srvb:content>
+</srvb:services>
+<srvb:binding srvb:type="ODATA" srvb:version="V4" srvb:category="1">
+<srvb:implementation adtcore:name=""/>
+</srvb:binding>
+</${spec.root}>`;
+  }
+  return `${open}
+${pkgRef}
+</${spec.root}>`;
+}
+
 /** create_object: POST the adtcore creation payload to the collection. */
-export async function createObject(session, { name, type, package: pkg, description, transport_request }) {
+export async function createObject(session, { name, type, package: pkg, description, transport_request, service_definition }) {
   const t = String(type ?? "").toUpperCase();
   const spec = CREATION[t];
   if (!spec) {
     throw new Error(`create_object: unsupported type ${type} (supported: ${Object.keys(CREATION).join(", ")})`);
   }
   if (!name || !pkg) throw new Error("create_object: name and package are required");
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<${spec.root} ${spec.ns} xmlns:adtcore="http://www.sap.com/adt/core"${spec.extra} adtcore:name="${escapeXml(String(name).toUpperCase())}" adtcore:description="${escapeXml(description ?? name)}" adtcore:language="EN" adtcore:masterLanguage="EN" adtcore:responsible="${escapeXml(session.conn.username.toUpperCase())}">
-<adtcore:packageRef adtcore:name="${escapeXml(String(pkg).toUpperCase())}"/>
-</${spec.root}>`;
+  // Fail closed: a service binding must name the service definition it exposes. Without it
+  // the body would reference the binding's own name as its SRVD (a broken binding), so refuse.
+  if (spec.binding && !service_definition) {
+    throw new Error("create_object: a service binding (SRVB) requires service_definition — the service definition (SRVD) it exposes");
+  }
+  const body = creationBody(spec, { name, description, responsible: session.conn.username, pkg, service_definition });
   await session.ensureFreshCsrf();
   const params = transport_request ? `?corrNr=${encodeURIComponent(transport_request)}` : "";
   const res = await session.request("POST", `${spec.collection}${params}`, {

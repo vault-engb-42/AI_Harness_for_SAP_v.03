@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { sanitizeError, classifyError } from "../lib/security.js";
 import { parseSetCookies, cookieHeader, isValidCsrfToken, buildBaseUrl, withSapClient } from "../lib/session-utils.js";
 import { escapeXml, parseAdtXml, findAll, attr } from "../lib/adt-xml.js";
-import { ATC_SOURCE_URI, SOURCE_URI, OBJECT_URI, ACTIVATION } from "../lib/adt-uris.js";
+import { ATC_SOURCE_URI, SOURCE_URI, OBJECT_URI, ACTIVATION, CREATION } from "../lib/adt-uris.js";
 
 // ---- ADT object-URI maps (adt-uris.js) ----
 
@@ -14,6 +14,38 @@ test("SRVD is covered symmetrically across the object-URI maps", () => {
   assert.ok(OBJECT_URI.SRVD && ACTIVATION.SRVD && SOURCE_URI.SRVD, "SRVD present in object/activation/source maps");
   assert.ok(ATC_SOURCE_URI.SRVD, "SRVD must have an ATC source URI");
   assert.equal(ATC_SOURCE_URI.SRVD("ZUI_X"), SOURCE_URI.SRVD("ZUI_X"), "ATC source URI matches the read source URI");
+});
+
+// G3: SRVD must also be CREATABLE (it was in every map EXCEPT CREATION — an existing
+// SRVD was updatable/activatable but a new one could not be created). Grounded on
+// abap-adt-api objectcreator.ts: srvd/sources collection, srvd:srvdSource root, srvdSourceType="S".
+test("G3: SRVD is creatable — present in CREATION with the grounded srvd root", () => {
+  assert.ok(CREATION.SRVD, "SRVD must be in CREATION");
+  assert.equal(CREATION.SRVD.collection, "/sap/bc/adt/ddic/srvd/sources");
+  assert.match(CREATION.SRVD.root, /srvdSource/i);
+  assert.match(CREATION.SRVD.extra, /srvdSourceType/i);
+});
+
+// G3: TABL (DDIC database table) is source-based — wired symmetrically across ALL five
+// maps. Grounded: /sap/bc/adt/ddic/tables, adtcore:type TABL/DT, create root blue:blueSource.
+test("G3: TABL is wired across all five object-URI maps (source-based DDIC table)", () => {
+  assert.ok(OBJECT_URI.TABL && ACTIVATION.TABL && SOURCE_URI.TABL && ATC_SOURCE_URI.TABL && CREATION.TABL, "TABL in all five maps");
+  assert.equal(ACTIVATION.TABL.type, "TABL/DT");
+  assert.equal(ATC_SOURCE_URI.TABL("ZFOO"), SOURCE_URI.TABL("ZFOO"), "ATC source URI matches the read source URI");
+  assert.match(OBJECT_URI.TABL("ZFOO"), /\/sap\/bc\/adt\/ddic\/tables\/zfoo$/);
+  assert.match(CREATION.TABL.root, /blueSource/i);
+});
+
+// G3: SRVB (service binding) is create/activate-wired but CONFIG-ONLY — it has no
+// /source/main (abap-adt-api parses it as a config tree), so it must NOT be in the
+// source maps. Grounded: /sap/bc/adt/businessservices/bindings, type SRVB/SVB.
+test("G3: SRVB is create/activate-wired but config-only (no source/main)", () => {
+  assert.ok(OBJECT_URI.SRVB && ACTIVATION.SRVB && CREATION.SRVB, "SRVB in object/activation/creation maps");
+  assert.equal(ACTIVATION.SRVB.type, "SRVB/SVB");
+  assert.match(OBJECT_URI.SRVB("ZUI_X_O4"), /\/sap\/bc\/adt\/businessservices\/bindings\/zui_x_o4$/);
+  assert.ok(CREATION.SRVB.binding, "SRVB CREATION spec must flag a binding (config) create body");
+  assert.ok(!SOURCE_URI.SRVB, "SRVB must NOT be in SOURCE_URI — config-only, no /source/main");
+  assert.ok(!ATC_SOURCE_URI.SRVB, "SRVB must NOT be in ATC_SOURCE_URI — config-only");
 });
 
 // ---- security (ported from adapter.py _sanitize_error/_classify_error) ----
