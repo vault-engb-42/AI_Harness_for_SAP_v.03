@@ -202,69 +202,6 @@ async function pollAtcWorklist(session, worklistId) {
   throw new Error("run_atc_check: polling timed out after 300s");
 }
 
-/** run_unit_tests: AUnit v1 API (own CSRF fetch) — NO synthetic fallback. */
-export async function runUnitTests(session, { object_name, object_type } = {}) {
-  const type = String(object_type ?? "CLAS").toUpperCase();
-  const uriFn = OBJECT_URI[type];
-  if (!uriFn) throw new Error(`run_unit_tests: unsupported object_type ${object_type}`);
-  const csrfRes = await session.request("GET", "/sap/bc/adt/api/abapunit/runs/00000000000000000000000000000000", {
-    headers: { Accept: "application/vnd.sap.adt.api.abapunit.run-status.v1+xml", "x-csrf-token": "fetch" },
-  });
-  await csrfRes.text();
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<aunit:run title="harness run" context="harness sidecar" xmlns:aunit="http://www.sap.com/adt/api/aunit">
-<aunit:options>
-<aunit:measurements type="none"/>
-<aunit:scope ownTests="true" foreignTests="false"/>
-<aunit:riskLevel harmless="true" dangerous="true" critical="true"/>
-<aunit:duration short="true" medium="true" long="true"/>
-</aunit:options>
-<osl:objectSet xsi:type="unionSet" xmlns:osl="http://www.sap.com/api/osl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<osl:set xsi:type="osl:objectSet"><osl:objects><osl:object><osl:adtObjectRef xmlns:adtcore="http://www.sap.com/adt/core" adtcore:uri="${uriFn(object_name)}"/></osl:object></osl:objects></osl:set>
-</osl:objectSet>
-</aunit:run>`;
-  const start = await session.request("POST", "/sap/bc/adt/api/abapunit/runs", {
-    headers: { "Content-Type": "application/vnd.sap.adt.api.abapunit.run.v1+xml" },
-    body,
-  });
-  await start.text();
-  if (start.status !== 201) throw new Error(`run_unit_tests: run start failed HTTP ${start.status}`);
-  const location = start.headers.get("location");
-  if (!location) throw new Error("run_unit_tests: no Location header on 201");
-  return { results: await pollUnitRun(session, location) };
-}
-
-async function pollUnitRun(session, location) {
-  for (let i = 0; i < 60; i++) {
-    const res = await session.request("GET", location, {
-      headers: { Accept: "application/vnd.sap.adt.api.abapunit.run-status.v1+xml" },
-    });
-    const text = await res.text();
-    if (res.status !== 200) throw new Error(`run_unit_tests: status read failed HTTP ${res.status}`);
-    if (/FINISHED/i.test(text)) {
-      const doc = parseAdtXml(text);
-      const results = [];
-      for (const cls of findAll(doc, "testClass")) {
-        const className = attr(cls, "name") ?? "";
-        for (const m of findAll(cls, "testMethod")) {
-          const alerts = findAll(m, "alert");
-          const failed = alerts.some((a) => /failedAssertion|failed/i.test(attr(a, "kind") ?? ""));
-          const errored = alerts.length > 0 && !failed;
-          results.push({
-            class_name: className,
-            method_name: attr(m, "name") ?? "",
-            status: failed ? "failed" : errored ? "error" : "passed",
-            message: alerts.map((a) => findAll(a, "title")[0]?.["#text"] ?? "").filter(Boolean).join("; "),
-          });
-        }
-      }
-      return results;
-    }
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  throw new Error("run_unit_tests: polling timed out after 60s");
-}
-
 /** get_migration_analysis: real POST; errors SURFACE (no fabricated data). */
 export async function getMigrationAnalysis(session, { object_name, object_type }) {
   const body = `<?xml version="1.0" encoding="UTF-8"?>

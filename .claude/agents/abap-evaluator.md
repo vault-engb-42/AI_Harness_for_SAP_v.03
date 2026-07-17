@@ -62,9 +62,9 @@ Run the layers in sequence. A hard failure in an earlier layer short-circuits th
 4. Priority-3 findings are WARN. Compare against `atc-baseline.json`: a NEW priority-3 finding not in the accepted-WARN baseline is a ratchet regression ⇒ downgrade the verdict to at least WARN and record it.
 
 **Layer 3 — ABAP Unit.**
-1. Run `mcp__sap-adt__aws_abap_cb_run_unit_tests` over the objects (and their test classes).
+1. Run `mcp__sap-adt__aws_abap_cb_run_unit_tests` over the objects (and their test classes) **with `with_coverage: true`** so statement coverage is collected — that flag is what feeds this gate its ratchet figure.
 2. **Any failed/errored test ⇒ BLOCK** (`failure_layer: "abapunit"`). Capture the failing test name, message, and assertion.
-3. Read the coverage figure. Compare against `abapunit-baseline.json`: a coverage DROP is a ratchet regression ⇒ at least WARN, recorded. Coverage may only go up.
+3. Read `coverage_pct` from the result. If it is a number, compare against `abapunit-baseline.json` `coverage_floor_pct`: a coverage DROP is a ratchet regression ⇒ at least WARN, recorded; coverage may only go up (raise `coverage_floor_pct` on a PASS that exceeds it). If `coverage_pct` is `null`, coverage was **not measured** this run (do NOT treat null as 0% / a drop) — record `coverage_pct: null` and leave the floor untouched.
 
 **Verdict rollup.** BLOCK if any BLOCK condition fired in any layer or the invariant gate. WARN if no BLOCK but a ratchet regression or an absolute-budget overrun occurred (record, don't block). PASS only if all three layers pass, no invariant regression, and no ratchet regression.
 

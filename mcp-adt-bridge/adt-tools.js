@@ -11,6 +11,7 @@ const obj = (properties, required = []) => ({
 
 const str = (description) => ({ type: "string", description });
 const int = (description) => ({ type: "integer", description });
+const bool = (description) => ({ type: "boolean", description });
 
 export const ADT_TOOLS = [
   {
@@ -121,9 +122,9 @@ export const ADT_TOOLS = [
   {
     name: "aws_abap_cb_run_unit_tests",
     readOnly: true,
-    description: "Run ABAP Unit tests for a class.",
+    description: "Run ABAP Unit tests for a class, optionally collecting statement coverage.",
     inputSchema: obj(
-      { object_name: str("Class name"), object_type: str("ADT object type") },
+      { object_name: str("Class name"), object_type: str("ADT object type"), with_coverage: bool("Collect statement coverage for the Karpathy ratchet") },
       ["object_name"],
     ),
   },

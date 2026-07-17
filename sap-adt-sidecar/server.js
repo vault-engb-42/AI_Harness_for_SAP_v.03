@@ -3,6 +3,7 @@ import { sanitizeError, classifyError } from "./lib/security.js";
 import { SapSession } from "./lib/session.js";
 import * as read from "./handlers/read.js";
 import * as quality from "./handlers/quality.js";
+import * as aunit from "./handlers/aunit.js";
 import * as write from "./handlers/write.js";
 
 /**
@@ -34,7 +35,7 @@ const HANDLERS = {
   aws_abap_cb_activate_object: quality.activateObject,
   aws_abap_cb_activate_objects_batch: quality.activateObjectsBatch,
   aws_abap_cb_run_atc_check: quality.runAtcCheck,
-  aws_abap_cb_run_unit_tests: quality.runUnitTests,
+  aws_abap_cb_run_unit_tests: aunit.runUnitTests,
   aws_abap_cb_get_migration_analysis: quality.getMigrationAnalysis,
   aws_abap_cb_create_object: write.createObject,
   aws_abap_cb_update_source: write.updateSource,

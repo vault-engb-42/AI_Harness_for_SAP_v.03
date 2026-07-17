@@ -131,7 +131,7 @@ const SIDECAR_CONTRACT = {
   aws_abap_cb_check_syntax: { reads: ["object_name", "object_type"], requires: ["object_name", "object_type"] },
   aws_abap_cb_activate_object: { reads: ["object_name", "object_type"], requires: ["object_name", "object_type"] },
   aws_abap_cb_run_atc_check: { reads: ["object_name", "object_type", "package_name", "check_variant"], requires: [] },
-  aws_abap_cb_run_unit_tests: { reads: ["object_name", "object_type"], requires: ["object_name"] },
+  aws_abap_cb_run_unit_tests: { reads: ["object_name", "object_type", "with_coverage"], requires: ["object_name"] },
   aws_abap_cb_get_migration_analysis: { reads: ["object_name", "object_type"], requires: ["object_name", "object_type"] },
   aws_abap_cb_search_object: { reads: ["query", "object_type", "max_results"], requires: [] },
 };
