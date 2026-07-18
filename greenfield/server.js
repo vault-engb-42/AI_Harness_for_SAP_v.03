@@ -6,6 +6,7 @@ import { createInterface } from "node:readline";
 import { GREENFIELD_TOOLS, GREENFIELD_TOOL_NAMES } from "./tools.js";
 import { harvestRefs, groundReleasedApis, renderGroundingPack } from "./src/released-api-grounding.js";
 import { lintAbapCloud, formatViolationsForRepair } from "./src/cloud-linter.js";
+import { validateFeDescriptor } from "./src/fe-descriptor.js";
 
 const SERVER_INFO = { name: "greenfield", version: "1.0.0" };
 const PROTOCOL_VERSION = "2024-11-05";
@@ -33,6 +34,9 @@ function runTool(name, args) {
   if (name === "lint_abap_cloud") {
     const result = lintAbapCloud(Array.isArray(args.files) ? args.files : []);
     return JSON.stringify({ ...result, repair: formatViolationsForRepair(result.findings) });
+  }
+  if (name === "validate_fe_descriptor") {
+    return JSON.stringify(validateFeDescriptor(args));
   }
   throw new Error(`unhandled tool ${name}`);
 }

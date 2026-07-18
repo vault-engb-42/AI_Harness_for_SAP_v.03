@@ -227,6 +227,25 @@ test("G2: the SRVB contract checks the ACTIVE binding, not the commented options
   assert.doesNotMatch(broken, /category\s*=\s*"UI"/i, "a WEBAPI active binding must not read as UI once comments are stripped");
 });
 
+// G12: the Fiori Elements app-project template + the generator's contract to author it (S1).
+test("G12: a Fiori Elements app-project template exists and is a valid FE descriptor skeleton", () => {
+  const m = JSON.parse(readFileSync(join(CLAUDE, "templates", "fiori-elements-app.template.json"), "utf8"));
+  const ds = m["sap.app"]?.dataSources ?? {};
+  assert.ok(Object.values(ds).some((d) => String(d?.type).toUpperCase() === "ODATA"), "must bind an OData dataSource (the published SRVB service)");
+  const targets = Object.values(m["sap.ui5"]?.routing?.targets ?? {}).map((t) => String(t?.name ?? ""));
+  assert.ok(targets.some((n) => /sap\.fe\.templates\.ListReport/.test(n)), "List Report floorplan required");
+  assert.ok(targets.some((n) => /sap\.fe\.templates\.ObjectPage/.test(n)), "Object Page floorplan required");
+  const entitySets = Object.values(m["sap.ui5"].routing.targets).map((t) => t?.options?.settings?.entitySet).filter(Boolean);
+  assert.ok(entitySets.length, "a main entitySet (the ZC_ projection entity)");
+});
+
+test("G12: abap-generator authors the Fiori Elements app project for a UI service", () => {
+  const gen = readFileSync(join(CLAUDE, "agents", "abap-generator.md"), "utf8");
+  assert.match(gen, /fiori-elements-app\.template\.json|Fiori Elements app project/i, "generator must author the FE app project");
+  assert.match(gen, /sap\.fe\.templates|List Report/i, "generator must name the FE floorplans");
+  assert.match(gen, /validate_fe_descriptor/, "generator must reference the descriptor gate");
+});
+
 // GF-3d: the /greenfield entry-point must exist and stay a thin router over
 // /abap-build (delegation, not a duplicated pipeline).
 test("the /greenfield entry-point exists and delegates to /abap-build", () => {

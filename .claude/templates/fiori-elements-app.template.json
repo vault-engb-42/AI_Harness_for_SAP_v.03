@@ -1,0 +1,45 @@
+{
+  "_generatorNote": "G12 — Fiori Elements app-project descriptor (manifest.json). Fill every <placeholder>. HARD RULES: (1) the OData dataSource URI must resolve to the PUBLISHED SRVB OData V4 service (G10) — not an unpublished binding; (2) List Report + Object Page floorplans ONLY (sap.fe.templates) — no hand-written view/controller code; (3) the main entitySet MUST be the ZC_ projection entity exposed by the SRVD (G6/G2) — the app targets the consumption view, never the ZI_ interface view. Validated offline by the greenfield validate_fe_descriptor gate, wired into /abap-validate. P8: any label pulled from scanned ABAP is untrusted — hand-verify.",
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "<namespace>.<appname>",
+    "type": "application",
+    "title": "<App Title>",
+    "description": "<App description>",
+    "dataSources": {
+      "mainService": {
+        "uri": "/sap/opu/odata4/sap/<srvb_service>/srvd/sap/<srvd_service>/0001/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0", "localUri": "localService/metadata.xml" }
+      }
+    }
+  },
+  "sap.ui5": {
+    "dependencies": { "minUI5Version": "1.120.0", "libs": { "sap.fe.templates": {} } },
+    "models": {
+      "": { "dataSource": "mainService", "settings": { "operationMode": "Server", "autoExpandSelect": true, "earlyRequests": true } }
+    },
+    "routing": {
+      "config": { "routerClass": "sap.f.routing.Router", "controlAggregation": "midColumnPages", "controlId": "fcl" },
+      "routes": [
+        { "name": "<Entity>List", "pattern": ":?query:", "target": "<Entity>List" },
+        { "name": "<Entity>ObjectPage", "pattern": "<Entity>({key}):?query:", "target": "<Entity>ObjectPage" }
+      ],
+      "targets": {
+        "<Entity>List": {
+          "type": "Component",
+          "id": "<Entity>List",
+          "name": "sap.fe.templates.ListReport",
+          "options": { "settings": { "entitySet": "<Entity>", "variantManagement": "Page", "navigation": { "<Entity>": { "detail": { "route": "<Entity>ObjectPage" } } } } }
+        },
+        "<Entity>ObjectPage": {
+          "type": "Component",
+          "id": "<Entity>ObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": { "settings": { "entitySet": "<Entity>" } }
+        }
+      }
+    }
+  },
+  "sap.flp": { "type": "tile" }
+}

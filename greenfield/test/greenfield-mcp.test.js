@@ -101,6 +101,31 @@ test("lint_abap_cloud parses real ABAP and returns blocking findings + a repair 
   assert.match(payload.repair, /gf-cloud-no-write/);
 });
 
+test("greenfield MCP lists the validate_fe_descriptor tool", async () => {
+  const srv = startServer();
+  after(() => srv.close());
+  await srv.request("initialize", {});
+  const list = await srv.request("tools/list", {});
+  assert.ok(list.result.tools.some((t) => t.name === "validate_fe_descriptor"));
+});
+
+test("validate_fe_descriptor flags a manifest with no OData dataSource (G12 descriptor gate)", async () => {
+  const srv = startServer();
+  after(() => srv.close());
+  await srv.request("initialize", {});
+  const manifest = JSON.stringify({
+    "sap.app": { id: "com.harness.travel", type: "application" },
+    "sap.ui5": { routing: { targets: {
+      L: { name: "sap.fe.templates.ListReport", options: { settings: { entitySet: "Travel" } } },
+      O: { name: "sap.fe.templates.ObjectPage", options: { settings: { entitySet: "Travel" } } },
+    } } },
+  });
+  const res = await srv.request("tools/call", { name: "validate_fe_descriptor", arguments: { manifest, entity: "Travel" } });
+  const payload = JSON.parse(res.result.content[0].text);
+  assert.ok(payload.errorCount >= 1, "missing dataSource must block");
+  assert.ok(payload.findings.some((f) => f.rule_id === "fe-no-odata-datasource"));
+});
+
 test("an unknown tool is a JSON-RPC error", async () => {
   const srv = startServer();
   after(() => srv.close());

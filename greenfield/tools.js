@@ -47,6 +47,21 @@ export const GREENFIELD_TOOLS = [
       },
     },
   },
+  {
+    name: "validate_fe_descriptor",
+    description:
+      "Greenfield descriptor gate (G12). Validates a generated Fiori Elements app manifest.json — a NON-ATC, offline check: it must be a valid FE descriptor bound to the published SRVB OData service (an OData dataSource the default model uses), with List Report + Object Page floorplans over a main entitySet that is the generated ZC_ projection entity. Returns {findings, errorCount, warningCount}; blocks on `error`. Offline, deterministic — no SAP, not the analyser.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["manifest"],
+      properties: {
+        manifest: { type: "string", description: "the manifest.json content (JSON text) of the generated Fiori Elements app project." },
+        entity: { type: "string", description: "the expected main entitySet — the entity the ZC_ projection (G6) exposes; the app's List Report / Object Page must target it." },
+        service: { type: "string", description: "the generated OData service name the manifest's dataSource must reference (the published SRVB service)." },
+      },
+    },
+  },
 ];
 
 export const GREENFIELD_TOOL_NAMES = new Set(GREENFIELD_TOOLS.map((t) => t.name));
