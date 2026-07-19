@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute } from "node:path";
 import { ANALYSER_TOOLS, TOOL_NAMES } from "./analyser-tools.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
+import { writeDigest, digestPathFor } from "./src/planner-digest.js";
 import { filesFromBundle, filesFromLiveSystem, docFromAdtOnly } from "./src/modes.js";
 
 const SERVER_INFO = { name: "abap-analyser", version: "1.0.0" };
@@ -47,6 +48,7 @@ function emit(files, args, extra = {}) {
     coverage_note: extra.coverage_note,
   });
   const out = writeReport(doc, resolveOut(args.out));
+  writeDigest(doc, digestPathFor(out)); // G5: the planner grounds on the digest, not the raw findings
   return summarize(doc, files.length, out);
 }
 
@@ -79,6 +81,7 @@ async function runTool(name, args, env) {
     case "analyse_via_adt": {
       const doc = await docFromAdtOnly(env, args.package, { source_system: args.source_system });
       const out = writeReport(doc, resolveOut(args.out));
+      writeDigest(doc, digestPathFor(out)); // G5: emit the planner digest beside the findings
       return summarize(doc, 0, out);
     }
     case "get_report": {

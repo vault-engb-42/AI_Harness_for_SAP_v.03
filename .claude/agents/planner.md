@@ -16,6 +16,7 @@ Your artifacts live in the **disposable planning lane** — plan/spec/design doc
 - A gap, user story, or fit-to-standard finding ("SAP standard does not deliver X")
 - Optionally: an existing spec/design in `specs/`
 - Optionally: brownfield discovery maps in `specs/brownfield/` (ADT-based: object inventory, usage, modification log)
+- Optionally: the analyser **`specs/brownfield/planner-digest.json`** — the deterministic, size-capped projection you ground on (used objects `{object, grade, successor?, effort_tier}` + Top-N findings). Read **this**, never the raw `specs/brownfield/analyser-findings.json`: the digest is what scales to 100K-LOC packages (§15.8).
 - The spine directives P1–P8 from `CLAUDE.md` — every plan obeys them, especially P1 (Clean Core Level A at the target), P2 (released-API-only, grounded), P3 (RAP/CDS/classes only), P4 (immutable invariants).
 
 ## Outputs
@@ -40,6 +41,7 @@ Your artifacts live in the **disposable planning lane** — plan/spec/design doc
 - Read all existing files in `specs/` to avoid duplication.
 - **Fit-to-standard gate:** before proposing ANY new object, confirm SAP standard does not already deliver the capability. Use `mcp__sap-adt__aws_abap_cb_search_object` to look for released standard CDS/RAP services and `mcp__sap-adt__aws_abap_cb_get_objects` to inspect candidates. If standard covers it, the plan is "adopt standard, build nothing" — record that and stop. Building what SAP already ships is the first failure mode.
 - If `specs/brownfield/` exists, read the object-inventory, usage (`scmon`), and modification-log maps before proposing stories. Treat any Level-B/C source you find as **diagnosis, not failure** (P1) — the *target* is Level A; the brownfield origin only tells you what to wrap or retire.
+- If `specs/brownfield/planner-digest.json` exists, ground on it — **not** the raw `analyser-findings.json`. Each digest object gives you its clean-core `grade`, its released `successor` (when the oracle names one), and its `effort_tier`; the digest's Top-N findings are the highest-severity work items. `object_count` > the number of `objects` (or `finding_count` > the findings length) means the digest was size-capped — narrow the package or raise `PLANNER_DIGEST_MAX_OBJECTS`/`_MAX_FINDINGS` if you need the tail.
 - Verify SAP reachability once with `mcp__sap-adt__aws_abap_cb_connection_status`. If the connection is DEV and unreachable, plan against the offline object model and flag that grounding is provisional — do not invent released APIs to fill the gap.
 - Identify functional requirements, non-functional requirements (performance, authorization scope, draft-enabled?), and Clean-Core constraints. Make ambiguities into documented assumptions. Write `specs/brd/brd.md`.
 

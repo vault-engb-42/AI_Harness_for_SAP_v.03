@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { writeFileSync, readFileSync } from "node:fs";
 import { filesFromBundle } from "./src/modes.js";
 import { analyzePackage, writeReport } from "./src/orchestrator.js";
+import { writeDigest, digestPathFor } from "./src/planner-digest.js";
 import { renderHtml } from "./src/html-report.js";
 import { compareReports, renderCompareHtml } from "./src/compare.js";
 import { toSarif } from "./src/sarif.js";
@@ -101,7 +102,8 @@ function main() {
   }
   const doc = analyzePackage(files, { package: opts.package, source_system: `bundle:${opts.path}` });
   const outPath = writeReport(doc, opts.out);
-  let sideNotes = "";
+  const digestPath = writeDigest(doc, digestPathFor(outPath)); // G5: planner-digest.json beside the findings
+  let sideNotes = `\nPlanner digest: ${digestPath}`;
   if (opts.html) {
     const htmlPath = resolve(opts.html);
     writeFileSync(htmlPath, renderHtml(doc), "utf8");

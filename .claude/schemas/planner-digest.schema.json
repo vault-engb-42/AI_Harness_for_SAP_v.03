@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sap-abap-harness/planner-digest",
+  "title": "ABAP Analyser Planner Digest",
+  "description": "The deterministic, size-capped STRICT projection of analyser-findings.json that the planner grounds on instead of the raw findings document (arch spec §15.8, gap #20 — scales to 100K LOC). Used compilation-unit objects only, each reduced to {object, grade, successor?, effort_tier}, plus the Top-N findings by severity. Written to specs/brownfield/planner-digest.json beside the findings report. Carries NO wall-clock field so it is byte-identical across runs over the same bundle; the JS validator validate-planner-digest.js mirrors this schema and consumers fail-closed on an invalid digest.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["digest_version", "package", "source_system", "object_count", "finding_count", "objects", "findings"],
+  "properties": {
+    "digest_version": { "type": "string", "description": "Semver of the digest contract shape (independent of the findings schema_version)." },
+    "schema_version": { "type": ["string", "null"], "description": "Provenance: the schema_version of the analyser-findings document this digest projects." },
+    "package": { "type": "string", "description": "The custom-code package scanned (from the findings doc)." },
+    "source_system": { "type": "string", "description": "The SAP source system identity (from the findings doc)." },
+    "source_hash": { "type": ["string", "null"], "description": "Provenance: the findings doc source_hash (§7) — deterministic, ties the digest to its findings run." },
+    "config_hash": { "type": ["string", "null"], "description": "Provenance: the findings doc config_hash (§7)." },
+    "run_id": { "type": ["string", "null"], "description": "Provenance: the findings doc run_id (§7)." },
+    "object_count": { "type": "integer", "minimum": 0, "description": "Total used compilation-unit objects BEFORE the cap — object_count > objects.length signals a truncated (size-capped) digest." },
+    "objects_included": { "type": "integer", "minimum": 0, "description": "Objects retained after the PLANNER_DIGEST_MAX_OBJECTS cap." },
+    "finding_count": { "type": "integer", "minimum": 0, "description": "Total findings BEFORE the cap — finding_count > findings.length signals truncation." },
+    "findings_included": { "type": "integer", "minimum": 0, "description": "Findings retained after the PLANNER_DIGEST_MAX_FINDINGS cap." },
+    "objects": {
+      "type": "array",
+      "description": "Used compilation-unit objects (method/form member nodes excluded), customer (Z/Y) first then by PageRank importance, projected to the §15.8 shape. A strict subset of graph.nodes in analyser-findings.json.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["object", "grade", "effort_tier"],
+        "properties": {
+          "object": { "type": "string", "description": "Object name — exists as a graph node in analyser-findings.json." },
+          "grade": { "type": "string", "enum": ["A", "B", "C", "D", "unknown"], "description": "Oracle clean-core Level (node clean_core_grade)." },
+          "successor": { "type": "string", "description": "Released successor / modernization target (node modernization_target); omitted when the node names none." },
+          "effort_tier": { "type": "string", "enum": ["retire", "re-platform", "keep-and-clean", "unknown"], "description": "Node-level effort tier (distinct from the plan S/M/L/XL effort)." }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Top-N findings by severity (priority-1 first), a strict projection of findings[] in analyser-findings.json.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["object", "rule_id", "severity", "message"],
+        "properties": {
+          "object": { "type": "string" },
+          "rule_id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["priority-1", "priority-2", "priority-3", "info"] },
+          "family": { "type": ["string", "null"], "description": "Finding family (released-api, modification, invariant, ...) — the planner routes on it." },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
