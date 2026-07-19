@@ -96,9 +96,21 @@ const CDS_TO_PARENT_RE = /\bassociation\s+(?:\[[^\]]*\]\s+)?to\s+parent\s+([\w/]
 // never mistaken for real syntax. G9-scoped — the annotation-KEY rules (G6) key off names, not values.
 const blankCdsStrings = (s) => String(s).replace(/'(?:[^']|'')*'/g, "''");
 
-/** Parse a DDLS view-entity into its BO-structure facts (comments + string literals blanked). @returns {object|null} */
+// EXTEND VIEW ENTITY (a field/element extension) needs the BASE to declare @AbapCatalog.
+// viewEnhancementCategory with a category other than #NONE, and @AbapCatalog.extensibility.extensible
+// not false. This is DISTINCT from @Metadata.allowExtensions, which enables DDLX *metadata* (annotation)
+// extensions, not field extensions. @param {string} src (comment- + string-blanked) @returns {boolean}
+function isViewExtensible(src) {
+  const cat = /@AbapCatalog\.viewEnhancementCategory\s*:\s*\[?\s*#(\w+)/i.exec(src);
+  if (!cat || cat[1].toUpperCase() === "NONE") return false;
+  return !/@AbapCatalog\.extensibility\.extensible\s*:\s*false/i.test(src);
+}
+
+/** Parse a DDLS view-entity into its BO-structure facts. String literals are blanked BEFORE comment
+ * stripping so a block comment (slash-star … star-slash) straddling annotation strings can't erase a
+ * real annotation. @returns {object|null} */
 function parseCdsEntity(f) {
-  const src = blankCdsStrings(stripCdsComments(f.source ?? ""));
+  const src = stripCdsComments(blankCdsStrings(f.source ?? ""));
   const dm = VIEW_ENTITY_RE.exec(src);
   if (!dm) return null; // not a view entity (classic `define view` is gf-cds-classic-view's job)
   const proj = PROJECTION_ON_RE.exec(src);
@@ -111,6 +123,7 @@ function parseCdsEntity(f) {
     hasKey: CDS_KEY_RE.test(src),
     compositions: [...src.matchAll(CDS_COMPOSITION_RE)].map((m) => m[1]),
     toParent: CDS_TO_PARENT_RE.exec(src)?.[1] ?? null,
+    isExtensible: isViewExtensible(src),
   };
 }
 
@@ -121,27 +134,40 @@ function parseCdsEntity(f) {
  * cluster-③ and deferred. @param {Array<{filename: string, source: string}>} files @returns {object[]}
  */
 export function cdsStructureFindings(files) {
-  const entities = (Array.isArray(files) ? files : []).filter((f) => isDdls(f?.filename)).map(parseCdsEntity).filter(Boolean);
+  const list = (Array.isArray(files) ? files : []).filter((f) => isDdls(f?.filename));
+  const entities = list.map(parseCdsEntity).filter(Boolean);
   const byName = new Map(entities.map((e) => [e.name.toLowerCase(), e]));
   const findings = [];
-  const emit = (rule_id, severity, e, message) =>
-    findings.push({ rule_id, severity, object: objNameOf(e.filename), object_type: "DDLS", file: e.filename, line: 1, message, family: "cds-structure" });
+  const emit = (rule_id, severity, filename, message) =>
+    findings.push({ rule_id, severity, object: objNameOf(filename), object_type: "DDLS", file: filename, line: 1, message, family: "cds-structure" });
 
   for (const e of entities) {
-    if (!e.hasKey) emit("gf-x-cds-node-no-key", "error", e, `the view entity ${e.name} declares no key element — every CDS BO node needs a key`);
+    if (!e.hasKey) emit("gf-x-cds-node-no-key", "error", e.filename, `the view entity ${e.name} declares no key element — every CDS BO node needs a key`);
     if (e.isProjection && /(?:^|\/)ZC_/i.test(e.base ?? "")) {
-      emit("gf-x-cds-projection-not-on-interface", "warning", e, `the projection ${e.name} projects another projection (${e.base}) — a ZC_ consumption view should project the ZI_ interface layer, not a projection`);
+      emit("gf-x-cds-projection-not-on-interface", "warning", e.filename, `the projection ${e.name} projects another projection (${e.base}) — a ZC_ consumption view should project the ZI_ interface layer, not a projection`);
     }
     if (e.compositions.length) {
       if (!e.toParent && !e.isRoot) {
-        emit("gf-x-cds-root-not-declared", "error", e, `${e.name} composes children and has no parent (a composition root) but is not declared 'define root view entity'`);
+        emit("gf-x-cds-root-not-declared", "error", e.filename, `${e.name} composes children and has no parent (a composition root) but is not declared 'define root view entity'`);
       }
       for (const childName of e.compositions) {
         const child = byName.get(childName.toLowerCase());
         if (child && child.toParent?.toLowerCase() !== e.name.toLowerCase()) {
-          emit("gf-x-cds-composition-no-back-association", "error", child, `${child.name} is composed by ${e.name} but declares no matching 'association to parent ${e.name}' — a composition child must reciprocate with its to-parent association`);
+          emit("gf-x-cds-composition-no-back-association", "error", child.filename, `${child.name} is composed by ${e.name} but declares no matching 'association to parent ${e.name}' — a composition child must reciprocate with its to-parent association`);
         }
       }
+    }
+  }
+
+  // positive extension awareness (G11): an `extend view entity <base>` whose base IS a generated view
+  // entity must target a FIELD-extensible base (@AbapCatalog.viewEnhancementCategory, not #NONE, and
+  // extensibility.extensible not false) or it will not activate. A base outside the generated set (a
+  // released SAP view) cannot be judged offline — not flagged.
+  for (const f of list) {
+    const ex = /\bextend\s+view\s+entity\s+([\w/]+)/i.exec(stripCdsComments(blankCdsStrings(f.source ?? "")));
+    const base = ex && byName.get(ex[1].toLowerCase());
+    if (base && !base.isExtensible) {
+      emit("gf-x-cds-extend-base-not-extensible", "error", f.filename, `this extends ${base.name}, but ${base.name} is not field-extensible — mark the base with @AbapCatalog.viewEnhancementCategory (e.g. #PROJECTION_LIST) and don't set extensibility.extensible:false, or extend a released extensible view`);
     }
   }
   return findings;

@@ -187,3 +187,50 @@ test("G9c: a label naming the parent does not fake the back-association (string-
   ];
   assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-composition-no-back-association"));
 });
+
+// --- G11: positive extension rule — an EXTEND VIEW ENTITY needs an @AbapCatalog.viewEnhancement-
+// Category base (NOT @Metadata.allowExtensions, which is for DDLX metadata extensions) ---
+test("G11 gf-x-cds-extend-base-not-extensible: extending a #NONE base (not field-extensible) is flagged", () => {
+  const files = [
+    ve("ZI_Travel", "@AbapCatalog.viewEnhancementCategory: [#NONE]\ndefine view entity ZI_Travel as select from ztravel { key travel_id as TravelId }"),
+    ve("ZX_Travel_Ext", "extend view entity ZI_Travel with {\n  newfield as NewField\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});
+
+test("G11: extending a viewEnhancementCategory base (#PROJECTION_LIST) is clean, even with no @Metadata.allowExtensions (no FP)", () => {
+  const files = [
+    ve("ZI_Travel", "@AbapCatalog.viewEnhancementCategory: [#PROJECTION_LIST]\ndefine view entity ZI_Travel as select from ztravel { key travel_id as TravelId }"),
+    ve("ZX_Travel_Ext", "extend view entity ZI_Travel with {\n  newfield as NewField\n}"),
+  ];
+  assert.ok(!ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});
+
+test("G11: @Metadata.allowExtensions is NOT the field-extend prerequisite — such a base is still flagged (no FN)", () => {
+  const files = [
+    ve("ZI_Travel", "@Metadata.allowExtensions: true\ndefine view entity ZI_Travel as select from ztravel { key travel_id as TravelId }"),
+    ve("ZX_Travel_Ext", "extend view entity ZI_Travel with {\n  newfield as NewField\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});
+
+test("G11: extensibility.extensible:false overrides the enhancement category (flagged)", () => {
+  const files = [
+    ve("ZI_Travel", "@AbapCatalog.viewEnhancementCategory: [#PROJECTION_LIST]\n@AbapCatalog.extensibility.extensible: false\ndefine view entity ZI_Travel as select from ztravel { key travel_id as TravelId }"),
+    ve("ZX_Travel_Ext", "extend view entity ZI_Travel with {\n  newfield as NewField\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});
+
+test("G11: extending an external/released base (not in the generated set) is not judged offline", () => {
+  const files = [ve("ZX_Ext", "extend view entity I_ReleasedSAPView with {\n  newfield as NewField\n}")];
+  assert.ok(!ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});
+
+test("G11c: a viewEnhancementCategory base with /* */ straddling annotation strings stays recognized (string-safe, no FP)", () => {
+  const files = [
+    ve("ZI_Travel", "@EndUserText.label: '/*'\n@AbapCatalog.viewEnhancementCategory: [#PROJECTION_LIST]\n@EndUserText.quickInfo: '*/'\ndefine view entity ZI_Travel as select from ztravel { key id as Id }"),
+    ve("ZX_Ext", "extend view entity ZI_Travel with {\n  newf as NewF\n}"),
+  ];
+  assert.ok(!ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-extend-base-not-extensible"));
+});

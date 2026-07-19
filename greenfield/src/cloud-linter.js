@@ -7,7 +7,7 @@ import {
   lineOf, objNameOf, isDeclaredLocal, hasHeaderLine, isSelectStar, authCheckVerdict,
   cdsClassicViewFindings, releasedApiFindings, testNoAssertFindings, modMarkerFindings,
 } from "./cloud-linter-checks.js";
-import { commitInRapPoolFindings, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings } from "./rap-checks.js";
+import { commitInRapPoolFindings, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings, bdefDraftTableFindings } from "./rap-checks.js";
 import { uiFeReadinessFindings, cdsStructureFindings } from "./cds-checks.js";
 import { complexityFindings, publicCoverageFindings } from "./cloud-linter-complexity.js";
 
@@ -44,6 +44,7 @@ export function lintAbapCloud(files) {
   findings.push(...commitInRapPoolFindings(list));
   findings.push(...bdefSaveConsistencyFindings(list));
   findings.push(...bdefHandlerReconciliationFindings(list));
+  findings.push(...bdefDraftTableFindings(list));
   findings.push(...uiFeReadinessFindings(list));
   findings.push(...cdsStructureFindings(list));
   findings.push(...releasedApiFindings(list));

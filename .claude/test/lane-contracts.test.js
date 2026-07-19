@@ -239,6 +239,13 @@ test("G12: a Fiori Elements app-project template exists and is a valid FE descri
   assert.ok(entitySets.length, "a main entitySet (the ZC_ projection entity)");
 });
 
+test("G11: a DDIC persistent-table template exists (ZT_ raw(16) UUID key + RAP admin/ETag fields)", () => {
+  const tmpl = readFileSync(join(CLAUDE, "templates", "ddic-table.template.abap"), "utf8");
+  assert.match(tmpl, /define\s+table\s+zt_/i, "must be a `define table zt_…` DDIC table");
+  assert.match(tmpl, /sysuuid_x16/i, "raw(16) UUID key type");
+  assert.match(tmpl, /abp_(?:lastchange|locinst_lastchange)_time/i, "RAP managed admin / ETag fields");
+});
+
 test("G12: abap-generator authors the Fiori Elements app project for a UI service", () => {
   const gen = readFileSync(join(CLAUDE, "agents", "abap-generator.md"), "utf8");
   assert.match(gen, /fiori-elements-app\.template\.json|Fiori Elements app project/i, "generator must author the FE app project");

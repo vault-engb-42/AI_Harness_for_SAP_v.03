@@ -267,3 +267,32 @@ export function bdefHandlerReconciliationFindings(files) {
   }
   return findings;
 }
+
+const DRAFT_MARKER_RE = /\bwith\s+draft\b/i;
+const DRAFT_TABLE_RE = /\bdraft\s+table\s+[\w/]+/i;
+
+/**
+ * gf-x-bdef-draft-table-missing (G11) — a managed BO declaring `with draft` must give EACH of its
+ * behaviour entities its own `draft table` shadow (which carries the %admin / %control draft
+ * columns); a draft-enabled entity with no draft table will not activate. The `draft table` clause
+ * sits in the entity HEADER (before the `{`), so this scans each per-entity segment (from one
+ * `define behavior for` to the next), not the brace body. Projections (`use draft`) are skipped;
+ * comment-stripped. @param {Array<{filename: string, source: string}>} files @returns {object[]}
+ */
+export function bdefDraftTableFindings(files) {
+  const list = Array.isArray(files) ? files : [];
+  const findings = [];
+  for (const f of list) {
+    if (!isBdef(f.filename) || parseBdefHeader(f.source).isProjection) continue;
+    const text = stripBdefComments(f.source);
+    if (!DRAFT_MARKER_RE.test(text)) continue; // not a draft BO
+    const marks = [...text.matchAll(/\bdefine\s+behavior\s+for\s+([\w/]+)/gi)];
+    for (let i = 0; i < marks.length; i++) {
+      const segment = text.slice(marks[i].index, i + 1 < marks.length ? marks[i + 1].index : text.length);
+      if (!DRAFT_TABLE_RE.test(segment)) {
+        findings.push({ rule_id: "gf-x-bdef-draft-table-missing", severity: "error", object: objNameOf(f.filename), object_type: "BDEF", file: f.filename, line: bdefLineOf(f.source, marks[i][1]), message: `the behaviour definition declares 'with draft' but entity ${marks[i][1]} has no 'draft table' clause — every draft-enabled managed entity needs its own draft table (the %admin/%control shadow) to activate`, family: "rap-odata" });
+      }
+    }
+  }
+  return findings;
+}

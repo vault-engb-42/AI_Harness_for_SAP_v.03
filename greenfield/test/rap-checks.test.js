@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isBdef, parseBdefHeader, parseBdefOps, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings, commitInRapPoolFindings } from "../src/rap-checks.js";
+import { isBdef, parseBdefHeader, parseBdefOps, bdefSaveConsistencyFindings, bdefHandlerReconciliationFindings, commitInRapPoolFindings, bdefDraftTableFindings } from "../src/rap-checks.js";
 
 // G4 — the BDEF-AST substrate + save-consistency lint. @abaplint/core registers a
 // .bdef.asbdef as a BehaviorDefinition but does NOT parse the BDL body, so parseBdefHeader
@@ -236,4 +236,22 @@ test("G4c/F8: commitInRapPool still flags COMMIT WORK when a '\"' sits inside a 
   const pool = { filename: "zbp_i_x.clas.locals_imp.abap", source: "CLASS lhc DEFINITION INHERITING FROM cl_abap_behavior_handler.\n  PRIVATE SECTION.\n    METHODS m FOR MODIFY IMPORTING keys FOR ACTION X~a.\nENDCLASS.\nCLASS lhc IMPLEMENTATION.\n  METHOD m.\n    DATA(msg) = 'he said \"go\"'. COMMIT WORK.\n  ENDMETHOD.\nENDCLASS." };
   const res = commitInRapPoolFindings([pool]);
   assert.equal(res.length, 1, "the \" inside the '…' literal is data, not a comment — COMMIT WORK is still detected");
+});
+
+// --- G11: draft-table gate — a managed BO `with draft` must give each entity its own draft table ---
+const bdefFile = (name, source) => ({ filename: `${name.toLowerCase()}.bdef.asbdef`, source });
+
+test("G11 gf-x-bdef-draft-table-missing: `with draft` + an entity with no `draft table` is flagged", () => {
+  const src = "managed implementation in class zbp_i_travel unique;\nwith draft;\ndefine behavior for ZI_Travel alias Travel\npersistent table ztravel\n{ create; update; delete; }";
+  assert.ok(bdefDraftTableFindings([bdefFile("zi_travel", src)]).some((f) => f.rule_id === "gf-x-bdef-draft-table-missing"));
+});
+
+test("G11: clean when the draft-enabled entity declares its `draft table`", () => {
+  const src = "managed implementation in class zbp_i_travel unique;\nwith draft;\ndefine behavior for ZI_Travel alias Travel\npersistent table ztravel\ndraft table ztravel_d\n{ create; update; delete; }";
+  assert.deepEqual(bdefDraftTableFindings([bdefFile("zi_travel", src)]), []);
+});
+
+test("G11: a non-draft BO is never flagged for a missing draft table", () => {
+  const src = "managed implementation in class zbp_i_x unique;\ndefine behavior for ZI_X alias X\npersistent table zx\n{ create; }";
+  assert.deepEqual(bdefDraftTableFindings([bdefFile("zi_x", src)]), []);
 });
