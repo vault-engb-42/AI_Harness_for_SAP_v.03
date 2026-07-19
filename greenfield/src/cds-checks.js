@@ -82,3 +82,67 @@ export function uiFeReadinessFindings(files) {
   }
   return findings;
 }
+
+// --- G9: CDS BO-structure integrity over the composition/association graph across all DDLS ---
+
+const VIEW_ENTITY_RE = /\bdefine\s+(root\s+)?view\s+entity\s+([\w/]+)/i;
+const PROJECTION_ON_RE = /\bas\s+projection\s+on\s+([\w/]+)/i;
+const CDS_KEY_RE = /\bkey\s+[\w/]/i;
+const CDS_COMPOSITION_RE = /\bcomposition\s+(?:\[[^\]]*\]\s+)?of\s+([\w/]+)/gi;
+const CDS_TO_PARENT_RE = /\bassociation\s+(?:\[[^\]]*\]\s+)?to\s+parent\s+([\w/]+)/i;
+
+// Blank CDS single-quoted string literals ('' is the escaped quote) so a structural keyword inside
+// an annotation value (@EndUserText.label: 'Composition of Material', 'the key of everything') is
+// never mistaken for real syntax. G9-scoped — the annotation-KEY rules (G6) key off names, not values.
+const blankCdsStrings = (s) => String(s).replace(/'(?:[^']|'')*'/g, "''");
+
+/** Parse a DDLS view-entity into its BO-structure facts (comments + string literals blanked). @returns {object|null} */
+function parseCdsEntity(f) {
+  const src = blankCdsStrings(stripCdsComments(f.source ?? ""));
+  const dm = VIEW_ENTITY_RE.exec(src);
+  if (!dm) return null; // not a view entity (classic `define view` is gf-cds-classic-view's job)
+  const proj = PROJECTION_ON_RE.exec(src);
+  return {
+    filename: f.filename,
+    name: dm[2],
+    isRoot: Boolean(dm[1]),
+    isProjection: Boolean(proj),
+    base: proj?.[1] ?? null,
+    hasKey: CDS_KEY_RE.test(src),
+    compositions: [...src.matchAll(CDS_COMPOSITION_RE)].map((m) => m[1]),
+    toParent: CDS_TO_PARENT_RE.exec(src)?.[1] ?? null,
+  };
+}
+
+/**
+ * gf-x-cds-* (G9) — CDS BO-structure integrity resolved across ALL DDLS in one pass: composition ↔
+ * to-parent reciprocity (HIGH), a key per node, the composition root marked `root`, and a projection
+ * sitting on the interface layer. Registry-fusion rules (dangling / non-entity / orphan targets) are
+ * cluster-③ and deferred. @param {Array<{filename: string, source: string}>} files @returns {object[]}
+ */
+export function cdsStructureFindings(files) {
+  const entities = (Array.isArray(files) ? files : []).filter((f) => isDdls(f?.filename)).map(parseCdsEntity).filter(Boolean);
+  const byName = new Map(entities.map((e) => [e.name.toLowerCase(), e]));
+  const findings = [];
+  const emit = (rule_id, severity, e, message) =>
+    findings.push({ rule_id, severity, object: objNameOf(e.filename), object_type: "DDLS", file: e.filename, line: 1, message, family: "cds-structure" });
+
+  for (const e of entities) {
+    if (!e.hasKey) emit("gf-x-cds-node-no-key", "error", e, `the view entity ${e.name} declares no key element — every CDS BO node needs a key`);
+    if (e.isProjection && /(?:^|\/)ZC_/i.test(e.base ?? "")) {
+      emit("gf-x-cds-projection-not-on-interface", "warning", e, `the projection ${e.name} projects another projection (${e.base}) — a ZC_ consumption view should project the ZI_ interface layer, not a projection`);
+    }
+    if (e.compositions.length) {
+      if (!e.toParent && !e.isRoot) {
+        emit("gf-x-cds-root-not-declared", "error", e, `${e.name} composes children and has no parent (a composition root) but is not declared 'define root view entity'`);
+      }
+      for (const childName of e.compositions) {
+        const child = byName.get(childName.toLowerCase());
+        if (child && child.toParent?.toLowerCase() !== e.name.toLowerCase()) {
+          emit("gf-x-cds-composition-no-back-association", "error", child, `${child.name} is composed by ${e.name} but declares no matching 'association to parent ${e.name}' — a composition child must reciprocate with its to-parent association`);
+        }
+      }
+    }
+  }
+  return findings;
+}

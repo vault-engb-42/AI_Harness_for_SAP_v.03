@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { lintAbapCloud } from "../src/cloud-linter.js";
-import { isDdls, isDdlx, uiFeReadinessFindings } from "../src/cds-checks.js";
+import { isDdls, isDdlx, uiFeReadinessFindings, cdsStructureFindings } from "../src/cds-checks.js";
 
 // G6 — @UI Fiori-Elements readiness. A consumption/projection CDS view that carries @UI
 // (so it is UI-intended) must have the minimum set for a List Report + Object Page to render
@@ -120,4 +120,70 @@ define view entity ZC_Travel as projection on ZI_Travel
   const res = uiFeReadinessFindings([file("zc_travel.ddls.asddls", src)]);
   assert.equal(res.length, 1, "a commented-out lineItem is not a live annotation");
   assert.match(res[0].message, /lineItem/);
+});
+
+// --- G9: CDS BO-structure integrity (composition/association graph across all DDLS) ---
+
+const ve = (name, body) => file(`${name.toLowerCase()}.ddls.asddls`, body);
+const ruleIds = (fs) => fs.map((f) => f.rule_id);
+
+test("G9 gf-x-cds-composition-no-back-association: a composed child with no `association to parent` (HIGH)", () => {
+  const files = [
+    ve("ZI_Travel", "define root view entity ZI_Travel as select from ztravel {\n  key travel_id as TravelId,\n  composition [0..*] of ZI_Booking as _Booking\n}"),
+    ve("ZI_Booking", "define view entity ZI_Booking as select from zbooking {\n  key booking_id as BookingId\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-composition-no-back-association"));
+});
+
+test("G9: clean when the composed child declares `association to parent`", () => {
+  const files = [
+    ve("ZI_Travel", "define root view entity ZI_Travel as select from ztravel {\n  key travel_id as TravelId,\n  composition [0..*] of ZI_Booking as _Booking\n}"),
+    ve("ZI_Booking", "define view entity ZI_Booking as select from zbooking\n  association to parent ZI_Travel as _Travel on $projection.TravelId = _Travel.TravelId\n{\n  key booking_id as BookingId\n}"),
+  ];
+  const got = ruleIds(cdsStructureFindings(files));
+  assert.ok(!got.includes("gf-x-cds-composition-no-back-association"), got.join(","));
+});
+
+test("G9 gf-x-cds-node-no-key: a view entity with no key element", () => {
+  const files = [ve("ZI_NoKey", "define view entity ZI_NoKey as select from zt {\n  field1 as Field1\n}")];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-node-no-key"));
+});
+
+test("G9 gf-x-cds-root-not-declared: a composition parent not declared `root`", () => {
+  const files = [
+    ve("ZI_Travel", "define view entity ZI_Travel as select from ztravel {\n  key travel_id as TravelId,\n  composition [0..*] of ZI_Booking as _Booking\n}"),
+    ve("ZI_Booking", "define view entity ZI_Booking as select from zbooking\n  association to parent ZI_Travel as _Travel\n{\n  key booking_id as BookingId\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-root-not-declared"));
+});
+
+test("G9 gf-x-cds-projection-not-on-interface: a ZC_ projection built on another projection", () => {
+  const files = [ve("ZC_Travel", "define view entity ZC_Travel as projection on ZC_Other {\n  key TravelId\n}")];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-projection-not-on-interface"));
+});
+
+test("G9: a projection on a ZI_ interface is clean; cdsStructureFindings is wired into lintAbapCloud", () => {
+  const clean = ve("ZC_Travel", "define view entity ZC_Travel as projection on ZI_Travel {\n  key TravelId\n}");
+  assert.ok(!ruleIds(cdsStructureFindings([clean])).includes("gf-x-cds-projection-not-on-interface"));
+  assert.ok(finding(lintAbapCloud([ve("ZI_NoKey", "define view entity ZI_NoKey as select from zt { field1 as F }")]), "gf-x-cds-node-no-key"), "wired into lintAbapCloud");
+});
+
+// --- G9c: adversarial remediation — structural keywords inside annotation STRING literals ---
+test("G9c: a label containing 'composition of X' does not fake a composition (string-literal FP)", () => {
+  const files = [ve("ZI_MatComp", "@EndUserText.label: 'Composition of Material'\ndefine view entity ZI_MatComp as select from zmatcomp {\n  key matnr as Material,\n  pct as Percentage\n}")];
+  const got = ruleIds(cdsStructureFindings(files));
+  assert.ok(!got.includes("gf-x-cds-root-not-declared") && !got.includes("gf-x-cds-composition-no-back-association"), got.join(","));
+});
+
+test("G9c: a label containing 'key of' does not fake a key element (string-literal FN)", () => {
+  const files = [ve("ZI_NoKey", "@EndUserText.label: 'the key of everything'\ndefine view entity ZI_NoKey as select from zt {\n  field1 as Field1\n}")];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-node-no-key"));
+});
+
+test("G9c: a label naming the parent does not fake the back-association (string-literal FN)", () => {
+  const files = [
+    ve("ZI_Travel", "define root view entity ZI_Travel as select from ztravel {\n  key travel_id as TravelId,\n  composition [0..*] of ZI_Booking as _Booking\n}"),
+    ve("ZI_Booking", "@EndUserText.label: 'the association to parent ZI_Travel is TODO'\ndefine view entity ZI_Booking as select from zbooking {\n  key booking_id as BookingId\n}"),
+  ];
+  assert.ok(ruleIds(cdsStructureFindings(files)).includes("gf-x-cds-composition-no-back-association"));
 });
