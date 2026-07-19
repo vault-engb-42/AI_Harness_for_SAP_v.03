@@ -7,7 +7,7 @@
 //   4. /abap-validate pre-flight -> lint_abap_cloud the fixed source == 0 errors
 // Proves the two offline tools hand off as a pipeline against the real dataset
 // and the real parser.
-import { test, after } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -40,12 +40,15 @@ function startServer() {
     }
   });
   let counter = 0;
-  const request = (method, params, timeoutMs = 15000) => {
+  // 60s: this pipeline spawns a server that parses the ~33MB cloudification registry
+  // then runs multiple ground/lint round-trips; under full-suite parallel load on a
+  // shared host 15s was too tight (intermittent flake). A hung server still fails.
+  const request = (method, params, timeoutMs = 60000) => {
     const id = ++counter;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new Error(`timeout waiting for ${method}`));
+        reject(new Error(`timeout waiting for ${method} (${timeoutMs}ms)`));
       }, timeoutMs);
       pending.set(id, (m) => {
         clearTimeout(timer);
@@ -86,9 +89,9 @@ CLASS zcl_approval IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.`;
 
-test("offline greenfield pipeline hands off: ground -> lint -> repair -> re-lint clean", async () => {
+test("offline greenfield pipeline hands off: ground -> lint -> repair -> re-lint clean", async (t) => {
   const srv = startServer();
-  after(() => srv.close());
+  t.after(() => srv.close());
   await srv.request("initialize", {});
 
   // Stage 1 — /abap-design grounding. The design gap names a deprecated SAP API;
