@@ -8,9 +8,21 @@ import { dirname, join } from "node:path";
  * and planner. It maps SAP's two published registries onto the A/B/C/D level
  * spine. It is NOT ground truth; the live ATC is authoritative (§8).
  *
- * Registries (bundled, Apache-2.0, SHA-pinned in data/):
+ * Registries (bundled, Apache-2.0; content-SHA recorded in data/registry-provenance.json,
+ * exposed via provenance.js — O4):
  *   - objectReleaseInfoLatest.json   -> released | deprecated | notToBeReleased
  *   - objectClassifications_SAP.json -> classicAPI | noAPI
+ *
+ * BLIND SPOT (O3, arch spec §15.1 / C5): a single A/B/C/D level collapses THREE
+ * orthogonal SAP axes — release STATE (released/deprecated/notToBeReleased),
+ * release CONTRACT (C0 Extend / C1 Use-internally / C2 Remote-API / C3 config /
+ * C4 AMDP), and clean-core LEVEL. The bundled registries carry the STATE but NO
+ * contract/visibility field, so a "released" row can over-grant Level A to an
+ * object released only under C2/C3/C4 (e.g. remote-API-only, not on-stack-usable).
+ * The oracle is therefore a deliberately CONSERVATIVE lower bound, explicitly
+ * SUBORDINATE to the live ATC variant ABAP_CLOUD_READINESS, which is the
+ * contract-aware reconciler (§8). Never read a Level-A verdict here as a contract
+ * guarantee — ground the specific usage (extend vs consume vs expose) against ATC.
  *
  * classifyName is a TOTAL function (conv #3). The registries are NOT
  * one-state-per-object and their vocabularies are DISJOINT (release-info =
@@ -47,7 +59,18 @@ const LEVEL_GRADE = { A: null, B: "advisory", C: "warning", D: "blocker" };
 /** level -> ATC priority. */
 const LEVEL_PRIORITY = { A: "none", B: "P3", C: "P2", D: "P1" };
 
-/** @type {{full: Map<string, {states: Set<string>, successors: Array<{name: string, type: string}>}>, byName: Map<string, {states: Set<string>, successors: Array<{name: string, type: string}>}>}|null} */
+/** O5: a STATE-derived lifecycle warning, distinct from the clean-core LEVEL judgement,
+ * so a consumer reads `deprecated -> C` as "released but scheduled for removal" rather
+ * than as a structural clean-core defect. Released (level A) carries no warning. */
+const STATE_WARNING = {
+  classicAPI: "classic API: usable on S/4 on-prem, NOT released for ABAP Cloud",
+  deprecated: "deprecated: released but scheduled for removal — migrate to the successor",
+  notToBeReleased: "not released for ABAP Cloud / on-stack use",
+  noAPI: "no released API — not intended for direct use",
+};
+
+/** @type {{full: Map<string, OracleRec>, byName: Map<string, OracleRec>}|null}
+ * @typedef {{authStates: Set<string>, fallbackStates: Set<string>, successors: Array<{name: string, type: string}>, mapping_kind: string|null, successor_concept: string|null}} OracleRec */
 let _index = null;
 
 function loadIndex() {
@@ -77,21 +100,36 @@ function ingest(full, byName, src) {
           .map((s) => ({ name: String(s.tadirObjName ?? "").toUpperCase(), type: String(s.objectType ?? s.tadirObject ?? "") }))
           .filter((s) => s.name)
       : [];
-    addEntry(full, `${type}|${name}`, state, successors, src.authoritative);
-    addEntry(byName, name, state, successors, src.authoritative);
+    // O2: the mapping kind (oneObject | multipleObjects | concept) and — for the
+    // concept case, which carries no discrete successor — the concept name.
+    const mappingKind = String(e.successorClassification ?? "");
+    const conceptName = String(e.successorConceptName ?? "");
+    const succ = { successors, mappingKind, conceptName };
+    addEntry(full, `${type}|${name}`, state, succ, src.authoritative);
+    addEntry(byName, name, state, succ, src.authoritative);
   }
 }
 
-/** Accumulate a state (and successors) into an index bucket, kept per source so the
- * authoritative release-info can win over the classifications fallback. */
-function addEntry(map, key, state, successors, authoritative) {
+/** Accumulate a state (and the successor block) into an index bucket, kept per source
+ * so the authoritative release-info can win over the classifications fallback. The
+ * successor block (successors + mapping_kind + concept) is captured once, from the
+ * first row carrying any successor signal — release-info is ingested first, so its
+ * richer data (with successorClassification) wins over the classifications fallback.
+ * @param {Map} map @param {string} key @param {string} state
+ * @param {{successors: Array, mappingKind: string, conceptName: string}} succ @param {boolean} authoritative */
+function addEntry(map, key, state, succ, authoritative) {
   let rec = map.get(key);
   if (!rec) {
-    rec = { authStates: new Set(), fallbackStates: new Set(), successors: [] };
+    rec = { authStates: new Set(), fallbackStates: new Set(), successors: [], mapping_kind: null, successor_concept: null };
     map.set(key, rec);
   }
   (authoritative ? rec.authStates : rec.fallbackStates).add(state);
-  if (rec.successors.length === 0 && successors.length) rec.successors = successors;
+  const captured = rec.successors.length || rec.mapping_kind || rec.successor_concept;
+  if (!captured && (succ.successors.length || succ.mappingKind || succ.conceptName)) {
+    rec.successors = succ.successors;
+    rec.mapping_kind = succ.mappingKind || null;
+    rec.successor_concept = succ.conceptName || null;
+  }
 }
 
 /** Weakest level across a set of raw states (conv #3). Unknown states are ignored. */
@@ -116,11 +154,11 @@ function winningState(states, level) {
  * @param {string|null|undefined} name
  * @param {string} [tadirType] optional TADIR object type; when omitted, a
  *   name-ambiguous object resolves to the weakest across ALL rows carrying the name.
- * @returns {{level: 'A'|'B'|'C'|'D'|'unknown', state: string|null, grade: string|null, atc_priority: string, successor: string|null}}
+ * @returns {{level: 'A'|'B'|'C'|'D'|'unknown', state: string|null, grade: string|null, atc_priority: string, state_warning: string|null, successors: Array<{name: string, type: string}>, mapping_kind: string|null, successor_concept: string|null}}
  */
 export function classifyName(name, tadirType) {
   const norm = String(name ?? "").toUpperCase();
-  const unknown = { level: "unknown", state: null, grade: "needs_review", atc_priority: "none", successor: null };
+  const unknown = { level: "unknown", state: null, grade: "needs_review", atc_priority: "none", state_warning: null, successors: [], mapping_kind: null, successor_concept: null };
   if (!norm) return unknown;
   const { full, byName } = loadIndex();
   const rec = tadirType ? full.get(`${String(tadirType).toUpperCase()}|${norm}`) : byName.get(norm);
@@ -131,12 +169,16 @@ export function classifyName(name, tadirType) {
   if (states.size === 0) return unknown;
   const level = weakestLevel(states);
   if (level === null) return unknown;
+  const state = winningState(states, level);
   return {
     level,
-    state: winningState(states, level),
+    state,
     grade: LEVEL_GRADE[level],
     atc_priority: LEVEL_PRIORITY[level],
-    successor: rec.successors[0]?.name ?? null,
+    state_warning: STATE_WARNING[state] ?? null, // O5: lifecycle warning, distinct from the level
+    successors: rec.successors.map((s) => ({ name: s.name, type: s.type })), // O1: full 1:many list
+    mapping_kind: rec.mapping_kind ?? null, // O2
+    successor_concept: rec.successor_concept ?? null, // O2
   };
 }
 
@@ -158,21 +200,33 @@ export function gradeUsage(name, accessKind, tadirType) {
 }
 
 /**
- * First registry successor for a deprecated/removed object (§15.1). `mapping_kind`
- * stays null until the net-new CURATED successor registry (§2) is bundled — the
- * shipped registries carry the successor name + TADIR type, not the mapping kind.
+ * Registry successors for a deprecated/removed object (§15.1). Returns ALL successors
+ * (O1 — a deprecated object may have >1; the consumer presents all, the human picks),
+ * the mapping kind (O2 — `successorClassification`: oneObject | multipleObjects | concept,
+ * ingested straight from the shipped release-info registry), and, for the `concept`
+ * case (which carries no discrete successor), the `successorConceptName`. `successor` /
+ * `successor_kind` are the primary (first) successor for convenience. Null only when the
+ * object carries no successor signal at all.
  * @param {string} name
  * @param {string} [tadirType]
- * @returns {{successor: string, successor_kind: string, mapping_kind: string|null}|null}
+ * @returns {{successor: string|null, successor_kind: string|null, successors: Array<{name: string, type: string}>, mapping_kind: string|null, successor_concept: string|null}|null}
  */
 export function successorOf(name, tadirType) {
   const norm = String(name ?? "").toUpperCase();
   if (!norm) return null;
   const { full, byName } = loadIndex();
   const rec = tadirType ? full.get(`${String(tadirType).toUpperCase()}|${norm}`) : byName.get(norm);
-  const s = rec?.successors[0];
-  if (!s) return null;
-  return { successor: s.name, successor_kind: s.type, mapping_kind: null };
+  if (!rec) return null;
+  const successors = rec.successors ?? [];
+  const primary = successors[0];
+  if (!primary && !rec.mapping_kind && !rec.successor_concept) return null;
+  return {
+    successor: primary?.name ?? null,
+    successor_kind: primary?.type ?? null,
+    successors: successors.map((s) => ({ name: s.name, type: s.type })),
+    mapping_kind: rec.mapping_kind ?? null,
+    successor_concept: rec.successor_concept ?? null,
+  };
 }
 
 /**

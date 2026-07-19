@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-07-19",
+  "note": "Content SHA-256 of the bundled SAP cloudification registries (O4). Regenerate on every registry refresh: node -e \"const c=require('node:crypto'),fs=require('node:fs');for(const f of ['objectReleaseInfoLatest.json','objectClassifications_SAP.json'])console.log(f,c.createHash('sha256').update(fs.readFileSync('data/'+f)).digest('hex'))\". oracle/src/provenance.js recomputes these live and flags drift (matches_sidecar:false); the SHA is the reconcile key vs the live get_migration_analysis (DEV-gated).",
+  "format": "sha256-hex",
+  "files": [
+    { "file": "objectReleaseInfoLatest.json", "sha256": "fb0df9f22a41f7f03e50c857f17bda99e4695cc3fc51fa0476c1b466f94e272e" },
+    { "file": "objectClassifications_SAP.json", "sha256": "5c6eea8bb8ab8326df8bd3350f1818d1b28f1554d312cad38732caa223ce4ba2" }
+  ]
+}

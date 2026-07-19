@@ -55,14 +55,58 @@ test("gradeUsage applies the read/write split on non-released objects (§2 / §1
   assert.deepEqual(gradeUsage("CI_DCLS_CHK", undefined, "CHKO"), { level: "C", atc_priority: "P2" });
 });
 
-test("successorOf returns the registry successor (mapping_kind null until curated, §2)", () => {
+test("successorOf returns ALL registry successors + the ingested mapping kind (O1/O2)", () => {
+  // CL_A4C_BC_FACTORY: successorClassification=multipleObjects, 2 successors on disk.
   assert.deepEqual(successorOf("CL_A4C_BC_FACTORY", "CLAS"), {
     successor: "CL_BCFG_CD_REUSE_API_FACTORY",
     successor_kind: "CLAS",
-    mapping_kind: null,
+    successors: [
+      { name: "CL_BCFG_CD_REUSE_API_FACTORY", type: "CLAS" },
+      { name: "XCO_CP_CTS", type: "CLAS" },
+    ],
+    mapping_kind: "multipleObjects",
+    successor_concept: null,
   });
   assert.equal(successorOf("ZZ_NOT_A_REAL_OBJECT"), null);
   assert.equal(successorOf(null), null);
+});
+
+test("successorOf ingests the single-successor mapping kind (O2 — oneObject)", () => {
+  const r = successorOf("ABAP_CLOUD_DEVELOPMENT_3TIER", "CHKV");
+  assert.equal(r.mapping_kind, "oneObject");
+  assert.equal(r.successor, "ABAP_CLEAN_CORE_DEVELOPMENT");
+  assert.deepEqual(r.successors, [{ name: "ABAP_CLEAN_CORE_DEVELOPMENT", type: "CHKV" }]);
+});
+
+test("successorOf surfaces a concept successor with no discrete object (O2 — concept)", () => {
+  // CL_APJ_SCP_TOOLS: successorClassification=concept, no successors[], a named concept.
+  const r = successorOf("CL_APJ_SCP_TOOLS", "CLAS");
+  assert.equal(r.mapping_kind, "concept");
+  assert.equal(r.successor_concept, "Automatic Job Restart in BTP");
+  assert.deepEqual(r.successors, []);
+  assert.equal(r.successor, null);
+});
+
+test("classifyName exposes the full successor list + mapping kind (O1/O2)", () => {
+  const r = classifyName("CL_A4C_BC_FACTORY", "CLAS");
+  assert.equal(r.successors.length, 2, "1:many — both successors, not just the first");
+  assert.deepEqual(r.successors.map((s) => s.name), ["CL_BCFG_CD_REUSE_API_FACTORY", "XCO_CP_CTS"]);
+  assert.equal(r.mapping_kind, "multipleObjects");
+});
+
+test("classifyName labels a deprecated state as a state-derived warning, distinct from the level (O5)", () => {
+  const dep = classifyName("CL_A4C_BC_FACTORY", "CLAS");
+  assert.equal(dep.level, "C", "clean-core level is a separate judgement");
+  assert.equal(dep.state, "deprecated");
+  assert.match(dep.state_warning, /deprecated/i, "the deprecation is surfaced as a state warning, not conflated with the C level");
+  // a released (level A) object carries no state warning
+  const rel = classifyName("ACTVT", "AUTH");
+  assert.equal(rel.level, "A");
+  assert.equal(rel.state_warning, null);
+  // a classicAPI object (level B) surfaces the cloud-vs-on-prem lifecycle warning
+  const classic = classifyName("/AIF/CL_BGRFC_CLEANUP_UTIL", "CLAS");
+  assert.equal(classic.level, "B");
+  assert.match(classic.state_warning, /ABAP Cloud/i, "classicAPI surfaces the on-prem-vs-cloud split, not conflated with the B level");
 });
 
 test("debtScore is the Kernseife weighting 10·P1 + 5·P2 + 1·P3 (§2/§12)", () => {
