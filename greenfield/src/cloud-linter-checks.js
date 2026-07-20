@@ -80,7 +80,7 @@ export const STMT_RULES = [
   { rule_id: "gf-clean-hungarian", severity: "warning", family: "clean-abap", message: "Hungarian-notation prefix (lt_/gs_/mv_/lo_…) — Clean ABAP names describe content, not type or scope", kinds: new Set(["Data", "ClassData"]), re: /^(?:CLASS-)?DATA\s+[lgme][tvsoraixe]_/i },
   { rule_id: "gf-clean-standalone-data", severity: "warning", family: "clean-abap", message: "standalone typed DATA declaration — prefer an inline DATA(x) at first assignment where practical", kinds: new Set(["Data"]), re: /^DATA\s+\w+\s+TYPE\b/i },
   { rule_id: "gf-clean-raise-exc-type", severity: "warning", family: "clean-abap", message: "RAISE EXCEPTION TYPE — prefer RAISE EXCEPTION NEW zcx_…( ) to construct and raise in one step", kinds: new Set(["Raise"]), re: /\bTYPE\b/i },
-  { rule_id: "gf-clean-redundant-exporting", severity: "warning", family: "clean-abap", message: "redundant EXPORTING in a method call — omit the keyword for a single set of exporting parameters", kinds: new Set(["Call", "Move"]), re: /\(\s*EXPORTING\s+/i },
+  { rule_id: "gf-clean-redundant-exporting", severity: "warning", family: "clean-abap", message: "redundant EXPORTING in a method call — omit the keyword for a single set of exporting parameters", kinds: new Set(["Call", "Move"]), re: /\(\s*EXPORTING\s+/i, notRe: /\b(?:IMPORTING|CHANGING|RECEIVING|EXCEPTIONS)\b/i },
 ];
 
 export const LOOP_OPEN = new Set(["Loop", "While", "Do", "SelectLoop"]);

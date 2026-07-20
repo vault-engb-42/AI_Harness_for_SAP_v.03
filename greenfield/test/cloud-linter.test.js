@@ -433,6 +433,14 @@ test("gf-clean-redundant-exporting fires on ( EXPORTING … ) in a call (CLEAN-0
   assert.equal(finding(res, "gf-clean-redundant-exporting")?.severity, "warning");
 });
 
+test("gf-clean-redundant-exporting does NOT fire on a mixed EXPORTING/IMPORTING call (EXPORTING is mandatory there)", () => {
+  // Once IMPORTING/CHANGING/RECEIVING/EXCEPTIONS is present, ABAP requires the EXPORTING
+  // keyword to remain — flagging it as redundant is a false positive whose 'omit it' advice
+  // would break a valid call.
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    DATA lo TYPE REF TO zcl_x.\n    lo->run( EXPORTING iv = 1 IMPORTING ev = DATA(lv) ).") }]);
+  assert.equal(finding(res, "gf-clean-redundant-exporting"), undefined, "EXPORTING is not redundant in a mixed call");
+});
+
 // ---------------------------------------------------------------- Batch 5: complexity + test-quality
 
 /** class with a single `run` method (signature + body configurable) */
