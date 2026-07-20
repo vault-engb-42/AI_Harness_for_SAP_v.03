@@ -53,11 +53,11 @@ function stripCdsComments(source) {
  */
 export function uiFeReadinessFindings(files) {
   const list = Array.isArray(files) ? files : [];
-  const ddlx = list.filter((f) => isDdlx(f.filename)).map((d) => ({ ...d, source: stripCdsComments(d.source) }));
+  const ddlx = list.filter((f) => isDdlx(f.filename)).map((d) => ({ ...d, source: stripCdsComments(blankCdsStrings(d.source)) }));
   const findings = [];
   for (const f of list) {
     if (!isDdls(f.filename)) continue;
-    const own = stripCdsComments(f.source);
+    const own = stripCdsComments(blankCdsStrings(f.source));
     if (!PROJECTION_RE.test(own)) continue; // only consumption/projection views carry the @UI contract
     const viewName = own.match(/define\s+view\s+entity\s+([\w/]+)/i)?.[1] ?? objNameOf(f.filename);
     const ext = ddlx
@@ -91,9 +91,10 @@ const CDS_KEY_RE = /\bkey\s+[\w/]/i;
 const CDS_COMPOSITION_RE = /\bcomposition\s+(?:\[[^\]]*\]\s+)?of\s+([\w/]+)/gi;
 const CDS_TO_PARENT_RE = /\bassociation\s+(?:\[[^\]]*\]\s+)?to\s+parent\s+([\w/]+)/i;
 
-// Blank CDS single-quoted string literals ('' is the escaped quote) so a structural keyword inside
-// an annotation value (@EndUserText.label: 'Composition of Material', 'the key of everything') is
-// never mistaken for real syntax. G9-scoped — the annotation-KEY rules (G6) key off names, not values.
+// Blank CDS single-quoted string literals ('' is the escaped quote) so a keyword inside an annotation
+// value (@EndUserText.label: 'Composition of Material', 'Identification: primary') is never mistaken
+// for real syntax. Used by BOTH G6 (@UI readiness) and G9 (BO structure): a min-set or structural
+// keyword inside a value string must never read as a real annotation name or clause.
 const blankCdsStrings = (s) => String(s).replace(/'(?:[^']|'')*'/g, "''");
 
 // EXTEND VIEW ENTITY (a field/element extension) needs the BASE to declare @AbapCatalog.

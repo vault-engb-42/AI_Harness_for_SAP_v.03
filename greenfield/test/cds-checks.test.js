@@ -55,6 +55,23 @@ test("gf-x-ui-fe-readiness flags a projection missing @UI.selectionField (no fil
   assert.match(res[0].message, /selectionField/);
 });
 
+test("gf-x-ui-fe-readiness is not satisfied by a min-set keyword inside an annotation VALUE string (value-string FN)", () => {
+  // headerInfo + lineItem + selectionField present, but NO @UI.facet / @UI.identification: the Object
+  // Page min-set is genuinely absent. A free-text label value that merely CONTAINS 'Identification:'
+  // must NOT satisfy it — the gate keys off annotation NAMES, not values (mirrors the G9 guard).
+  const src = `@UI: { headerInfo: { typeName: 'Doc', typeNamePlural: 'Docs', title: { value: 'DocID' } } }
+define view entity ZC_Doc as projection on ZI_Doc
+{
+  @EndUserText.label: 'Identification: primary key group'
+  @UI: { lineItem: [ { position: 10 } ], selectionField: [ { position: 10 } ] }
+  key DocID,
+  Description
+}`;
+  const res = uiFeReadinessFindings([file("zc_doc.ddls.asddls", src)]);
+  assert.equal(res.length, 1, "the genuinely-missing Object-Page min-set must still be flagged");
+  assert.match(res[0].message, /facet|identification/i);
+});
+
 test("S3: @UI split between the projection and a companion DDLX satisfies the min-set", () => {
   const inlinePart = `define view entity ZC_Travel as projection on ZI_Travel
 {
