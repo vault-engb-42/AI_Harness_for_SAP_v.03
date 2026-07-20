@@ -172,11 +172,21 @@ export async function createOrUpdateTestClass(session, { class_name, test_source
   return { created: true, class_name: String(class_name).toUpperCase() };
 }
 
-/** SCGR object-reference body for a service-binding publish job (G10). @param {string} name @returns {string} */
-export function publishBody(name) {
+/**
+ * Object-reference body for a service-binding publish job (G10). V4 registers a service
+ * GROUP (SCGR); V2 registers a service identified by the servicename/serviceversion query
+ * params (publishUrl), so its objectReference carries the name ONLY — no adtcore:type —
+ * matching the grounded abap-adt-api form.
+ * @param {string} name @param {"V2"|"V4"} [protocol="V4"] @returns {string}
+ */
+export function publishBody(name, protocol = "V4") {
+  const nm = escapeXml(String(name).toUpperCase());
+  const ref = protocol === "V2"
+    ? `<adtcore:objectReference adtcore:name="${nm}"/>`
+    : `<adtcore:objectReference adtcore:name="${nm}" adtcore:type="SCGR"/>`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <adtcore:objectReferences xmlns:adtcore="http://www.sap.com/adt/core">
-<adtcore:objectReference adtcore:name="${escapeXml(String(name).toUpperCase())}" adtcore:type="SCGR"/>
+${ref}
 </adtcore:objectReferences>`;
 }
 
@@ -212,7 +222,7 @@ export async function publishServiceBinding(session, { object_name }) {
   const protocol = bindingProtocol(await cfg.text());
   const res = await session.request("POST", publishUrl(name, protocol), {
     headers: { "Content-Type": "application/xml", Accept: "application/xml, */*" },
-    body: publishBody(object_name),
+    body: publishBody(object_name, protocol),
   });
   const text = await res.text();
   if (![200, 201, 202].includes(res.status)) {

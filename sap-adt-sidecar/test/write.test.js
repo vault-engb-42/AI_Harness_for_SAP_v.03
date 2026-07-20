@@ -63,6 +63,17 @@ test("publishBody builds an SCGR object reference for the service binding", () =
   assert.match(xml, /adtcore:type="SCGR"/, "publishes the service group (SCGR)");
 });
 
+test("publishBody omits the SCGR type for a V2 binding (V2 identifies by servicename query params)", () => {
+  // V4 registers a service GROUP (SCGR); V2 registers a service, identified by the
+  // servicename/serviceversion query params (publishUrl) — its objectReference carries
+  // the name only, with NO adtcore:type, matching the grounded abap-adt-api form.
+  const v4 = publishBody("z_o4", "V4");
+  assert.match(v4, /adtcore:type="SCGR"/, "V4 keeps the service-group (SCGR) type");
+  const v2 = publishBody("z_o2", "V2");
+  assert.match(v2, /adtcore:name="Z_O2"/, "V2 still references the binding by name");
+  assert.doesNotMatch(v2, /adtcore:type=/, "V2 objectReference carries no adtcore:type");
+});
+
 test("bindingProtocol reads the protocol from a binding config, defaulting to V4", () => {
   const cfg = (v) => `<srvb:serviceBinding xmlns:srvb="x"><srvb:binding srvb:type="ODATA" srvb:version="${v}" srvb:category="1"/></srvb:serviceBinding>`;
   assert.equal(bindingProtocol(cfg("V4")), "V4");
