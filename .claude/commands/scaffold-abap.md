@@ -256,8 +256,7 @@ _(No rules learned yet — this is a fresh scaffold.)_
 {
   "_comment": "ATC ratchet floor — accepted priority-2/3 WARN findings under variant ABAP_CLEAN_CORE_DEVELOPMENT. Only SHRINKS across runs. Priority-1 is NEVER baselined (always a hard BLOCK, P6). Established/updated by abap-evaluator on a clean run; a BLOCK run never moves it.",
   "variant": "ABAP_CLEAN_CORE_DEVELOPMENT",
-  "accepted_warnings": [],
-  "priority1_count": 0
+  "accepted_priority_2_3": []
 }
 ```
 
@@ -266,8 +265,8 @@ _(No rules learned yet — this is a fresh scaffold.)_
 ```json
 {
   "_comment": "ABAP Unit coverage ratchet floor. Only GROWS across runs — never write a lower number. Established/updated by abap-evaluator on a clean run; a BLOCK run never moves it. 80% is the working floor once real objects exist.",
-  "coverage_pct": 0,
-  "objects": {}
+  "coverage_floor_pct": 0,
+  "per_object": {}
 }
 ```
 

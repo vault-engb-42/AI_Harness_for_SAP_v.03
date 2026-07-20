@@ -45,7 +45,7 @@ The eight ratchet gates, the Karpathy ratchet, the GAN generate→grade separati
 
 ## Gotchas
 
-- **Not for brownfield.** `/greenfield` skips discovery by design. Extending or modernizing an existing package is `/abap-build` (Phase 0 on) or `/abap-change` — using `/greenfield` there builds blind to the existing objects and risks colliding with released interfaces.
+- **Not for brownfield.** `/greenfield` skips discovery by design. Extending or modernising an existing package is `/abap-build` (Phase 0 on) or `/abap-change` — using `/greenfield` there builds blind to the existing objects and risks colliding with released interfaces.
 - **Offline grounding is real, not a guess.** A registry `unknown` verdict is treated as *not proven released*, exactly like unreleased — never emit against it. The offline path is deterministic, not a placeholder for the live check.
 - **A clean offline lint is not a pass (P6).** `lint_abap_cloud` errorCount 0 clears hand-off and the validate pre-flight — it never substitutes for the live ATC/activation/ABAP-Unit gates. Greenfield cannot self-certify without the live proof.
 - **The pipeline never releases (P5).** `/greenfield` stops at a release-ready (or binding-unverified) transport with proof. Release DEV→QAS→PRD is the human's action.

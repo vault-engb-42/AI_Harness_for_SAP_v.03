@@ -262,3 +262,34 @@ test("the /greenfield entry-point exists and delegates to /abap-build", () => {
   assert.match(skill, /lint_abap_cloud/, "greenfield must document the offline cloud-lint path");
   assert.match(skill, /ground_released_apis/, "greenfield must document the offline grounding path");
 });
+
+// Skills-review remediation (L2): /abap-brd never existed — abap-spec pointed the human at it; the
+// real upstream BRD producer is /fit-to-standard (writes specs/brd/brd.md). A dangling slash-command
+// leaves the human at a non-command; its reappearance is a regression (mirrors RETIRED_ARTIFACTS).
+const NONEXISTENT_COMMANDS = ["/abap-brd"];
+test("no lane references a nonexistent slash-command (dangling-command guard)", () => {
+  const offenders = [];
+  for (const { path, text } of laneDefinitions()) {
+    for (const cmd of NONEXISTENT_COMMANDS) {
+      if (text.includes(cmd)) offenders.push(`${path} references nonexistent '${cmd}'`);
+    }
+  }
+  assert.deepEqual(offenders, [], `dangling slash-command references:\n${offenders.join("\n")}`);
+});
+
+// Skills-review remediation (L3): the scaffold/build baseline SEEDS must use the canonical ratchet
+// field names the evaluator + moderniser CLI actually read (.claude/state/atc-baseline.json =
+// accepted_priority_2_3; abapunit-baseline.json = coverage_floor_pct + per_object). Seeding the dead
+// aliases accepted_warns / accepted_warnings / coverage_pct / objects ships fields nothing reads.
+test("the baseline-seed docs use the canonical ratchet field names, not dead aliases", () => {
+  const seeders = ["commands/scaffold-abap.md", "skills/abap-build/SKILL.md"];
+  const DEAD = ["accepted_warns", "accepted_warnings", "coverage_pct"];
+  const CANON = ["accepted_priority_2_3", "coverage_floor_pct", "per_object"];
+  const offenders = [];
+  for (const p of seeders) {
+    const text = readFileSync(join(CLAUDE, p), "utf8");
+    for (const dead of DEAD) if (text.includes(dead)) offenders.push(`${p} seeds dead ratchet field '${dead}'`);
+    for (const canon of CANON) if (!text.includes(canon)) offenders.push(`${p} missing canonical ratchet field '${canon}'`);
+  }
+  assert.deepEqual(offenders, [], `baseline-seed schema drift:\n${offenders.join("\n")}`);
+});

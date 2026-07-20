@@ -53,7 +53,7 @@ Behavior, in ABAP terms, is the evidence pair: **ABAP Unit** (every `LTCL_*` ver
 ## Checklist
 
 - [ ] Every hunk classified; mixed work split (structural commit first), behavior escalated to `/abap-change`
-- [ ] Refactor commit made with `HARNESS_COMMIT_KIND=refactor git commit …` — this env var arms the pre-commit purity gate (staged `LTCL_*` / baseline edits get blocked); without it the gate is inert
+- [ ] Refactor commit staged with **explicit paths only** and manually verified to contain **no `LTCL_*` / baseline edit** — a pure refactor leaves them byte-identical. (There is no automated pre-commit purity gate; this is a manual discipline, re-checked by `/abap-validate` Step-5 attributability.)
 - [ ] Refactor commit: `LTCL_*` byte-identical; ABAP Unit green on DEV; coverage `≥ abapunit-baseline.json`; ATC WARN set ⊆ `atc-baseline.json`, priority-1 zero
 - [ ] Renames/deletes: every consumer in `architecture-map.md` verified updated, no dead copy, no orphaned binding
 - [ ] No new released-API reference (`get_migration_analysis` re-confirmed); `clean_core_level` held-at/improved-to A

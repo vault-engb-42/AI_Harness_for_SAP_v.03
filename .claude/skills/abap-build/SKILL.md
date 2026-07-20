@@ -72,8 +72,8 @@ Ask: **"Approve the RAP/CDS design to proceed to autonomous implementation?"** D
 
 Before entering the implement→validate loop, create the ratchet state files (only if they do not already exist — never reset a ratchet mid-project):
 
-1. `.claude/state/atc-baseline.json` — `{ "accepted_warns": [], "variant": "ABAP_CLEAN_CORE_DEVELOPMENT" }` (the accepted priority-2/3 WARN floor — only shrinks).
-2. `.claude/state/abapunit-baseline.json` — `{ "coverage_pct": 0 }` (the coverage floor — only grows).
+1. `.claude/state/atc-baseline.json` — `{ "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "accepted_priority_2_3": [] }` (the accepted priority-2/3 WARN floor — only shrinks).
+2. `.claude/state/abapunit-baseline.json` — `{ "coverage_floor_pct": 0, "per_object": {} }` (the coverage floor — only grows).
 3. `.claude/state/learned-rules.md` — header `# Learned Rules\n\nProject-specific ABAP decisions carried across groups.\n` (RAP draft choices, released-API selections, ATC-finding fixes; injected verbatim into every generator team).
 4. `.claude/state/iteration-log.md` — header `# Iteration Log\n\nTeammate spawns, evaluator runs, gate verdicts per group.\n`.
 5. `.claude/state/failures.md` — header `# Failures\n\nPersistent design smells and repeated gate failures.\n`.

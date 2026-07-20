@@ -32,7 +32,7 @@ This is a **DISPOSABLE planning lane** (like `/fit-to-standard`, `/abap-brownfie
 
 ### Step 1 — Read the BRD / gap
 
-Read the file at the path provided as the argument. Confirm it is an approved BRD or a concrete gap statement. If missing, halt and ask the human to run `/abap-brd` first (or supply the fit-to-standard finding directly). Read every existing file under `specs/` to avoid duplicating scope. If `specs/brownfield/{architecture-map.md,risk-map.md}` exists, read it — treat any Level-B/C source it names as **diagnosis, not failure** (P1); the *target* is Level A, the brownfield origin only tells you what to wrap or retire.
+Read the file at the path provided as the argument. Confirm it is an approved BRD or a concrete gap statement. If missing, halt and ask the human to run `/fit-to-standard` first (it writes `specs/brd/brd.md`), or supply the fit-to-standard finding directly. Read every existing file under `specs/` to avoid duplicating scope. If `specs/brownfield/{architecture-map.md,risk-map.md}` exists, read it — treat any Level-B/C source it names as **diagnosis, not failure** (P1); the *target* is Level A, the brownfield origin only tells you what to wrap or retire.
 
 ### Step 2 — Decompose or normalize into epics
 
