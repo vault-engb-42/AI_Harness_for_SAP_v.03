@@ -5,11 +5,12 @@
   ============================================================================
   HARNESS IMMUTABLE CONSTANT (P6).
   This variant name is pinned. The abap-validate gate (Gate 5, the keystone)
-  runs `aws_abap_cb_run_atc_check` with EXACTLY this variant. Priority-1
-  findings under this variant MUST be ZERO before any story group is "done"
-  and before any transport is assembled. A priority-1 finding is an absolute
-  BLOCK regardless of every other gate being green — a functional pass on top
-  of a priority-1 finding is still a BLOCK.
+  runs `aws_abap_cb_run_atc_check` with EXACTLY this variant. Priority-1 AND
+  priority-2 findings under this variant MUST be ZERO before any story group is
+  "done" and before any transport is assembled (C3/P6 — SAP's transport-blocking
+  config blocks both; priority-3 = notify only). A priority-1 or priority-2
+  finding is an absolute BLOCK regardless of every other gate being green — a
+  functional pass on top of a priority-1 or priority-2 finding is still a BLOCK.
 
   The gate REFUSES A LAXER VARIANT: if the ATC run reports a different variant
   name, a downgraded priority for any check below, or a check listed here that
@@ -52,7 +53,7 @@
     name="ABAP_CLEAN_CORE_DEVELOPMENT"
     kind="global"
     changedBy="HARNESS_BOOTSTRAP"
-    description="Clean Core Level A development gate — released-API-only, RAP/CDS readiness. Priority-1 findings must be zero (harness P6).">
+    description="Clean Core Level A development gate — released-API-only, RAP/CDS readiness. Priority-1 and priority-2 findings must be zero (harness P6/C3).">
 
   <!--
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,15 +209,16 @@
     GATE CONTRACT (restated so it travels with the file)
     ----------------------------------------------------------------------------
     PASS  ⇔  ATC run used variant name "ABAP_CLEAN_CORE_DEVELOPMENT"
-             AND every priority="1" message count == 0
+             AND every priority="1" AND priority="2" message count == 0
              AND no Block-1..5 check is missing/disabled/downgraded
              AND the run completed (data_available == true).
-    BLOCK ⇔  any priority-1 finding > 0
+    BLOCK ⇔  any priority-1 OR priority-2 finding > 0
              OR the run did not complete (atc-unavailable)
              OR a laxer/renamed variant was substituted.
-    Priority-2/3 findings are recorded in the transport-evidence pack and do
-    not, by themselves, block. The human releases the transport (P5); the gate
-    never self-approves.
+    Priority-3 findings are recorded in the transport-evidence pack and do
+    not, by themselves, block (priority-2 hard-blocks per C3/P6 — SAP's
+    transport-blocking config blocks both priority-1 and priority-2). The
+    human releases the transport (P5); the gate never self-approves.
     ============================================================================
   -->
 </atc:checkVariant>

@@ -97,7 +97,7 @@ Produce root `features.json` with one or more entries per acceptance criterion â
   "description": "Sales order projection view activates clean and exposes OrderId as read-only",
   "steps": [
     "activate_object ZC_SalesOrderTP on DEV",
-    "run_atc_check variant ABAP_CLEAN_CORE_DEVELOPMENT -> priority-1 findings == 0",
+    "run_atc_check variant ABAP_CLEAN_CORE_DEVELOPMENT -> priority-1 and priority-2 findings == 0",
     "run_unit_tests for ZCL_SALES_ORDER_TEST -> all green",
     "Assert projection field OrderId has @UI read-only annotation"
   ],

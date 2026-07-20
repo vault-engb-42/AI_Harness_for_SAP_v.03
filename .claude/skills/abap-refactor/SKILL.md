@@ -139,12 +139,12 @@ After each axis, re-run the ABAP Unit oracle on DEV (via `abap-evaluator`, or th
 
 ### Step 6 — Prove Behavior Preserved + Ratchet Held (abap-evaluator)
 
-After the axis passes are complete and syntax is green, hand the UNCHANGED source to `abap-evaluator` (Agent, `subagent_type="abap-evaluator"`, runtime mode). It pushes the source byte-for-byte to a **DEV tier** (writes fail-closed unless `HARNESS_ADT_ALLOW_WRITE=1` and the connection is DEV — P5), activates it, runs ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero — P6, the keystone) and ABAP Unit, and writes `specs/reviews/sap-verdict.json`.
+After the axis passes are complete and syntax is green, hand the UNCHANGED source to `abap-evaluator` (Agent, `subagent_type="abap-evaluator"`, runtime mode). It pushes the source byte-for-byte to a **DEV tier** (writes fail-closed unless `HARNESS_ADT_ALLOW_WRITE=1` and the connection is DEV — P5), activates it, runs ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero — P6/C3, the keystone) and ABAP Unit, and writes `specs/reviews/sap-verdict.json`.
 
 The refactor-specific pass conditions the evaluator must confirm — **the ratchet only tightens**:
 - **ABAP Unit stays green** — the pinned oracle behavior is preserved. Any failed/errored test ⇒ BLOCK, and it means a move changed behavior — revert that move.
 - **Coverage only up** — `sap-verdict` coverage `≥ abapunit-baseline.json`. A refactor that *drops* coverage is a regression even if tests pass.
-- **ATC warnings only down** — the accepted-WARN set is a subset of `atc-baseline.json`; priority-1 count is zero. A refactor that *adds* an ATC finding failed its own purpose.
+- **ATC warnings only down** — the accepted-WARN set is a subset of `atc-baseline.json`; priority-1 and priority-2 counts are zero. A refactor that *adds* an ATC finding failed its own purpose.
 - **Activation clean** — every object activates on live DEV. A missing/`data_available:false`/timed-out ATC or activation is a fail-closed BLOCK (P6), never a pass.
 - **Invariant diff all-false (P4)** — no `AUTHORITY-CHECK` removed/weakened, no `COMMIT WORK` suppressed, no post-`AUTHORITY-CHECK` `SY-SUBRC` check dropped versus the pre-refactor baseline. Any true ⇒ BLOCK regardless of a green functional pass, and it means this was never a refactor — escalate.
 
@@ -176,7 +176,7 @@ If a BLOCK is an **invariant diff** or a **released-API/contract change**, it is
 - **ABAP Unit stays green after every axis.** If a structural move turns a test red, fix the ABAP — never the test. A red test means the move changed behavior.
 - **No behavior changes.** The refactored object produces identical results for every existing input. If it cannot, it is a `/abap-change`, not a refactor.
 - **No new features.** A missing capability is a story for `/abap-spec` → `/abap-implement`, not a refactor.
-- **The ratchet only tightens (P6).** Coverage after ≥ coverage before; the ATC accepted-WARN set after ⊆ before; priority-1 stays zero. A refactor that loosens any floor is rejected.
+- **The ratchet only tightens (P6).** Coverage after ≥ coverage before; the ATC accepted-WARN set after ⊆ before; priority-1 and priority-2 stay zero. A refactor that loosens any floor is rejected.
 - **Invariants are refused, not cleaned (P4).** No `AUTHORITY-CHECK` removed/weakened, no `COMMIT WORK` suppressed, no post-`AUTHORITY-CHECK` `SY-SUBRC` check dropped — surface it, do not apply it.
 - **Level A never regresses (P1/P2).** No new modification, source-code plug-in, or unreleased-API reference. Ground every referenced surface on `get_migration_analysis`; unreleased ⇒ do not introduce.
 - **Update all consumers.** When splitting/renaming a public object, switch every CDS `association`, RAP composition, and class reference before the pure-refactor commit — ADT will fail activation, not compile silently.
@@ -189,7 +189,7 @@ If a BLOCK is an **invariant diff** or a **released-API/contract change**, it is
 
 The target path contains refactored ABAP that:
 - Passes ABAP Unit on live DEV, byte-identical test classes (behavior preserved).
-- Activates clean with priority-1 ATC count zero (`ABAP_CLEAN_CORE_DEVELOPMENT`).
+- Activates clean with priority-1 and priority-2 ATC count zero (`ABAP_CLEAN_CORE_DEVELOPMENT`).
 - Has coverage ≥ the `abapunit-baseline.json` floor and an ATC accepted-WARN set ⊆ `atc-baseline.json` (ratchet tightened, never loosened).
 - Has no new BLOCK in `sap-verdict.json` or `clean-core-verdict.json`, and a `clean_core_level` held-at or improved-to A.
 - Has an all-false invariant diff (P4).

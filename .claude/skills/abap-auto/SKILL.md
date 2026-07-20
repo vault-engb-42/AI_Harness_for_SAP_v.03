@@ -42,7 +42,7 @@ Before `/abap-auto` can run, the following must exist:
 - `features.json` — sprint contract / feature tracking (created by `/abap-spec`).
 - `specs/stories/dependency-graph.md` — group ordering and dependencies.
 - `specs/stories/epics.md` — epic index and story membership.
-- `.claude/state/atc-baseline.json` and `.claude/state/abapunit-baseline.json` — the ratchet floors (accepted priority-2/3 ATC WARNs; ABAP Unit coverage). Created on the first passing evaluator run if absent.
+- `.claude/state/atc-baseline.json` and `.claude/state/abapunit-baseline.json` — the ratchet floors (accepted priority-3 ATC WARNs — priority-2 hard-blocks per C3/P6; ABAP Unit coverage). Created on the first passing evaluator run if absent.
 
 If any prerequisite is missing, stop and report what is absent. Do not proceed with partial context. A story with no acceptance criteria, or an API with no `api-grounding.md` row (P2), is a stop — not a guess.
 
@@ -258,7 +258,7 @@ After the generator team completes, run the ratchet gate for the group via `/aba
 | 2. Clean-Core Level-A + syntax (HARD) | Released-API-only target, syntax green | `clean-core-reviewer` + evaluator | Yes | Yes |
 | 3. ABAP Unit coverage ≥ baseline (HARD) | Coverage ratchet floor from `abapunit-baseline.json` | `abap-evaluator` | Yes | Yes |
 | 4. Extensibility / architecture (HARD) | Objects exist per `object-contract.md`; extension via BAdI/RAP/CDS-extend only | `clean-core-reviewer` | Yes | Yes |
-| 5. ATC + activation on live DEV (HARD, keystone) | Push UNCHANGED → activate → ATC `ABAP_CLEAN_CORE_DEVELOPMENT` priority-1 zero | `abap-evaluator` | Yes | Yes |
+| 5. ATC + activation on live DEV (HARD, keystone) | Push UNCHANGED → activate → ATC `ABAP_CLEAN_CORE_DEVELOPMENT` priority-1 and priority-2 zero | `abap-evaluator` | Yes | Yes |
 | 6. RAP/CDS design-critic (SOFT/WARN) | Six design criteria to threshold | `abap-design-critic` | Yes | No |
 | 7. Invariants + injection (HARD) | P4 AUTHORITY-CHECK/COMMIT WORK/SY-SUBRC + ABAP injection | `abap-security-reviewer` | Yes | Yes |
 | 8. Cold-read diff review (HARD) | Fresh-context correctness vs acceptance criteria | `abap-diff-reviewer` | Yes | Yes |
@@ -270,7 +270,7 @@ After the generator team completes, run the ratchet gate for the group via `/aba
 `/abap-validate` hands the group's UNCHANGED generator source to `abap-evaluator` (Opus). The evaluator:
 1. Preflight: confirm the ADT bridge answers and the active connection is a **DEV** tier (`HARNESS_ADT_ALLOW_WRITE=1`). Not-DEV or write-blocked ⇒ BLOCK `failure_layer: "infrastructure"` — never a workaround (P5).
 2. Push each object byte-for-byte unchanged (`create_object` / `update_source`; test classes via `create_or_update_test_class`), then activate — `activate_objects_batch` for the interdependent CDS entity + behavior definition + class set.
-3. Run `run_atc_check` variant `ABAP_CLEAN_CORE_DEVELOPMENT`; **any priority-1 finding ⇒ BLOCK**; priority-2/3 vs `atc-baseline.json` is a WARN.
+3. Run `run_atc_check` variant `ABAP_CLEAN_CORE_DEVELOPMENT`; **any priority-1 or priority-2 finding ⇒ BLOCK** (C3/P6 — SAP blocks transport on both); priority-3 vs `atc-baseline.json` is a WARN.
 4. Run `run_unit_tests`; any failed/errored test ⇒ BLOCK; a coverage drop vs `abapunit-baseline.json` is a ratchet regression.
 5. Write `specs/reviews/sap-verdict.json` with `verdict`, `failure_layer`, activation log, ATC findings, ABAP Unit results, `clean_core_level`, and `invariant_diff`. This is the ONLY file the evaluator writes.
 
@@ -302,7 +302,7 @@ A group PASSES when `sap-verdict.json#verdict` is `PASS` (or `WARN` within the a
 
 1. **Commit:** `git commit --only <owned files> -m "feat(abap): implement group {group}"` — explicit paths only (never `git add -A`).
 2. **Update features.json:** Set `passes: true` for all features in this group.
-3. **Ratchet the baselines (only on PASS):** the *evaluator* — not the loop — folds accepted priority-2/3 ATC WARNs into `.claude/state/atc-baseline.json` (floor may only shrink) and raises `.claude/state/abapunit-baseline.json` coverage upward if measured coverage exceeds it (never write a lower number). The orchestrator confirms the evaluator did this; it does not move a baseline itself.
+3. **Ratchet the baselines (only on PASS):** the *evaluator* — not the loop — folds accepted priority-3 ATC WARNs into `.claude/state/atc-baseline.json` (floor may only shrink; priority-2 hard-blocks per C3 and is never folded) and raises `.claude/state/abapunit-baseline.json` coverage upward if measured coverage exceeds it (never write a lower number). The orchestrator confirms the evaluator did this; it does not move a baseline itself.
 4. **Assemble the transport:** spawn `/abap-transport` (`transport-manager`, Sonnet) to bind the group's objects into one dependency-group transport and write `specs/delivery/transport-evidence.json`. It STOPS at release-ready; it does not release (P5).
 5. **Update iteration-log.md:** Append a session block (group ID, timestamp, verdict, summary) per SECTION 9.
 6. **Next group:** Return to SECTION 2 (context recovery) for the next iteration.
@@ -481,12 +481,12 @@ OR logic with priority (check in order):
 
 1. **Hard stop:** an infrastructure BLOCK the loop cannot self-heal (no DEV connection, write-gate off, bridge down), a P4 invariant regression the generator refuses to restore, OR the total iteration count exceeds 50. Stop the entire run, report status, hand off to the human.
 2. **Escalate (per-group):** a group fails 3 consecutive self-heal iterations on a code-fixable gate. Mark it BLOCKED, log to `failures.md`, extract a learned rule, skip to the next group. Do NOT stop the whole run.
-3. **Ratchet regression after commit:** ATC priority-2/3 or coverage regresses below baseline AFTER a successful commit. This overrides the pass — revert the commit (`git revert HEAD --no-edit`), log the regression, re-enter self-healing.
-4. **Success:** all features in `features.json` have `passes: true`, ATC priority-1 is zero across the build, and coverage ≥ baseline. Before claiming completion, re-verify every claim against the actual `sap-verdict.json` files — evidence before assertions. Print:
+3. **Ratchet regression after commit:** ATC priority-3 or coverage regresses below baseline AFTER a successful commit (a new priority-2 is a hard BLOCK, not a ratchet WARN — C3). This overrides the pass — revert the commit (`git revert HEAD --no-edit`), log the regression, re-enter self-healing.
+4. **Success:** all features in `features.json` have `passes: true`, ATC priority-1 and priority-2 are zero across the build, and coverage ≥ baseline. Before claiming completion, re-verify every claim against the actual `sap-verdict.json` files — evidence before assertions. Print:
    ```
    === ABAP BUILD COMPLETE (DEV-validated, awaiting human transport release) ===
    Features passing: {N}/{N}
-   ATC priority-1: 0    Priority-2/3 (accepted WARN): {W}
+   ATC priority-1: 0    priority-2: 0    Priority-3 (accepted WARN): {W}
    ABAP Unit coverage: {X}%
    Groups completed: [list]
    Blocked stories: [list or "none"]

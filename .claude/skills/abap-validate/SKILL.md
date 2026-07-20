@@ -33,7 +33,7 @@ Before running `/abap-validate`, verify:
 - `specs/abap/` contains the generator's local source for every object in the group, and every object passed the generator's `aws_abap_cb_check_syntax` self-check (`/abap-implement` completed).
 - `specs/stories/E{n}-S{n}.md` for every story in the group carries 3–6 concrete acceptance criteria — these are the diff-reviewer's checklist and the evaluator's contract.
 - `specs/design/object-contract.md` and `specs/design/component-map.md` exist — the object list, ownership, and the P4 authorization contract each object must satisfy.
-- `.claude/state/atc-baseline.json` (accepted priority-2/3 WARN floor — only shrinks) and `.claude/state/abapunit-baseline.json` (coverage floor — only grows) exist. If they do not, this is the first validate run for the project: the evaluator establishes them and does not fail on their absence.
+- `.claude/state/atc-baseline.json` (accepted priority-3 WARN floor — only shrinks; the `accepted_priority_2_3` field is a legacy name per C3, priority-2 hard-blocks) and `.claude/state/abapunit-baseline.json` (coverage floor — only grows) exist. If they do not, this is the first validate run for the project: the evaluator establishes them and does not fail on their absence.
 - A registered **DEV** connection is reachable and `HARNESS_ADT_ALLOW_WRITE=1` for it (P5). There is no PRD connection. If the only reachable tier is not DEV, the evaluator returns `failure_layer: "infrastructure"` — a BLOCK, not a workaround.
 
 If any prerequisite is missing, stop and report what is absent. Do not run a partial gate set to produce a green-looking verdict.

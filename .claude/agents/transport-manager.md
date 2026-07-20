@@ -88,12 +88,12 @@ Write the machine-readable pack (create `specs/delivery/` if needed). This is th
 }
 ```
 
-Also write a human-readable companion at `specs/delivery/transport-evidence.md` — a one-screen summary the human reads first: the transport id (or the "binding unverified" banner), the object list, the ATC priority-1 count (must be 0), the ABAP Unit result (green), the Clean-Core level (A), the invariant diff (all false), and the single sentence "release action is yours."
+Also write a human-readable companion at `specs/delivery/transport-evidence.md` — a one-screen summary the human reads first: the transport id (or the "binding unverified" banner), the object list, the ATC priority-1 and priority-2 counts (both must be 0), the ABAP Unit result (green), the Clean-Core level (A), the invariant diff (all false), and the single sentence "release action is yours."
 
 **Rules for the pack:**
 - `bundle_status` is `release-ready` ONLY when every precondition passed AND `transport_binding.verified:true` AND `objects_unbound_or_split` is empty. With the stub returning `data_available:false`, the honest status today is `binding-unverified` — say so; do not inflate it to `release-ready`.
 - Every object in `sap-verdict.json` `objects[]` must appear in `transport.objects_bound` (when verified) or in `objects_expected` (when unverified). A gate-passed object missing from the transport is a critical gap — the transport would ship an incomplete feature.
-- `atc.priority1` must be empty and `abap_unit.failed` must be empty for a deliverable change — if the sap-verdict shows otherwise, `bundle_status` is `blocked-upstream`, not `release-ready`.
+- `atc.priority1` AND `atc.priority2` must be empty, and `abap_unit.failed` must be empty for a deliverable change (C3/P6 — SAP blocks transport on both priorities) — if the sap-verdict shows otherwise, `bundle_status` is `blocked-upstream`, not `release-ready`.
 - Absence of the pack is not a release. No pack ⇒ nothing to release.
 
 ## What you MUST NOT do
@@ -111,6 +111,6 @@ Also write a human-readable companion at `specs/delivery/transport-evidence.md` 
 
 - **Dependency-group integrity is the whole job.** A RAP feature is a *set* of objects (CDS entity + projection + behavior definition + implementation + service definition/binding + test class). Releasing a subset half-activates the feature in QAS. Your single most important check is: are ALL of them in ONE transport? When the transport signal is stubbed, you cannot confirm this — say so explicitly; do not paper over it.
 - **Stub-signal honesty.** `get_transport_requests` (and `query_scmon_usage`, `query_smodilog_modifications` upstream) return `data_available:false` today. Branch on the flag every time. Unavailable ≠ empty ≠ clean. The human is told exactly what could not be verified.
-- **WARN is deliverable, BLOCK is not.** A `WARN` sap-verdict (priority-2/3 ATC finding within the accepted ratchet, or a coverage note) is release-ready with the WARNs recorded in the pack for the human to weigh. A `BLOCK` is never assembled into a ready transport.
+- **WARN is deliverable, BLOCK is not.** A `WARN` sap-verdict (priority-3 ATC finding within the accepted ratchet, or a coverage note) is release-ready with the WARNs recorded in the pack for the human to weigh. A `BLOCK` is never assembled into a ready transport.
 - **Coverage/ratchet are the evaluator's ledger, not yours.** You report the coverage numbers from the sap-verdict; you do not update `.claude/state/atc-baseline.json` or `abapunit-baseline.json` — the evaluator owns the ratchet. You only attest and hand off.
 - **One transport, one feature.** If the change legitimately spans two independent features, that is two deliveries, each with its own pack — do not staple unrelated objects into one transport to "save a release."

@@ -70,7 +70,7 @@ The `preview` for option A must be a markdown block in this exact shape (substit
   Connection mode  {A Mock/offline | B DEV-ready}  (writes fail-closed either way — P5)
   Design-critic    {Light | Standard}  (Gate 6, SOFT/WARN)
   Model tier       balanced (Sonnet generation · Opus judgment)
-  ATC variant      ABAP_CLEAN_CORE_DEVELOPMENT (pinned, priority-1 zero — P6)
+  ATC variant      ABAP_CLEAN_CORE_DEVELOPMENT (pinned, priority-1 and priority-2 zero — P6/C3)
   Write gate       HARNESS_ADT_ALLOW_WRITE=0  (human enables on a DEV tier only)
 ```
 
@@ -107,7 +107,7 @@ Ask the following one at a time, using `AskUserQuestion` for each multi-choice q
    - B) cost — cheapest that still keeps Opus on the hard-gate judgments
    - C) max-quality — Opus generation as well
 
-The hard gates (ATC priority-1 zero, ABAP Unit green, P4 invariants) and the write fail-closed default are **not** wizard options — they are contract (P4/P5/P6) and cannot be toggled off here.
+The hard gates (ATC priority-1 and priority-2 zero, ABAP Unit green, P4 invariants) and the write fail-closed default are **not** wizard options — they are contract (P4/P5/P6) and cannot be toggled off here.
 
 ## Step 2: Locate the harness plugin source
 
@@ -250,11 +250,11 @@ mkdir -p .claude/state
 _(No rules learned yet — this is a fresh scaffold.)_
 ```
 
-**`.claude/state/atc-baseline.json`** — the accepted priority-2/3 ATC WARN floor. It may only **shrink** across runs; priority-1 is never baselined (priority-1 is always a hard BLOCK — P6). Seed empty:
+**`.claude/state/atc-baseline.json`** — the accepted priority-3 ATC WARN floor (the field is named `accepted_priority_2_3` for legacy reasons per C3, but only priority-3 lands in it). It may only **shrink** across runs; priority-1 and priority-2 are never baselined (both are hard BLOCKs — P6/C3). Seed empty:
 
 ```json
 {
-  "_comment": "ATC ratchet floor — accepted priority-2/3 WARN findings under variant ABAP_CLEAN_CORE_DEVELOPMENT. Only SHRINKS across runs. Priority-1 is NEVER baselined (always a hard BLOCK, P6). Established/updated by abap-evaluator on a clean run; a BLOCK run never moves it.",
+  "_comment": "ATC ratchet floor — accepted priority-3 WARN findings under variant ABAP_CLEAN_CORE_DEVELOPMENT (field name accepted_priority_2_3 is legacy per C3; only priority-3 lands in it). Only SHRINKS across runs. Priority-1 AND priority-2 are NEVER baselined (both always hard BLOCKs, P6/C3). Established/updated by abap-evaluator on a clean run; a BLOCK run never moves it.",
   "variant": "ABAP_CLEAN_CORE_DEVELOPMENT",
   "accepted_priority_2_3": []
 }

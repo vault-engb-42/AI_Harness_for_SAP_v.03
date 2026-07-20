@@ -122,7 +122,7 @@ Each feature's `steps` must be executable checks the evaluator can run against a
   "description": "Sales order projection activates clean and exposes OrderId as read-only",
   "steps": [
     "activate_object ZC_SalesOrderTP on DEV",
-    "run_atc_check variant ABAP_CLEAN_CORE_DEVELOPMENT -> priority-1 findings == 0",
+    "run_atc_check variant ABAP_CLEAN_CORE_DEVELOPMENT -> priority-1 and priority-2 findings == 0",
     "run_unit_tests for LTCL_SALES_ORDER -> all green",
     "Assert projection field OrderId carries @ObjectModel.readOnly"
   ],

@@ -72,7 +72,7 @@ Ask: **"Approve the RAP/CDS design to proceed to autonomous implementation?"** D
 
 Before entering the implement→validate loop, create the ratchet state files (only if they do not already exist — never reset a ratchet mid-project):
 
-1. `.claude/state/atc-baseline.json` — `{ "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "accepted_priority_2_3": [] }` (the accepted priority-2/3 WARN floor — only shrinks).
+1. `.claude/state/atc-baseline.json` — `{ "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "accepted_priority_2_3": [] }` (the accepted priority-3 WARN floor — only shrinks; `accepted_priority_2_3` is a legacy field name kept per C3, but only priority-3 lands in it — priority-2 hard-blocks).
 2. `.claude/state/abapunit-baseline.json` — `{ "coverage_floor_pct": 0, "per_object": {} }` (the coverage floor — only grows).
 3. `.claude/state/learned-rules.md` — header `# Learned Rules\n\nProject-specific ABAP decisions carried across groups.\n` (RAP draft choices, released-API selections, ATC-finding fixes; injected verbatim into every generator team).
 4. `.claude/state/iteration-log.md` — header `# Iteration Log\n\nTeammate spawns, evaluator runs, gate verdicts per group.\n`.
@@ -91,7 +91,7 @@ Walk `specs/stories/dependency-graph.md` in wave order (Group A → B → C …)
   2. Clean-Core Level-A + syntax (HARD).
   3. ABAP Unit coverage ≥ `abapunit-baseline.json` ratchet (HARD).
   4. Extensibility/architecture (HARD).
-  5. **ATC + activation on live DEV — variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero — the keystone (HARD).** A missing/failed/`data_available:false` ATC run is a fail-closed BLOCK, never a pass (P6).
+  5. **ATC + activation on live DEV — variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero — the keystone (HARD).** A missing/failed/`data_available:false` ATC run is a fail-closed BLOCK, never a pass (P6/C3).
   6. RAP/CDS design-critic (`abap-design-critic`, SOFT/WARN).
   7. Invariants + injection (`abap-security-reviewer`, Gate 7 HARD — P4 `AUTHORITY-CHECK`/`COMMIT WORK`/`SY-SUBRC` diff + injection).
   8. Cold-read diff review (`abap-diff-reviewer`, Gate 8 HARD — fresh-context correctness). The `clean-core-reviewer` renders the Level-A / released-API gate.
@@ -100,7 +100,7 @@ Walk `specs/stories/dependency-graph.md` in wave order (Group A → B → C …)
 
 **GAN loop within a group:** a `BLOCK` from any hard gate returns the failing objects — with the exact ATC rule ids / failing test / invariant diff — to `abap-generator` for a fix, then re-validate. Only `abap-evaluator`/reviewer findings reopen the loop; the writer never grades itself. On a PASS (or clean WARN), the evaluator tightens the ratchet (`atc-baseline.json` down, `abapunit-baseline.json` up) and the group is merge-ready. Do NOT start Phase 5 for a downstream group until every upstream group has passed Phase 6 — a consumer built on an un-validated producer wastes a live DEV activation cycle.
 
-`--mode` passthrough: `full` runs all eight gates including the design-critic (6) and the GAN block/refine loop; `lean` skips the design-critic and the GAN refine loop but **keeps** the hard gates — ATC + activation (5), ABAP Unit (1/3), invariants (7), and diff review (8). The invariant and ATC gates are never skippable regardless of mode (P4/P6).
+`--mode` passthrough: `full` runs all eight gates including the design-critic (6) and the GAN block/refine loop; `lean` skips the design-critic (Gate 6) but **keeps** every hard gate AND the GAN block/refine loop — ATC + activation (5), ABAP Unit (1/3), invariants (7), and diff review (8). The invariant and ATC gates are never skippable regardless of mode (P4/P6).
 
 ### Phase 7 — Transport Assembly [HUMAN GATE — before release]
 
@@ -117,7 +117,7 @@ After every group has a PASS/WARN `sap-verdict.json`, run `/abap-transport`. It 
 | Mode | Description |
 |------|-------------|
 | `full` | All eight ratchet gates, the design-critic (Gate 6), and the GAN block→refine loop within each group |
-| `lean` | Skip the design-critic (Gate 6) and the GAN refine loop; **keep** the hard gates — ATC + activation on live DEV (Gate 5), ABAP Unit + coverage (Gates 1/3), invariants (Gate 7), cold-read diff review (Gate 8) |
+| `lean` | Skip the design-critic (Gate 6) only; **keep** every hard gate AND the GAN block/refine loop (self-healing) — ATC + activation on live DEV (Gate 5), ABAP Unit + coverage (Gates 1/3), invariants (Gate 7), cold-read diff review (Gate 8) |
 
 The P4 invariant gate (7) and the P6 ATC + activation gate (5) are enforced in **both** modes — they are never skippable.
 

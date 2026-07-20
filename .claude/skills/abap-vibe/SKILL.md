@@ -138,7 +138,7 @@ Always: run `aws_abap_cb_check_syntax` on every touched object; green syntax is 
 Then, by executable-ABAP touch:
 
 - **No executable ABAP (AV0):** **skip Gate 5** (no live push, no activation, no ATC-on-activation). This is the fast lane's entire payoff. Syntax-green + the reviewer set in Step 8 is the bar.
-- **Executable ABAP (AV1/AV2):** run the touched object through `abap-evaluator` on a DEV tier — activation + ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, **priority-1 zero**) + the ABAP Unit run — and write `specs/reviews/sap-verdict.json` (P6). A missing or failed ATC/activation is **fail-closed BLOCK**, not "probably fine." Do **not** ratchet `atc-baseline.json` / `abapunit-baseline.json` down; a passing threshold only tightens.
+- **Executable ABAP (AV1/AV2):** run the touched object through `abap-evaluator` on a DEV tier — activation + ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, **priority-1 and priority-2 zero**) + the ABAP Unit run — and write `specs/reviews/sap-verdict.json` (P6). A missing or failed ATC/activation is **fail-closed BLOCK**, not "probably fine." Do **not** ratchet `atc-baseline.json` / `abapunit-baseline.json` down; a passing threshold only tightens.
 
 If verification fails, fix within the micro-contract. If the fix expands past the eligibility rules, **stop and escalate**.
 

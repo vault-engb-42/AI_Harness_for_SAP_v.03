@@ -21,7 +21,7 @@ Behavior, in ABAP terms, is the evidence pair: **ABAP Unit** (every `LTCL_*` ver
 
 2. **In a refactor commit:**
    - All existing `LTCL_*` test classes are **byte-identical** — no assertion edits, no new/removed test methods, no test-data changes. The pinned oracle from `checking-coverage-before-change` is untouched.
-   - ABAP Unit stays **green on live DEV** and coverage is `≥ .claude/state/abapunit-baseline.json`; the ATC accepted-WARN set is a subset of `.claude/state/atc-baseline.json` and the priority-1 count stays **zero**. Warnings only fall.
+   - ABAP Unit stays **green on live DEV** and coverage is `≥ .claude/state/abapunit-baseline.json`; the ATC accepted-WARN set is a subset of `.claude/state/atc-baseline.json` and the priority-1 **and priority-2** counts stay **zero** (C3/P6). Warnings only fall.
    - Every renamed/moved/deleted symbol: enumerate its consumers from `specs/brownfield/architecture-map.md` (the `abap-explorer` map) and verify each call site is updated — CDS `association`s, RAP compositions, class references, dynamic `CALL METHOD` / BAdI / RAP determination-validation bindings. No orphaned reference, no dead copy left behind. ADT fails activation on a stale reference; it does not compile silently.
    - **Grounding is unchanged:** the refactor references no released API the pre-refactor object did not already use. Re-confirm against `get_migration_analysis` (via `clean-core-reviewer`) — a refactor that pulls in a new API is behavior. `clean_core_level` held-at-or-improved-to A, never regressed (P1/P2).
 
@@ -54,7 +54,7 @@ Behavior, in ABAP terms, is the evidence pair: **ABAP Unit** (every `LTCL_*` ver
 
 - [ ] Every hunk classified; mixed work split (structural commit first), behavior escalated to `/abap-change`
 - [ ] Refactor commit staged with **explicit paths only** and manually verified to contain **no `LTCL_*` / baseline edit** — a pure refactor leaves them byte-identical. (There is no automated pre-commit purity gate; this is a manual discipline, re-checked by `/abap-validate` Step-5 attributability.)
-- [ ] Refactor commit: `LTCL_*` byte-identical; ABAP Unit green on DEV; coverage `≥ abapunit-baseline.json`; ATC WARN set ⊆ `atc-baseline.json`, priority-1 zero
+- [ ] Refactor commit: `LTCL_*` byte-identical; ABAP Unit green on DEV; coverage `≥ abapunit-baseline.json`; ATC WARN set ⊆ `atc-baseline.json`, priority-1 and priority-2 zero
 - [ ] Renames/deletes: every consumer in `architecture-map.md` verified updated, no dead copy, no orphaned binding
 - [ ] No new released-API reference (`get_migration_analysis` re-confirmed); `clean_core_level` held-at/improved-to A
 - [ ] Behavior commit: `LTCL_*` updates cite the authorizing story/issue

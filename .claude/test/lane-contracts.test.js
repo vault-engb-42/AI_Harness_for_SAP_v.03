@@ -293,3 +293,25 @@ test("the baseline-seed docs use the canonical ratchet field names, not dead ali
   }
   assert.deepEqual(offenders, [], `baseline-seed schema drift:\n${offenders.join("\n")}`);
 });
+
+// Skills-review remediation (M1/L1, C3 propagation): priority-2 ATC is a hard BLOCK (C3/P6 — SAP's
+// transport-blocking config blocks BOTH priority-1 and priority-2; only priority-3 is a WARN). No
+// lane may present "priority-2/3" as a ratchetable/deliverable WARN (the ratchet FIELD is named
+// accepted_priority_2_3 with an underscore — that legacy name is fine; the slash form is residue).
+test("no lane presents ATC priority-2 as a deliverable/ratchetable WARN (C3 — priority-2 hard-blocks)", () => {
+  const offenders = [];
+  for (const { path, text } of laneDefinitions()) {
+    if (/priority-?2\/3/i.test(text)) offenders.push(`${path}: stale 'priority-2/3' WARN residue (C3: priority-2 blocks, only priority-3 ratchets)`);
+  }
+  assert.deepEqual(offenders, [], `C3 priority-2 propagation residue:\n${offenders.join("\n")}`);
+});
+
+// (M1) The terminal delivery gate — the skill AND the transport-manager agent that executes it —
+// must fail-closed on priority-2, not just priority-1.
+test("abap-transport + transport-manager gate on ATC priority-2 (C3 terminal-gate guard)", () => {
+  for (const p of ["skills/abap-transport/SKILL.md", "agents/transport-manager.md"]) {
+    const t = readFileSync(join(CLAUDE, p), "utf8");
+    assert.match(t, /atc\.priority2/, `${p} preconditions must check atc.priority2 empty`);
+    assert.doesNotMatch(t, /priority-2\/3 ATC (finding )?within the/, `${p}: no 'priority-2/3 deliverable within the ratchet' residue`);
+  }
+});

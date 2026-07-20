@@ -12,7 +12,7 @@ One lane for changing what an existing ABAP object *does*: adding to or altering
 
 The change happens **test-first** and **in place**: no production ABAP changes until an ABAP Unit test that captures the desired behavior (or reproduces the defect) exists and has been observed to fail. Modify the existing object and update its call sites — never clone a `Z..._V2` alongside the original (P3).
 
-> **This lane writes local source; it does not render the verdict.** Like `/abap-implement`, this is the writer half of the GAN loop. The `abap-generator` team self-runs `aws_abap_cb_check_syntax` ONLY and renders **no** verdict — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. The hard gates fire in the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier, activates, runs ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero) + ABAP Unit, and writes `specs/reviews/sap-verdict.json`. Do not let this skill declare itself done on a green syntax check (P6).
+> **This lane writes local source; it does not render the verdict.** Like `/abap-implement`, this is the writer half of the GAN loop. The `abap-generator` team self-runs `aws_abap_cb_check_syntax` ONLY and renders **no** verdict — no ATC, no ABAP Unit run, no activation, no PASS/WARN/BLOCK. The hard gates fire in the next lane, `/abap-validate`, where `abap-evaluator` pushes this UNCHANGED source to a DEV tier, activates, runs ATC (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero) + ABAP Unit, and writes `specs/reviews/sap-verdict.json`. Do not let this skill declare itself done on a green syntax check (P6).
 
 ## Usage
 
@@ -98,7 +98,7 @@ Keep the change scoped to what the acceptance criteria require. Writes stay **lo
 
 ### Step S6 — Hand to /abap-validate for the Hard Gates
 
-This lane runs **only** `check_syntax` (self-check, minimum bar for hand-off — **not** a verdict). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here. Run `/abap-validate` on the changed object group: `abap-evaluator` pushes the UNCHANGED source to a DEV tier, activates, runs ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero) and ABAP Unit (coverage ≥ the ratchet baseline), and writes `specs/reviews/sap-verdict.json`. On the way, the security reviewer (Gate 7, HARD — `abap-security-reviewer`, P4 invariants + injection) and the cold-read diff reviewer (Gate 8, HARD — `abap-diff-reviewer`) run against the change. A `BLOCK` from any hard gate reopens this lane; fix in place and re-validate. Until `/abap-validate` passes, the change is not merge-ready.
+This lane runs **only** `check_syntax` (self-check, minimum bar for hand-off — **not** a verdict). Do not ratchet `atc-baseline.json` or `abapunit-baseline.json` here. Run `/abap-validate` on the changed object group: `abap-evaluator` pushes the UNCHANGED source to a DEV tier, activates, runs ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero) and ABAP Unit (coverage ≥ the ratchet baseline), and writes `specs/reviews/sap-verdict.json`. On the way, the security reviewer (Gate 7, HARD — `abap-security-reviewer`, P4 invariants + injection) and the cold-read diff reviewer (Gate 8, HARD — `abap-diff-reviewer`) run against the change. A `BLOCK` from any hard gate reopens this lane; fix in place and re-validate. Until `/abap-validate` passes, the change is not merge-ready.
 
 ### Step S7 — Update the Story File
 

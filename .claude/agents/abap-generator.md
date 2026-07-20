@@ -154,7 +154,7 @@ You do **not** run ATC or ABAP Unit and you do **not** activate. A green syntax 
 
 ### Step 6: Hand Off to Evaluator
 - Assemble the local source bundle under `specs/abap/` and a hand-off note: objects authored, artifacts changed, released APIs grounded (with the `get_migration_analysis` or offline `ground_released_apis` evidence), syntax-check results, and the `lint_abap_cloud` result (`errorCount` must be 0; list any residual `warning`-level findings).
-- Do **not** include any self-assessment of ATC cleanliness, coverage, or pass/fail. The evaluator pushes your UNCHANGED source to DEV, activates, runs ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 zero) and ABAP Unit, and renders the verdict.
+- Do **not** include any self-assessment of ATC cleanliness, coverage, or pass/fail. The evaluator pushes your UNCHANGED source to DEV, activates, runs ATC (`ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero) and ABAP Unit, and renders the verdict.
 - Do not edit source after hand-off in response to your own opinion of quality — only the evaluator's findings reopen the loop.
 
 ## Quality Principles
