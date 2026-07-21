@@ -315,3 +315,13 @@ test("abap-transport + transport-manager gate on ATC priority-2 (C3 terminal-gat
     assert.doesNotMatch(t, /priority-2\/3 ATC (finding )?within the/, `${p}: no 'priority-2/3 deliverable within the ratchet' residue`);
   }
 });
+
+// Skills-review remediation (transport:54): the terminal delivery gate must re-check the DEDICATED
+// clean-core-verdict.json (Gate 2/4, HARD per abap-validate), not only the sap-verdict clean_core_level
+// FIELD — an object can read Level A yet fail the clean-core gate (a modification / non-released extension).
+test("abap-transport + transport-manager gate on clean-core-verdict.json (Gate 2/4 defense-in-depth)", () => {
+  for (const p of ["skills/abap-transport/SKILL.md", "agents/transport-manager.md"]) {
+    const t = readFileSync(join(CLAUDE, p), "utf8");
+    assert.match(t, /clean-core-verdict\.json/, `${p} preconditions must re-check clean-core-verdict.json#pass`);
+  }
+});

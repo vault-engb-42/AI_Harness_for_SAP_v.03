@@ -33,6 +33,7 @@ The change must already have run the full GAN loop and passed the gates. Before 
 - `specs/reviews/sap-verdict.json` — the `abap-evaluator` output from `/abap-validate` (activation log, ATC priority-1/2-3 with rule ids, ABAP Unit failures + coverage, `clean_core_level`, `invariant_diff`, `objects[]`).
 - `specs/reviews/security-verdict.json` — the `abap-security-reviewer` Gate 7 verdict (P4 invariants + injection).
 - `specs/reviews/diff-review-verdict.json` — the `abap-diff-reviewer` Gate 8 cold-read verdict.
+- `specs/reviews/clean-core-verdict.json` — the `clean-core-reviewer` Gate 2/4 verdict (Level-A + released-API-only, no modification/source-code plug-in, sanctioned extension point).
 - `specs/stories/dependency-graph.md` — to confirm the group is a coherent dependency unit that must release as one.
 
 If any of these is missing, stop and report what is absent. A missing verdict is a fail-closed BLOCK, not a "probably passed" — this lane never assembles on an unavailable signal.
@@ -45,13 +46,14 @@ This lane is **not** disposable: it sits on the GAN pipeline and consumes gate v
 
 ### Step 1 — Load and Verify the Gate Verdicts (fail-closed preconditions, P6)
 
-Read the three verdict files. The `transport-manager` refuses to assemble a `release-ready` bundle unless ALL of these hold; each maps to a hard gate. Transcribe verbatim — do not re-run or re-grade any gate.
+Read the four verdict files. The `transport-manager` refuses to assemble a `release-ready` bundle unless ALL of these hold; each maps to a hard gate. Transcribe verbatim — do not re-run or re-grade any gate.
 
 1. **`sap-verdict.json` `verdict` is `PASS` or `WARN`** (Gate 5, the ATC + activation keystone). `WARN` is deliverable (priority-3 ATC within the ratchet, or a coverage note recorded for the human). A `BLOCK` verdict, or a missing file ⇒ `bundle_status: blocked-upstream`, STOP.
 2. **`sap-verdict.json` `atc.priority1` AND `atc.priority2` are empty** (variant `ABAP_CLEAN_CORE_DEVELOPMENT`, priority-1 and priority-2 zero — P6/C3: SAP's transport-blocking config blocks both) **and** `abap_unit.failed` is empty. Otherwise ⇒ `blocked-upstream`.
 3. **`security-verdict.json` `pass` is `true`** — all three P4 invariants `ok` (`AUTHORITY-CHECK` not weakened, `COMMIT WORK` not suppressed, `SY-SUBRC` check not dropped) and `baseline_established` true. A P4 invariant regression is un-deliverable regardless of ATC/unit greenness. Missing file ⇒ fail-closed ⇒ STOP.
 4. **`diff-review-verdict.json` `pass` is `true`** — zero BLOCK correctness findings from the cold-read (Gate 8). Missing file ⇒ fail-closed ⇒ STOP.
-5. **`clean_core_level` in the sap-verdict is `A`** at the target (P1: released APIs + BAdI/RAP extension only). A `not-A` target level is un-deliverable — STOP with the reason. (Brownfield *source* at any level is fine; the *target* must be Level A — P1/P3.)
+5. **`clean-core-verdict.json` `pass` is `true`** (Gate 2/4, HARD — the `clean-core-reviewer`'s dedicated verdict: no `notToBeReleased` consumption, no modification/source-code plug-in, no non-released extension point, no ATC priority-1). This is DISTINCT from the sap-verdict `clean_core_level` field below — an object can read Level A yet still fail this gate (e.g. a modification that does not change the level). Missing file ⇒ fail-closed ⇒ STOP.
+6. **`clean_core_level` in the sap-verdict is `A`** at the target (P1: released APIs + BAdI/RAP extension only). A `not-A` target level is un-deliverable — STOP with the reason. (Brownfield *source* at any level is fine; the *target* must be Level A — P1/P3.)
 
 If any precondition fails, the pack is still produced with `bundle_status` naming the failed gate — but no objects are bound into a "ready" transport on top of a failed gate.
 
@@ -77,7 +79,7 @@ The `transport-manager` writes the machine-readable pack to `specs/delivery/tran
 - `bundle_status` — `release-ready | binding-unverified | split-delivery | blocked-upstream`.
 - The transport id / description / modifiable flag / bound objects (or `null` + the stub reason when `data_available:false`).
 - `transport_binding` — `verified`, `reason`, `objects_expected` (from `sap-verdict.json` `objects[]`), `objects_unbound_or_split`.
-- The evidence roll-up: verdict, activation log, ATC (variant + priority-1 empty + priority-2 empty + priority-3 recorded), ABAP Unit (failed empty + coverage vs baseline), `clean_core_level:A`, `invariant_diff` (all three false), and the security/diff verdict pointers with `pass:true`.
+- The evidence roll-up: verdict, activation log, ATC (variant + priority-1 empty + priority-2 empty + priority-3 recorded), ABAP Unit (failed empty + coverage vs baseline), `clean_core_level:A`, `invariant_diff` (all three false), and the clean-core/security/diff verdict pointers with `pass:true`.
 - `release_gates` — `next_action: "human releases transport DEV → QAS"`, `owner: "human"`, and the one thing the human must confirm first (e.g. "transport binding unverified — signal stubbed").
 
 `bundle_status` is `release-ready` ONLY when every Step 1 precondition passed AND `transport_binding.verified:true` AND `objects_unbound_or_split` is empty. With the stub returning `data_available:false`, the honest status today is `binding-unverified` — do not inflate it.
