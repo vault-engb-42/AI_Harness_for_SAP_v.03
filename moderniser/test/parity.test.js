@@ -65,9 +65,11 @@ test("a clean rewrite WITH a parity class is equivalent (PASS_STRUCTURAL forbidd
 test("each deduction lowers the score by its §15.4 weight", () => {
   assert.equal(parity(diff({ auth_object_changed: true })).score, 0.7);
   assert.equal(parity(diff({ exception_path_dropped: true })).score, 0.6);
-  assert.equal(parity(diff({ def_use_lost: true })).score, 0.7);
   assert.equal(parity(diff({ cfg_branch_regression: true })).score, 0.8);
   assert.equal(parity(diff({ max_nesting_regression: true })).score, 0.85);
+  // def_use_lost deduction DELETED (gap-2b): data-flow edges are unbuilt, so the signal is
+  // un-extractable — it must no longer deduct (a stray flag is silently ignored, not scored).
+  assert.equal(parity(diff({ def_use_lost: true })).score, 1);
 });
 
 test("top band: PASS_STRUCTURAL when classes empty, equivalent when non-empty", () => {
@@ -77,12 +79,12 @@ test("top band: PASS_STRUCTURAL when classes empty, equivalent when non-empty", 
 
 test("middle band [0.30,0.70) → needs_review; bottom <0.30 → scope_reduced (half-open, total)", () => {
   assert.equal(parity(diff({ exception_path_dropped: true })).verdict, "needs_review"); // 0.60
-  assert.equal(parity(diff({ exception_path_dropped: true, def_use_lost: true })).verdict, "needs_review"); // 0.30 boundary
-  assert.equal(parity(diff({ exception_path_dropped: true, def_use_lost: true, max_nesting_regression: true })).verdict, "scope_reduced"); // 0.15
+  assert.equal(parity(diff({ exception_path_dropped: true, auth_object_changed: true })).verdict, "needs_review"); // 0.4+0.3 → 0.30 boundary (inclusive low)
+  assert.equal(parity(diff({ exception_path_dropped: true, auth_object_changed: true, max_nesting_regression: true })).verdict, "scope_reduced"); // 0.4+0.3+0.15 → 0.15
 });
 
 test("the score clamps at 0 — deductions summing over 1 never go negative", () => {
-  const r = parity(diff({ auth_object_changed: true, exception_path_dropped: true, def_use_lost: true, cfg_branch_regression: true, max_nesting_regression: true }));
+  const r = parity(diff({ auth_object_changed: true, exception_path_dropped: true, cfg_branch_regression: true, max_nesting_regression: true }));
   assert.equal(r.score, 0);
   assert.equal(r.verdict, "scope_reduced");
 });

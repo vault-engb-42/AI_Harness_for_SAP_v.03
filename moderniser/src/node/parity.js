@@ -23,11 +23,13 @@
  * table-access switch) into the single boolean.
  */
 
-// §15.4 semantic-parity deduction weights.
+// §15.4 semantic-parity deduction weights. NB `def_use_lost` (−0.30) was REMOVED in gap-2b:
+// data-flow (def-use) edges are unbuilt in the CPG, so the signal is un-extractable offline —
+// a permanently-false deduction is dead weight (coding-standards: no dead branch), so it is
+// dropped rather than left to read `false` forever. Re-add it only alongside a def-use extractor.
 const DEDUCTIONS = {
   auth_object_changed: 0.3,
   exception_path_dropped: 0.4,
-  def_use_lost: 0.3,
   cfg_branch_regression: 0.2,
   max_nesting_regression: 0.15,
 };
