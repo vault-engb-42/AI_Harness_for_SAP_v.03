@@ -131,3 +131,37 @@ test("all new surfaces are total and deterministic", () => {
   const hostile = String.fromCharCode(0, 0x202e) + "{{{ unterminated '";
   assert.doesNotThrow(() => extractBdefDcl([dcls(hostile), bdef('/' + '*'), ddls('@AccessControl')]));
 });
+
+// B7 acceptance found this: the real abap_fico corpus uses BOTH naming conventions — abapGit's
+// `<name>.<type>.<ext>` and ADT's bare `<name>.<ext>`. Requiring the `.bdef`/`.ddls` infix made
+// engine 2 silently skip every bare-named artifact, returning zero features, so a missing
+// authorization clause was indistinguishable from an object that never had one.
+
+test("routing accepts BOTH the abapGit infix form and the bare ADT form", () => {
+  const body = `managed implementation in class zbp_x unique;
+define behavior for ZI_X alias X
+  authorization master ( global )
+  lock master { }`;
+  const expected = [{ entity: "ZI_X", mode: "master", scope: "GLOBAL" }];
+  for (const name of ["zbp_x.bdef.asbdef", "ZBP_X.asbdef", "zbp_x.bdef"]) {
+    assert.deepEqual(extractBdefDcl([{ filename: name, source: body }]).auth_bdef, expected, `BDEF routing failed for ${name}`);
+    assert.equal(extractBdefDcl([{ filename: name, source: body }]).save_boundaries, 1, `save boundary missed for ${name}`);
+  }
+  const role = `define role zc_x { grant select on zi_x where (c) = aspect pfcg_auth( S_CARRID, ACTVT ); }`;
+  for (const name of ["zc_x.dcls.asdcls", "ZC_X.asdcls", "zc_x.dcls"]) {
+    assert.deepEqual(extractBdefDcl([{ filename: name, source: role }]).dcl_restrictions,
+      [{ object: "S_CARRID", entity: "ZI_X" }], `DCL routing failed for ${name}`);
+  }
+  const view = `@AccessControl.authorizationCheck: #NOT_REQUIRED\ndefine view entity ZI_X as select from zt { key id }`;
+  for (const name of ["zi_x.ddls.asddls", "ZI_X.asddls", "zi_x.ddls"]) {
+    assert.deepEqual(extractBdefDcl([{ filename: name, source: view }]).privileged_cds,
+      [{ object: "ZI_X", had_row_auth: false }], `DDLS routing failed for ${name}`);
+  }
+});
+
+test("a REAL abap_fico corpus artifact with a bare .asbdef name is extracted", async () => {
+  const { readFileSync } = await import("node:fs");
+  const path = "demos/abap_fico-e2e-2026-07-14/after/modernised-source/ZCREATE_ASSET/ZR_ZASSETCOPYCC.asbdef";
+  const out = extractBdefDcl([{ filename: "ZR_ZASSETCOPYCC.asbdef", source: readFileSync(path, "utf8") }]);
+  assert.equal(out.save_boundaries, 1, "this returned ZERO features before the routing fix");
+});

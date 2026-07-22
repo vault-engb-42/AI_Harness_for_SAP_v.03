@@ -25,9 +25,15 @@
  *       engine 1's, merged in `bundle.js`.
  */
 
-const DCL_RE = /\.dcls(\.asdcls)?$/i;
-const BDEF_RE = /\.bdef(\.asbdef)?$/i;
-const DDLS_RE = /\.ddls(\.asddls)?$/i;
+// Routing keys on the FINAL extension, so BOTH real naming conventions work: the abapGit
+// `<name>.<type>.<ext>` form (`zbp_x.bdef.asbdef`) and the bare `<name>.<ext>` form
+// (`ZR_ZASSETCOPYCC.asbdef`) that ADT exports produce. Requiring the `.bdef`/`.ddls` infix made
+// engine 2 SILENTLY SKIP every bare-named artifact — it returned zero features, so a missing
+// authorization clause and a missing RAP save boundary were indistinguishable from an object with
+// neither. Found by the B7 acceptance run against the real abap_fico corpus, which uses both forms.
+const DCL_RE = /\.(dcls|asdcls)$/i;
+const BDEF_RE = /\.(bdef|asbdef)$/i;
+const DDLS_RE = /\.(ddls|asddls)$/i;
 
 // A behaviour definition that declares a `managed` or `unmanaged` implementation OWNS a
 // transactional save: the RAP framework issues the COMMIT, so there is no COMMIT statement to
