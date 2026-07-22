@@ -43,9 +43,13 @@ export function assembleBundle(files, opts = {}) {
   const bundle = Object.freeze({
     source_hash,
     file_hashes: fileHashes(list),
-    // invariantDiff INPUT — 4/4, exactly the shape `invariants.js` normalises.
+    // invariantDiff INPUT — exactly the shape `invariants.js` normalises. `auth_bdef`/`dcl_grants`
+    // joined in the B6.5 remediation: P4a names the BDEF authorization clause as the RAP auth gate,
+    // and grant-form awareness is what stops a pfcg_auth→inheriting migration false-blocking.
     auth_checks: ast.auth_checks,
     dcl_restrictions: rap.dcl_restrictions,
+    dcl_grants: rap.dcl_grants,
+    auth_bdef: rap.auth_bdef,
     commit_work: ast.commit_work,
     privileged_cds: rap.privileged_cds,
     // parity classify signals
@@ -66,12 +70,14 @@ export function assembleBundle(files, opts = {}) {
   return bundle;
 }
 
-/** The exact 4-field slice `invariantDiff` consumes — passing the whole bundle would still work,
- *  but the narrow slice is what keeps the P4 judge's input contract auditable. */
+/** The exact slice `invariantDiff` consumes — passing the whole bundle would still work, but the
+ *  narrow slice is what keeps the P4 judge's input contract auditable. */
 export function invariantInput(bundle = {}) {
   return {
     auth_checks: bundle.auth_checks ?? [],
     dcl_restrictions: bundle.dcl_restrictions ?? [],
+    dcl_grants: bundle.dcl_grants ?? [],
+    auth_bdef: bundle.auth_bdef ?? [],
     commit_work: bundle.commit_work ?? 0,
     privileged_cds: bundle.privileged_cds ?? [],
   };

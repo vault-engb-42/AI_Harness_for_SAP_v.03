@@ -26,28 +26,21 @@ define role ZI_Travel_Access {
 test("DCL namespaced/slashed auth objects and /-names are captured (no truncation)", () => {
   const dcl = `define role ZR { grant select on ZI_X where (F) = aspect pfcg_auth( /DMO/AUTH, ACTVT ); }`;
   const out = extractBdefDcl([file("zr.dcls.asdcls", dcl)]);
-  assert.deepEqual(out.dcl_restrictions, [{ object: "/DMO/AUTH" }]);
+  assert.deepEqual(out.dcl_restrictions, [{ object: "/DMO/AUTH", entity: "ZI_X" }]);
 });
 
-test("WITH PRIVILEGED ACCESS → privileged_cds {object: the granted CDS, had_row_auth from its where-clause}", () => {
-  const dcl = `define role ZI_Analytics_Priv {
-  grant select on ZI_Analytics
-    where ( CompanyCode ) = aspect pfcg_auth( F_BKPF_BUK, BUKRS )
-    with privileged access;
-}`;
-  const out = extractBdefDcl([file("zi_analytics.dcls.asdcls", dcl)]);
-  // Canonical UPPER (like every other extracted object) — ABAP CDS names are case-insensitive and
-  // privileged_cds is compared cross-bundle (before-file vs after-file) by invariantDiff.
-  assert.deepEqual(out.privileged_cds, [{ object: "ZI_ANALYTICS", had_row_auth: true }]);
-});
+// NB the `with privileged access`-in-DCL tests that used to live here were REMOVED in the B6.5
+// remediation: that clause does not exist in DCL grammar (WITH PRIVILEGED ACCESS is an ABAP-SQL
+// addition), so they pinned a branch that could never fire on real code. The real CDS bypass
+// (`@AccessControl.authorizationCheck: #NOT_REQUIRED`) is covered in extract-bdef-dcl-auth.test.js.
 
 test("privileged_cds is canonical UPPER — a case-only rewrite of a CARRIED privileged CDS is NOT a false auth-loss", () => {
   // The exact C2/F14 false-BLOCK the adversarial pass caught: before (legacy) and after (generated)
   // are DIFFERENT files, so an ABAP-legal case difference on the same carried-privileged entity must
   // not read as an introduced privileged grant. extractBdefDcl→invariantDiff, real path, no mocks.
-  const role = (cds) => `define role ZR { grant select on ${cds} where ( F ) = aspect pfcg_auth( S_X, ACTVT ) with privileged access; }`;
-  const before = extractBdefDcl([file("zr.dcls.asdcls", role("ZI_Analytics"))]);
-  const after = extractBdefDcl([file("zr.dcls.asdcls", role("zi_analytics"))]);
+  const view = (cds) => `@AccessControl.authorizationCheck: #NOT_REQUIRED\ndefine view entity ${cds} as select from zt { key id }`;
+  const before = extractBdefDcl([file("zi_analytics.ddls.asddls", view("ZI_Analytics"))]);
+  const after = extractBdefDcl([file("zi_analytics.ddls.asddls", view("zi_analytics"))]);
   const diff = invariantDiff(before, after);
   assert.equal(diff.auth_coverage.lost, false, "same privileged entity (case-insensitive) is not a new privileged grant");
   assert.equal(diff.auth_delta, false, "a case-only rewrite is not an auth-footprint change");
@@ -65,7 +58,7 @@ test("DCL comments never fake a grant (keyword-vs-comment defect class)", () => 
   grant select on ZI_X where (F) = aspect pfcg_auth( S_REAL, ACTVT );
 }`;
   const out = extractBdefDcl([file("zr.dcls.asdcls", dcl)]);
-  assert.deepEqual(out.dcl_restrictions, [{ object: "S_REAL" }]);
+  assert.deepEqual(out.dcl_restrictions, [{ object: "S_REAL", entity: "ZI_X" }]);
 });
 
 test("BDEF lock dependency + composition association → edges (kind lock/composition)", () => {
@@ -91,12 +84,13 @@ test("aggregates across a file set + ignores non-BDEF/DCL files", () => {
     file("zbp_y.bdef.asbdef", bdef),
     file("zcl_x.clas.abap", "CLASS zcl_x DEFINITION. ENDCLASS."),
   ]);
-  assert.deepEqual(out.dcl_restrictions, [{ object: "S_A" }]);
+  assert.deepEqual(out.dcl_restrictions, [{ object: "S_A", entity: "ZI_X" }]);
   assert.equal(out.privileged_cds.length, 0);
 });
 
 test("empty / malformed input is total — returns empty bundles, never throws", () => {
-  assert.deepEqual(extractBdefDcl([]), { dcl_restrictions: [], privileged_cds: [], edges: [] });
-  assert.deepEqual(extractBdefDcl([file("x.dcls.asdcls", "")]), { dcl_restrictions: [], privileged_cds: [], edges: [] });
+  const EMPTY = { dcl_restrictions: [], dcl_grants: [], auth_bdef: [], privileged_cds: [], edges: [] };
+  assert.deepEqual(extractBdefDcl([]), EMPTY);
+  assert.deepEqual(extractBdefDcl([file("x.dcls.asdcls", "")]), EMPTY);
   assert.doesNotThrow(() => extractBdefDcl([file("x.dcls.asdcls", "define role garbage { grant")]));
 });
