@@ -1,0 +1,24 @@
+{
+  "atc_p1": 11,
+  "atc_p2": 618,
+  "invariants": {
+    "intact": true,
+    "violations": [],
+    "auth_delta": true
+  },
+  "auth_coverage": {
+    "lost": false,
+    "lost_scopes": []
+  },
+  "parity": {
+    "score": 0.7,
+    "verdict": "needs_review",
+    "classes": [
+      "read-idiom"
+    ],
+    "evidence": [
+      "deduct:auth_object_changed:-0.3",
+      "band:paradigm_shift"
+    ]
+  }
+}

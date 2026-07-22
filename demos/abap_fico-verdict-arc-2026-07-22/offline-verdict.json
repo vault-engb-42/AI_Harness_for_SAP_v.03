@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-07-22",
+  "self_contained": true,
+  "corpus": {
+    "before": "before/source",
+    "after": "after/modernised-source",
+    "findings": "after/analyser-findings.json"
+  },
+  "provenance": "byte-identical copy of demos/abap_fico-e2e-2026-07-14 (source_hash verified equal on both sides)",
+  "files": {
+    "before": 29,
+    "after": 41
+  },
+  "source_hash": {
+    "before": "3f615aea7e991102f5c719f4ac9ab38c89c06fe4a278ef3c488802bb4e76d334",
+    "after": "06f6c6271011f3adacc2eb92ac2b7cad5d76642c4b7ee74a34d6bfe0d430ce43"
+  },
+  "extraction": {
+    "before": {
+      "auth_checks": 0,
+      "auth_bdef": 0,
+      "dcl_grants": 0,
+      "commit_work": 0,
+      "declarative_artifacts": 0,
+      "exception_paths": 5,
+      "cfg_branches": 117,
+      "max_nesting": 4,
+      "unreadable": 0
+    },
+    "after": {
+      "auth_checks": 10,
+      "auth_bdef": 3,
+      "dcl_grants": 0,
+      "commit_work": 4,
+      "declarative_artifacts": 7,
+      "exception_paths": 14,
+      "cfg_branches": 77,
+      "max_nesting": 3,
+      "unreadable": 0
+    }
+  },
+  "verdict": {
+    "provisional": false,
+    "status": "BLOCK",
+    "gate": "BLOCK",
+    "reasons": [
+      "atc-p1-nonzero",
+      "atc-p2-nonzero",
+      "auth-delta-unattested",
+      "parity-not-equivalent:needs_review"
+    ]
+  },
+  "driver": {
+    "action": "generate",
+    "retry": true,
+    "cycle": 1,
+    "findings_threaded": [
+      "atc-p1-nonzero",
+      "atc-p2-nonzero",
+      "auth-delta-unattested",
+      "parity-not-equivalent:needs_review"
+    ]
+  }
+}

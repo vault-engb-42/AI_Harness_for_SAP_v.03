@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>abap_fico — offline verdict arc (2026-07-22)</title>
+<style>
+  :root {
+    --paper: #faf9f7;
+    --raised: #ffffff;
+    --ink: #15181d;
+    --muted: #5c6672;
+    --hair: #dfe3e2;
+    --accent: #2d6a63;
+    --accent-soft: #e6efee;
+    --block: #a52a1f;
+    --review: #8a6100;
+    --pass: #1d6b45;
+    --block-soft: #f8eae8;
+    --review-soft: #f9f1e2;
+    --pass-soft: #e8f2ec;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #101317; --raised: #171b21; --ink: #e8eaec; --muted: #9aa4b0;
+      --hair: #272d35; --accent: #6bbfb4; --accent-soft: #17282a;
+      --block: #f08b7f; --review: #e0b45c; --pass: #74c79a;
+      --block-soft: #2a1a19; --review-soft: #262018; --pass-soft: #16241d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101317; --raised: #171b21; --ink: #e8eaec; --muted: #9aa4b0;
+    --hair: #272d35; --accent: #6bbfb4; --accent-soft: #17282a;
+    --block: #f08b7f; --review: #e0b45c; --pass: #74c79a;
+    --block-soft: #2a1a19; --review-soft: #262018; --pass-soft: #16241d;
+  }
+  :root[data-theme="light"] {
+    --paper: #faf9f7; --raised: #ffffff; --ink: #15181d; --muted: #5c6672;
+    --hair: #dfe3e2; --accent: #2d6a63; --accent-soft: #e6efee;
+    --block: #a52a1f; --review: #8a6100; --pass: #1d6b45;
+    --block-soft: #f8eae8; --review-soft: #f9f1e2; --pass-soft: #e8f2ec;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6; font-size: 15px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 3rem; }
+  header { display: flex; flex-direction: column; gap: .75rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); margin: 0;
+  }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -.015em; }
+  .lede { margin: 0; color: var(--muted); max-width: 62ch; }
+
+  .verdict {
+    border: 1px solid var(--hair); border-left: 5px solid var(--block);
+    background: var(--block-soft); border-radius: 3px; padding: 1.25rem 1.5rem;
+    display: flex; flex-wrap: wrap; gap: 1.5rem 3rem; align-items: baseline;
+  }
+  .verdict dl { margin: 0; display: flex; flex-direction: column; gap: .15rem; }
+  .verdict dt { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .verdict dd { margin: 0; font-family: var(--mono); font-size: 1.05rem; font-weight: 600; color: var(--block); }
+  .verdict dd.neutral { color: var(--ink); }
+
+  h2 { font-size: 1.15rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  section > p:first-of-type { margin-top: 0; color: var(--muted); }
+  section { display: flex; flex-direction: column; gap: 1rem; }
+
+  .gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .gate {
+    background: var(--raised); border: 1px solid var(--hair); border-radius: 3px;
+    border-top: 3px solid var(--tone, var(--block)); padding: 1rem 1.1rem;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .gate code { font-family: var(--mono); font-size: .8rem; color: var(--tone, var(--block)); font-weight: 600; word-break: break-word; }
+  .gate p { margin: 0; font-size: .875rem; color: var(--muted); }
+  .gate.review { --tone: var(--review); }
+
+  .scroll { overflow-x: auto; border: 1px solid var(--hair); border-radius: 3px; background: var(--raised); }
+  table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+  caption { text-align: left; padding: .8rem 1rem; color: var(--muted); font-size: .82rem; border-bottom: 1px solid var(--hair); }
+  th, td { padding: .55rem .85rem; text-align: left; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; white-space: nowrap; background: var(--accent-soft);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .id { font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; width: 2.5rem; }
+  .was { font-family: var(--mono); font-size: .8rem; color: var(--block); }
+  .now { font-family: var(--mono); font-size: .8rem; color: var(--pass); }
+  .grew { color: var(--pass); }
+  .fell { color: var(--review); }
+
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: .9rem 1.15rem; border-radius: 0 3px 3px 0; font-size: .9rem;
+  }
+  .note strong { color: var(--accent); }
+  .note :last-child { margin-bottom: 0; }
+  .note :first-child { margin-top: 0; }
+  footer { border-top: 1px solid var(--hair); padding-top: 1.25rem; color: var(--muted); font-size: .84rem; }
+  footer code, p code, li code, td code { font-family: var(--mono); font-size: .85em; }
+  ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">gap-2b · offline verdict arc · 2026-07-22</p>
+  <h1>The judge, pointed at the drafts the generator produced</h1>
+  <p class="lede">
+    The 2026-07-14 demo showed classic ABAP becoming modernised RAP — S/4 readiness 36% to 100%.
+    It ended with an honest admission: eleven priority-1 residuals remained in the new code,
+    <em>visible in a report but gated by nothing</em>. This is what happens when the finished
+    offline verdict arc is pointed at those same artifacts.
+  </p>
+</header>
+
+<div class="verdict">
+  <dl><dt>Verdict</dt><dd>BLOCK</dd></dl>
+  <dl><dt>Ratchet gate</dt><dd>BLOCK</dd></dl>
+  <dl><dt>Provisional</dt><dd>false</dd></dl>
+  <dl><dt>Driver action</dt><dd class="neutral">generate · retry · cycle 1</dd></dl>
+  <dl><dt>Corpus</dt><dd class="neutral">29 → 41 files</dd></dl>
+</div>
+
+<section>
+  <h2>Four gates fire, each for a different real reason</h2>
+  <p>None is a duplicate of another. Two are defects the generator can fix; two need a human.</p>
+  <div class="gates">
+    <div class="gate">
+      <code>atc-p1-nonzero</code>
+      <p>11 priority-1 residuals in the generated artifacts — RAP handler discipline and a SELECT in a loop.</p>
+    </div>
+    <div class="gate">
+      <code>atc-p2-nonzero</code>
+      <p>618 priority-2. Under C3 both tiers hard-block, because SAP blocks transport on both.</p>
+    </div>
+    <div class="gate review">
+      <code>auth-delta-unattested</code>
+      <p>The authorization footprint moved: 0 → 10 AUTHORITY-CHECKs, 0 → 3 BDEF authorization clauses. Not a loss — but L7 says a reviewer signs first.</p>
+    </div>
+    <div class="gate review">
+      <code>parity-not-equivalent:needs_review</code>
+      <p>An imperative → declarative rewrite cannot be scored structurally, so it goes to a human rather than being asserted equivalent.</p>
+    </div>
+  </div>
+  <div class="note">
+    <p><strong>And it self-corrects.</strong> The driver classifies the ATC residuals as defects,
+    regenerates with the findings threaded in, and bumps the cycle counter so the loop is bounded.
+    The owed attestations do not stall it — a defect outranks an attestation, so the artifact is
+    fixed first and attested after.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What the two engines extracted</h2>
+  <p>Both sides, real corpus, from <code>offline-verdict.json</code>.</p>
+  <div class="scroll">
+    <table>
+      <caption>The CFG and nesting drops are the trap: on the old arc they read as lost structure and scored the rewrite <code>scope_reduced</code> — a non-attestable block that regenerates to a ceiling.</caption>
+      <thead><tr><th>Feature</th><th class="num">Before</th><th class="num">After</th><th>Reading</th></tr></thead>
+      <tbody>
+        <tr><td>AUTHORITY-CHECK statements</td><td class="num">0</td><td class="num grew">10</td><td>auth arrives in the RAP layer</td></tr>
+        <tr><td>BDEF <code>authorization</code> clauses</td><td class="num">0</td><td class="num grew">3</td><td>P4a's RAP gate — invisible before defect #4</td></tr>
+        <tr><td>Save boundaries (<code>commit_work</code>)</td><td class="num">0</td><td class="num grew">4</td><td>framework saves now count — defect #9</td></tr>
+        <tr><td>Declarative artifacts</td><td class="num">0</td><td class="num grew">7</td><td>drives the paradigm-shift band</td></tr>
+        <tr><td>Exception paths</td><td class="num">5</td><td class="num grew">14</td><td>richer, not dropped</td></tr>
+        <tr><td>CFG branches</td><td class="num">117</td><td class="num fell">77</td><td>moved into CDS/BDEF, not lost</td></tr>
+        <tr><td>Max nesting</td><td class="num">4</td><td class="num fell">3</td><td>same</td></tr>
+        <tr><td>Unreadable files</td><td class="num">0</td><td class="num">0</td><td>extraction complete — defect #11</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>The fourteen defects this arc had</h2>
+  <p>Every row is a probe run against the real code before and after the fix — not a claim from a report.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="id">#</th><th>Defect</th><th>Was</th><th>Now</th></tr></thead>
+      <tbody>
+        <tr><td class="id">1</td><td>Only the first <code>ID</code> captured; <code>DUMMY</code> unmodelled</td><td class="was">identical extraction</td><td class="now">differs — coverage loss</td></tr>
+        <tr><td class="id">2</td><td>Comment scanner deleted real DCL grants</td><td class="was">[]</td><td class="now">grant extracted</td></tr>
+        <tr><td class="id">3</td><td>…and was quadratic on untrusted input</td><td class="was">2705 ms / 234 KB</td><td class="now">1 ms</td></tr>
+        <tr><td class="id">4</td><td>BDEF <code>authorization</code> clause never read</td><td class="was">identical extraction</td><td class="now">deletion = loss</td></tr>
+        <tr><td class="id">5</td><td>ATC zeros fabricated from absent evidence</td><td class="was">{p1:0, p2:0}</td><td class="now">{} — fails closed</td></tr>
+        <tr><td class="id">6</td><td>SY-SUBRC window blind to clobbering</td><td class="was">true</td><td class="now">false</td></tr>
+        <tr><td class="id">7</td><td>Privileged-access branch dead on real code</td><td class="was">matched nothing real</td><td class="now">both bypasses seen</td></tr>
+        <tr><td class="id">8</td><td>Owed attestation evaporated next step</td><td class="was">provisional_complete</td><td class="now">await_human</td></tr>
+        <tr><td class="id">9</td><td>RAP save boundary uncounted</td><td class="was">P4b:commit-suppressed</td><td class="now">[]</td></tr>
+        <tr><td class="id">10</td><td>Parity deductions imperative-only</td><td class="was">0.25 scope_reduced</td><td class="now">needs_review</td></tr>
+        <tr><td class="id">11</td><td>Untypeable <code>.abap</code> passed vacuously</td><td class="was">silent zeros</td><td class="now">extraction-incomplete</td></tr>
+        <tr><td class="id">12</td><td>No executable entry point for the arc</td><td class="was">no caller</td><td class="now">drive --verdict</td></tr>
+        <tr><td class="id">13</td><td><code>.asdcls</code> dropped at the loader</td><td class="was">file dropped</td><td class="now">file loaded</td></tr>
+        <tr><td class="id">14</td><td>Bare <code>.asbdef</code> names skipped</td><td class="was">zero features</td><td class="now">save_boundaries: 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p><strong>Eight of the fourteen were false passes</strong> — an authorization loss reaching a
+    human labelled clean. Two (#9, #10) were the inverse: the single most canonical rewrite this
+    harness exists to perform could not pass offline at all.</p>
+    <p>Defects 13 and 14 share a root cause worth keeping: every DCL and BDEF fixture in the suite
+    was hand-named in memory, so the tests agreed with each other about a filename convention the
+    real corpus does not follow. A green suite could not have caught either — only loading from
+    disk did.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Where they came from</h2>
+  <ul>
+    <li><strong>1–11</strong> — a five-lens adversarial review of the arc: 123 agents, 39 raw findings, 12 after dedupe. Eleven survived verification and each was re-probed by hand before any code changed. One was <em>rejected</em>: the positional-blind multiset in <code>changedLines</code> is a documented design choice, not a defect — a moved-but-identical line's warning is carried debt and must not count.</li>
+    <li><strong>12</strong> — found by asking what actually calls the arc. Nothing did.</li>
+    <li><strong>13</strong> — found the moment #12 was wired end-to-end and a real directory was loaded.</li>
+    <li><strong>14</strong> — found by this demo's own run, against real corpus filenames.</li>
+  </ul>
+  <div class="note">
+    <p>Defects 1 and 6 were the exact risk surfaces recorded in the handoff for an adversarial pass
+    that was skipped. Skipping it let two false-pass defects propagate through two further boxes
+    into the verdict.</p>
+  </div>
+</section>
+
+<footer>
+  <p>
+    Same corpus, same generated source as <code>abap_fico-e2e-2026-07-14</code> — deliberately.
+    All fourteen defects live in the extraction and verdict layer, none in the generator, so holding
+    the code under judgement fixed is what isolates the change. Both are included here in full
+    (<code>before/source/</code> and <code>after/modernised-source/</code>) as byte-identical copies:
+    <code>source_hash</code> matches the original on both sides, so this demo stands alone.
+  </p>
+  <p>
+    Reproduce: <code>node --test moderniser/test/e2e-abap-fico-offline.test.js</code>.
+    Offline never GREENs (P6) — the best available outcome is <code>PROVISIONAL_GATED</code>, a
+    provisional-pass floor; activation, reconciliation and ABAP Unit need a live DEV tier.
+  </p>
+</footer>
+
+</div>
+</body>
+</html>

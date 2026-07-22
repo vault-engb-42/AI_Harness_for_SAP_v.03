@@ -1,0 +1,24 @@
+{
+  "atc_p1": 11,
+  "atc_p2": 618,
+  "atc_warns": [
+    {
+      "file": "ZCL_FI_RGGBR000.clas.testclasses.abap",
+      "line": 34
+    },
+    {
+      "file": "zbp_i_fico_btc_csv_gl.clas.abap",
+      "line": 67
+    },
+    {
+      "file": "zbp_i_fico_btc_csv_gl.clas.abap",
+      "line": 220
+    },
+    {
+      "file": "zcl_fi_bte.clas.testclasses.abap",
+      "line": 41
+    }
+  ],
+  "diff_changed_lines_files": 41,
+  "diff_changed_lines_total": 3098
+}

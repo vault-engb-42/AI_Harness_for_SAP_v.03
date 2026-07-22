@@ -1,0 +1,19 @@
+{
+  "changed_edges": [],
+  "transformations": [],
+  "money_operands": [],
+  "statement_kind_changes": [
+    {
+      "from": "SELECT",
+      "to": "EML"
+    }
+  ],
+  "client_specified_delta": false,
+  "paradigm_shift": true,
+  "auth_vanished": false,
+  "reassembly_broken": false,
+  "auth_object_changed": true,
+  "exception_path_dropped": false,
+  "cfg_branch_regression": false,
+  "max_nesting_regression": false
+}
