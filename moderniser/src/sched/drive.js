@@ -16,6 +16,7 @@
  * GREENed offline) is a sweep target, not a wedge — only a genuinely stuck node is `blocked`.
  */
 import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from "./loop.js";
+import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES } from "../state/node-status.js";
 
 // The states a node may legitimately rest in when the frontier is empty (offline or terminal).
@@ -86,6 +87,63 @@ export function driveReport(plan, state, sig, outcome) {
   }
   return { state: next, action: { action: "generate", packets: [{ ...packetOf(plan, sig), retry: true }] } };
 }
+
+/**
+ * gap-2b B6 — the OFFLINE verdict step, the offline sibling of the live push→activate→gate arc.
+ * The fulfiller has already passed the gap-2a rule gate, extracted the before/after bundles and
+ * rendered the verdict (`renderOfflineNodeVerdict`); it hands the RESULT here. Keeping the render
+ * outside means the scheduler stays pure over (plan, state, result) and never imports the extractor.
+ *
+ * Advances SYNTAX_OK → PROVISIONAL_GATED, records the verdict there, then decides. The decision
+ * turns on a distinction the reason list makes but a naive driver would miss: AN OFFLINE BLOCK IS
+ * NOT ONE THING.
+ *   - A DEFECT (ATC priority-1/-2, a broken P4 invariant, lost auth coverage, a parity veto or
+ *     scope_reduced) is what regeneration exists for → regenerate WITH the findings, cycle-gated,
+ *     quarantining at the ceiling.
+ *   - An OWED ATTESTATION (`auth-delta-unattested`, the `needs_review` parity band) is not fixable
+ *     by any amount of regeneration — no rewrite produces a security reviewer's signature. Routing
+ *     it through the retry loop would burn the entire cycle budget and land a false ceiling BLOCK
+ *     on EVERY classic→managed-RAP node, because relocating authorization to DCL always sets
+ *     auth_delta on the first pass. So it rests at PROVISIONAL_GATED with the budget untouched and
+ *     escalates to the human gate that can actually clear it.
+ *
+ * A defect OUTRANKS an owed attestation when both are present: attesting a defective artifact is
+ * meaningless, so fix first and attest the fixed thing.
+ *
+ * Escalations are RETURNED as intent, never raised here — raising touches the durable register,
+ * which is the CLI's job; this stays pure.
+ *
+ * @param {object} plan @param {object} state @param {string} sig
+ * @param {{provisional: boolean, reasons: string[]}} result from `renderOfflineNodeVerdict`
+ * @returns {{state: object, action: object}}
+ */
+export function driveOfflineVerdict(plan, state, sig, result) {
+  if (state.status[sig] === undefined) throw new Error(`drive: unknown node ${sig}`);
+  let next = state.status[sig] === "PROVISIONAL_GATED" ? state : applyProgress(plan, state, sig, "PROVISIONAL_GATED");
+  next = recordProvisionalVerdict(plan, next, sig, result);
+  if (result.provisional === true) return { state: next, action: driveDecision(plan, next) };
+
+  const reasons = result.reasons ?? [];
+  const escalations = ESCALATABLE.filter(([reason]) => reasons.includes(reason)).map(([, kind]) => ({ kind, node_ids: [sig] }));
+  const onlyAttestable = escalations.length > 0 && reasons.every((r) => ATTESTABLE.has(r));
+  if (onlyAttestable) return { state: next, action: { action: "await_human", nodes: [sig], escalations } };
+
+  if ((next.cycle[sig] ?? 0) >= MAX_PHASE_RETRY_CYCLES) {
+    next = applyOutcome(plan, next, sig, { status: "BLOCK", reason: "OFFLINE_VERDICT_CEILING" });
+    return { state: next, action: driveDecision(plan, next) };
+  }
+  next = applyProgress(plan, next, sig, "GENERATED"); // the cycle-gated offline retry edge
+  return { state: next, action: { action: "generate", packets: [{ ...packetOf(plan, sig), retry: true, findings: reasons }] } };
+}
+
+// The only two offline BLOCK reasons a human — not a regeneration — can clear. Sorted by kind so
+// the escalation list is deterministic. Every OTHER reason, vetoes and scope_reduced included, is a
+// defect: parity vetoes are NEVER attestable (§7.5).
+const ESCALATABLE = Object.freeze([
+  ["auth-delta-unattested", "AUTH_EQUIVALENCE"],
+  ["parity-not-equivalent:needs_review", "PARITY_REVIEW"],
+]);
+const ATTESTABLE = new Set(ESCALATABLE.map(([reason]) => reason));
 
 /** Advance `sig` to SYNTAX_OK from wherever it rests (idempotent if a report is replayed). */
 function advanceToSyntaxOk(plan, state, sig) {
