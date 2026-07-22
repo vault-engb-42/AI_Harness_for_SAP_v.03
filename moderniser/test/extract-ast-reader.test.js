@@ -61,7 +61,29 @@ test("aggregates across a file set; ignores non-ABAP files", () => {
   assert.equal(out.commit_work, 2);
 });
 
+test("structure counters (the §15.4 deduction inputs): exception paths, CFG branches, max nesting", () => {
+  const out = extractAst([f(clazz(`  TRY.
+      LOOP AT lt INTO DATA(ls).
+        IF ls IS INITIAL. CONTINUE. ENDIF.
+      ENDLOOP.
+    CATCH cx_root INTO DATA(lx).
+      RAISE EXCEPTION lx.
+  ENDTRY.`))]);
+  assert.equal(out.exception_paths, 2, "CATCH + RAISE");
+  assert.equal(out.cfg_branches, 2, "LOOP + IF");
+  assert.equal(out.max_nesting, 3, "TRY > LOOP > IF");
+});
+
+test("client_specified counts the CLIENT SPECIFIED token (half of the client parity trigger)", () => {
+  const out = extractAst([f(clazz(`  SELECT * FROM t000 CLIENT SPECIFIED INTO TABLE @DATA(lt).
+  SELECT * FROM zt INTO TABLE @DATA(lu).`))]);
+  assert.equal(out.client_specified, 1);
+});
+
 test("total + parse-robust (P8): empty and malformed input never throw", () => {
-  assert.deepEqual(extractAst([]), { auth_checks: [], commit_work: 0, money_operands: [], statement_kinds: {} });
+  assert.deepEqual(extractAst([]), {
+    auth_checks: [], money_operands: [], statement_kinds: {},
+    commit_work: 0, client_specified: 0, exception_paths: 0, cfg_branches: 0, max_nesting: 0,
+  });
   assert.doesNotThrow(() => extractAst([f("CLASS zcl DEFINITION. this is not valid abap {{{")]));
 });

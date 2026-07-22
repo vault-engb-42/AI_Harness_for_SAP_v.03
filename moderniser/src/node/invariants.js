@@ -1,7 +1,8 @@
 /**
  * Invariant diff — P4 preservation over a node's before/after feature bundle
- * (MODERNISER_DESIGN §3.2, §3.2 5.5, L7). Pure; the abaplint parse → feature extraction is
- * a later I/O step. Splits P4 to match the two verdict conjuncts (§3.2 verdict logic):
+ * (MODERNISER_DESIGN §3.2, §3.2 5.5, L7). Pure; the feature extraction that produces each side is
+ * BUILT in gap-2b — `extract/bundle.js` → `invariantInput(bundle)` yields exactly the 4 fields
+ * below. Splits P4 to match the two verdict conjuncts (§3.2 verdict logic):
  *
  *   intact = P4b ∧ P4c — the structural, non-downgradeable parts:
  *     P4b  COMMIT WORK / commit-boundary count not suppressed (after ≥ before).

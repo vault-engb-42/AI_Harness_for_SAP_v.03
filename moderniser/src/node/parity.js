@@ -14,13 +14,14 @@
  *     (→ PARITY_REVIEW escalation; offline never auto-passes); [0.70,1] → equivalent, or
  *     PASS_STRUCTURAL iff the class set is empty.
  *
- * Pure. The before/after AST → `diff` extraction (via @abaplint) is a later I/O step; here
- * `diff` is the already-extracted CPG-diff feature bundle. Two extraction responsibilities are
- * OWED by that step (§6.1): the `money` class relies on resolved CURR/QUAN/DEC operand types,
- * so the extractor must ship a seeded standard-amount-field allowlist (DMBTR/WRBTR/NETWR/…) as
- * the offline fallback when abaplint type inference returns `unknown`; and `client_specified_delta`
- * must fold BOTH §6.1 sub-triggers (a CLIENT SPECIFIED token diff AND a client-dependent↔independent
- * table-access switch) into the single boolean.
+ * Pure. `diff` is the already-extracted CPG-diff feature bundle; **the extractor that produces it
+ * is BUILT** (gap-2b: `extract/bundle.js` assembles each side, `extract/bundle-diff.js` emits all
+ * 12 fields read below). The two extraction responsibilities §6.1 recorded as OWED are discharged
+ * there: the `money` class's CURR/QUAN/DEC fallback allowlist (DMBTR/WRBTR/NETWR/… in
+ * `ast-reader.js`, for when abaplint type inference is offline-blind), and `client_specified_delta`.
+ * ONE half of that boolean remains offline-blind and is documented rather than faked: the CLIENT
+ * SPECIFIED token diff IS extracted; the client-dependent↔independent table-access switch needs the
+ * DDIC (is this table client-dependent?), which no offline pass has.
  */
 
 // §15.4 semantic-parity deduction weights. NB `def_use_lost` (−0.30) was REMOVED in gap-2b:
@@ -40,9 +41,9 @@ const READ_IDIOMS = [["SELECT", "EML"], ["CALL-FUNCTION", "CALL-METHOD"]];
 
 // The successor_kind seam is PINNED here (L10 review): accepted tokens are the internal
 // 'table'/'cds' pair AND the analyser's TADIR-style vocabulary (blast_radius.successor_kind
-// = TADIR type, e.g. CDS_STOB/DDLS/STOB/TABL). NB the §6.2 plan-transformation contract
-// carries released_successor as a NAME with no kind token — deriving the kind for that
-// shape is the diff extractor's owed step (recorded debt), not this classifier's.
+// = TADIR type, e.g. CDS_STOB/DDLS/STOB/TABL). The §6.2 plan-transformation contract carries
+// released_successor as a NAME with no kind token; that debt is now DISCHARGED by the diff
+// extractor, which resolves the name through the blast-radius map (bundle-diff.js).
 const DATA_SOURCE_KINDS = new Map([
   ["table", "table"], ["tabl", "table"],
   ["cds", "cds"], ["cds_stob", "cds"], ["ddls", "cds"], ["stob", "cds"],
