@@ -16,7 +16,13 @@ import { callAdtTool } from "../../mcp-adt-bridge/adt-client.js";
  */
 
 /** Source-file extensions the Registry can type from the filename. */
-const BUNDLE_EXTENSIONS = [".abap", ".asddls", ".asbdef", ".acds"];
+// `.asdcls` (CDS DCL access controls) joined in the gap-2b B6.5 remediation. Its absence dropped
+// every DCL file at the loader, so the moderniser's engine 2 never saw one through any CLI path —
+// which defeats the C2 rationale entirely: a classic-AUTHORITY-CHECK → managed-RAP-with-DCL rewrite
+// then reads as before=N/after=0, i.e. total auth loss, a false BLOCK on every modernise-to-RAP
+// node. @abaplint/core recognises the object and parses no statements from it (B1 probe), so it is
+// inert for the analyser's own ABAP rules.
+const BUNDLE_EXTENSIONS = [".abap", ".asddls", ".asbdef", ".asdcls", ".acds"];
 
 /**
  * Canonicalize a source-file list for deterministic analysis (arch spec §3.A/A1):

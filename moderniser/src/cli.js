@@ -35,13 +35,14 @@ import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, runComple
 import { renderVerdict, recordVerdict } from "./sched/verdict-ops.js";
 import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
-import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, readEscalations, parseArgs, loadRun, validRunId } from "./cli-io.js";
+import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide } from "./cli-escalations.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
 import { cmdLintRules, cmdFindingsBrief } from "./cli-selfcheck.js";
 import { cmdDrive } from "./cli-drive.js";
+import { attestationsOf } from "./cli-attest.js";
 
 const COMMANDS = {
   plan: cmdPlan,
@@ -145,28 +146,6 @@ function cmdOutcome(io, pos, flags) {
   return { sig, status, complete: runComplete(plan, next) };
 }
 
-/**
- * The LATEST register row for (kind, sig) → the attester's name, IFF the decision is the
- * kind's ATTEST verb and is temporally bound to THIS run (run_id + run_epoch — `plan
- * --force` reuses the id, never the epoch) and THIS artifact (the node's current GENERATION
- * — it bumps on every entry to GENERATED, so a retry, a re-entry re-walk, or a pre-artifact
- * decision all mismatch). Unstamped/older rows fail closed — the human attested code this
- * artifact is not. Serves BOTH attestation kinds: PARITY_REVIEW/ATTEST_EQUIVALENT (§6.1)
- * and AUTH_EQUIVALENCE/ATTEST (L7, wired 2026-07-13 — D1).
- */
-function registerAttestation(io, sig, runId, state, kind, attestDecision) {
-  const rows = readEscalations(io).escalations.filter((e) => e.kind === kind && e.node_ids.includes(sig));
-  // The latest EVENT governs, not the latest RAISE: an OPEN row's event is its opened_at
-  // (a re-raise voids), a RESOLVED row's is its resolved_at — so the human's temporally
-  // FINAL decision wins even across interleaved rows with overlapping node sets (the
-  // D1-verifier's revocation-gap probe). Array order breaks timestamp ties.
-  const latest = rows.reduce((a, b) => ((b.resolved_at ?? b.opened_at ?? "") >= (a.resolved_at ?? a.opened_at ?? "") ? b : a), rows[0]);
-  if (latest?.status !== "RESOLVED" || latest?.decision !== attestDecision) return null;
-  if (latest.run_id !== runId) return null;
-  if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null;
-  if ((latest.decided_generations?.[sig] ?? -1) !== (state.generation?.[sig] ?? 0)) return null;
-  return latest.resolved_by;
-}
 
 /**
  * The §3.4 #5/#6 audited park row. REPLACE-not-skip (F17/F26): every PARK is a FRESH
@@ -204,10 +183,7 @@ function cmdVerdict(io, pos, flags) {
   // never inherit an attestation.
   const checkpoint = {
     ...fileCp,
-    attestations: {
-      parity_equivalence: registerAttestation(io, sig, runId, state, "PARITY_REVIEW", "ATTEST_EQUIVALENT"),
-      auth_equivalence: registerAttestation(io, sig, runId, state, "AUTH_EQUIVALENCE", "ATTEST"),
-    },
+    attestations: attestationsOf(io, sig, runId, state),
   };
   const evidence = JSON.parse(readFileSync(flags.evidence, "utf8"));
   const baselines = readBaselines(io.stateDir);
