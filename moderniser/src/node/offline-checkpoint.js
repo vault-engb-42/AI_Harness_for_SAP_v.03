@@ -29,7 +29,18 @@ import { renderOfflineVerdict } from "../sched/verdict-ops.js";
  */
 
 const asArray = (x) => (Array.isArray(x) ? x : []);
-const findingsOf = (doc) => asArray(doc?.findings);
+
+/**
+ * The findings array, or UNDEFINED when the document is absent or malformed (B6.5 F5).
+ *
+ * This distinction is the whole point. Every hard conjunct downstream fails CLOSED on `undefined`
+ * (ratchet.js, verdict.js), but mapping an absent — or ERRORED — document to `[]` manufactured
+ * CLEAN evidence out of NO evidence, making those guards unreachable: a node whose `analyzePackage`
+ * crashed rested PROVISIONAL with live priority-1 findings. `cli.js:214-216` already forbids exactly
+ * this on the ONLINE path ("NO ?? [] fallback … F1"); the offline path had diverged from it.
+ * An EMPTY array is real evidence of zero and is passed through as such.
+ */
+const findingsOf = (doc) => (Array.isArray(doc?.findings) ? doc.findings : undefined);
 
 /**
  * Steps 1–2: the two bundles → the checkpoint `offlineVerdict` consumes.
@@ -40,7 +51,7 @@ const findingsOf = (doc) => asArray(doc?.findings);
  */
 export function offlineCheckpoint(before, after, opts = {}) {
   const inv = invariantDiff(invariantInput(before ?? {}), invariantInput(after ?? {}));
-  const counts = atcCounts(opts.findings);
+  const counts = atcCounts(findingsOf(opts.findings));
   const checkpoint = {
     atc_p1: counts.atc_p1,
     atc_p2: counts.atc_p2,
@@ -65,12 +76,17 @@ export function offlineCheckpoint(before, after, opts = {}) {
  * @returns {{atc_p1: number, atc_p2: number, atc_warns: Array<{file: string, line: number}>, diff_changed_lines: Array<{file: string, lines: number[]}>}}
  */
 export function offlineEvidence(opts = {}) {
+  const findings = findingsOf(opts.findings);
   return {
-    ...atcCounts(opts.findings),
-    atc_warns: findingsOf(opts.findings)
-      .filter((f) => f.severity === "priority-3" && typeof f.file === "string" && Number.isInteger(f.line))
-      .map((f) => ({ file: f.file, line: f.line })),
-    diff_changed_lines: changedLines(opts.beforeFiles, opts.afterFiles),
+    ...atcCounts(findings),
+    atc_warns: findings === undefined
+      ? undefined
+      : findings
+          .filter((f) => f.severity === "priority-3" && typeof f.file === "string" && Number.isInteger(f.line))
+          .map((f) => ({ file: f.file, line: f.line })),
+    // Absent file evidence is NOT "no lines changed" — an empty array is well-formed, so it would
+    // silently satisfy the ratchet's diff guard and disable the offline WARN ratchet entirely.
+    diff_changed_lines: opts.afterFiles === undefined ? undefined : changedLines(opts.beforeFiles, opts.afterFiles),
   };
 }
 
@@ -125,11 +141,13 @@ export function renderOfflineNodeVerdict(node, inputs) {
   return renderOfflineVerdict(gateNode, checkpoint, evidence, inputs.baselines);
 }
 
-/** priority-1 / priority-2 counts — the two hard-blocking tiers (C3). */
+/** priority-1 / priority-2 counts — the two hard-blocking tiers (C3). `undefined` in, undefined out:
+ *  absence must reach the judges as absence so their fail-closed guards can fire. */
 function atcCounts(findings) {
+  if (findings === undefined) return { atc_p1: undefined, atc_p2: undefined };
   let atc_p1 = 0;
   let atc_p2 = 0;
-  for (const f of findingsOf(findings)) {
+  for (const f of findings) {
     if (f.severity === "priority-1") atc_p1 += 1;
     else if (f.severity === "priority-2") atc_p2 += 1;
   }

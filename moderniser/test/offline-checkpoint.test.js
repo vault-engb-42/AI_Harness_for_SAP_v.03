@@ -39,7 +39,7 @@ test("the split is LOAD-BEARING: proven auth loss must BLOCK (nesting it would s
   COMMIT WORK.`)]);
   const cp = offlineCheckpoint(before, after, { findings: CLEAN_FINDINGS });
   assert.equal(cp.auth_coverage.lost, true);
-  const out = renderOfflineNodeVerdict(NODE, { before, after, findings: CLEAN_FINDINGS, baselines: BASELINES });
+  const out = renderOfflineNodeVerdict(NODE, { before, after, findings: CLEAN_FINDINGS, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED });
   assert.equal(out.provisional, false);
   assert.ok(out.reasons.includes("auth-coverage-lost"), `reasons: ${out.reasons}`);
 });
@@ -121,7 +121,7 @@ test("changedLines: blank lines are ignored and files are sorted deterministical
 
 test("a clean unchanged node rests PROVISIONAL — and never GREEN (P6)", () => {
   const b = assembleBundle(GUARDED);
-  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES });
+  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED });
   assert.equal(out.provisional, true);
   assert.equal(out.verdict.verdict, "PROVISIONAL");
   assert.equal(out.gate.verdict, "PASS");
@@ -131,7 +131,7 @@ test("a clean unchanged node rests PROVISIONAL — and never GREEN (P6)", () => 
 test("a priority-2 finding hard-blocks (C3: SAP blocks transport on P1 AND P2)", () => {
   const b = assembleBundle(GUARDED);
   const findings = { findings: [{ severity: "priority-2", file: "zcl_x.clas.abap", line: 3 }] };
-  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings, baselines: BASELINES });
+  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED });
   assert.equal(out.provisional, false);
   assert.ok(out.reasons.includes("atc-p2-nonzero"));
 });
@@ -143,7 +143,7 @@ test("an auth-footprint change owes an attestation before a provisional pass (L7
   // The RAP behaviour pool keeps an equivalent guard + save boundary, so only the AUTH footprint moved.
   const after = assembleBundle([DCL, abap(`  IF lt IS INITIAL. RETURN. ENDIF.
   COMMIT ENTITIES.`, "zbp_x.clas.abap")]);
-  const inputs = { before, after, findings: CLEAN_FINDINGS, baselines: BASELINES };
+  const inputs = { before, after, findings: CLEAN_FINDINGS, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED };
   const unattested = renderOfflineNodeVerdict(NODE, inputs);
   assert.equal(unattested.provisional, false);
   assert.ok(unattested.reasons.includes("auth-delta-unattested"), `reasons: ${unattested.reasons}`);
@@ -178,13 +178,13 @@ test("the rendered result feeds recordProvisionalVerdict at PROVISIONAL_GATED (t
   s = applyProgress(PLAN, s, "N1", "PROVISIONAL_GATED");
 
   const b = assembleBundle(GUARDED);
-  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES });
+  const out = renderOfflineNodeVerdict(NODE, { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED });
   assert.equal(recordProvisionalVerdict(PLAN, s, "N1", out).verdict_provisional.N1, true);
 });
 
 test("deterministic + total: repeated renders are deep-equal; empty inputs never throw", () => {
   const b = assembleBundle(GUARDED);
-  const inputs = { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES };
+  const inputs = { before: b, after: b, findings: CLEAN_FINDINGS, baselines: BASELINES, beforeFiles: GUARDED, afterFiles: GUARDED };
   assert.deepEqual(renderOfflineNodeVerdict(NODE, inputs), renderOfflineNodeVerdict(NODE, inputs));
   assert.doesNotThrow(() => offlineCheckpoint(undefined, undefined, {}));
   assert.doesNotThrow(() => offlineEvidence({}));
