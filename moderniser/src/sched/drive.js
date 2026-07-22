@@ -44,7 +44,15 @@ export function driveDecision(plan, state) {
   const seamed = plan.nodes
     .filter((n) => state.status[n.id] === "NEEDS_MANUAL_SEAM" || (n.dynamic_seal === "NEEDS_MANUAL_SEAM" && state.status[n.id] === "PENDING"))
     .map((n) => n.id);
-  const humanGated = [...new Set([...parked, ...seamed])];
+  // A node resting at PROVISIONAL_GATED with a RECORDED FAILING verdict is not rested — it is
+  // waiting on the attestation that `driveOfflineVerdict` escalated for (B6.5 F8). Without this the
+  // run reported `provisional_complete` on the very next step and the proof bundle declared an
+  // unattested authorization change complete. An ABSENT verdict is a node that has not been
+  // verdicted yet, which is a different state and stays rested.
+  const awaitingAttestation = plan.nodes
+    .filter((n) => state.status[n.id] === "PROVISIONAL_GATED" && state.verdict_provisional?.[n.id] === false)
+    .map((n) => n.id);
+  const humanGated = [...new Set([...parked, ...seamed, ...awaitingAttestation])];
   if (humanGated.length > 0) return { action: "await_human", nodes: humanGated };
 
   // No human gate: the gated pass is done iff every node is rested or a starved sweep target.
