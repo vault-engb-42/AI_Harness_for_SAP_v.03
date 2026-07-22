@@ -58,7 +58,7 @@ test("emits ALL 12 parity fields — a partial bundle is the permanent-false-GRE
   assert.deepEqual(Object.keys(diffBundles(b, b)).sort(), [
     "auth_object_changed", "auth_vanished", "cfg_branch_regression", "changed_edges",
     "client_specified_delta", "exception_path_dropped", "max_nesting_regression", "money_operands",
-    "reassembly_broken", "statement_kind_changes", "transformations",
+    "paradigm_shift", "reassembly_broken", "statement_kind_changes", "transformations",
   ].sort());
 });
 

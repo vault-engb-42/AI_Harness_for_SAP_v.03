@@ -2,8 +2,11 @@
  * gap-2b B4 — the before/after DIFF. Turns two `assembleBundle` sides into the feature bundle
  * `parity.js` consumes, emitting ALL 12 fields it reads: the four classify signals
  * (`changed_edges, transformations, money_operands, statement_kind_changes`), `client_specified_delta`,
- * the two vetoes (`auth_vanished, reassembly_broken`) and the four §15.4 deductions
- * (`auth_object_changed, exception_path_dropped, cfg_branch_regression, max_nesting_regression`).
+ * the `paradigm_shift` band override, the two vetoes (`auth_vanished, reassembly_broken`) and the
+ * four §15.4 deductions (`auth_object_changed, exception_path_dropped, cfg_branch_regression,
+ * max_nesting_regression`). The count is asserted by a test, because the design doc's original
+ * enumeration said "12" while listing 11 — it was written before B0 deleted `def_use_lost`, and
+ * `paradigm_shift` restores the total honestly rather than by arithmetic coincidence.
  * A 4-field extractor produces no deduction signals → `score = 1` always → a PERMANENT FALSE-GREEN;
  * that is the trap this module exists to close.
  *
@@ -36,18 +39,27 @@ const SEP = String.fromCharCode(0);
 export function diffBundles(before, after, opts = {}) {
   const b = before ?? {};
   const a = after ?? {};
+  // An imperative → declarative rewrite (B6.5 F10). The three structure deductions below are
+  // IMPERATIVE measures; a faithful RAP rewrite moves that structure into CDS and BDEF artifacts
+  // they cannot see, so firing them scored the canonical modernisation 0.25 → `scope_reduced`,
+  // which is non-attestable and burned the cycle budget to a ceiling BLOCK. Suppressing them here
+  // is not a softening: `parity.js` routes a paradigm shift to `needs_review`, so such a node still
+  // NEVER auto-passes — it goes to the human who can actually judge the equivalence.
+  const paradigm_shift = num(a.declarative_artifacts) > 0 && num(b.declarative_artifacts) === 0;
+  const comparable = (worse) => (paradigm_shift ? false : worse);
   return {
     changed_edges: changedEdges(b, a),
     transformations: transformations(b, a),
     money_operands: symmetricMoney(b, a),
     statement_kind_changes: statementKindChanges(b, a),
     client_specified_delta: num(b.client_specified) !== num(a.client_specified),
+    paradigm_shift,
     auth_vanished: authScope(b) > 0 && authScope(a) === 0,
     reassembly_broken: reassemblyBroken(b, a, opts.touched_files),
     auth_object_changed: !setEqual(authObjects(b), authObjects(a)),
-    exception_path_dropped: num(a.exception_paths) < num(b.exception_paths),
-    cfg_branch_regression: num(a.cfg_branches) < num(b.cfg_branches),
-    max_nesting_regression: num(a.max_nesting) < num(b.max_nesting),
+    exception_path_dropped: comparable(num(a.exception_paths) < num(b.exception_paths)),
+    cfg_branch_regression: comparable(num(a.cfg_branches) < num(b.cfg_branches)),
+    max_nesting_regression: comparable(num(a.max_nesting) < num(b.max_nesting)),
   };
 }
 

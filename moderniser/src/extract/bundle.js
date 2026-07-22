@@ -50,7 +50,12 @@ export function assembleBundle(files, opts = {}) {
     dcl_restrictions: rap.dcl_restrictions,
     dcl_grants: rap.dcl_grants,
     auth_bdef: rap.auth_bdef,
-    commit_work: ast.commit_work,
+    // The save boundary is whichever mechanism the paradigm uses: an ABAP COMMIT statement, or a
+    // managed/unmanaged RAP behaviour definition whose framework owns the save (B6.5 F9).
+    commit_work: ast.commit_work + (rap.save_boundaries ?? 0),
+    // Declarative RAP artifacts present. `bundle-diff.js` uses this to detect an imperative →
+    // declarative rewrite, where the imperative structure counters are not comparable evidence.
+    declarative_artifacts: (rap.save_boundaries ?? 0) + rap.auth_bdef.length + rap.dcl_grants.length + rap.edges.length,
     // Both real authorization bypasses, from their respective engines: the CDS annotation
     // (`@AccessControl.authorizationCheck: #NOT_REQUIRED`) and the ABAP-SQL addition
     // (`SELECT … WITH PRIVILEGED ACCESS`). `had_row_auth` is resolved against the DCL grants in

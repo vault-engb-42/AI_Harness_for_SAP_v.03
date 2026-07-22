@@ -89,7 +89,7 @@ test("aggregates across a file set + ignores non-BDEF/DCL files", () => {
 });
 
 test("empty / malformed input is total — returns empty bundles, never throws", () => {
-  const EMPTY = { dcl_restrictions: [], dcl_grants: [], auth_bdef: [], privileged_cds: [], edges: [] };
+  const EMPTY = { dcl_restrictions: [], dcl_grants: [], auth_bdef: [], save_boundaries: 0, privileged_cds: [], edges: [] };
   assert.deepEqual(extractBdefDcl([]), EMPTY);
   assert.deepEqual(extractBdefDcl([file("x.dcls.asdcls", "")]), EMPTY);
   assert.doesNotThrow(() => extractBdefDcl([file("x.dcls.asdcls", "define role garbage { grant")]));

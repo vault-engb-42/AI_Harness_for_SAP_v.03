@@ -29,6 +29,13 @@ const DCL_RE = /\.dcls(\.asdcls)?$/i;
 const BDEF_RE = /\.bdef(\.asbdef)?$/i;
 const DDLS_RE = /\.ddls(\.asddls)?$/i;
 
+// A behaviour definition that declares a `managed` or `unmanaged` implementation OWNS a
+// transactional save: the RAP framework issues the COMMIT, so there is no COMMIT statement to
+// count. Treating that as "no save boundary" made every classic-with-COMMIT-WORK → managed-RAP
+// rewrite read as P4b:commit-suppressed — a non-attestable false BLOCK on the canonical
+// modernisation (B6.5 F9). A `projection` behaviour delegates to its root and saves nothing.
+const SAVE_IMPL_RE = /\b(managed|unmanaged)\s+implementation\b/i;
+
 // A CDS/ABAP name: letters, digits, underscore, and the /NS/ namespace slashes.
 const NAME = "[\\w/]+";
 
@@ -73,7 +80,7 @@ const byKey = (k) => (a, b) => (a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0);
 
 /**
  * @param {Array<{filename: string, source: string}>} files
- * @returns {{dcl_restrictions: Array<{object: string}>, dcl_grants: Array<{entity: string, form: string}>, auth_bdef: Array<{entity: string, mode: string, scope: string}>, privileged_cds: Array<{object: string, had_row_auth: boolean}>, edges: Array<{kind: string, source: string, target: string}>}}
+ * @returns {{dcl_restrictions: Array<{object: string, entity: string}>, save_boundaries: number, dcl_grants: Array<{entity: string, form: string}>, auth_bdef: Array<{entity: string, mode: string, scope: string}>, privileged_cds: Array<{object: string, had_row_auth: boolean}>, edges: Array<{kind: string, source: string, target: string}>}}
  */
 export function extractBdefDcl(files) {
   const list = Array.isArray(files) ? files : [];
@@ -81,6 +88,7 @@ export function extractBdefDcl(files) {
   const grants = [];
   const auth_bdef = [];
   const edges = [];
+  let save_boundaries = 0;
   const bypassed = [];
 
   for (const f of list) {
@@ -93,6 +101,7 @@ export function extractBdefDcl(files) {
     } else if (BDEF_RE.test(f.filename)) {
       edges.push(...bdefEdges(src));
       auth_bdef.push(...bdefAuth(src));
+      if (SAVE_IMPL_RE.test(src)) save_boundaries += 1;
     } else if (DDLS_RE.test(f.filename)) {
       bypassed.push(...ddlsBypasses(src));
     }
@@ -108,6 +117,7 @@ export function extractBdefDcl(files) {
     dcl_restrictions: dedupe(authObjects, (r) => `${r.object}|${r.entity}`).sort(byKey("object")),
     dcl_grants: dedupe(grants, (g) => `${g.entity}|${g.form}`).sort(byKey("entity")),
     auth_bdef: dedupe(auth_bdef, (a) => `${a.entity}|${a.mode}|${a.scope}`).sort(byKey("entity")),
+    save_boundaries,
     privileged_cds: uniqSort(bypassed).map((object) => ({ object, had_row_auth: granted.has(object) })),
     edges,
   };

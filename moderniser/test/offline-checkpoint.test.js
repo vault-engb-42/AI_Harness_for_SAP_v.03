@@ -149,8 +149,19 @@ test("an auth-footprint change owes an attestation before a provisional pass (L7
   assert.ok(unattested.reasons.includes("auth-delta-unattested"), `reasons: ${unattested.reasons}`);
   assert.ok(!unattested.reasons.includes("auth-coverage-lost"), "the DCL grant COVERS S_CARRID — no coverage loss");
 
-  const attested = renderOfflineNodeVerdict(NODE, { ...inputs, attestations: { auth_equivalence: "sec-reviewer" } });
-  assert.equal(attested.provisional, true, "auth RELOCATED to DCL + attested → provisional pass, not a false BLOCK");
+  // Introducing a DCL is an imperative→declarative shift, so parity ALSO routes this to a human
+  // (B6.5 F10): the structure counters cannot compare the two paradigms. Both attestations are
+  // therefore owed — the auth footprint moved AND the paradigm changed.
+  const authOnly = renderOfflineNodeVerdict(NODE, { ...inputs, attestations: { auth_equivalence: "sec-reviewer" } });
+  assert.equal(authOnly.provisional, false);
+  assert.ok(!authOnly.reasons.includes("auth-delta-unattested"), "the auth attestation cleared its own reason");
+  assert.ok(authOnly.reasons.includes("parity-not-equivalent:needs_review"), `reasons: ${authOnly.reasons}`);
+
+  const bothAttested = renderOfflineNodeVerdict(NODE, {
+    ...inputs,
+    attestations: { auth_equivalence: "sec-reviewer", parity_equivalence: "reviewer" },
+  });
+  assert.equal(bothAttested.provisional, true, "auth RELOCATED to DCL + both attested → provisional pass, not a false BLOCK");
 });
 
 test("dropping the AUTHORITY-CHECK's guard clause routes to human review, not a silent pass", () => {
@@ -161,8 +172,12 @@ test("dropping the AUTHORITY-CHECK's guard clause routes to human review, not a 
   const after = assembleBundle([DCL, abap(`  COMMIT ENTITIES.`, "zbp_x.clas.abap")]);
   const cp = offlineCheckpoint(before, after, { findings: CLEAN_FINDINGS });
   assert.equal(cp.auth_coverage.lost, false);
-  assert.equal(cp.parity.score, 0.65);
+  // The score is 1 — B6.5 F10 suppressed the three imperative structure deductions here, because a
+  // declarative rewrite moves that structure where the counters cannot see it. The node still does
+  // NOT auto-pass: the paradigm-shift band override routes it to the human regardless of score.
+  assert.equal(cp.parity.score, 1);
   assert.equal(cp.parity.verdict, "needs_review");
+  assert.ok(cp.parity.evidence.includes("band:paradigm_shift"), `evidence: ${cp.parity.evidence}`);
 
   const out = renderOfflineNodeVerdict(NODE, { before, after, findings: CLEAN_FINDINGS, baselines: BASELINES, attestations: { auth_equivalence: "sec-reviewer" } });
   assert.equal(out.provisional, false);

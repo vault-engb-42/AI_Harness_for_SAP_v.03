@@ -93,6 +93,17 @@ export function parity(diff = {}) {
   }
   score = Math.round(Math.max(0, Math.min(1, score)) * 100) / 100;
 
+  // BAND OVERRIDE, not a new deduction — the §15.4 weight table is untouched. An imperative →
+  // declarative rewrite cannot be scored structurally: the deductions measure ABAP control flow,
+  // and a faithful RAP rewrite moves that structure into artifacts they cannot read. Asserting
+  // `equivalent` there would be a false pass and `scope_reduced` a non-attestable false BLOCK, so
+  // the honest verdict is the gray band — a human confirms the equivalence via PARITY_REVIEW.
+  // Vetoes have already returned above, so an auth loss is never downgraded to a review item.
+  if (diff.paradigm_shift === true && score >= 0.3) {
+    evidence.push("band:paradigm_shift");
+    return { score, verdict: "needs_review", classes, evidence };
+  }
+
   return { score, verdict: band(score, classes), classes, evidence };
 }
 

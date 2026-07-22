@@ -28,7 +28,7 @@ test("assembles the 4-field invariantDiff input from BOTH engines", () => {
   const b = assembleBundle(FILES);
   assert.deepEqual(b.auth_checks, [{ object: "S_DEVELOP", field: "ACTVT", dummy: false, subrc_checked: true }]);
   assert.deepEqual(b.dcl_restrictions, [{ object: "S_CARRID", entity: "ZI_X" }]);
-  assert.equal(b.commit_work, 1);
+  assert.equal(b.commit_work, 2, "the COMMIT WORK statement PLUS the managed BDEF save boundary (F9)");
   assert.deepEqual(b.privileged_cds, []);
   assert.deepEqual(Object.keys(invariantInput(b)).sort(),
     ["auth_bdef", "auth_checks", "commit_work", "dcl_grants", "dcl_restrictions", "privileged_cds", "unreadable"]);
@@ -57,7 +57,7 @@ test("source_hash is the analyser's, and the cache makes a revisit O(1) — same
 
   const changed = assembleBundle([{ ...FILES[0], source: clazz("  COMMIT WORK. COMMIT WORK.") }, FILES[1], FILES[2]], { cache });
   assert.notEqual(changed.source_hash, first.source_hash, "a changed source set MISSES");
-  assert.equal(changed.commit_work, 2);
+  assert.equal(changed.commit_work, 3, "two COMMIT WORK statements plus the managed BDEF boundary");
   assert.equal(cache.size, 2);
 });
 
