@@ -37,12 +37,22 @@ export function invariantDiff(before = {}, after = {}) {
   const violations = [];
 
   if (a.commit_work < b.commit_work) violations.push("P4b:commit-suppressed");
-  if (a.auth_checks.some((c) => c.subrc_checked !== true)) violations.push("P4c:subrc-unchecked");
+  // A DUMMY id is a declared non-check, so it has no SY-SUBRC obligation of its own.
+  if (a.auth_checks.some((c) => c.dummy !== true && c.subrc_checked !== true)) violations.push("P4c:subrc-unchecked");
+  // Fail CLOSED on incomplete extraction: a file the reader could not parse contributes zero
+  // features, which is indistinguishable from a node with nothing to protect. P4 cannot be
+  // established from evidence that was never read.
+  if (b.unreadable.length > 0 || a.unreadable.length > 0) violations.push("P4:extraction-incomplete");
 
-  const afterPairs = new Set(a.auth_checks.map(pairKey));
+  // `ID … DUMMY` explicitly means "do not check this field" — it is a recorded NON-check, so it
+  // never contributes coverage on either side. Before this, DUMMY-ing a field was invisible.
+  const enforced = (c) => c.dummy !== true;
+  const beforeChecks = b.auth_checks.filter(enforced);
+  const afterChecks = a.auth_checks.filter(enforced);
+  const afterPairs = new Set(afterChecks.map(pairKey));
   const afterObjects = new Set(a.dcl_restrictions.map((d) => d.object));
-  const afterCheckObjects = new Set(a.auth_checks.map((c) => c.object));
-  const lostScopes = b.auth_checks
+  const afterCheckObjects = new Set(afterChecks.map((c) => c.object));
+  const lostScopes = beforeChecks
     .filter((c) => !afterPairs.has(pairKey(c)) && !afterObjects.has(c.object))
     .map((c) => ({ object: c.object, field: c.field }));
   // A before-DCL restriction is before-covered scope (docstring: pairs ∪ DCL). Removed with
@@ -98,6 +108,7 @@ function normalise(x) {
     auth_bdef: x.auth_bdef || [],
     commit_work: x.commit_work || 0,
     privileged_cds: x.privileged_cds || [],
+    unreadable: x.unreadable || [],
   };
 }
 

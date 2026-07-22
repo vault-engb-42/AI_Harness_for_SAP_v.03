@@ -65,7 +65,7 @@ test("the bundle carries the RAP auth fields through invariantInput to the judge
   const b = assembleBundle([bdef(WITH_AUTH), dcls(PFCG)]);
   const input = invariantInput(b);
   assert.deepEqual(Object.keys(input).sort(),
-    ["auth_bdef", "auth_checks", "commit_work", "dcl_grants", "dcl_restrictions", "privileged_cds"]);
+    ["auth_bdef", "auth_checks", "commit_work", "dcl_grants", "dcl_restrictions", "privileged_cds", "unreadable"]);
   assert.deepEqual(input.auth_bdef, [{ entity: "ZI_X", mode: "master", scope: "GLOBAL" }]);
   assert.deepEqual(input.dcl_grants, [{ entity: "ZI_X", form: "pfcg_auth" }]);
 });

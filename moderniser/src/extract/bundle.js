@@ -51,7 +51,14 @@ export function assembleBundle(files, opts = {}) {
     dcl_grants: rap.dcl_grants,
     auth_bdef: rap.auth_bdef,
     commit_work: ast.commit_work,
-    privileged_cds: rap.privileged_cds,
+    // Both real authorization bypasses, from their respective engines: the CDS annotation
+    // (`@AccessControl.authorizationCheck: #NOT_REQUIRED`) and the ABAP-SQL addition
+    // (`SELECT … WITH PRIVILEGED ACCESS`). `had_row_auth` is resolved against the DCL grants in
+    // this same file set — a bypassed entity that a role also grants on DID have row-level auth.
+    privileged_cds: mergePrivileged(rap, ast),
+    // Files the `.abap` gate admitted but abaplint could not type. Carried so the judge can fail
+    // CLOSED: zero features from an unreadable file is not evidence of nothing to protect.
+    unreadable: ast.unreadable,
     // parity classify signals
     money_operands: ast.money_operands,
     statement_kinds: ast.statement_kinds,
@@ -80,7 +87,19 @@ export function invariantInput(bundle = {}) {
     auth_bdef: bundle.auth_bdef ?? [],
     commit_work: bundle.commit_work ?? 0,
     privileged_cds: bundle.privileged_cds ?? [],
+    unreadable: bundle.unreadable ?? [],
   };
+}
+
+/** Engine 2's CDS-annotation bypasses ∪ engine 1's ABAP-SQL ones, deduped, `had_row_auth` resolved
+ *  against this bundle's DCL grants. */
+function mergePrivileged(rap, ast) {
+  const granted = new Set(asArray(rap.dcl_grants).map((g) => g.entity));
+  const merged = new Map(asArray(rap.privileged_cds).map((p) => [p.object, p]));
+  for (const p of asArray(ast.privileged_sql)) {
+    if (!merged.has(p.object)) merged.set(p.object, { object: p.object, had_row_auth: granted.has(p.object) });
+  }
+  return [...merged.values()].sort((a, b) => (a.object < b.object ? -1 : a.object > b.object ? 1 : 0));
 }
 
 /** Per-file content SHA — the `reassembly_broken` veto's input (L0: an untouched byte changed). */

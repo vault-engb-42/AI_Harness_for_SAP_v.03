@@ -20,8 +20,8 @@ test("auth_checks: AUTHORITY-CHECK object + field (the ID name) + subrc_checked 
   AUTHORITY-CHECK OBJECT 'S_TABU_DIS' ID 'DICBERCLS' FIELD 'ZZ'.`);
   const out = extractAst([f(src)]);
   assert.deepEqual(out.auth_checks, [
-    { object: "S_DEVELOP", field: "ACTVT", subrc_checked: true },
-    { object: "S_TABU_DIS", field: "DICBERCLS", subrc_checked: false },
+    { object: "S_DEVELOP", field: "ACTVT", dummy: false, subrc_checked: true },
+    { object: "S_TABU_DIS", field: "DICBERCLS", dummy: false, subrc_checked: false },
   ]);
 });
 
@@ -82,7 +82,7 @@ test("client_specified counts the CLIENT SPECIFIED token (half of the client par
 
 test("total + parse-robust (P8): empty and malformed input never throw", () => {
   assert.deepEqual(extractAst([]), {
-    auth_checks: [], money_operands: [], statement_kinds: {},
+    auth_checks: [], money_operands: [], privileged_sql: [], statement_kinds: {}, unreadable: [],
     commit_work: 0, client_specified: 0, exception_paths: 0, cfg_branches: 0, max_nesting: 0,
   });
   assert.doesNotThrow(() => extractAst([f("CLASS zcl DEFINITION. this is not valid abap {{{")]));

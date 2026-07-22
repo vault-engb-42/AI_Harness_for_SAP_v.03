@@ -26,12 +26,12 @@ define behavior for ZI_Item alias Item lock dependent by _X { }` },
 
 test("assembles the 4-field invariantDiff input from BOTH engines", () => {
   const b = assembleBundle(FILES);
-  assert.deepEqual(b.auth_checks, [{ object: "S_DEVELOP", field: "ACTVT", subrc_checked: true }]);
+  assert.deepEqual(b.auth_checks, [{ object: "S_DEVELOP", field: "ACTVT", dummy: false, subrc_checked: true }]);
   assert.deepEqual(b.dcl_restrictions, [{ object: "S_CARRID", entity: "ZI_X" }]);
   assert.equal(b.commit_work, 1);
   assert.deepEqual(b.privileged_cds, []);
   assert.deepEqual(Object.keys(invariantInput(b)).sort(),
-    ["auth_bdef", "auth_checks", "commit_work", "dcl_grants", "dcl_restrictions", "privileged_cds"]);
+    ["auth_bdef", "auth_checks", "commit_work", "dcl_grants", "dcl_restrictions", "privileged_cds", "unreadable"]);
 });
 
 test("carries the parity signals: money operands, statement kinds, RAP edges, deduction counters", () => {

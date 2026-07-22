@@ -20,6 +20,22 @@ const SUBRC_RE = /\bSY-SUBRC\b/i;
 // the next few statements for the gate's result to be considered tested.
 const SUBRC_LOOKAHEAD = 3;
 
+// F6 remediation. SY-SUBRC is a single global register: any statement that WRITES it between the
+// AUTHORITY-CHECK and the test makes that test read the later statement's result, not the gate's.
+// The window is therefore an allowlist of kinds known NOT to touch SY-SUBRC, and anything else —
+// including a kind not listed here — ends the window unchecked. Fail-CLOSED is the only defensible
+// direction for an authorization gate: an unrecognised statement must block, never bless.
+const SUBRC_SAFE = new Set([
+  "Move", "Data", "DataBegin", "DataEnd", "Constant", "Type", "TypeBegin", "TypeEnd", "Static",
+  "FieldSymbol", "Write", "Add", "Subtract", "Multiply", "Divide", "Clear", "Refresh", "Free", "Comment",
+]);
+const BLOCK_END = new Set(["EndMethod", "EndForm", "EndFunction", "EndClass", "EndModule"]);
+
+// The FROM entity of a `SELECT … WITH PRIVILEGED ACCESS` — the ABAP-SQL half of the authorization
+// bypass (the CDS-annotation half is engine 2's). This is where the addition actually lives:
+// @abaplint/core models it as a statement addition, not as DCL grammar.
+const PRIVILEGED_SQL_RE = /\bFROM\s+([\w/]+)[\s\S]*?\bWITH\s+PRIVILEGED\s+ACCESS\b/i;
+
 // Offline money-type fallback, owed by parity.js's docstring: resolving a data element to its
 // CURR/QUAN/DEC domain needs the DDIC, which the offline extractor does not have — so a seeded
 // standard amount/quantity-element allowlist stands in for abaplint's `unknown` type inference.
@@ -48,18 +64,31 @@ export function extractAst(files) {
   const list = Array.isArray(files) ? files : [];
   const auth_checks = [];
   const money_operands = [];
+  const privileged_sql = [];
   const statement_kinds = {};
+  const unreadable = [];
   const tally = { commit_work: 0, client_specified: 0, exception_paths: 0, cfg_branches: 0, max_nesting: 0 };
 
   for (const file of list) {
     if (!file || typeof file.source !== "string" || !ABAP_RE.test(String(file.filename ?? ""))) continue;
-    const stmts = statementsOf(file);
+    const parsed = statementsOf(file);
+    // F11: an UNREADABLE file must be reported, never extracted as "zero features". Silence here
+    // let a file abaplint cannot type pass every P4 conjunct vacuously — auth=0 and commit=0 on
+    // both sides look exactly like a node with nothing to protect.
+    if (!parsed.readable) {
+      unreadable.push(file.filename);
+      continue;
+    }
+    const stmts = parsed.statements;
     let depth = 0;
     for (let i = 0; i < stmts.length; i++) {
       const kind = stmts[i].get()?.constructor?.name;
       const text = stmts[i].concatTokens();
       if (kind === "AuthorityCheck") {
-        auth_checks.push(authCheck(text, subrcCheckedAfter(stmts, i)));
+        auth_checks.push(...authChecks(text, subrcCheckedAfter(stmts, i)));
+      } else if (kind === "Select" || kind === "SelectLoop") {
+        const priv = text.match(PRIVILEGED_SQL_RE);
+        if (priv) privileged_sql.push({ object: priv[1].toUpperCase() });
       } else if (kind === "Commit" || kind === "CommitEntities") {
         // Both are the save boundary: classic COMMIT WORK and the RAP COMMIT ENTITIES. Counting
         // both is what lets a classic→RAP rewrite read as "boundary preserved", not suppressed.
@@ -73,7 +102,7 @@ export function extractAst(files) {
       depth = tallyStructure(tally, kind, text, depth);
     }
   }
-  return { auth_checks, money_operands, statement_kinds, ...tally };
+  return { auth_checks, money_operands, privileged_sql, statement_kinds, unreadable, ...tally };
 }
 
 /** Accumulate the four §15.4 deduction counters; returns the block depth after this statement. */
@@ -91,39 +120,76 @@ function tallyStructure(tally, kind, text, depth) {
   return CLOSE_KINDS.has(kind) ? Math.max(0, depth - 1) : depth;
 }
 
-/** Parse ONE file in isolation; its statements, or [] when abaplint cannot parse it (P8). */
+/**
+ * Parse ONE file in isolation (P8). `readable` distinguishes "abaplint produced an ABAP object for
+ * this file" from "it produced nothing" — a file whose abapGit type token is missing (`zcl_x.abap`)
+ * satisfies the `.abap` gate but yields no object at all, and reporting that as zero features would
+ * pass every P4 conjunct vacuously (F11).
+ * @returns {{readable: boolean, statements: object[]}}
+ */
 function statementsOf(file) {
   try {
     const reg = new Registry();
     reg.addFile(new MemoryFile(file.filename, file.source));
     reg.parse();
     const out = [];
+    let readable = false;
     for (const obj of reg.getObjects()) {
-      for (const abapFile of obj.getABAPFiles?.() ?? []) out.push(...abapFile.getStatements());
+      const abapFiles = obj.getABAPFiles?.() ?? [];
+      if (abapFiles.length > 0) readable = true;
+      for (const abapFile of abapFiles) out.push(...abapFile.getStatements());
     }
-    return out;
+    return { readable, statements: out };
   } catch {
-    return [];
+    return { readable: false, statements: [] };
   }
 }
 
-/** SY-SUBRC referenced within the next SUBRC_LOOKAHEAD statements. */
+/**
+ * Whether the gate's SY-SUBRC is actually TESTED (F6). Walks forward at most SUBRC_LOOKAHEAD
+ * statements and stops early on anything that would CLOBBER the register or leave the block, so a
+ * `SELECT` hoisted between the AUTHORITY-CHECK and the `IF sy-subrc` no longer reports the gate as
+ * checked — the IF would be testing the SELECT's result.
+ */
 function subrcCheckedAfter(stmts, i) {
   for (let j = i + 1; j <= i + SUBRC_LOOKAHEAD && j < stmts.length; j++) {
+    const kind = stmts[j].get()?.constructor?.name;
     if (SUBRC_RE.test(stmts[j].concatTokens())) return true;
+    if (BLOCK_END.has(kind) || !SUBRC_SAFE.has(kind)) return false; // clobbered, or left the block
   }
   return false;
 }
 
-/** `AUTHORITY-CHECK OBJECT 'obj' ID 'field' FIELD 'value'` → {object, field, subrc_checked}, upper.
+/**
+ * `AUTHORITY-CHECK OBJECT 'obj' ID 'f1' FIELD v1 ID 'f2' DUMMY` → ONE ROW PER ID (F1).
+ *
+ * Capturing only the first ID made an authorization WEAKENING invisible: converting
+ * `ID 'BUKRS' FIELD lv_b` to `ID 'BUKRS' DUMMY` extracted byte-identically, so the field stopped
+ * being enforced while the bundle said nothing changed. `DUMMY` explicitly means "do not check this
+ * field", so it is recorded and the judge treats it as NOT covered.
+ *
  * `field` is the auth-object FIELD NAME (the ID operand), not the checked value — that is the
- * granularity invariantDiff's (object,field) coverage pairs are keyed on. */
-function authCheck(text, subrc_checked) {
-  return {
-    object: (text.match(/OBJECT\s+'([^']+)'/i)?.[1] ?? "").toUpperCase(),
-    field: (text.match(/ID\s+'([^']+)'/i)?.[1] ?? "").toUpperCase(),
+ * granularity invariantDiff's (object,field) coverage pairs are keyed on. A non-literal object is
+ * kept as `VAR:<NAME>` rather than collapsing to `""`, so two different dynamic objects are not
+ * silently equal.
+ */
+function authChecks(text, subrc_checked) {
+  const object = authObject(text);
+  const ids = [...text.matchAll(/\bID\s+'([^']+)'\s+(DUMMY|FIELD)\b/gi)];
+  if (ids.length === 0) return [{ object, field: "", dummy: false, subrc_checked }];
+  return ids.map((m) => ({
+    object,
+    field: m[1].toUpperCase(),
+    dummy: m[2].toUpperCase() === "DUMMY",
     subrc_checked,
-  };
+  }));
+}
+
+function authObject(text) {
+  const literal = text.match(/OBJECT\s+'([^']+)'/i);
+  if (literal) return literal[1].toUpperCase();
+  const variable = text.match(/OBJECT\s+([\w/-]+)/i);
+  return variable ? `VAR:${variable[1].toUpperCase()}` : "";
 }
 
 /** `DATA name TYPE elem` → {field, type} when elem is a seeded amount/quantity element. */
