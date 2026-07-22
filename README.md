@@ -4,6 +4,8 @@ A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system** — 
 
 **The core substrate is the MCP-ADT server** (ABAP Developer Tools — 17 `aws_abap_cb_*` tools). Grounding, quality gates, and delivery ride those tools; the standalone **analyser** adds an offline/local code graph on top. `CLAUDE.md` is the always-loaded spine (prime directives P1–P8); this README carries the roster and reference tables (kept out of `CLAUDE.md` for prompt-cache stability).
 
+> **`docs/` is a local working-progress folder and is deliberately not tracked in this repository.** Design docs, build contracts, architecture specs and reference material live there on the maintainer's machine only. Source comments and schema descriptions that cite a `docs/…` path are pointing at those local working documents — the code does not read them at runtime, so nothing here depends on their presence. The durable, shipped record is the code, its tests, and the `demos/` bundles.
+
 ## The MCP-ADT sidecar (`sap-adt-sidecar/`) + bridge (`mcp-adt-bridge/`)
 
 The harness ships its **own Node ADT sidecar** — the TALOS `docker/sap-adt` adapter ported to real working code (no mock mode). It is a FastAPI-compatible REST service (`POST /mcp` with `{tool, params}` + `X-SAP-*` credential headers, `GET /health`) bound to `127.0.0.1:8090`. All 17 tools make real ADT calls; the reference's fake-success write handlers are replaced with real lock→PUT→activate flows, and quality-tool errors propagate instead of collapsing to empty/fabricated results (P6 fail-closed).

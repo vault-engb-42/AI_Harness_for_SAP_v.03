@@ -210,7 +210,7 @@
             "required": ["id", "kind", "object"],
             "properties": {
               "id": { "type": "string" },
-              "kind": { "type": "string", "enum": ["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"], "description": "canonical CPG node kind (matches the analyser NodeKind union in docs/ANALYSER_ARCHITECTURE.md #3 C2)" },
+              "kind": { "type": "string", "enum": ["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"], "description": "canonical CPG node kind (matches the analyser NodeKind union in ANALYSER_ARCHITECTURE.md #3 C2 (local working doc; docs/ is not tracked))" },
               "object": { "type": "string" },
               "namespace": { "type": "string", "enum": ["Z", "Y", "registered", "sap"], "description": "Z/Y = customer; registered = /NS/ vendor namespace; sap = SAP standard." },
               "clean_core_posture": { "type": "string", "enum": ["level-a", "brownfield-mixed", "classic", "unknown"], "description": "DUAL-EMITTED (§15.5) from clean_core_grade via the crosswalk A->level-a, B/C->brownfield-mixed, D->classic; retained one minor for back-compat, then cutover." },
@@ -230,7 +230,7 @@
             "properties": {
               "source": { "type": "string" },
               "target": { "type": "string" },
-              "kind": { "type": "string", "enum": ["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"], "description": "canonical CPG edge kind (matches the analyser EdgeKind union in docs/ANALYSER_ARCHITECTURE.md #3 C2)" },
+              "kind": { "type": "string", "enum": ["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"], "description": "canonical CPG edge kind (matches the analyser EdgeKind union in ANALYSER_ARCHITECTURE.md #3 C2 (local working doc; docs/ is not tracked))" },
               "evidence": { "type": "string", "description": "the object + statement the edge was read from (traceability)." }
             }
           }

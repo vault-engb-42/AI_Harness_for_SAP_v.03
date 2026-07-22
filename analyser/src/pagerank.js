@@ -1,6 +1,6 @@
 /**
  * PageRank over the CPG (arch spec §3.C top_objects / §3.D priority_rank),
- * reproducing TALOS's importance ranking (docs/reference/TALOS_ANALYSER_
+ * reproducing TALOS's importance ranking (local working doc, untracked: docs/reference/TALOS_ANALYSER_
  * INTERNALS.md §5): power iteration keyed by node id, damping d=0.85, dangling
  * mass redistributed uniformly, unresolved edge endpoints added as phantom
  * nodes, multi-edges counted. Pure + deterministic — a function of the graph

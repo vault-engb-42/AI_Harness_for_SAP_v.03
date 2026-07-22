@@ -3,7 +3,7 @@ import { objectsOf } from "./abaplint-loader.js";
 
 /**
  * Tech-debt scoring (arch spec §3.C Debt tab) — a per-symbol 0-1 composite over
- * 10 signals, grounded in TALOS's debt_scorer (docs/reference/TALOS_ANALYSER_
+ * 10 signals, grounded in TALOS's debt_scorer (local working doc, untracked: docs/reference/TALOS_ANALYSER_
  * INTERNALS.md Appendix A) and ADAPTED to our real metrics (operator-approved
  * 2026-07-09): where TALOS forces complexity=0.0 for ABAP, uses a coupling PROXY
  * for lcom, and 0 for duplication (no clone detector), we compute REAL McCabe

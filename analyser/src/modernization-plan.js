@@ -5,7 +5,7 @@ import { methodCyclomatic } from "./ast-metrics.js";
  * Modernization plan (§3.D) — per customer object: modernization target, effort
  * tier, priority rank, migration complexity, and its transformation work-list,
  * emitted in transport-safe order. Reproduces TALOS's enrich_node_metadata +
- * transport sequence (docs/reference/TALOS_ANALYSER_INTERNALS.md §10 / Appendix B)
+ * transport sequence (local working doc, untracked: docs/reference/TALOS_ANALYSER_INTERNALS.md §10 / Appendix B)
  * over our REAL inputs — debt (debt-scorer), rank (normalized PageRank), and AST
  * metrics — rather than TALOS's regex proxies. Deterministic: a pure function of
  * the graph JSON, debt block, findings, parsed registry, and oracle adapter.

@@ -4,7 +4,7 @@ import { SCHEMA_VERSION } from "./run-identity.js";
  * SARIF 2.1.0 emitter (arch spec §3.C) — the analyser's OWN emitter (TALOS is
  * reference-only, decision #12: NOT tool.driver.name "talos-code-graph"). A pure,
  * deterministic transform of the curated findings into the SARIF envelope
- * confirmed by the reference sample (docs/reference/analyser-html/09-sarif.sample
+ * confirmed by the reference sample (local working doc, untracked: docs/reference/analyser-html/09-sarif.sample
  * .json): $schema, version, runs[].tool.driver{name,version,informationUri,rules},
  * results[]. Each finding -> a result; each distinct rule_id -> a reportingDescriptor.
  */
