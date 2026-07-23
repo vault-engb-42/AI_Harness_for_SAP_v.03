@@ -76,7 +76,7 @@ For each sprint group:
 - Re-read the P1–P8 directives in `CLAUDE.md`. P4 (immutable invariants) and P5 (non-prod-only, fail-closed) override any story instruction.
 - Follow ABAP-Unit-first discipline: the ABAP Unit test class is written **before or with** the implementation, never after. A story with no failing test first is not started.
 
-If `specs/brownfield/` exists, also read `architecture-map.md`, `test-map.md`, `risk-map.md`, and `change-strategy.md`. Preserve existing released public interfaces and RAP behavior contracts unless the story explicitly authorizes a change. The brownfield source may be any Clean-Core level — that is diagnosis, not failure (P1); your emitted artifact must be Level A. Navigate with `symbol-map.md` and pull only the slices you need via `get_source` rather than reading whole objects blind.
+If `specs/brownfield/` exists, also read `architecture-map.md`, `risk-map.md`, and `change-strategy.md`. Preserve existing released public interfaces and RAP behavior contracts unless the story explicitly authorizes a change. The brownfield source may be any Clean-Core level — that is diagnosis, not failure (P1); your emitted artifact must be Level A. Navigate with `architecture-map.md`'s traceable edge list — every edge cites the object and statement it was read from — and pull only the slices you need via `get_source` rather than reading whole objects blind.
 
 ### Step 2: Read Stories and Object Map
 - List stories for this sprint (or all stories if no sprint boundary is given).
