@@ -23,5 +23,6 @@
   "dependencies": {
     "@abaplint/core": "2.119.53",
     "fast-xml-parser": "^5.9.3"
-  }
+  },
+  "license": "MIT"
 }
