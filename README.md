@@ -57,5 +57,3 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 **Not yet built:**
 - Advisory/telemetry hooks — `record-run`, `verify-on-save`, `review-on-stop`, `atc-on-activate`, `ratchet-guard` (then wired into `settings.json`).
 - Reconcile: `abap-generator` cites `specs/brownfield/{symbol-map,test-map}.md`, which `abap-brownfield` does not emit (it writes `architecture-map.md` / `risk-map.md` / `change-strategy.md`).
-
-Nothing under `claude_harness_eng_v5/demos` (the pKYC demo, its port block, etc.) is copied — only the reusable harness anatomy.
