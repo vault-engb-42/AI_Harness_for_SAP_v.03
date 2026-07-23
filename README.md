@@ -1,6 +1,6 @@
 # SAP ABAP Harness
 
-A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system** — the engineering harness `claude_harness_eng_v5` retargeted for ABAP Cloud / RAP / CDS. Same anatomy (generator/evaluator separation, the Karpathy ratchet, lanes, "the human merges"), but with its **own local substrate**: a ported MCP-ADT sidecar/bridge and a standalone `@abaplint/core` analyser (TALOS is reference-only, never called at runtime).
+A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system**, built for ABAP Cloud / RAP / CDS. Generator/evaluator separation, the Karpathy ratchet, lanes, and "the human merges", over its **own local substrate**: a Node MCP-ADT sidecar/bridge and a standalone `@abaplint/core` analyser.
 
 **The core substrate is the MCP-ADT server** (ABAP Developer Tools — 17 `aws_abap_cb_*` tools). Grounding, quality gates, and delivery ride those tools; the standalone **analyser** adds an offline/local code graph on top. `CLAUDE.md` is the always-loaded spine (prime directives P1–P8); this README carries the roster and reference tables (kept out of `CLAUDE.md` for prompt-cache stability).
 
@@ -8,7 +8,7 @@ A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system** — 
 
 ## The MCP-ADT sidecar (`sap-adt-sidecar/`) + bridge (`mcp-adt-bridge/`)
 
-The harness ships its **own Node ADT sidecar** — the TALOS `docker/sap-adt` adapter ported to real working code (no mock mode). It is a FastAPI-compatible REST service (`POST /mcp` with `{tool, params}` + `X-SAP-*` credential headers, `GET /health`) bound to `127.0.0.1:8090`. All 17 tools make real ADT calls; the reference's fake-success write handlers are replaced with real lock→PUT→activate flows, and quality-tool errors propagate instead of collapsing to empty/fabricated results (P6 fail-closed).
+The harness ships its **own Node ADT sidecar** — no mock mode, no Python, no docker. It is a REST service (`POST /mcp` with `{tool, params}` + `X-SAP-*` credential headers, `GET /health`) bound to `127.0.0.1:8090`. All 17 tools make real ADT calls; writes are real lock→PUT→activate flows, and quality-tool errors propagate instead of collapsing to empty or fabricated results (P6 fail-closed).
 
 - `sap-adt-sidecar/lib/` — `session.js` (real ADT auth: discovery + basic auth + CSRF fetch + manual cookie jar), `adt-xml.js` (namespace-agnostic parse/build), `adt-uris.js`, `security.js` (credential-scrubbing error sanitizer).
 - `sap-adt-sidecar/handlers/` — `read.js`, `quality.js`, `write.js` (the 17 tools).
@@ -44,13 +44,13 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 
 ## Build status
 
-**Built and verified** — `npm test` → **441/441 green**, all TDD red→green (6 check-library + 14 hooks + 6 model-tier + 5 lane-contracts + 5 bridge + 296 analyser + 91 greenfield + 18 sidecar):
+**Built and verified** — `npm test` → **1310/1310 green**, all TDD red→green:
 - `CLAUDE.md` spine (P1–P8), `.claude/.claude-plugin/plugin.json`, `.mcp.json`, `package.json`
-- **Standalone analyser** (`analyser/`) — `@abaplint/core` code property graph + 16 rule packs at full TALOS parity → S/4 readiness + blast radius + `analyser-findings.json`; its own `abap-analyser` MCP (analyse_bundle / analyse_source_system / analyse_via_adt / get_report)
+- **Standalone analyser** (`analyser/`) — `@abaplint/core` code property graph + 16 rule packs → S/4 readiness + blast radius + `analyser-findings.json`; its own `abap-analyser` MCP (analyse_bundle / analyse_source_system / analyse_via_adt / get_report)
 - **Greenfield pipeline** (`greenfield/`) — pre-generation released-API grounding over the bundled cloudification registry + a **58-rule parser-based ABAP-Cloud linter** (`@abaplint/core`); its own `greenfield` MCP (`ground_released_apis` / `lint_abap_cloud`); wired into the design/implement/validate lanes with a lint→regenerate loop, a `/greenfield` entry-point, and an offline dry-run
 - **MCP-ADT bridge** (`mcp-adt-bridge/`) + **ported ADT sidecar** (`sap-adt-sidecar/`) — MCP stdio to ADT REST, 17 tools, real writes fail-closed (P5)
 - **9 agents** (`.claude/agents/`) — planner, abap-generator, abap-evaluator, abap-design-critic, abap-security-reviewer, abap-diff-reviewer, clean-core-reviewer, abap-explorer, transport-manager
-- **23 skills/lanes** (`.claude/skills/`) — greenfield (net-new entry), abap-analyser (analyser producer), fit-to-standard, abap-brownfield, readiness, seam-finder, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + behaviour-preservation sub-skills
+- **24 skills/lanes** (`.claude/skills/`) — greenfield (net-new entry), abap-analyser (analyser producer), fit-to-standard, abap-brownfield, readiness, seam-finder, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + behaviour-preservation sub-skills
 - **Enforcement hooks + settings** (`.claude/hooks/`, `.claude/settings.json`) — pre-write-gate, adt-write-guard, artifact-guard over a unit-tested check library
 - **model-tier.js** (cost/balanced/max-quality), **templates** (RAP BO, CDS view entity, ABAP Unit, ATC variant, DDLX metadata-extension, SRVD service-definition, SRVB service-binding, Fiori-Elements app-project, transport-evidence + claude-md/mcp-config stamps), **scaffold-abap** command, **state seeds**
 
