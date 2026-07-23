@@ -24,3 +24,8 @@ Thumbs.db
 # Local working-progress folder — design docs, build contracts, architecture specs,
 # reference extracts. Deliberately NOT published (see README). Stays on disk, never committed.
 docs/
+
+# Advisory-hook runtime output (record-run / atc-on-activate). Telemetry and obligations are
+# per-machine state, not repository content — the seeded baselines beside them ARE tracked.
+.claude/state/run-log.jsonl
+.claude/state/atc-owed.json
