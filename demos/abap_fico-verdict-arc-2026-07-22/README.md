@@ -8,11 +8,11 @@ built in gap-2b — and what it does when pointed at those same modernised draft
 
 Same corpus. Same generated source. Different question.
 
-**Self-contained.** The classic corpus (`before/source/`) and the modernised RAP objects
-(`after/modernised-source/`) are both included here, so this demo runs on its own without reaching
-into the earlier one. They are byte-identical copies — verified, not assumed:
-`assembleBundle().source_hash` matches the original on both sides (`3f615aea…` before,
-`06f6c627…` after), and the verdict reproduces from this folder alone.
+**The corpus is not vendored here.** The ABAP it analyses is third-party and carries no licence,
+so this repository ships the analysis and the proof — not the source. Fetch the corpus and
+reproduce every number below with `npm run test:corpus`; see [FETCH.md](../FETCH.md). The corpus
+`source_hash` is recorded in `offline-verdict.json` (`3f615aea…` before, `06f6c627…` after) so you
+can confirm you are analysing the same bytes this run did.
 
 > **Why the source is copied, not regenerated.** All 14 defects closed in gap-2b live in the extraction and
 > verdict layer. **None are in the generator.** Holding the corpus and the generated artifacts
@@ -124,10 +124,6 @@ further boxes into the verdict.
 
 | Path | What |
 |---|---|
-| `before/source/` | The classic brownfield corpus — 29 analysable files |
-| `after/modernised-source/` | The modernised RAP objects under judgement — 41 files, per-object dirs |
-| `before/analyser-findings.json` | Analyser output on the classic side |
-| `after/analyser-findings.json` | Analyser output on the modernised side — the ATC evidence the verdict asserts |
 | `offline-verdict.json` | The run: corpus hashes, both extractions, verdict, driver decision |
 | `proof/checkpoint.json` | The checkpoint `offlineVerdict` consumed — note `auth_coverage` is a TOP-LEVEL sibling, not nested under `invariants` |
 | `proof/evidence.json` | Ratchet evidence: ATC counts, priority-3 warns, changed-line join |
@@ -136,11 +132,10 @@ further boxes into the verdict.
 ## Reproducing
 
 ```bash
-node --test moderniser/test/e2e-abap-fico-offline.test.js
+ABAP_FICO_CORPUS=<your corpus> npm run test:corpus
 ```
 
-The acceptance test runs against the canonical corpus at `abap_fico-e2e-2026-07-14`; because the
-copies here are byte-identical by `source_hash`, it asserts this exact outcome — the block, the four reasons, the self-correction,
+The acceptance suite asserts this exact outcome — the block, the four reasons, the self-correction,
 and byte-identical determinism across runs — so it cannot regress silently.
 
 ## Honest limits

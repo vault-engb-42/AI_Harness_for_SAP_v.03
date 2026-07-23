@@ -51,7 +51,7 @@ activated, `blocked_on: DEV-CREDS`.
 
 ```
 before/
-  source/                 the original abap_fico corpus (77 files)
+  (source/ is NOT vendored — third-party, unlicensed; see ../FETCH.md)
   analyser-findings.json  the analyser's BEFORE diagnosis
   abap_fico-BEFORE.html   ← open in a browser: 11-tab interactive report (D grade, 36% S/4)
 after/

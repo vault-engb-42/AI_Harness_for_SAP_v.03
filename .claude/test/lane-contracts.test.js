@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
 
@@ -16,6 +17,7 @@ import { dirname, join, relative } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLAUDE = join(HERE, "..");
+const REPO = join(HERE, "..", "..");
 
 // Design artifacts that were consumed but never produced — retired by the
 // contract reconciliation. Their reappearance is a regression.
@@ -324,4 +326,19 @@ test("abap-transport + transport-manager gate on clean-core-verdict.json (Gate 2
     const t = readFileSync(join(CLAUDE, p), "utf8");
     assert.match(t, /clean-core-verdict\.json/, `${p} preconditions must re-check clean-core-verdict.json#pass`);
   }
+});
+
+// OPERATOR HARD RULE: `docs/` is a local working-progress folder and NEVER goes online. It is
+// gitignored, and it was purged from history with `git filter-repo` — but `.gitignore` is
+// advisory: `git add -f` bypasses it silently, and so does an explicit path in a commit. This
+// test is the mechanical enforcement, because the rule is only as good as the thing that checks
+// it. It runs on every `npm test`, which is the gate before every commit.
+test("docs/ is never tracked — the local-only rule is enforced, not remembered", () => {
+  const tracked = execFileSync("git", ["ls-files", "docs"], { cwd: REPO, encoding: "utf8" }).trim();
+  assert.equal(tracked, "", `docs/ must never be tracked; found:\n${tracked}`);
+});
+
+test("docs/ is gitignored, so an accidental `git add docs/...` is refused", () => {
+  const rules = readFileSync(join(REPO, ".gitignore"), "utf8");
+  assert.match(rules, /^docs\/$/m, ".gitignore must carry a `docs/` rule");
 });

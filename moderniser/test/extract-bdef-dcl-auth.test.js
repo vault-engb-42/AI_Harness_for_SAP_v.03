@@ -159,9 +159,7 @@ define behavior for ZI_X alias X
   }
 });
 
-test("a REAL abap_fico corpus artifact with a bare .asbdef name is extracted", async () => {
-  const { readFileSync } = await import("node:fs");
-  const path = "demos/abap_fico-e2e-2026-07-14/after/modernised-source/ZCREATE_ASSET/ZR_ZASSETCOPYCC.asbdef";
-  const out = extractBdefDcl([{ filename: "ZR_ZASSETCOPYCC.asbdef", source: readFileSync(path, "utf8") }]);
-  assert.equal(out.save_boundaries, 1, "this returned ZERO features before the routing fix");
-});
+// NB the case that asserted against an ACTUAL corpus file moved to
+// moderniser/test/corpus/abap-fico.corpus.test.js — the corpus is third-party and unlicensed, so
+// it is not vendored here. The synthetic half above (all three naming shapes per artifact type)
+// stays in `npm test`, which is what guards the routing itself.

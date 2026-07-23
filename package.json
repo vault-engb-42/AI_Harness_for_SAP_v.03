@@ -13,6 +13,7 @@
     "test:oracle": "node --test \"oracle/test/*.test.js\"",
     "test:greenfield": "node --test \"greenfield/test/*.test.js\"",
     "test:moderniser": "node --test \"moderniser/test/*.test.js\"",
+    "test:corpus": "node --test \"moderniser/test/corpus/*.corpus.test.js\"",
     "test:sidecar": "node --test sap-adt-sidecar/test/lib.test.js sap-adt-sidecar/test/write.test.js sap-adt-sidecar/test/aunit.test.js sap-adt-sidecar/test/server.test.js sap-adt-sidecar/test/usage-signal.test.js",
     "test:live": "node --test mcp-adt-bridge/test/bridge.live.test.js sap-adt-sidecar/test/sidecar.live.test.js analyser/test/live/analyser.live.test.js",
     "test:live:write": "node --test sap-adt-sidecar/test/sidecar.write.live.test.js"
