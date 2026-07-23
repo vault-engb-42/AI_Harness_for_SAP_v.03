@@ -80,6 +80,60 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-on-save.js\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__sap-adt__aws_abap_cb_(activate_object|activate_objects_batch)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/atc-on-activate.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ratchet-guard.js\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/review-on-stop.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   }
 }

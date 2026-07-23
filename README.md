@@ -51,9 +51,11 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 - **MCP-ADT bridge** (`mcp-adt-bridge/`) + **ported ADT sidecar** (`sap-adt-sidecar/`) — MCP stdio to ADT REST, 17 tools, real writes fail-closed (P5)
 - **9 agents** (`.claude/agents/`) — planner, abap-generator, abap-evaluator, abap-design-critic, abap-security-reviewer, abap-diff-reviewer, clean-core-reviewer, abap-explorer, transport-manager
 - **24 skills/lanes** (`.claude/skills/`) — greenfield (net-new entry), abap-analyser (analyser producer), fit-to-standard, abap-brownfield, readiness, seam-finder, abap-spec, abap-design, abap-implement, abap-validate, abap-transport, abap-auto, abap-build, abap-change, abap-vibe, abap-refactor, abap-test, clarify + behaviour-preservation sub-skills
-- **Enforcement hooks + settings** (`.claude/hooks/`, `.claude/settings.json`) — pre-write-gate, adt-write-guard, artifact-guard over a unit-tested check library
+- **Hooks + settings** (`.claude/hooks/`, `.claude/settings.json`) — 3 enforcement + 5 advisory over a unit-tested check library
 - **model-tier.js** (cost/balanced/max-quality), **templates** (RAP BO, CDS view entity, ABAP Unit, ATC variant, DDLX metadata-extension, SRVD service-definition, SRVB service-binding, Fiori-Elements app-project, transport-evidence + claude-md/mcp-config stamps), **scaffold-abap** command, **state seeds**
 
-**Not yet built:**
-- Advisory/telemetry hooks — `record-run`, `verify-on-save`, `review-on-stop`, `atc-on-activate`, `ratchet-guard` (then wired into `settings.json`).
-- Reconcile: `abap-generator` cites `specs/brownfield/{symbol-map,test-map}.md`, which `abap-brownfield` does not emit (it writes `architecture-map.md` / `risk-map.md` / `change-strategy.md`).
+**Hook layer — two tiers, deliberately separate:**
+- **Enforcement** (`PreToolUse` / `UserPromptSubmit`, exit 2, fail-closed) — `pre-write-gate`, `adt-write-guard`, `artifact-guard`
+- **Advisory** (observe and report, always exit 0) — `record-run`, `verify-on-save`, `atc-on-activate`, `ratchet-guard`, `review-on-stop`
+
+An advisory hook never blocks. Two independent paths that can both veto would be two sources of truth for "is this allowed"; a contract test asserts no advisory hook is wired to a blocking event and none can exit non-zero.

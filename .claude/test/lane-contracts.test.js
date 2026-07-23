@@ -21,7 +21,12 @@ const REPO = join(HERE, "..", "..");
 
 // Design artifacts that were consumed but never produced — retired by the
 // contract reconciliation. Their reappearance is a regression.
-const RETIRED_ARTIFACTS = ["object-map.md", "cds-contracts.md", "rap-contracts.md", "data-model.md"];
+// `symbol-map.md` / `test-map.md` joined the retired set in the brownfield reconciliation:
+// abap-generator instructed reading both, but NO lane emits them — abap-brownfield writes
+// architecture-map / risk-map / change-strategy, and its SKILL states outright that "there is no
+// separate coupling-report or symbol-map to invent". The navigation they were meant to provide
+// already lives in architecture-map.md's traceable edge list.
+const RETIRED_ARTIFACTS = ["object-map.md", "cds-contracts.md", "rap-contracts.md", "data-model.md", "symbol-map.md", "test-map.md"];
 
 // The canonical produced set every consumer must code against.
 const PRODUCED_ARTIFACTS = ["component-map.md", "object-contract.md", "api-grounding.md"];
@@ -341,4 +346,86 @@ test("docs/ is never tracked — the local-only rule is enforced, not remembered
 test("docs/ is gitignored, so an accidental `git add docs/...` is refused", () => {
   const rules = readFileSync(join(REPO, ".gitignore"), "utf8");
   assert.match(rules, /^docs\/$/m, ".gitignore must carry a `docs/` rule");
+});
+
+// The brownfield counterpart of the produced-set anchor above: every artifact a downstream lane
+// reads out of specs/brownfield/ must be one this lane actually writes. The drift this pins cost a
+// live inconsistency — the generator told itself to navigate with a map nothing ever produced.
+const BROWNFIELD_PRODUCED = ["architecture-map.md", "risk-map.md", "change-strategy.md"];
+
+test("brownfield consumers only read maps the brownfield lane produces", () => {
+  const brownfield = laneDefinitions().find((d) => d.path.replace(/\\/g, "/") === "skills/abap-brownfield/SKILL.md");
+  assert.ok(brownfield, "abap-brownfield/SKILL.md must exist");
+  for (const artifact of BROWNFIELD_PRODUCED) {
+    assert.ok(brownfield.text.includes(artifact), `abap-brownfield must still emit '${artifact}'`);
+  }
+  const generator = laneDefinitions().find((d) => d.path.replace(/\\/g, "/") === "agents/abap-generator.md");
+  assert.ok(generator, "abap-generator.md must exist");
+  const readsBrownfield = [...generator.text.matchAll(/`([a-z-]+-(?:map|strategy|contract)\.md)`/g)].map((m) => m[1]);
+  const orphans = [...new Set(readsBrownfield)].filter((a) => !BROWNFIELD_PRODUCED.includes(a) && !PRODUCED_ARTIFACTS.includes(a));
+  assert.deepEqual(orphans, [], `abap-generator reads brownfield artifacts nothing produces: ${orphans.join(", ")}`);
+});
+
+// The hook layer has TWO tiers and the separation is load-bearing: enforcement hooks block
+// (PreToolUse/UserPromptSubmit, exit 2, fail-closed), advisory hooks only observe. A second
+// blocking path would be a second source of truth for "is this allowed" — the divergent-duplication
+// class that already produced a real defect here. These tests pin both the wiring and the tiering.
+const ENFORCEMENT_HOOKS = ["pre-write-gate", "adt-write-guard", "artifact-guard"];
+const ADVISORY_HOOKS = ["record-run", "verify-on-save", "review-on-stop", "atc-on-activate", "ratchet-guard"];
+
+function wiredHooks() {
+  const settings = JSON.parse(readFileSync(join(CLAUDE, "settings.json"), "utf8"));
+  const out = [];
+  for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
+    for (const entry of entries) {
+      for (const h of entry.hooks ?? []) {
+        const m = h.command.match(/hooks\/([a-z-]+)\.js/);
+        if (m) out.push({ event, name: m[1], matcher: entry.matcher ?? null });
+      }
+    }
+  }
+  return out;
+}
+
+test("every hook file on disk is wired into settings.json (no orphaned hook)", () => {
+  const wired = new Set(wiredHooks().map((h) => h.name));
+  const onDisk = readdirSync(join(CLAUDE, "hooks")).filter((f) => f.endsWith(".js")).map((f) => f.replace(/\.js$/, ""));
+  const orphans = onDisk.filter((n) => !wired.has(n));
+  assert.deepEqual(orphans, [], `hook files exist but nothing invokes them: ${orphans.join(", ")}`);
+});
+
+test("all five advisory hooks are wired, on the events they own", () => {
+  const wired = wiredHooks();
+  for (const name of ADVISORY_HOOKS) {
+    assert.ok(wired.some((h) => h.name === name), `advisory hook '${name}' is not wired into settings.json`);
+  }
+  const byName = (n) => wired.filter((h) => h.name === n).map((h) => h.event);
+  assert.ok(byName("record-run").includes("SessionStart") && byName("record-run").includes("Stop"), "record-run spans both lifecycle ends");
+  assert.deepEqual(byName("verify-on-save"), ["PostToolUse"], "verify-on-save observes writes AFTER they land");
+  assert.deepEqual(byName("atc-on-activate"), ["PostToolUse"], "atc-on-activate observes activations");
+  for (const n of ["ratchet-guard", "review-on-stop"]) assert.deepEqual(byName(n), ["Stop"], `${n} runs at Stop`);
+});
+
+test("ADVISORY hooks never run on a BLOCKING event — the tiers must not merge", () => {
+  const blocking = new Set(["PreToolUse", "UserPromptSubmit"]);
+  const offenders = wiredHooks().filter((h) => ADVISORY_HOOKS.includes(h.name) && blocking.has(h.event));
+  assert.deepEqual(offenders, [], `advisory hooks wired to a blocking event: ${offenders.map((o) => `${o.name}@${o.event}`).join(", ")}`);
+});
+
+test("no advisory hook source can exit non-zero — the contract is in the code, not just the docs", () => {
+  for (const name of ADVISORY_HOOKS) {
+    const src = readFileSync(join(CLAUDE, "hooks", `${name}.js`), "utf8");
+    const exits = [...src.matchAll(/process\.exit\((\d+)\)/g)].map((m) => m[1]);
+    assert.deepEqual(exits, [], `${name}.js must exit only through advisory.finish(); found process.exit(${exits.join(", ")})`);
+    assert.match(src, /\bfinish\(\)/, `${name}.js must terminate through advisory.finish()`);
+  }
+});
+
+test("the enforcement hooks are still wired to blocking events (no accidental downgrade)", () => {
+  const wired = wiredHooks();
+  for (const name of ENFORCEMENT_HOOKS) {
+    const events = wired.filter((h) => h.name === name).map((h) => h.event);
+    assert.ok(events.length > 0, `enforcement hook '${name}' lost its wiring`);
+    assert.ok(events.every((e) => ["PreToolUse", "UserPromptSubmit"].includes(e)), `${name} must stay on a blocking event, found ${events.join(", ")}`);
+  }
 });
