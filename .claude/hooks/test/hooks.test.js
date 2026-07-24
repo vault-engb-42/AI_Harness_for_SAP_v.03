@@ -64,6 +64,29 @@ test("pre-write-gate blocks removal of an AUTHORITY-CHECK (P4)", async () => {
   assert.equal(r.code, 2);
   assert.match(r.stderr, /AUTHORITY-CHECK|invariant/i);
 });
+test("pre-write-gate blocks removal of the RAP BDEF authorization clause (P4a, C2)", async () => {
+  // P4(a) names `authorization master ( … )` as the RAP authorization gate, co-equal with classic
+  // AUTHORITY-CHECK. Before C2 this edit sailed through — the gate only counted AUTHORITY-CHECK.
+  const before = "define behavior for ZI_Sales alias Sales\npersistent table zt_sales\nauthorization master ( global )\n{ update; delete; }";
+  const after = "define behavior for ZI_Sales alias Sales\npersistent table zt_sales\n{ update; delete; }";
+  const r = await runHook(PRE_WRITE, edit("specs/abap/zbp_i_sales.bdef", before, after));
+  assert.equal(r.code, 2, "deleting the RAP authorization gate must BLOCK");
+  assert.match(r.stderr, /authorization|invariant/i);
+});
+test("pre-write-gate blocks a dropped DCL grant in the abapGit .asdcls form (P4a, C2)", async () => {
+  const before = "DEFINE ROLE zi_sales_role {\n  GRANT SELECT ON zi_sales WHERE ( salesorg ) = aspect pfcg_auth( 'Z_SALES', 'SALESORG' );\n}";
+  const after = "DEFINE ROLE zi_sales_role {\n}";
+  const r = await runHook(PRE_WRITE, edit("src/zi_sales_role.dcls.asdcls", before, after));
+  assert.equal(r.code, 2, "row-level authorization removal must BLOCK regardless of source-format extension");
+});
+test("pre-write-gate allows a NEW BDEF — no baseline is not a regression (C2 false-positive guard)", async () => {
+  // The risk a diff-based gate introduces: creating a BDEF means oldText is empty, which must not
+  // read as "the authorization clause was removed". Absence of a baseline is not weakening.
+  const fresh = "define behavior for ZI_Sales alias Sales\nauthorization master ( global )\n{ update; }";
+  assert.equal((await runHook(PRE_WRITE, write("specs/abap/zbp_i_sales.bdef", fresh))).code, 0);
+  const noAuth = "define behavior for ZI_Sales alias Sales\n{ update; }";
+  assert.equal((await runHook(PRE_WRITE, write("specs/abap/zbp_i_sales.bdef", noAuth))).code, 0, "a new BDEF without auth is the linter's call, not an invariant REGRESSION");
+});
 test("pre-write-gate ignores a clean non-ABAP file", async () => {
   const r = await runHook(PRE_WRITE, write("notes.md", "GENERATE SUBROUTINE POOL is fine in prose."));
   assert.equal(r.code, 0);

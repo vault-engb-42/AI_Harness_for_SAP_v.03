@@ -52,6 +52,57 @@ test("detectInvariantWeakening catches COMMIT ENTITIES (the RAP save) suppressio
   assert.equal(detectInvariantWeakening(withSave, withSave).length, 0, "an unchanged RAP save is clean");
 });
 
+// C2 / P4(a): RAP declares its authorization gate in the BDEF (`authorization master ( … )` +
+// GET_GLOBAL_/GET_INSTANCE_AUTHORIZATIONS handlers) and in CDS DCL (GRANT SELECT … WHERE …).
+// CLAUDE.md P4(a) names those co-equal with classic AUTHORITY-CHECK, but the gate could only
+// count AUTHORITY-CHECK — so deleting the primary ABAP-Cloud authorization boundary passed.
+// Enforcement rested solely on the reviewer agent's judgment; these make it mechanical.
+
+test("detectInvariantWeakening catches a REMOVED RAP authorization master clause — P4(a), C2", () => {
+  const withAuth = "define behavior for ZI_Sales alias Sales\nimplementation in class zbp_i_sales unique\npersistent table zt_sales\nauthorization master ( global )\n{ update; delete; }";
+  const noAuth = "define behavior for ZI_Sales alias Sales\nimplementation in class zbp_i_sales unique\npersistent table zt_sales\n{ update; delete; }";
+  assert.ok(
+    detectInvariantWeakening(withAuth, noAuth).some((f) => f.type === "rap-auth-master-weakened"),
+    "deleting the BDEF authorization clause is an invariant regression",
+  );
+  assert.equal(detectInvariantWeakening(withAuth, withAuth).length, 0, "an unchanged BDEF is clean");
+});
+
+test("detectInvariantWeakening catches a NARROWED RAP authorization scope — P4(a), C2", () => {
+  // ( global, instance ) -> ( global ) keeps the clause but drops instance-level authorization.
+  const broad = "define behavior for ZI_Sales alias Sales\nauthorization master ( global, instance )\n{ update; }";
+  const narrowed = "define behavior for ZI_Sales alias Sales\nauthorization master ( global )\n{ update; }";
+  const findings = detectInvariantWeakening(broad, narrowed);
+  assert.ok(
+    findings.some((f) => f.type === "rap-auth-master-weakened"),
+    `narrowing the declared auth scope must be flagged, got ${JSON.stringify(findings)}`,
+  );
+  assert.equal(detectInvariantWeakening(narrowed, broad).length, 0, "WIDENING the scope is not a regression");
+});
+
+test("detectInvariantWeakening catches an ORPHANED auth scope — declared, handler gone — P4(a), C2", () => {
+  // The clause survives, so rap-auth-master-weakened stays silent; the handler that enforces it is
+  // gone, which leaves the declared gate unimplemented.
+  const withHandler = "authorization master ( global )\nMETHODS get_global_authorizations FOR AUTHORIZATION IMPORTING keys REQUEST requested_authorizations FOR Sales RESULT result.";
+  const noHandler = "authorization master ( global )\nMETHODS lock FOR LOCK IMPORTING keys FOR Sales.";
+  const findings = detectInvariantWeakening(withHandler, noHandler);
+  assert.ok(
+    findings.some((f) => f.type === "rap-auth-handler-missing"),
+    `a declared auth scope with no GET_*_AUTHORIZATIONS handler must be flagged, got ${JSON.stringify(findings)}`,
+  );
+  assert.equal(detectInvariantWeakening(withHandler, withHandler).length, 0, "an unchanged handler is clean");
+});
+
+test("detectInvariantWeakening catches a DROPPED DCL grant — P4(a), C2", () => {
+  const withGrant = "@EndUserText.label: 'Sales'\nDEFINE ROLE zi_sales_role {\n  GRANT SELECT ON zi_sales WHERE ( salesorg ) = aspect pfcg_auth( 'Z_SALES', 'SALESORG', actvt = '03' );\n}";
+  const noGrant = "@EndUserText.label: 'Sales'\nDEFINE ROLE zi_sales_role {\n}";
+  assert.ok(
+    detectInvariantWeakening(withGrant, noGrant).some((f) => f.type === "dcl-grant-dropped"),
+    "dropping a DCL GRANT removes row-level authorization",
+  );
+  assert.equal(detectInvariantWeakening(withGrant, withGrant).length, 0, "an unchanged DCL role is clean");
+});
+
 test("inCustomerNamespace accepts Z/Y and /NS/, rejects SAP standard", () => {
   assert.equal(inCustomerNamespace("ZCL_ORDER"), true);
   assert.equal(inCustomerNamespace("YI_Thing"), true);
@@ -64,6 +115,11 @@ test("isAbapSource recognizes ABAP artifact extensions only", () => {
   assert.equal(isAbapSource("specs/abap/zcl_order.clas.abap"), true);
   assert.equal(isAbapSource("specs/abap/zi_sales.ddls"), true);
   assert.equal(isAbapSource("specs/abap/zbp_i_sales.bdef"), true);
+  // The abapGit export form. A file this predicate rejects is never scanned at all, so the P4(a)
+  // BDEF/DCL checks silently could not fire on an abapGit-layout package.
+  assert.equal(isAbapSource("src/zbp_i_sales.bdef.asbdef"), true);
+  assert.equal(isAbapSource("src/zi_sales_role.dcls.asdcls"), true);
+  assert.equal(isAbapSource("src/zi_sales.ddls.asddls"), true);
   assert.equal(isAbapSource("README.md"), false);
 });
 
