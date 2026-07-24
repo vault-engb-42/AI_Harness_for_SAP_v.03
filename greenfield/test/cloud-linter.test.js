@@ -238,6 +238,31 @@ test("gf-ground-not-released fires on a notToBeReleased SAP ref", () => {
   assert.equal(finding(res, "gf-ground-not-released")?.severity, "error");
 });
 
+// C4 residual — the direct-SELECT-on-a-classic-table decision, locked as characterization.
+// These assert the CURRENT correct behaviour so the reconciled decision cannot silently regress:
+// (1) the classifiable half is caught via the grounding layer, (2) the registry-absent half is a
+// deliberate offline no-op delegated to live ATC, (3) the correct cloud read pattern stays clean.
+test("C4: a direct SELECT on a non-released classic table is caught (gf-ground-not-released) — no separate rule needed", () => {
+  const src = clazz("    SELECT vbeln FROM vbak INTO TABLE @DATA(lt).");
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: src }]);
+  const f = finding(res, "gf-ground-not-released");
+  assert.equal(f?.severity, "error", "VBAK (TABL, notToBeReleased) must error via the grounding layer");
+  assert.match(f.message, /VBAK/);
+  // and NOT a second, duplicate direct-table-SELECT rule (divergent duplication guard).
+  assert.equal(finding(res, "gf-cloud-direct-table-select"), undefined, "no duplicate rule may double-report the same token");
+});
+test("C4: a SELECT on a registry-ABSENT table is an intentional offline no-op (ATC-authoritative)", () => {
+  // FOOBARBAZTABLE classifies as `unknown` — objectType is unknowable offline, so firing here would
+  // false-fire on legitimate custom/new/unlisted reads. The enhanced-syntax-check + ATC catch it live.
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    SELECT f FROM foobarbaztable INTO TABLE @DATA(lt).") }]);
+  const ground = res.findings.filter((f) => f.family === "released-api");
+  assert.equal(ground.length, 0, `registry-absent target must produce no ground finding offline, got ${JSON.stringify(ground)}`);
+});
+test("C4: the correct cloud read pattern — SELECT on a released CDS entity — stays clean", () => {
+  const res = lintAbapCloud([{ filename: "zcl_x.clas.abap", source: clazz("    SELECT FROM i_salesorder FIELDS salesorder INTO TABLE @DATA(lt).") }]);
+  assert.equal(res.findings.filter((f) => f.family === "released-api").length, 0, "a released CDS-entity read must not false-fire");
+});
+
 test("gf-ground-no-api fires (error) on a noAPI SAP ref", () => {
   const src = "CLASS zcl_g DEFINITION PUBLIC FINAL CREATE PUBLIC.\n  PUBLIC SECTION.\n    METHODS run.\nENDCLASS.\nCLASS zcl_g IMPLEMENTATION.\n  METHOD run.\n    DATA lo TYPE REF TO cf_rebd_building.\n  ENDMETHOD.\nENDCLASS.";
   const res = lintAbapCloud([{ filename: "zcl_g.clas.abap", source: src }]);

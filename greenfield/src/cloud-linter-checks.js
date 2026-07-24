@@ -209,6 +209,18 @@ export function modMarkerFindings(files) {
 // released-API verdict -> finding spec. Only these four states are actionable;
 // `released`/`unknown` produce no finding. classifyRef surfaces classicAPI/noAPI
 // straight from objectClassifications_SAP.json.
+//
+// C4 residual (the direct-SELECT-on-a-classic-table decision): a bare
+// `SELECT … FROM <table>` needs no dedicated rule. harvestRefs already lifts the
+// FROM-target token and classifyRef grades it, so a non-released classic table
+// (VBAK/MARA/… — TABL, notToBeReleased in the registry) fires gf-ground-not-released
+// here. Adding a second gf-cloud-direct-table-select rule would DOUBLE-REPORT the
+// same token (divergent duplication). A registry-ABSENT target classifies as
+// `unknown` and is a deliberate offline no-op: objectType is unknowable offline, so
+// firing would false-fire on legitimate custom/new/unlisted-CDS reads. The live
+// enhanced-syntax-check (compile-time, at activation) + ATC priority-1 are the
+// authoritative catch for that class — the oracle/grounder is a conservative lower
+// bound, subordinate to live ATC (creds-gated; never mocked).
 const GROUND_SPECS = {
   deprecated: (ref, c) => ({ rule_id: "gf-ground-deprecated", severity: "error", message: `${ref} is DEPRECATED — replace with released successor ${c.successor ?? "(none published — find a released alternative)"}` }),
   notToBeReleased: (ref) => ({ rule_id: "gf-ground-not-released", severity: "error", message: `${ref} is NOT released for ABAP Cloud (notToBeReleased) — model a released alternative` }),

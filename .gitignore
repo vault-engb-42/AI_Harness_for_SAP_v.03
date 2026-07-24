@@ -29,3 +29,7 @@ docs/
 # per-machine state, not repository content — the seeded baselines beside them ARE tracked.
 .claude/state/run-log.jsonl
 .claude/state/atc-owed.json
+
+# Hook-test scratch workspaces. Created and torn down within a run; a run interrupted mid-suite
+# (e.g. a timeout SIGTERM) skips teardown and leaves the empty dir behind, so ignore it outright.
+.claude/hooks/test/fixtures/
