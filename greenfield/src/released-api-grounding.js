@@ -134,7 +134,14 @@ export function renderGroundingPack(grounded) {
       lines.push(`- ${r.name} — not in the released registry (custom/new, or an unlisted SAP object — do NOT assume released)`);
     }
   }
-  lines.push(`(${grounded.counts.released} cited object(s) are released and safe to use.)`);
+  if (grounded.counts.released > 0) {
+    lines.push(`(${grounded.counts.released} cited object(s) are released — a conservative lower bound, NOT a contract guarantee.)`);
+    // C5: "released" is a contract FAMILY, not a single grade. The registry carries release STATE but
+    // no contract field, so a released verdict cannot say WHICH contract — C0 Extend (extension seam),
+    // C1 Use System-Internally (on-stack), or C2 Use as Remote API (OData/remote). Ground each usage
+    // against the right one via live ATC; a released row is not licence to consume an object any way.
+    lines.push("Contract caveat (C5): 'released' is a family — C0 (Extend / extension seam), C1 (Use System-Internally / on-stack), C2 (Use as Remote API / OData-remote). This offline pack cannot tell them apart; confirm the specific usage kind against live ATC (variant ABAP_CLOUD_READINESS).");
+  }
   lines.push("Rule: use only released objects; replace every deprecated one with the successor above; never assume a not-found SAP object is released.");
   return lines.join("\n");
 }

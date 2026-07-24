@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { classifyName, gradeUsage, successorOf, debtScore, fixtureFor } from "../src/oracle.js";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ORACLE_SRC = readFileSync(join(HERE, "..", "src", "oracle.js"), "utf8");
+const CLAUDE_MD = readFileSync(join(HERE, "..", "..", "CLAUDE.md"), "utf8");
 
 // The oracle is the shared clean-core classifier (arch spec §2 / §15.1): it maps
 // SAP's two published registries (data/) onto the A/B/C/D level spine with a
@@ -113,6 +120,28 @@ test("debtScore is the Kernseife weighting 10·P1 + 5·P2 + 1·P3 (§2/§12)", (
   assert.equal(debtScore({ p1: 2, p2: 3, p3: 4 }), 39);
   assert.equal(debtScore({}), 0);
   assert.equal(debtScore(), 0);
+});
+
+// C5 — the classifier must be honest that release STATE (released/deprecated/…) is NOT release
+// CONTRACT (C0 Extend / C1 Use-internally / C2 Remote-API / C3 / C4). The value is a conservative
+// lower bound reconciled by live ATC; the per-function docstrings — not only the module header —
+// must say so, so a caller reading classifyName/successorOf in isolation is not misled.
+test("oracle classifyName/successorOf docstrings state STATE != CONTRACT and lower-bound (C5)", () => {
+  const classifyDoc = ORACLE_SRC.slice(0, ORACLE_SRC.indexOf("export function classifyName"));
+  const successorDoc = ORACLE_SRC.slice(0, ORACLE_SRC.indexOf("export function successorOf"));
+  const classifyLast = classifyDoc.lastIndexOf("/**");
+  const successorLast = successorDoc.lastIndexOf("/**");
+  assert.match(classifyDoc.slice(classifyLast), /contract|lower bound/i, "classifyName's own docstring must flag state != contract / lower-bound");
+  assert.match(successorDoc.slice(successorLast), /contract|lower bound/i, "successorOf's own docstring must flag state != contract / lower-bound");
+});
+
+// Pins the committed CLAUDE.md P2 spine correction (the C0/C1/C2 family) so it cannot silently
+// regress to a monolithic "released" grade. No CLAUDE.md edit here — this only asserts (P7).
+test("CLAUDE.md P2 names the C0/C1/C2 release-contract family (C5 spine regression lock)", () => {
+  assert.match(CLAUDE_MD, /family.*release contracts|release contracts, not one grade/i, "P2 must frame released as a contract family");
+  assert.match(CLAUDE_MD, /C0 \(Extend\)/, "P2 must name C0 Extend");
+  assert.match(CLAUDE_MD, /C1 \(Use System-Internally\)/, "P2 must name C1 Use System-Internally");
+  assert.match(CLAUDE_MD, /C2 \(Use as Remote API\)/, "P2 must name C2 Use as Remote API");
 });
 
 test("fixtureFor is total — null for every rule until curated fixtures are bundled (§2)", () => {

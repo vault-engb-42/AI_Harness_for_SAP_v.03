@@ -51,6 +51,17 @@ test("an empty ref list renders a valid, benign pack", () => {
   assert.match(pack, /Released-API Grounding/);
 });
 
+// C5 — "released" is a contract FAMILY (C0 Extend / C1 Use System-Internally / C2 Use as Remote
+// API), not a monolithic grade (CLAUDE.md P2). The registry carries release STATE but no contract
+// field, so a "released" verdict is a contract-agnostic lower bound: a BAdI seam (C0) and an OData
+// exposure (C2) must not be presented identically as "safe to use". The pack must say so.
+test("renderGroundingPack caveats released refs with the C0-C2 contract family (C5)", () => {
+  const pack = renderGroundingPack(groundReleasedApis(["ACTVT"])); // ACTVT is released
+  assert.match(pack, /C0|C1|C2|contract/, "a released verdict must carry the contract-family caveat");
+  assert.match(pack, /extension seam|on-stack|remote|OData/i, "the caveat must name the usage kinds a contract distinguishes");
+  assert.match(pack, /ATC/, "the caveat must point to live ATC as the contract-aware reconciler");
+});
+
 // Registry extension: classicAPI (Level B) and noAPI (no released API) are real
 // states in objectClassifications_SAP.json — surface them in the grounding counts
 // and pack so greenfield does not silently treat a Level-B classic API as safe.

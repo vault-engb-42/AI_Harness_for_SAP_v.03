@@ -151,6 +151,12 @@ function winningState(states, level) {
 
 /**
  * Classify an SAP object name to its clean-core level (§15.1). Total function.
+ *
+ * C5: the returned `state` is release STATE, NOT release CONTRACT — the registry carries no
+ * C0 (Extend) / C1 (Use System-Internally) / C2 (Use as Remote API) / C3 / C4 field, so a Level-A
+ * result is a conservative LOWER BOUND, not a guarantee the object is released for the usage kind
+ * the caller intends. Ground the specific usage (extend vs on-stack vs remote) against live ATC
+ * (variant ABAP_CLOUD_READINESS), which is the contract-aware reconciler (§8).
  * @param {string|null|undefined} name
  * @param {string} [tadirType] optional TADIR object type; when omitted, a
  *   name-ambiguous object resolves to the weakest across ALL rows carrying the name.
@@ -207,6 +213,10 @@ export function gradeUsage(name, accessKind, tadirType) {
  * case (which carries no discrete successor), the `successorConceptName`. `successor` /
  * `successor_kind` are the primary (first) successor for convenience. Null only when the
  * object carries no successor signal at all.
+ *
+ * C5: like classifyName, the successor's release STATE is not its release CONTRACT (C0-C4) — the
+ * value is a lower bound, and the successor's fitness for a given usage kind must be confirmed
+ * against live ATC, not inferred from the registry alone.
  * @param {string} name
  * @param {string} [tadirType]
  * @returns {{successor: string|null, successor_kind: string|null, successors: Array<{name: string, type: string}>, mapping_kind: string|null, successor_concept: string|null}|null}
