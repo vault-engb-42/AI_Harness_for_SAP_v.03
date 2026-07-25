@@ -28,6 +28,7 @@ Two committed demo bundles, each a real customer FICO package rather than a toy:
 
 - `CLAUDE.md` spine (P1–P8), `.claude/.claude-plugin/plugin.json`, `.mcp.json`, `package.json`
 - **Standalone analyser** (`analyser/`) — an `@abaplint/core` code property graph + 16 rule packs → S/4 readiness, blast radius, and `analyser-findings.json`; its own `abap-analyser` MCP (`analyse_bundle` / `analyse_source_system` / `analyse_via_adt` / `get_report`)
+- **Oracle** (`oracle/`) — a standalone, conservative clean-core classifier: it maps SAP's released-object registries onto an A/B/C/D readiness level, a shared lower bound the analyser imports directly to ground its findings. No MCP server of its own; the live ATC is the authoritative reconciler.
 - **Moderniser** (`moderniser/`) — the offline modernisation engine: it consumes the analyser's findings, freezes a content-hashed dependency plan, and drives each object GROUND → TRANSFORM → SELF-CHECK → VERDICT under a deterministic scheduler. Offline it reaches a *provisional* verdict (never GREEN, by design — activation and ABAP Unit need a live tier); a live mode pushes, activates, and gates on DEV to earn GREEN
 - **Greenfield pipeline** (`greenfield/`) — pre-generation released-API grounding over the bundled cloudification registry + a **58-rule** parser-based ABAP-Cloud linter (`@abaplint/core`); its own `greenfield` MCP (`ground_released_apis` / `lint_abap_cloud`), wired into the design/implement/validate lanes with a lint→regenerate loop
 - **MCP-ADT bridge** (`mcp-adt-bridge/`) + **ported ADT sidecar** (`sap-adt-sidecar/`) — MCP stdio to real ADT REST, **17 tools**, writes fail-closed (P5)
@@ -70,5 +71,5 @@ The core substrate is the harness's own Node ADT sidecar — no Python, no docke
 
 ## Notes
 
-- `NODE_TLS_REJECT_UNAUTHORIZED=0` is needed only for a self-signed (trial) SAP certificate. `.mcp.json` wires three servers — `sap-adt` (the bridge; `ADT_MCP_URL` defaults to the sidecar at `127.0.0.1:8090`), `abap-analyser`, and `greenfield`.
+- `.mcp.json` wires the three **live** MCP servers — `sap-adt` (the bridge to SAP; `ADT_MCP_URL` defaults to the sidecar at `127.0.0.1:8090`), `abap-analyser`, and `greenfield`. That is only the live half: the **offline pipeline is engine-direct** — the analyser writes `analyser-findings.json`, the moderniser reads it, and the oracle is imported in-process — with no MCP server and no credentials. `NODE_TLS_REJECT_UNAUTHORIZED=0` is needed only for a self-signed (trial) SAP certificate.
 - `docs/` is a local working-progress folder, deliberately not tracked here — design docs, build contracts, and specs live on the maintainer's machine only. Source comments that cite a `docs/…` path point at those local documents; the code does not read them at runtime. The durable, shipped record is the code, its tests, and the `demos/` bundles.
