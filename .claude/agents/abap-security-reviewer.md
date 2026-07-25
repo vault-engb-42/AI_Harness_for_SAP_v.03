@@ -25,6 +25,7 @@ These three are not OWASP-style "assign severity by blast radius" findings. They
 ### INV-2 — The RAP save (COMMIT ENTITIES) / COMMIT WORK never suppressed
 - A persistence path that committed in baseline must still commit. A removed `COMMIT WORK`, a `COMMIT WORK` demoted to `ROLLBACK`, or an EML `COMMIT ENTITIES` dropped from a save sequence ⇒ **BLOCK** (data-integrity boundary).
 - RAP: a managed/unmanaged save that no longer reaches `COMMIT ENTITIES` / the save sequence ⇒ **BLOCK**. `COMMIT ENTITIES` is the RAP save; **explicit `COMMIT WORK`/`ROLLBACK WORK` INSIDE a RAP behaviour pool is itself a violation** (a runtime error) ⇒ **BLOCK**.
+- **Verdict mapping:** report the classic case under `invariants.commit_work` and the RAP-save case under `invariants.commit_entities` (finding `invariant: "commit_entities"`). The pre-write hook's `commit-entities-suppressed` (`.claude/hooks/lib/abap-checks.js`) is the deterministic detector for the RAP case; this gate confirms it.
 
 ### INV-3 — SY-SUBRC checked after every classic AUTHORITY-CHECK
 - Every classic `AUTHORITY-CHECK` must be immediately followed by an `IF sy-subrc <> 0.` (or `CASE sy-subrc`) that raises / exits / rejects on failure. An `AUTHORITY-CHECK` whose `sy-subrc` is never read before the protected operation runs ⇒ **BLOCK** (the gate is decorative — the caller proceeds even when denied).
@@ -125,7 +126,7 @@ Also write `specs/reviews/security-verdict.json` so the `abap-evaluator` and `/a
   "gate": "security",
   "pass": true,
   "block_severities": ["critical", "high"],
-  "invariants": { "authority_check": "ok", "commit_work": "ok", "sy_subrc": "ok", "baseline_established": true },
+  "invariants": { "authority_check": "ok", "commit_work": "ok", "commit_entities": "ok", "sy_subrc": "ok", "baseline_established": true },
   "summary": { "inv": 0, "block": 0, "warn": 0, "info": 0 },
   "findings": [
     {
@@ -144,9 +145,9 @@ Also write `specs/reviews/security-verdict.json` so the `abap-evaluator` and `/a
 ```
 
 Rules:
-- `pass` is `true` **only** when: zero findings whose `severity` is in `block_severities`, **and** all three `invariants` are `"ok"`, **and** `baseline_established` is `true` for every modified object. Any invariant not `"ok"`, or any object with no baseline, ⇒ `pass: false`.
+- `pass` is `true` **only** when: zero findings whose `severity` is in `block_severities`, **and** all four `invariants` are `"ok"` (`authority_check`, `commit_work`, `commit_entities` — the RAP save — and `sy_subrc`), **and** `baseline_established` is `true` for every modified object. Any invariant not `"ok"`, or any object with no baseline, ⇒ `pass: false`.
 - An invariant finding is always `severity: "critical", level: "BLOCK"` — never lower.
-- Clean scan: `{ "gate": "security", "pass": true, "block_severities": ["critical","high"], "invariants": {"authority_check":"ok","commit_work":"ok","sy_subrc":"ok","baseline_established":true}, "summary": {"inv":0,"block":0,"warn":0,"info":0}, "findings": [] }`.
+- Clean scan: `{ "gate": "security", "pass": true, "block_severities": ["critical","high"], "invariants": {"authority_check":"ok","commit_work":"ok","commit_entities":"ok","sy_subrc":"ok","baseline_established":true}, "summary": {"inv":0,"block":0,"warn":0,"info":0}, "findings": [] }`.
 - **Absence of this file is a FAIL**, not a pass — the evaluator treats a missing `security-verdict.json` as BLOCK.
 
 ## What you MUST NOT do

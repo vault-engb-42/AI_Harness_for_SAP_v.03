@@ -89,13 +89,14 @@
 
 ### Gate 7 — Security / P4 invariants  (source: `specs/reviews/security-verdict.json`, `pass = <security_verdict.pass>`)
 
-The three immutable invariants — the invariant diff between brownfield source and the change.
-**All three MUST be `false`** (no weakening):
+The immutable invariants — the invariant diff between brownfield source and the change.
+**All four MUST be `false`** (no weakening):
 
 | Invariant (P4) | Weakened / suppressed / dropped? |
 |----------------|----------------------------------|
 | `AUTHORITY-CHECK` weakened | `<invariant_diff.authority_check_weakened>` — MUST be **false** |
-| `COMMIT WORK` suppressed | `<invariant_diff.commit_work_suppressed>` — MUST be **false** |
+| `COMMIT WORK` suppressed (classic save) | `<invariant_diff.commit_work_suppressed>` — MUST be **false** |
+| `COMMIT ENTITIES` suppressed (RAP save, P4b) | `<invariant_diff.commit_entities_suppressed>` — MUST be **false** |
 | `SY-SUBRC` check dropped (after AUTHORITY-CHECK) | `<invariant_diff.sy_subrc_check_dropped>` — MUST be **false** |
 
 ### Gate 8 — Diff cold-read  (source: `specs/reviews/diff-review-verdict.json`, `pass = <diff_review_verdict.pass>`)

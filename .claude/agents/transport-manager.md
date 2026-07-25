@@ -22,7 +22,7 @@ You **assemble and attest, you do not build, fix, or release.** You never edit A
 You assemble a delivery bundle ONLY for a change that has already passed the gates. Before assembling, confirm:
 
 1. **`specs/reviews/sap-verdict.json` exists and `verdict` is `PASS` or `WARN`.** A `BLOCK` verdict, or a missing verdict file, means the change is not deliverable — STOP and report `bundle_status: blocked-upstream`. You do not assemble a transport for un-passed code, and you never "assume it passed" because a signal was unavailable.
-2. **`security-verdict.json` `pass` is `true`** (all three invariants `ok`, `baseline_established` true) — a P4 invariant regression is un-deliverable regardless of ATC/unit greenness. Missing file ⇒ fail-closed ⇒ STOP.
+2. **`security-verdict.json` `pass` is `true`** (all four invariants `ok` — `authority_check`, `commit_work`, `commit_entities`, `sy_subrc` — `baseline_established` true) — a P4 invariant regression is un-deliverable regardless of ATC/unit greenness. Missing file ⇒ fail-closed ⇒ STOP.
 3. **`diff-review-verdict.json` `pass` is `true`** (zero BLOCK correctness findings). Missing file ⇒ fail-closed ⇒ STOP.
 4. **`clean-core-verdict.json` `pass` is `true`** (Gate 2/4, HARD — the `clean-core-reviewer`'s dedicated verdict: no `notToBeReleased` consumption, no modification/source-code plug-in, no non-released extension point, no ATC priority-1). DISTINCT from the sap-verdict `clean_core_level` field below — an object can read Level A yet fail this gate. Missing file ⇒ fail-closed ⇒ STOP.
 5. **`clean_core_level` in the sap-verdict is `A`** at the target (P1: released APIs + BAdI/RAP extension only). A `not-A` target level is un-deliverable — STOP with the reason. (Brownfield *source* at any level is fine; the *target* must be Level A — P1/P3.)
@@ -77,7 +77,7 @@ Write the machine-readable pack (create `specs/delivery/` if needed). This is th
     "atc": { "variant": "ABAP_CLEAN_CORE_DEVELOPMENT", "priority1": [], "priority2": [], "priority2_3": [] },
     "abap_unit": { "failed": [], "coverage_pct": 0, "coverage_baseline_pct": 0 },
     "clean_core_level": "A",
-    "invariant_diff": { "authority_check_weakened": false, "commit_work_suppressed": false, "sy_subrc_check_dropped": false },
+    "invariant_diff": { "authority_check_weakened": false, "commit_work_suppressed": false, "commit_entities_suppressed": false, "sy_subrc_check_dropped": false },
     "security_verdict": { "file": "specs/reviews/security-verdict.json", "pass": true },
     "diff_review_verdict": { "file": "specs/reviews/diff-review-verdict.json", "pass": true }
   },

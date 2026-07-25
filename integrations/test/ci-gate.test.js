@@ -9,9 +9,9 @@ import { evaluateGate } from "../ci-gate.js";
 // verdicts, validates their shape (fail-closed), and blocks on any hard failure.
 // Tests write REAL verdict JSON to a temp dir and run the real evaluator.
 
-const SAP_PASS = { verdict: "PASS", timestamp: "t", connection: "DEV", objects: ["ZCL_X"], failure_layer: null, activation: { activated: [], errors: [] }, atc: { ran: true, variant: "v", priority1: [], priority2: [], priority2_3: [] }, abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 }, clean_core_level: "A", invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false }, ratchet: { atc_regressed: false, coverage_regressed: false }, notes: "" };
+const SAP_PASS = { verdict: "PASS", timestamp: "t", connection: "DEV", objects: ["ZCL_X"], failure_layer: null, activation: { activated: [], errors: [] }, atc: { ran: true, variant: "v", priority1: [], priority2: [], priority2_3: [] }, abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 }, clean_core_level: "A", invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, commit_entities_suppressed: false, sy_subrc_check_dropped: false }, ratchet: { atc_regressed: false, coverage_regressed: false }, notes: "" };
 const CLEAN_PASS = { gate: "clean-core", pass: true, atc: { variant: "v", completed: true, priority_1: 0 }, grounding: {}, summary: {}, findings: [] };
-const SEC_PASS = { gate: "security", pass: true, block_severities: [], invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", baseline_established: true }, summary: {}, findings: [] };
+const SEC_PASS = { gate: "security", pass: true, block_severities: [], invariants: { authority_check: "ok", commit_work: "ok", commit_entities: "ok", sy_subrc: "ok", baseline_established: true }, summary: {}, findings: [] };
 const DIFF_PASS = { gate: "abap-diff-review", pass: true, range: "r", acceptance_criteria_source: "s", summary: {}, findings: [] };
 const DESIGN_PASS = { story_id: "E1-S1", iteration: 1, timestamp: "t", scores: { cds_modelling: 8, rap_behavior: 8, extensibility_tier: 8, released_api: 8, namespace: 8, blast_radius: 8 }, weighted_average: 8, threshold: 7, verdict: "PASS", failing_criteria: [], grounding: {}, critique: "ok" };
 

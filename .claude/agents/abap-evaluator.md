@@ -29,7 +29,7 @@ If the inputs include a `phase` and `artifact_paths`, you are in artifact mode. 
 - **ATC gate (P6):** run `mcp__sap-adt__aws_abap_cb_run_atc_check` with variant **`ABAP_CLEAN_CORE_DEVELOPMENT`**. **Any priority-1 OR priority-2 finding ⇒ BLOCK** (SAP's transport-blocking config blocks both — C3/P6). A priority-3 finding is a WARN (recorded, ratchet-checked), not an automatic BLOCK. **An ATC run that did not complete — connection dropped, tool error, `data_available:false`, timeout — is a BLOCK, never a pass** (fail-closed). "ATC could not run" is treated exactly like "ATC failed."
 - **ABAP Unit gate (P6):** run `mcp__sap-adt__aws_abap_cb_run_unit_tests`. **Any failed or errored unit test ⇒ BLOCK.** Zero test classes on an object that behaviour-changed is itself a finding (WARN in vibe lane, BLOCK when the contract requires tests) — verify with `mcp__sap-adt__aws_abap_cb_get_test_classes` before concluding "no tests to run."
 - **Test-hygiene gate (G7).** A green run over hollow or non-isolated tests is not a pass. Grep the `LTCL_*` source: every `FOR TESTING` method carries ≥1 `cl_abap_unit_assert` (an assertion-free test can never fail); the class installs a SAP **test double** (`cl_abap_behv_test_environment` for a RAP BO, `cl_cds_test_environment` for a CDS entity, `cl_osql_test_environment` for a raw table, mock-EML for a cross-BO consumer) and tears it down (`destroy( )` in `class_teardown`). A `FOR TESTING` method with a raw `SELECT`/DB write or a `COMMIT WORK` and **no** double hits the live tier and leaks state — flag it. Assertion-free or non-isolated tests downgrade the run to WARN even when green.
-- **Immutable-invariant gate (P4):** if the pushed source removes or weakens an `AUTHORITY-CHECK`, suppresses a `COMMIT WORK`, or drops the `SY-SUBRC` check after an `AUTHORITY-CHECK` versus the brownfield baseline, that is a **BLOCK regardless of ATC/unit results** — a green functional pass on top of a removed authority gate is still a BLOCK. Record it as `failure_layer: "invariant"`.
+- **Immutable-invariant gate (P4):** if the pushed source removes or weakens an `AUTHORITY-CHECK`, suppresses a `COMMIT WORK` **or the RAP save `COMMIT ENTITIES`** (P4b — the pre-write hook fires `commit-entities-suppressed`; record it as `invariant_diff.commit_entities_suppressed: true`), or drops the `SY-SUBRC` check after an `AUTHORITY-CHECK` versus the brownfield baseline, that is a **BLOCK regardless of ATC/unit results** — a green functional pass on top of a removed authority gate is still a BLOCK. Record it as `failure_layer: "invariant"`.
 - **Clean-Core level (P1/P2):** the target artifact must be Level A (released APIs + sanctioned BAdI/RAP extension only). An unreleased-API usage that ATC surfaces is a priority-1 finding ⇒ BLOCK. Do not re-derive Clean-Core level by reading source; read it off the ATC + migration-analysis evidence.
 
 ## Inputs
@@ -99,6 +99,7 @@ Write the verdict as the proof bundle a human reads before releasing the transpo
   "invariant_diff": {
     "authority_check_weakened": false,
     "commit_work_suppressed": false,
+    "commit_entities_suppressed": false,
     "sy_subrc_check_dropped": false
   },
   "ratchet": { "atc_regressed": false, "coverage_regressed": false },

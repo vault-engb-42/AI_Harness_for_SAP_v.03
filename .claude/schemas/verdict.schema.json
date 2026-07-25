@@ -29,7 +29,7 @@
         "atc": { "type": "object", "properties": { "ran": { "type": "boolean" }, "variant": { "type": "string" }, "priority1": { "type": "array" }, "priority2": { "type": "array" }, "priority2_3": { "type": "array" } } },
         "abap_unit": { "type": "object", "properties": { "ran": { "type": "boolean" }, "failed": { "type": "array" }, "coverage_pct": { "type": "number" }, "coverage_baseline_pct": { "type": "number" } } },
         "clean_core_level": { "enum": ["A", "not-A"] },
-        "invariant_diff": { "type": "object", "required": ["authority_check_weakened", "commit_work_suppressed", "sy_subrc_check_dropped"], "properties": { "authority_check_weakened": { "type": "boolean" }, "commit_work_suppressed": { "type": "boolean" }, "sy_subrc_check_dropped": { "type": "boolean" } } },
+        "invariant_diff": { "type": "object", "required": ["authority_check_weakened", "commit_work_suppressed", "commit_entities_suppressed", "sy_subrc_check_dropped"], "properties": { "authority_check_weakened": { "type": "boolean" }, "commit_work_suppressed": { "type": "boolean" }, "commit_entities_suppressed": { "type": "boolean" }, "sy_subrc_check_dropped": { "type": "boolean" } } },
         "ratchet": { "type": "object", "properties": { "atc_regressed": { "type": "boolean" }, "coverage_regressed": { "type": "boolean" } } },
         "notes": { "type": "string" }
       }
@@ -53,7 +53,7 @@
         "gate": { "const": "security" },
         "pass": { "type": "boolean" },
         "block_severities": { "type": "array", "items": { "type": "string" } },
-        "invariants": { "type": "object", "required": ["authority_check", "commit_work", "sy_subrc", "baseline_established"], "properties": { "authority_check": { "type": "string" }, "commit_work": { "type": "string" }, "sy_subrc": { "type": "string" }, "baseline_established": { "type": "boolean" } } },
+        "invariants": { "type": "object", "required": ["authority_check", "commit_work", "commit_entities", "sy_subrc", "baseline_established"], "properties": { "authority_check": { "type": "string" }, "commit_work": { "type": "string" }, "commit_entities": { "type": "string" }, "sy_subrc": { "type": "string" }, "baseline_established": { "type": "boolean" } } },
         "summary": { "type": "object" },
         "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
       }

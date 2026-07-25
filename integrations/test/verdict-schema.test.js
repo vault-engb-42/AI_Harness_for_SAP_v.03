@@ -19,7 +19,7 @@ const SAP_OK = {
   atc: { ran: true, variant: "ABAP_CLEAN_CORE_DEVELOPMENT", priority1: [], priority2: [], priority2_3: [] },
   abap_unit: { ran: true, failed: [], coverage_pct: 80, coverage_baseline_pct: 75 },
   clean_core_level: "A",
-  invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false },
+  invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, commit_entities_suppressed: false, sy_subrc_check_dropped: false },
   ratchet: { atc_regressed: false, coverage_regressed: false }, notes: "",
 };
 const CLEAN_OK = {
@@ -30,7 +30,7 @@ const CLEAN_OK = {
 };
 const SEC_OK = {
   gate: "security", pass: true, block_severities: ["critical", "high"],
-  invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", baseline_established: true },
+  invariants: { authority_check: "ok", commit_work: "ok", commit_entities: "ok", sy_subrc: "ok", baseline_established: true },
   summary: { inv: 0, block: 0, warn: 0, info: 0 }, findings: [],
 };
 const DESIGN_OK = {
@@ -71,7 +71,7 @@ test("sap-verdict: verdict is a PASS/WARN/BLOCK enum; failure_layer null is allo
 test("sap-verdict: missing invariant_diff and non-boolean invariant flags are caught", () => {
   const noInv = { ...SAP_OK }; delete noInv.invariant_diff;
   assert.equal(validateVerdict("sap", noInv).valid, false);
-  assert.match(validateVerdict("sap", { ...SAP_OK, invariant_diff: { authority_check_weakened: "no", commit_work_suppressed: false, sy_subrc_check_dropped: false } }).errors.join(), /authority_check_weakened/);
+  assert.match(validateVerdict("sap", { ...SAP_OK, invariant_diff: { authority_check_weakened: "no", commit_work_suppressed: false, commit_entities_suppressed: false, sy_subrc_check_dropped: false } }).errors.join(), /authority_check_weakened/);
 });
 
 test("sap-verdict: clean_core_level and atc.priority1 shape are enforced", () => {
@@ -94,7 +94,29 @@ test("pass-style verdicts require gate const + boolean pass", () => {
 test("security-verdict requires the three invariant values + baseline flag", () => {
   const noInv = { ...SEC_OK }; delete noInv.invariants;
   assert.equal(validateVerdict("security", noInv).valid, false);
-  assert.match(validateVerdict("security", { ...SEC_OK, invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", baseline_established: "yes" } }).errors.join(), /baseline_established/);
+  assert.match(validateVerdict("security", { ...SEC_OK, invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", commit_entities: "ok", baseline_established: "yes" } }).errors.join(), /baseline_established/);
+});
+
+test("C1: sap-verdict invariant_diff requires commit_entities_suppressed (RAP save, P4b) — fail-closed", () => {
+  // The pre-write hook fires `commit-entities-suppressed`; the proof bundle must be able to report a
+  // suppressed RAP save (COMMIT ENTITIES) distinctly from the classic COMMIT WORK case.
+  const noRapSave = { ...SAP_OK, invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false } };
+  assert.equal(validateVerdict("sap", noRapSave).valid, false, "invariant_diff without commit_entities_suppressed must be rejected");
+  assert.match(validateVerdict("sap", noRapSave).errors.join(), /commit_entities_suppressed/);
+  const nonBool = { ...SAP_OK, invariant_diff: { authority_check_weakened: false, commit_work_suppressed: false, sy_subrc_check_dropped: false, commit_entities_suppressed: "no" } };
+  assert.match(validateVerdict("sap", nonBool).errors.join(), /commit_entities_suppressed/);
+});
+
+test("C1: security-verdict invariants requires commit_entities (RAP save status)", () => {
+  const noRapSave = { ...SEC_OK, invariants: { authority_check: "ok", commit_work: "ok", sy_subrc: "ok", baseline_established: true } };
+  assert.equal(validateVerdict("security", noRapSave).valid, false, "invariants without commit_entities must be rejected");
+  assert.match(validateVerdict("security", noRapSave).errors.join(), /commit_entities/);
+});
+
+test("C1: the JSON-Schema companion requires the RAP-save invariant fields", () => {
+  const schema = JSON.parse(readFileSync(join(HERE, "..", "..", ".claude", "schemas", "verdict.schema.json"), "utf8"));
+  assert.ok(schema.$defs.sapVerdict.properties.invariant_diff.required.includes("commit_entities_suppressed"), "sapVerdict.invariant_diff must require commit_entities_suppressed");
+  assert.ok(schema.$defs.securityVerdict.properties.invariants.required.includes("commit_entities"), "securityVerdict.invariants must require commit_entities");
 });
 
 test("finding level enum is enforced on pass-style verdicts", () => {

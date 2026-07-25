@@ -59,7 +59,10 @@ function validateSap(doc, errors) {
   // C3 (P6): priority-2 is a distinct hard-block tier; require it as an array when atc is present (fail-closed, mirrors priority1).
   if (doc?.atc != null && !Array.isArray(doc.atc.priority2)) errors.push("sap-verdict atc.priority2 must be an array");
   if (doc?.invariant_diff != null) {
-    for (const k of ["authority_check_weakened", "commit_work_suppressed", "sy_subrc_check_dropped"]) {
+    // commit_entities_suppressed: P4(b) RAP save — the pre-write hook fires `commit-entities-suppressed`
+    // (.claude/hooks/lib/abap-checks.js); this is its home in the proof bundle, co-equal with the classic
+    // commit_work_suppressed. Fail-closed: a missing flag reads as non-boolean and is rejected.
+    for (const k of ["authority_check_weakened", "commit_work_suppressed", "commit_entities_suppressed", "sy_subrc_check_dropped"]) {
       if (typeof doc.invariant_diff[k] !== "boolean") errors.push(`sap-verdict invariant_diff.${k} must be a boolean`);
     }
   }
@@ -75,7 +78,8 @@ function validateSecurity(doc, errors) {
   requireFields(doc, ["invariants", "summary"], "security-verdict", errors);
   const inv = doc?.invariants;
   if (inv != null) {
-    for (const k of ["authority_check", "commit_work", "sy_subrc"]) if (absent(inv[k])) errors.push(`security-verdict invariants.${k} is required`);
+    // commit_entities: P4(b) RAP save status, co-equal with commit_work (the classic save). See sapVerdict.
+    for (const k of ["authority_check", "commit_work", "commit_entities", "sy_subrc"]) if (absent(inv[k])) errors.push(`security-verdict invariants.${k} is required`);
     if (typeof inv.baseline_established !== "boolean") errors.push("security-verdict invariants.baseline_established must be a boolean");
   }
 }
