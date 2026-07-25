@@ -1,6 +1,6 @@
 # SAP ABAP Harness
 
-A Claude Code harness for **ABAP SDLC against a live (or mock) SAP system**, built for ABAP Cloud / RAP / CDS. Generator/evaluator separation, the Karpathy ratchet, lanes, and "the human merges", over its **own local substrate**: a Node MCP-ADT sidecar/bridge and a standalone `@abaplint/core` analyser.
+A Claude Code harness for **ABAP SDLC against a live SAP system**, built for ABAP Cloud / RAP / CDS. Generator/evaluator separation, the Karpathy ratchet, lanes, and "the human merges", over its **own local substrate**: a Node MCP-ADT sidecar/bridge and a standalone `@abaplint/core` analyser.
 
 **The core substrate is the MCP-ADT server** (ABAP Developer Tools — 17 `aws_abap_cb_*` tools). Grounding, quality gates, and delivery ride those tools; the standalone **analyser** adds an offline/local code graph on top. `CLAUDE.md` is the always-loaded spine (prime directives P1–P8); this README carries the roster and reference tables (kept out of `CLAUDE.md` for prompt-cache stability).
 
