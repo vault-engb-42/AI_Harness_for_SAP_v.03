@@ -42,9 +42,8 @@ SAP_HOST=... SAP_USER=... SAP_PASSWORD=... LIVE_WRITE_PACKAGE='$TMP' \
 
 `NODE_TLS_REJECT_UNAUTHORIZED=0` is needed only for a self-signed (trial) SAP certificate. `.mcp.json` wires three servers — `sap-adt` (bridge; `ADT_MCP_URL` defaults to the sidecar at `127.0.0.1:8090`, writes fail-closed), `abap-analyser` (the standalone analyser), and `greenfield` (the greenfield grounding + ABAP-Cloud linter).
 
-## Build status
+## What's inside
 
-**Built and verified** — `npm test` → **1310/1310 green**, all TDD red→green:
 - `CLAUDE.md` spine (P1–P8), `.claude/.claude-plugin/plugin.json`, `.mcp.json`, `package.json`
 - **Standalone analyser** (`analyser/`) — `@abaplint/core` code property graph + 16 rule packs → S/4 readiness + blast radius + `analyser-findings.json`; its own `abap-analyser` MCP (analyse_bundle / analyse_source_system / analyse_via_adt / get_report)
 - **Greenfield pipeline** (`greenfield/`) — pre-generation released-API grounding over the bundled cloudification registry + a **58-rule parser-based ABAP-Cloud linter** (`@abaplint/core`); its own `greenfield` MCP (`ground_released_apis` / `lint_abap_cloud`); wired into the design/implement/validate lanes with a lint→regenerate loop, a `/greenfield` entry-point, and an offline dry-run
