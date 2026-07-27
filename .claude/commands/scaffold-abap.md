@@ -28,7 +28,7 @@ Wait for the answer. It goes verbatim into the stamped `CLAUDE.md` and drives th
 Apply these rules. Be explicit and conservative — when the description is ambiguous, pick the safer middle option (the user sees and can change everything in 1.C).
 
 **Delivery shape (drives which lane leads and the design-critic posture):**
-- "new" · "greenfield" · "RAP app" · "Fiori app" · "build a … from scratch" → **A New RAP build** — lead with `/greenfield` (the net-new entry over the full pipeline: `/fit-to-standard` → `/abap-design` → `/abap-implement` → `/abap-validate` → `/abap-transport`; grounds + lints OFFLINE until the live gate).
+- "new" · "greenfield" · "RAP app" · "Fiori app" · "build a … from scratch" → **A New RAP build** — lead with `/fit-to-standard` (prove the gap before building — the canonical pipeline entry), then `/abap-design` → `/abap-implement` → `/abap-validate` → `/abap-transport`. `/greenfield` is the net-new **router over `/abap-build`** once the gap is proven (it skips brownfield discovery and grounds + lints OFFLINE until the live gate) — offer it as the shortcut, not the first step.
 - "change" · "fix" · "add a field/action" · "modify existing Z…" · names an existing custom object → **B Brownfield change** (`/abap-brownfield` → `/abap-change` → `/abap-validate` → `/abap-transport`).
 - "readiness" · "assessment" · "S/4 conversion scan" · "how clean-core is …" · "custom-code analysis" → **C Readiness-only** (`/abap-brownfield` + `/readiness` — a disposable lane, no build pipeline).
 - Otherwise → **A New RAP build** (most common).
@@ -48,7 +48,7 @@ Apply these rules. Be explicit and conservative — when the description is ambi
 - Delivery shape = A New RAP build → **Standard** (full RAP/CDS modelling critique against S/4 readiness).
 - Delivery shape = B Brownfield change → **Standard** (modelling critique on the changed objects; brownfield source is diagnosed, not graded).
 
-**Model cost posture (`.claude/scripts/model-tier.js` preset):** Always default to **balanced** (Sonnet generation, Opus judgment). Only pick `max-quality` if Q1 explicitly asks for the highest generation quality; only pick `cost` if it explicitly asks to minimise spend. The three hard gates (ATC, ABAP Unit, invariants) do not change with the tier — only which model writes vs judges.
+**Model cost posture (`.claude/scripts/model-tier.js` preset):** Always default to **balanced** (Sonnet generation, Opus judgment). Pick `max-quality` only if Q1 explicitly asks for the highest generation quality. Note: `cost` currently resolves to the **same pins as `balanced`** — it is a per-project re-tuning anchor (`model-tier.js` keeps the key distinct so a project can lower it later), **not a cheaper tier today** — so there is no spend reason to prefer it over `balanced`. The three hard gates (ATC, ABAP Unit, invariants) do not change with the tier — only which model writes vs judges.
 
 ### Step 1.C — Show the confirmation card
 
@@ -104,7 +104,7 @@ Ask the following one at a time, using `AskUserQuestion` for each multi-choice q
    - B) Light (advisory only — for readiness/assessment work)
 6. "Model cost posture?"
    - A) balanced — Sonnet generation, Opus judgment (recommended default)
-   - B) cost — cheapest that still keeps Opus on the hard-gate judgments
+   - B) cost — currently identical to balanced (a per-project re-tuning anchor, not cheaper today)
    - C) max-quality — Opus generation as well
 
 The hard gates (ATC priority-1 and priority-2 zero, ABAP Unit green, P4 invariants) and the write fail-closed default are **not** wizard options — they are contract (P4/P5/P6) and cannot be toggled off here.
