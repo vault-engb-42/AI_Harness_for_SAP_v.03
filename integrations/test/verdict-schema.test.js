@@ -119,6 +119,25 @@ test("C1: the JSON-Schema companion requires the RAP-save invariant fields", () 
   assert.ok(schema.$defs.securityVerdict.properties.invariants.required.includes("commit_entities"), "securityVerdict.invariants must require commit_entities");
 });
 
+test("G10: sap-verdict published_services (SRVB delivery proof) is fail-closed validated when present", () => {
+  // Optional — many changes ship no service binding — but when an SRVB IS published, its $metadata
+  // reachability is delivery proof and cannot be faked by omitting the flag or the URL.
+  const withProof = { ...SAP_OK, published_services: [{ service_binding: "Z_X_SRVB", service_url: "/sap/opu/odata4/x", metadata_reachable: true }] };
+  assert.equal(validateVerdict("sap", withProof).valid, true, `valid published_services must pass: ${validateVerdict("sap", withProof).errors.join("; ")}`);
+  assert.match(validateVerdict("sap", { ...SAP_OK, published_services: {} }).errors.join(), /published_services/);
+  const badFlag = { ...SAP_OK, published_services: [{ service_binding: "Z_X_SRVB", service_url: "/u", metadata_reachable: "yes" }] };
+  assert.match(validateVerdict("sap", badFlag).errors.join(), /metadata_reachable/);
+  const missingUrl = { ...SAP_OK, published_services: [{ service_binding: "Z_X_SRVB", metadata_reachable: true }] };
+  assert.match(validateVerdict("sap", missingUrl).errors.join(), /service_url/);
+});
+
+test("G10: the JSON-Schema companion declares published_services with the reachability proof", () => {
+  const schema = JSON.parse(readFileSync(join(HERE, "..", "..", ".claude", "schemas", "verdict.schema.json"), "utf8"));
+  const ps = schema.$defs.sapVerdict.properties.published_services;
+  assert.ok(ps, "sapVerdict must declare published_services");
+  assert.ok(ps.items.required.includes("metadata_reachable"), "published_services items must require metadata_reachable");
+});
+
 test("finding level enum is enforced on pass-style verdicts", () => {
   const bad = { ...CLEAN_OK, findings: [{ id: "F1", level: "SEVERE", object: "ZCL_X" }] };
   assert.match(validateVerdict("clean-core", bad).errors.join(), /level/);

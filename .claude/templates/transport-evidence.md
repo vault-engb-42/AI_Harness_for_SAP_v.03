@@ -87,6 +87,15 @@
 | Coverage | `<abap_unit.coverage_pct>` % | ≥ baseline |
 | Coverage baseline | `<abap_unit.coverage_baseline_pct>` % | ratchet floor (evaluator's ledger) |
 
+### Gate 5 — Service delivery  (source: `specs/reviews/sap-verdict.json` `published_services[]`)
+
+<!-- Only rows for objects that publish an OData service (SRVB). A CDS-/class-only change publishes
+     nothing — omit this table. A published SRVB whose $metadata is unreachable is a BLOCK upstream. -->
+
+| Service binding | Published OData URL | `$metadata` reachable |
+|-----------------|---------------------|-----------------------|
+| `<published_services[].service_binding>` | `<published_services[].service_url>` | `<published_services[].metadata_reachable>` — MUST be **true** |
+
 ### Gate 7 — Security / P4 invariants  (source: `specs/reviews/security-verdict.json`, `pass = <security_verdict.pass>`)
 
 The immutable invariants — the invariant diff between brownfield source and the change.

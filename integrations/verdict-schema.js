@@ -66,6 +66,16 @@ function validateSap(doc, errors) {
       if (typeof doc.invariant_diff[k] !== "boolean") errors.push(`sap-verdict invariant_diff.${k} must be a boolean`);
     }
   }
+  // G10: published_services — SRVB delivery proof (published OData URL + $metadata reachability).
+  // Optional (a CDS-/class-only change publishes nothing), but fail-closed WHEN present: an SRVB whose
+  // $metadata is unreachable is not delivered, and reachability may not be faked by omitting the flag.
+  if (doc?.published_services != null) {
+    if (!Array.isArray(doc.published_services)) errors.push("sap-verdict published_services must be an array");
+    else doc.published_services.forEach((s, i) => {
+      for (const k of ["service_binding", "service_url"]) if (absent(s?.[k])) errors.push(`sap-verdict published_services[${i}].${k} is required`);
+      if (typeof s?.metadata_reachable !== "boolean") errors.push(`sap-verdict published_services[${i}].metadata_reachable must be a boolean`);
+    });
+  }
 }
 
 function validateCleanCore(doc, errors) {

@@ -31,6 +31,7 @@
         "clean_core_level": { "enum": ["A", "not-A"] },
         "invariant_diff": { "type": "object", "required": ["authority_check_weakened", "commit_work_suppressed", "commit_entities_suppressed", "sy_subrc_check_dropped"], "properties": { "authority_check_weakened": { "type": "boolean" }, "commit_work_suppressed": { "type": "boolean" }, "commit_entities_suppressed": { "type": "boolean" }, "sy_subrc_check_dropped": { "type": "boolean" } } },
         "ratchet": { "type": "object", "properties": { "atc_regressed": { "type": "boolean" }, "coverage_regressed": { "type": "boolean" } } },
+        "published_services": { "type": "array", "items": { "type": "object", "required": ["service_binding", "service_url", "metadata_reachable"], "properties": { "service_binding": { "type": "string" }, "service_url": { "type": "string" }, "metadata_reachable": { "type": "boolean" } } } },
         "notes": { "type": "string" }
       }
     },
