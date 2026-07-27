@@ -36,6 +36,11 @@ It runs on its **own local substrate** — no cloud, no gateway:
 | **Greenfield** | `greenfield/` | released-API grounding + a 58-rule ABAP-Cloud linter | **No** (offline) |
 | **MCP-ADT sidecar + bridge** | `sap-adt-sidecar/`, `mcp-adt-bridge/` | real ABAP Developer Tools calls (read + gated write) | **Yes** (online) |
 
+A fourth offline engine, the **Oracle** (`oracle/`), is a conservative A/B/C/D clean-core classifier the
+analyser **imports in-process** to ground its findings — it has no MCP server or CLI of its own, so it is
+an engine, not a standalone substrate. In total the plugin ships **24 skills/lanes, 9 agents, and 8
+hooks** (3 enforcement + 5 advisory) alongside the three MCP servers.
+
 The always-loaded spine is [`CLAUDE.md`](CLAUDE.md) (the prime directives **P1–P8**). This guide is the
 map; that file is the law.
 
@@ -167,9 +172,10 @@ GREEN — those need a live tier (Section B).
 ```
 
 The moderniser freezes one bottom-up, content-hashed dependency plan and drives **every** object
-through `GROUND → TRANSFORM → SELF_CHECK → VERDICT` under a deterministic scheduler. Offline it grounds
-and lints each node and rests at `SYNTAX_OK`, then assembles a **provisional** proof bundle — it never
-GREENs offline, by design (P6). Useful flags: `--breakpoint <wave>` (pause for review), `--team-size N`,
+through `GROUND → TRANSFORM → SELF_CHECK → VERDICT` under a deterministic scheduler. Offline it grounds,
+lints and **offline-gates** each node, resting it at `PROVISIONAL_GATED` (the offline verdict rest state;
+`SYNTAX_OK` is only a mid-flight pass state, not the terminus), then assembles a **provisional** proof
+bundle — it never GREENs offline, by design (P6). Useful flags: `--breakpoint <wave>` (pause for review), `--team-size N`,
 `--resume <run_id>`.
 
 > **The offline pipeline is engine-direct:** the analyser writes `analyser-findings.json`, the
@@ -247,6 +253,12 @@ Now the build lanes run their live gates:
 /abap-transport       # assembles the proof bundle: activation log, ATC priorities, ABAP Unit results,
                       #   Clean-Core level, invariant diff — a release-ready transport, and STOP.
 ```
+
+> **`/abap-validate` runs eight gates through five reviewers — not just ATC.** `abap-evaluator` owns
+> Gates 1/3/5 (activation, ATC, ABAP Unit), and `clean-core-reviewer` (Gates 2/4, HARD),
+> `abap-design-critic` (6, SOFT/WARN), `abap-security-reviewer` (7, HARD) and `abap-diff-reviewer`
+> (8, HARD) also gate — so a **BLOCK can originate outside ATC** (e.g. a Clean-Core or security
+> violation) even when ATC + ABAP Unit are green.
 
 To run the **moderniser** against DEV so nodes earn a real GREEN:
 
