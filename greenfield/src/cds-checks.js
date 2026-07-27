@@ -110,7 +110,7 @@ function isViewExtensible(src) {
 /** Parse a DDLS view-entity into its BO-structure facts. String literals are blanked BEFORE comment
  * stripping so a block comment (slash-star … star-slash) straddling annotation strings can't erase a
  * real annotation. @returns {object|null} */
-function parseCdsEntity(f) {
+export function parseCdsEntity(f) {
   const src = stripCdsComments(blankCdsStrings(f.source ?? ""));
   const dm = VIEW_ENTITY_RE.exec(src);
   if (!dm) return null; // not a view entity (classic `define view` is gf-cds-classic-view's job)
