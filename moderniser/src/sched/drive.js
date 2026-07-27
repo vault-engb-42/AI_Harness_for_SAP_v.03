@@ -8,7 +8,7 @@
  *   { action: "generate", packets: [{sig, object, wave}, …] }   ready frontier — ground+generate+self-check these
  *   { action: "await_human", nodes: [sig, …] }                  a human gate blocks progress (seam / park)
  *   { action: "provisional_complete" }                          offline: every node rested or a starved sweep target
- *   { action: "complete" }                                      online: every node GREEN
+ *   { action: "complete" }                                      live: every node GREEN
  *   { action: "blocked", nodes: [{sig, status}, …] }            a wedged node that is neither dispatchable nor rested — fail-closed surface
  *
  * Offline NEVER GREENs (P6), so the offline exit is `provisional_complete` (→ the draft sweep +

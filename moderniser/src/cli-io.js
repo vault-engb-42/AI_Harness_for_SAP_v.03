@@ -7,7 +7,7 @@
  *     by monotonicity (baselines only tighten, so a half-advanced pair can only over-block)
  *   - sweep ledger (specs/runs/<run_id>/sweep.json): the offline draft sweep's bookkeeping,
  *     DELIBERATELY outside the loop state (§6.5 draft-sweep decision — the reducer's
- *     counters/FSM/earned-GREEN stay single-meaning; an online resume re-gates everything)
+ *     counters/FSM/earned-GREEN stay single-meaning; a live resume re-gates everything)
  *   - log rows are P8-scrubbed: identifiers and statuses only, never ABAP source
  */
 import { readFileSync, mkdirSync, renameSync, openSync, writeSync, fsyncSync, closeSync, appendFileSync, existsSync } from "node:fs";

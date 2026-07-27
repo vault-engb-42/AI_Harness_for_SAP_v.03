@@ -84,7 +84,7 @@ export function ratchetGate(node, evidence = {}, baselines) {
 }
 
 /**
- * The warn-delta ratchet core (L6(2)), shared by the online `ratchetGate` and the offline
+ * The warn-delta ratchet core (L6(2)), shared by the live `ratchetGate` and the offline
  * `offlineRatchetGate`: diff-validity + WARNs-on-changed-lines vs the per-object ceiling (seed ∞
  * → establish-pass 0). Both sides of the warn/diff join are shape-validated fail-closed (review
  * F1: the warn side alone left a missing/malformed diff silently joining to delta 0 — a gated

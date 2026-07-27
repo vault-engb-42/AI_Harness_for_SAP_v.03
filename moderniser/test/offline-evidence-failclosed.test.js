@@ -10,7 +10,7 @@ import { assembleBundle } from "../src/extract/bundle.js";
 // `atc_p1 = atc_p2 = 0`, and `changedLines` mapped absent file lists to `[]`, which is a
 // well-formed array. So the producer manufactured CLEAN evidence out of NO evidence and every
 // fail-closed guard downstream became unreachable. `cli.js:214-216` already forbids exactly this
-// on the ONLINE path ("NO ?? [] fallback … F1"); the offline path diverged from it.
+// on the LIVE path ("NO ?? [] fallback … F1"); the offline path diverged from it.
 //
 // Absence must stay absent. The judges need no change — they already do the right thing.
 

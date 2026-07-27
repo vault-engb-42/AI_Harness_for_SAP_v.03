@@ -2,7 +2,7 @@
  * Offline draft-sweep verbs for the /modernise CLI (MODERNISER_DESIGN §6.5, ratified
  * 2026-07-11 as Option C): the sweep is a SEPARATE ledger (`specs/runs/<run_id>/sweep.json`)
  * — never loop state — so the reducer's counters/FSM/earned-GREEN stay single-meaning and
- * an online resume re-gates everything.
+ * a live resume re-gates everything.
  *
  *   sweep-order <run_id>                                  the not-yet-swept PENDING nodes, topological
  *   sweep-mark  <run_id> <sig> --result drafted|failed    ledger a sweep outcome (PENDING nodes only)

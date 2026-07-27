@@ -16,7 +16,7 @@
  *
  * Pure. The before/after AST feature bundles (invariant_diff / classify_parity inputs) and
  * the raw `source` (augment) are a LATER extraction step (offline: corpus + @abaplint;
- * online: ADT get_source) — not produced here.
+ * live: ADT get_source) — not produced here.
  *
  * @param {object} doc analyser-findings.json
  * @param {ReturnType<import("../graph/build.js").buildObjectGraph>} [objectGraph]

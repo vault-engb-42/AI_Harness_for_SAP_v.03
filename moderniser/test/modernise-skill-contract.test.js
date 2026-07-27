@@ -83,7 +83,7 @@ test("the SKILL reports every syntax outcome the driver accepts — and each mat
 
 test("the granular reducer verbs remain documented (manual/debug/resume path is preserved)", () => {
   // Step E thins the loop to drive-driven, but the granular verbs must survive for manual
-  // control, the online checkpoint/verdict arc the driver does not yet own, and resume.
+  // control, the live checkpoint/verdict arc the driver does not yet own, and resume.
   for (const verb of ["verdict", "resume", "status"]) {
     assert.match(SKILL, new RegExp(`\\b${verb}\\b`), `the SKILL must still document the granular '${verb}' verb`);
   }

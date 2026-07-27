@@ -18,7 +18,7 @@ test("offlineRatchetGate PASSes without coverage/bite — the DEV-only conjuncts
   assert.equal(r.atc_warn_delta, 0, "no baseline ceiling → seed-∞ establish-pass 0");
 });
 
-test("the SAME inputs BLOCK the online ratchetGate (proves offline drops coverage + bite)", () => {
+test("the SAME inputs BLOCK the live ratchetGate (proves offline drops coverage + bite)", () => {
   const r = ratchetGate(node, cleanEvidence, baselines);
   assert.equal(r.verdict, "BLOCK");
   assert.ok(r.reasons.includes("coverage-missing"));

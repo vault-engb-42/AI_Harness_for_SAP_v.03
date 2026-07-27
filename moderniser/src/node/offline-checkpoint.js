@@ -37,7 +37,7 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
  * (ratchet.js, verdict.js), but mapping an absent — or ERRORED — document to `[]` manufactured
  * CLEAN evidence out of NO evidence, making those guards unreachable: a node whose `analyzePackage`
  * crashed rested PROVISIONAL with live priority-1 findings. `cli.js:214-216` already forbids exactly
- * this on the ONLINE path ("NO ?? [] fallback … F1"); the offline path had diverged from it.
+ * this on the LIVE path ("NO ?? [] fallback … F1"); the offline path had diverged from it.
  * An EMPTY array is real evidence of zero and is passed through as such.
  */
 const findingsOf = (doc) => (Array.isArray(doc?.findings) ? doc.findings : undefined);

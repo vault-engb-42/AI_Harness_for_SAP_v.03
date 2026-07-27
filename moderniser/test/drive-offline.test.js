@@ -123,7 +123,7 @@ test("fails closed on an unknown node and on a node that has not reached SYNTAX_
   assert.throws(() => driveOfflineVerdict(PLAN, s, "N1", pass), /GROUNDED/);
 });
 
-test("the online driveReport path is untouched by the offline step", () => {
+test("the live driveReport path is untouched by the offline step", () => {
   const { state, action } = driveReport(PLAN, atSyntaxOk(), "N1", "syntax_ok");
   assert.equal(state.status.N1, "SYNTAX_OK");
   assert.equal(action.action, "provisional_complete");
