@@ -10,6 +10,11 @@ what the harness is, how to set it up on your machine, and how to use it two way
 > Everything here reflects the code on `main`. There is **no mock mode** — "offline" means the
 > harness's offline *engines* (which never touch SAP), not a faked SAP system.
 
+> **Two visual companions — open them in a browser alongside this guide.**
+> [`Harness_Explorer_v2.html`](Harness_Explorer_v2.html) is an interactive tour of the harness's parts;
+> [`Harness_QA_Companion_v2.html`](Harness_QA_Companion_v2.html) is the "why does it work this way" Q&A.
+> New here? Skim both first, then work through this guide.
+
 ---
 
 ## 1. What the harness is (in one screen)
@@ -33,7 +38,7 @@ It runs on its **own local substrate** — no cloud, no gateway:
 | Substrate | Directory | Role | Needs SAP? |
 |---|---|---|---|
 | **Analyser** | `analyser/` | `@abaplint/core` code graph + rule packs → S/4 readiness, blast radius, findings | **No** (offline) |
-| **Greenfield** | `greenfield/` | released-API grounding + a 58-rule ABAP-Cloud linter | **No** (offline) |
+| **Greenfield** | `greenfield/` | released-API grounding + a 59-rule ABAP-Cloud linter | **No** (offline) |
 | **MCP-ADT sidecar + bridge** | `sap-adt-sidecar/`, `mcp-adt-bridge/` | real ABAP Developer Tools calls (read + gated write) | **Yes** (online) |
 
 A fourth offline engine, the **Oracle** (`oracle/`), is a conservative A/B/C/D clean-core classifier the
@@ -408,6 +413,8 @@ These are enforced by hooks and reviewers — they are not style suggestions:
 
 ## 9. Where to go next
 
+- [`Harness_Explorer_v2.html`](Harness_Explorer_v2.html) + [`Harness_QA_Companion_v2.html`](Harness_QA_Companion_v2.html) — the visual tour + the "why" Q&A (open in a browser).
+- [`demos/abap_fico-acceptance-2026-07-27/`](demos/abap_fico-acceptance-2026-07-27/) — this whole offline pipeline run end-to-end over a real corpus, with its proof bundle (the worked example behind §4.5).
 - [`CLAUDE.md`](CLAUDE.md) — the always-loaded spine (P1–P8, GAN, the ratchet, the lanes).
 - [`README.md`](README.md) — the project map and the committed demo bundles under `demos/`.
 - `.claude/skills/<name>/SKILL.md` — the full contract for any lane you want to understand in depth.

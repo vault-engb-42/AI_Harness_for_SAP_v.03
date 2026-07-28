@@ -4,6 +4,16 @@ An LLM will happily write ABAP that looks correct and fails on a real SAP system
 
 It runs on its **own local substrate** — a Node MCP-ADT sidecar/bridge to a real SAP system, a standalone `@abaplint/core` analyser, and an offline Clean-Core grounding + linting engine — so the analysis and generation happen with no cloud service in the loop. `CLAUDE.md` is the always-loaded spine (the prime directives **P1–P8**); this README is the map.
 
+## Start here (new developers)
+
+**Before diving into this README, read these three — in order:**
+
+1. **[`Harness_Explorer_v2.html`](Harness_Explorer_v2.html)** — an interactive tour of what the harness is and how its parts fit together (open in a browser).
+2. **[`Harness_QA_Companion_v2.html`](Harness_QA_Companion_v2.html)** — the "why does it work this way" Q&A that answers the questions the tour raises (open in a browser).
+3. **[`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md)** — the start-from-zero, assume-no-prior-knowledge guide: set the harness up on your machine and use it both offline and online.
+
+Skim the two HTMLs, follow the guide to get running, then come back here for the map.
+
 ## How it works — one object's journey
 
 Follow a single CDS view or RAP business object from request to release:
@@ -23,6 +33,7 @@ Two committed demo bundles, each a real customer FICO package rather than a toy:
 
 - **[`demos/abap_fico-e2e-2026-07-14/`](demos/abap_fico-e2e-2026-07-14/)** — a brownfield package modernised end to end. In this run, S/4 readiness went **36 → 100**, Clean-Core grade **D → A**, and analyser findings **879 → 646** ([`comparison.json`](demos/abap_fico-e2e-2026-07-14/comparison.json)); the before/after source and a rendered walkthrough are in the bundle.
 - **[`demos/abap_fico-verdict-arc-2026-07-22/`](demos/abap_fico-verdict-arc-2026-07-22/)** — the independent judge pointed at those modernised drafts. It does **not** rubber-stamp: the offline verdict is **`BLOCK`**, with four independent reasons (`atc-p1-nonzero`, `atc-p2-nonzero`, `auth-delta-unattested`, `parity-not-equivalent:needs_review`), and the driver loops back to regenerate ([`offline-verdict.json`](demos/abap_fico-verdict-arc-2026-07-22/offline-verdict.json)). The grader is real enough to fail the harness's own output until it is actually clean.
+- **[`demos/abap_fico-acceptance-2026-07-27/`](demos/abap_fico-acceptance-2026-07-27/)** — the **current reference run: the full pipeline regenerated from scratch** (fetch → analyse → modernise → judge). S/4 readiness **36 → 100**, Clean-Core **D → A**, priority-1 findings **42 → 0**; the offline verdict `BLOCK`s and self-corrects; `npm run test:corpus` is **7/7**. Regenerating it fresh — rather than reusing fixed artifacts — surfaced and fixed two real harness defects (see the bundle's [`README.md`](demos/abap_fico-acceptance-2026-07-27/README.md)). The corpus is unlicensed, so its source is fetched, never vendored ([`demos/FETCH.md`](demos/FETCH.md)).
 
 ## What's inside
 
@@ -30,7 +41,7 @@ Two committed demo bundles, each a real customer FICO package rather than a toy:
 - **Standalone analyser** (`analyser/`) — an `@abaplint/core` code property graph + 16 rule packs → S/4 readiness, blast radius, and `analyser-findings.json`; its own `abap-analyser` MCP (`analyse_bundle` / `analyse_source_system` / `analyse_via_adt` / `get_report`)
 - **Oracle** (`oracle/`) — a standalone, conservative clean-core classifier: it maps SAP's released-object registries onto an A/B/C/D readiness level, a shared lower bound the analyser imports directly to ground its findings. No MCP server of its own; the live ATC is the authoritative reconciler.
 - **Moderniser** (`moderniser/`) — the offline modernisation engine: it consumes the analyser's findings, freezes a content-hashed dependency plan, and drives each object GROUND → TRANSFORM → SELF-CHECK → VERDICT under a deterministic scheduler. Offline it reaches a *provisional* verdict (never GREEN, by design — activation and ABAP Unit need a live tier); a live mode pushes, activates, and gates on DEV to earn GREEN
-- **Greenfield pipeline** (`greenfield/`) — pre-generation released-API grounding over the bundled cloudification registry + a **58-rule** parser-based ABAP-Cloud linter (`@abaplint/core`); its own `greenfield` MCP (`ground_released_apis` / `lint_abap_cloud`), wired into the design/implement/validate lanes with a lint→regenerate loop
+- **Greenfield pipeline** (`greenfield/`) — pre-generation released-API grounding over the bundled cloudification registry + a **59-rule** parser-based ABAP-Cloud linter (`@abaplint/core`); its own `greenfield` MCP (`ground_released_apis` / `lint_abap_cloud` / `validate_fe_descriptor`), wired into the design/implement/validate lanes with a lint→regenerate loop
 - **MCP-ADT bridge** (`mcp-adt-bridge/`) + **ported ADT sidecar** (`sap-adt-sidecar/`) — MCP stdio to real ADT REST, **17 tools**, writes fail-closed (P5)
 - **9 agents** (`.claude/agents/`) — planner, generator, evaluator, design-critic, security-reviewer, diff-reviewer, clean-core-reviewer, explorer, transport-manager
 - **24 skills/lanes** (`.claude/skills/`) — effort scales to the stakes, from `/abap-vibe` (a ≤3-object quick fix) up to the full `/fit-to-standard → /abap-brownfield → /abap-design → /abap-implement → /abap-validate → /abap-transport` pipeline

@@ -39,7 +39,7 @@ activated, `blocked_on: DEV-CREDS`.
   scan (`plan --bundle`) **sealed 2 objects** (`ZFICO_FUNCTIONS`, `ZFI_RGGBR000`) whose source
   carries dynamic dispatch — they went to the draft sweep behind human-seam confirmation.
 - **Gated pass**: 7 objects driven to `SYNTAX_OK` (grounded on the oracle, gated by the real
-  58-rule Clean-Core linter engine-direct). **Draft sweep**: the remaining 4 (2 sealed + the
+  59-rule Clean-Core linter engine-direct). **Draft sweep**: the remaining 4 (2 sealed + the
   entry object `ZFICO_BTC_CSV_GL` with 44 transformations + `ZFI_RGGBS000`).
 - **Self-check gate**: all 11 objects, **0 lint errors** (see `proof/selfcheck-gates.json`);
   residual warnings are Clean-Core style (Hungarian notation, standalone DATA) only.
@@ -51,12 +51,10 @@ activated, `blocked_on: DEV-CREDS`.
 
 ```
 before/
-  (source/ is NOT vendored — third-party, unlicensed; see ../FETCH.md)
-  analyser-findings.json  the analyser's BEFORE diagnosis
+  (source/ + analyser-findings.json are NOT vendored — third-party, unlicensed; see ../FETCH.md)
   abap_fico-BEFORE.html   ← open in a browser: 11-tab interactive report (D grade, 36% S/4)
 after/
-  modernised-source/      the moderniser's 41 Level-A draft artifacts, 11 objects
-  analyser-findings.json  the analyser's AFTER diagnosis of the modernised source
+  (modernised-source/ + analyser-findings.json are NOT vendored; see ../FETCH.md)
   abap_fico-AFTER.html    ← open in a browser: (A grade, 100% S/4)
 proof/
   frozen-plan.json        the content-hashed bottom-up plan (seals, waves, deps, artifacts)

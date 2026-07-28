@@ -25,7 +25,7 @@ can confirm you are analysing the same bytes this run did.
 
 The 2026-07-14 demo ended with an honest admission: *"the 11 remaining priority-1 findings are all
 RAP-modelling refinements in the new code."* Those residuals were **visible in a report** but
-**nothing gated on them** — the offline SELF_CHECK ran the greenfield 58-rule linter, which carries
+**nothing gated on them** — the offline SELF_CHECK ran the greenfield 59-rule linter, which carries
 no structural RAP rules, and no offline verdict existed at all.
 
 Point the finished arc at the same artifacts and it blocks:
