@@ -35,12 +35,18 @@ const DCL_RE = /\.(dcls|asdcls)$/i;
 const BDEF_RE = /\.(bdef|asbdef)$/i;
 const DDLS_RE = /\.(ddls|asddls)$/i;
 
-// A behaviour definition that declares a `managed` or `unmanaged` implementation OWNS a
-// transactional save: the RAP framework issues the COMMIT, so there is no COMMIT statement to
-// count. Treating that as "no save boundary" made every classic-with-COMMIT-WORK → managed-RAP
-// rewrite read as P4b:commit-suppressed — a non-attestable false BLOCK on the canonical
-// modernisation (B6.5 F9). A `projection` behaviour delegates to its root and saves nothing.
-const SAVE_IMPL_RE = /\b(managed|unmanaged)\s+implementation\b/i;
+// A behaviour definition whose implementation TYPE is `managed` or `unmanaged` OWNS a transactional
+// save: the RAP framework issues the COMMIT, so there is no COMMIT statement to count. The type is
+// the FIRST token of the BDEF header and is INDEPENDENT of the `implementation in class ... unique`
+// clause, which is OPTIONAL (7.54 grammar) and may sit in the header (`managed implementation in
+// class X unique;`, FORM X) OR per-entity after `define behavior` behind a bare `managed;` header
+// (FORM Y). SAP's own TechEd DEV260 EX6_1 travel BDEF is character-for-character FORM Y. The earlier
+// `/(managed|unmanaged)\s+implementation/` matched only FORM X, so a valid FORM-Y managed BO read as
+// "no save boundary" — a false P4b:commit-suppressed BLOCK on the canonical modernise-to-RAP (found
+// by the abap_fico B7 acceptance run, where every generated managed BO uses FORM Y). Anchoring the
+// type token at line start (comments already stripped) excludes `field ( numbering : managed )` and
+// the delegating `projection`/`abstract`/`interface` types — none of which own a save.
+const SAVE_IMPL_RE = /^[ \t]*(managed|unmanaged)\b/im;
 
 // A CDS/ABAP name: letters, digits, underscore, and the /NS/ namespace slashes.
 const NAME = "[\\w/]+";

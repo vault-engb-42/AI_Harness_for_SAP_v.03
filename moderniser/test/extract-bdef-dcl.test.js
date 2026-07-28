@@ -76,6 +76,34 @@ lock dependent by _Travel
   assert.ok(out.edges.some((e) => e.kind === "composition" && e.source === "ZI_TRAVEL" && e.target === "_BOOKING"), "composition association Travel→_Booking");
 });
 
+test("save_boundaries counts the bare `managed;` header (FORM Y), not only the adjacent `managed implementation` form", () => {
+  // SAP ships BOTH BDEF header forms. FORM X puts the impl class in the header
+  // (`managed implementation in class X unique;`); FORM Y is a bare `managed;` header with
+  // `implementation in class ... unique` placed per-entity AFTER `define behavior` — SAP's own
+  // TechEd DEV260 EX6_1 travel BDEF is character-for-character FORM Y, and the 7.54 grammar makes
+  // `[in class ...]` optional. The adjacent-only regex read a valid FORM-Y managed RAP BO as
+  // "no save boundary" → a false P4b:commit-suppressed BLOCK on the canonical modernise-to-RAP.
+  // Found by the abap_fico B7 acceptance run: every generated managed BO uses FORM Y.
+  const formY = `managed;
+with draft;
+
+define behavior for ZI_Travel alias Travel
+implementation in class zbp_i_travel unique
+persistent table ztravel
+lock master
+{ create; update; delete; }`;
+  const formX = `managed implementation in class zbp_i_travel unique;
+define behavior for ZI_Travel alias Travel
+persistent table ztravel
+{ create; }`;
+  const projection = `projection;
+define behavior for ZC_Travel alias Travel
+use create; use update;`;
+  assert.equal(extractBdefDcl([file("zi_travel.asbdef", formY)]).save_boundaries, 1, "bare managed; header IS a save owner");
+  assert.equal(extractBdefDcl([file("zbp_x.bdef.asbdef", formX)]).save_boundaries, 1, "adjacent form still counts");
+  assert.equal(extractBdefDcl([file("zc_travel.asbdef", projection)]).save_boundaries, 0, "a projection delegates the save — not a save owner");
+});
+
 test("aggregates across a file set + ignores non-BDEF/DCL files", () => {
   const dcl = `define role ZR { grant select on ZI_X where (F) = aspect pfcg_auth( S_A, ACTVT ); }`;
   const bdef = `define behavior for ZI_Y alias Y lock master { }`;
