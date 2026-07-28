@@ -181,6 +181,77 @@ bundle — it never GREENs offline, by design (P6). Useful flags: `--breakpoint 
 > **The offline pipeline is engine-direct:** the analyser writes `analyser-findings.json`, the
 > moderniser reads it, and grounding is in-process — no MCP server and no credentials are involved.
 
+### 4.4 What an offline run actually buys you (`provisional_complete`)
+
+Offline **never GREENs** (P6), so a natural question is: what is a *provisional* pass worth?
+`provisional_complete` is not "we gave up before GREEN" — it is the **highest verdict that is honest
+without a live SAP system**, and it earns its keep four ways:
+
+1. **It raises the floor from raw brownfield to activation-ready Level-A drafts — at zero cost, no
+   creds.** Instead of a human facing hundreds of findings across dozens of classic files, you get
+   modernised RAP/CDS/class drafts that are already grounded on released APIs, lint-clean, gap-2a-clean
+   (no RAP/N+1 structural defects), and P4-invariant-preserving. The human's job shrinks from "rewrite
+   everything" to "review, activate, resolve the named seams."
+2. **It is a deterministic gate you can run thousands of times — in CI, on a laptop, on every PR —
+   before ever touching DEV.** The scarce, expensive resource is the live loop (creds, transport,
+   activation, reviewer time); the offline floor means only pre-judged, high-quality drafts consume it.
+   That is shift-left for ABAP.
+3. **With the gap-2b verdict arc it doesn't just draft — it JUDGES and self-corrects.** It extracts the
+   auth footprint, save boundaries, parity signals and ATC residuals, then **BLOCKs** on real defects
+   and **regenerates with the findings threaded in**. `provisional_complete` means "the offline judge
+   extracted every signal it honestly can, self-corrected what it could, and handed you a drafted +
+   judged + evidence-backed bundle."
+4. **It is the anti-silent-failure guarantee.** It states exactly what is proven (grounding, lint,
+   structure, invariants, parity-proxy) and exactly what is still owed (activation, ABAP Unit, real ATC
+   — all `blocked_on: DEV-CREDS`). A tool that printed "done/GREEN" offline would be lying; `provisional`
+   is the honest label that separates "the offline machine is confident" from "the live system confirmed."
+
+**The honest limit:** it does not prove the code activates or that unit tests pass, and parity is a
+conservative static proxy, not semantic-equivalence. Those are the live gate's job (§5). `provisional_complete`
+maximises that gate's *yield*; it never replaces it.
+
+### 4.5 Demo documentation — a worked end-to-end offline run
+
+The committed `demos/abap_fico-acceptance-2026-07-27/` demo **is** this pipeline, start to finish, over a
+real brownfield corpus (`PON-HANNES/abap_fico`), engine-to-engine, no SAP. Its `README.md` has the full
+numbers; the steps, in order, are:
+
+1. **Fetch + scan the corpus.** Clone it to a scratch dir **outside** the project root, then run the
+   mandatory **4-layer security scan** (prompt-injection, malicious-code, supply-chain, secrets) in an
+   isolated sub-agent before any engine reads it. Gate on the result. *(The corpus is unlicensed, so it
+   is never vendored — the demo ships the analysis + proof, not the source; see `demos/FETCH.md`.)*
+2. **Analyse BEFORE.** `node analyser/cli.js before/source --out before/analyser-findings.json --html …`
+   → the diagnosis: **879 findings, 42 priority-1, 36% S/4, grade D**.
+3. **Plan.** `node moderniser/src/cli.js plan <findings> --bundle before/source --team-size 4` freezes a
+   content-hashed, bottom-up plan (**11 nodes, 3 waves**). The Stage-1 dynamic scan **seals** objects it
+   cannot statically resolve (here: `ZFICO_FUNCTIONS` dynamic `SELECT FROM (tabname)`, `ZFI_RGGBR000`
+   runtime-generated substitution exits).
+4. **Run the factory loop.** `/modernise` drives `drive → generate → SELF_CHECK → report`: one
+   `abap-generator` per frontier node grounds on released APIs, writes the artifacts, and self-checks
+   with the greenfield lint **+ the gap-2a structural gate**. Here 7 objects gated to `SYNTAX_OK` (3 full
+   managed RAP BOs + 4 released-API classes/CDS).
+5. **Answer the human gate.** The driver returns `await_human` for the 2 sealed objects — a genuine
+   decision, not a silent failure. The operator either supplies the runtime caller/table set or
+   **confirms them as manual seams** (this demo did the latter).
+6. **Draft sweep.** The 4 objects the gated pass couldn't reach (2 sealed + the starved sibling + the
+   wave-2 entry) are drafted **provisionally**, each with its dynamic dispatch isolated behind a named
+   `NEEDS_MANUAL_SEAM` — flagged for the live stage, never faked.
+7. **Analyse AFTER.** `node analyser/cli.js after/modernised-source --out … --html …` +
+   `analyser/cli.js compare before after` → **676 findings, 0 priority-1, 100% S/4, grade A** (S/4 +64,
+   Cloud +64).
+8. **Judge it (the gap-2b verdict arc).** `ABAP_FICO_CORPUS=<dir> npm run test:corpus` runs the offline
+   verdict over both bundles: it **BLOCKs** (`provisional: false`) on `atc-p2-nonzero`,
+   `auth-coverage-lost`, `auth-delta-unattested`, `parity-not-equivalent`; the driver **self-corrects**
+   (`generate`, `retry: true`); two passes are **byte-identical**. Acceptance: **7/7**.
+9. **Read the proof, release at the live stage.** `offline-verdict.json` + `proof/` (plan, run-log,
+   sweep, selfcheck-gates, checkpoint, evidence, parity-diff) are what a human reads. Offline stops here
+   at a `provisional` verdict; activation + the real ATC/Unit run are the online path (§5).
+
+> This exact run also surfaced — and fixed, TDD — two real harness defects (a save-boundary extractor
+> blind to a valid BDEF form; an acceptance assertion over-fit to older, dirtier drafts). Regenerating
+> from scratch, rather than reusing fixed artifacts, is what exposed them. See the demo README's last
+> section.
+
 ---
 
 ## 5. B) Online analysis and development (real SAP DEV)
