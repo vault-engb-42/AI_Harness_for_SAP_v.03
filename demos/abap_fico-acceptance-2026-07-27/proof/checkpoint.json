@@ -1,0 +1,29 @@
+{
+  "atc_p1": 0,
+  "atc_p2": 659,
+  "invariants": {
+    "intact": true,
+    "violations": [],
+    "auth_delta": true
+  },
+  "auth_coverage": {
+    "lost": true,
+    "lost_scopes": [
+      {
+        "object": "ZI_ASSETCREATE",
+        "field": "*"
+      }
+    ]
+  },
+  "parity": {
+    "score": 0.7,
+    "verdict": "needs_review",
+    "classes": [
+      "read-idiom"
+    ],
+    "evidence": [
+      "deduct:auth_object_changed:-0.3",
+      "band:paradigm_shift"
+    ]
+  }
+}

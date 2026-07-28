@@ -1,0 +1,12 @@
+{"ts":"2026-07-27T19:32:03.992Z","run_id":"run-afd4f3d719be","event":"plan","plan_hash":"afd4f3d719be806f1381423e3823c560817ecd76abb87865a402f5bd2ccf2de7","nodes":11}
+{"ts":"2026-07-27T22:50:15.291Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"2b978fd37de3d44aa207883366016418c5f6b0e97e597c297052c3f3a48d8763","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T22:50:18.252Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"be7df14fbbf660fa8c0567616e64c32c52590ed9c2c30bc19f249e66ffa1ea29","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T22:50:21.516Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"776687e6bb19681a87f1c54ec2c4c3f9e9f5cd8d8ac8c6c50abebc9ef559da49","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T22:50:25.348Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"3bf0355cf1da7ead1e02621a657e88669103384a00a561db7f961934b30408d8","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T23:35:18.611Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"9d218fdb84fb9452dbdca901dc1daa8fa0c2e6218eace595953d5d11f99ac4bc","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T23:35:21.236Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"52af6c01adc672f15e016e0fa7fe987fc4062273d60e21af1894662b9a7aec6a","outcome":"syntax_ok","action":"generate"}
+{"ts":"2026-07-27T23:35:23.651Z","run_id":"run-afd4f3d719be","event":"drive-report","sig":"45da35ef5b7fbab4b35fea695113b7c94fa56aa2129b507e9b1e08b1db088e92","outcome":"syntax_ok","action":"await_human"}
+{"ts":"2026-07-28T08:24:03.036Z","run_id":"run-afd4f3d719be","event":"sweep-mark","sig":"43a6b1baceecfb326c2cfdfbed07fc5701c4f6ab523e495ad1591d12de0f55c4","result":"drafted"}
+{"ts":"2026-07-28T08:24:05.986Z","run_id":"run-afd4f3d719be","event":"sweep-mark","sig":"80f485f898a4784cff566427603acb97aa4c7a61078b339133a4d1167399ada6","result":"drafted"}
+{"ts":"2026-07-28T08:24:08.952Z","run_id":"run-afd4f3d719be","event":"sweep-mark","sig":"6c2cb3ac56a0b99c5fe311d6c6680b9d3ebac150552261258b74f375589b9df1","result":"drafted"}
+{"ts":"2026-07-28T09:08:05.654Z","run_id":"run-afd4f3d719be","event":"sweep-mark","sig":"8d3c780cbf7f57fe93422d55a65f2a5f0ec762ce4e0f4336352eaa19133cc1b2","result":"drafted"}

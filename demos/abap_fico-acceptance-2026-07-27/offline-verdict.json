@@ -1,0 +1,60 @@
+{
+  "demo": "abap_fico-acceptance-2026-07-27",
+  "run_date": "2026-07-27",
+  "mode": "OFFLINE (no DEV, no creds) — analyser -> moderniser -> analyser, engine-to-engine",
+  "corpus": {
+    "repo": "PON-HANNES/abap_fico",
+    "commit": "ebd429a1ebcbaec27dd29fd480ccdf9dc761c07f",
+    "licence": "none (all-rights-reserved) — NOT vendored, see FETCH.md"
+  },
+  "before": {
+    "source_hash": "3f615aea7e991102f5c719f4ac9ab38c89c06fe4a278ef3c488802bb4e76d334",
+    "files": 29,
+    "auth_checks": 0,
+    "auth_bdef": 0,
+    "commit_work": 0,
+    "dcl_restrictions": 0
+  },
+  "after": {
+    "source_hash": "c8d5dcd0eb28060195bf5cd978ee91cc77b1b237f1bfe92d0e31423119a7903d",
+    "files": 37,
+    "auth_checks": 13,
+    "auth_bdef": 3,
+    "commit_work": 3,
+    "dcl_restrictions": 3
+  },
+  "verdict": {
+    "provisional": false,
+    "reasons": [
+      "atc-p2-nonzero",
+      "auth-coverage-lost",
+      "auth-delta-unattested",
+      "parity-not-equivalent:needs_review"
+    ]
+  },
+  "driver_self_correction": {
+    "action": "generate",
+    "retry": true,
+    "findings": [
+      "atc-p2-nonzero",
+      "auth-coverage-lost",
+      "auth-delta-unattested",
+      "parity-not-equivalent:needs_review"
+    ]
+  },
+  "invariant_diff": {
+    "intact": true,
+    "violations": [],
+    "auth_coverage": {
+      "lost": true,
+      "lost_scopes": [
+        {
+          "object": "ZI_ASSETCREATE",
+          "field": "*"
+        }
+      ]
+    },
+    "auth_delta": true
+  },
+  "honesty": "OFFLINE never GREENs (P6). provisional:false = BLOCK on residuals; activation + ATC + ABAP Unit are DEV-creds-gated (blocked_on: DEV-CREDS)."
+}

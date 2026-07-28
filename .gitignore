@@ -25,6 +25,12 @@ Thumbs.db
 # reference extracts. Deliberately NOT published (see README). Stays on disk, never committed.
 docs/
 
+# Third-party demo corpus source — unlicensed (all-rights-reserved), never redistributed.
+# Present locally inside each demo for reproduction; the analysis + proof beside it ARE tracked,
+# the source is NOT (see demos/FETCH.md). Operator-approved 2026-07-27.
+demos/*/before/source/
+demos/*/after/modernised-source/
+
 # Advisory-hook runtime output (record-run / atc-on-activate). Telemetry and obligations are
 # per-machine state, not repository content — the seeded baselines beside them ARE tracked.
 .claude/state/run-log.jsonl

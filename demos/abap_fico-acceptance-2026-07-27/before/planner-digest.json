@@ -1,0 +1,1580 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "abap_fico",
+  "source_system": "bundle:demos/abap_fico-acceptance-2026-07-27/before/source",
+  "source_hash": "3f615aea7e991102f5c719f4ac9ab38c89c06fe4a278ef3c488802bb4e76d334",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "48d54dd28da97fcee66f14ed6da9f897f41ab7d11ee283a70f6df06d25ce26d9",
+  "object_count": 31,
+  "objects_included": 31,
+  "finding_count": 879,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZFICO_BTC_CSV_SCR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_TOP",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFICO_FUNCTIONS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_BTE",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_C0001",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_C0002",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_RGGBR000",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFI_RGGBS000",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "KD_GET_FILENAME_ON_F4",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "LFB1",
+      "grade": "D",
+      "successor": "I_SUPPLIERCOMPANY",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "T856",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SKB1",
+      "grade": "D",
+      "successor": "I_GLACCOUNTINCOMPANYCODE",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "CONVERT_DATE_TO_EXTERNAL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "GET_PRINT_PARAMETERS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "KNA1",
+      "grade": "D",
+      "successor": "I_CUSTOMER",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "KNB1",
+      "grade": "D",
+      "successor": "I_CUSTOMERCOMPANY",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "LFA1",
+      "grade": "D",
+      "successor": "I_SUPPLIER",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "ANLA",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_FIXEDASSET_CREATE1",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "T001",
+      "grade": "D",
+      "successor": "I_COMPANYCODE",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "T004F",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "TBSL",
+      "grade": "D",
+      "successor": "I_POSTINGKEY",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "TMODF",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POPUP_TO_INFORM",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POSTING_INTERFACE_DOCUMENT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POSTING_INTERFACE_END",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POSTING_INTERFACE_START",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SKA1",
+      "grade": "D",
+      "successor": "I_GLACCOUNTINCHARTOFACCOUNTS",
+      "effort_tier": "retire"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "talos-cloud-015-salv-table-factory",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015)."
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses SKA1 (notToBeReleased) — not released for ABAP Cloud; released successor I_GLACCOUNTINCHARTOFACCOUNTS"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses SKB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_GLACCOUNTINCOMPANYCODE"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-002-tables-param",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "TABLES parameters are a compile error in ABAP Cloud — use IMPORTING/EXPORTING/CHANGING TYPE TABLE OF (CLOUD-002)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_SCR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses KNA1 (notToBeReleased) — not released for ABAP Cloud; released successor I_CUSTOMER"
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses KNB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_CUSTOMERCOMPANY"
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses LFA1 (notToBeReleased) — not released for ABAP Cloud; released successor I_SUPPLIER"
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses LFB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_SUPPLIERCOMPANY"
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFI_BTE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses SKB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_GLACCOUNTINCOMPANYCODE"
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses T001 (notToBeReleased) — not released for ABAP Cloud; released successor I_COMPANYCODE"
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses TBSL (notToBeReleased) — not released for ABAP Cloud; released successor I_POSTINGKEY"
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "talos-cloud-015-salv-table-factory",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015)."
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZFI_FIELDSTATUS_ANALYZE",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZFI_RGGBR000",
+      "rule_id": "talos-cloud-002-tables-param",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "TABLES parameters are a compile error in ABAP Cloud — use IMPORTING/EXPORTING/CHANGING TYPE TABLE OF (CLOUD-002)."
+    },
+    {
+      "object": "ZFI_RGGBS000",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses LFB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_SUPPLIERCOMPANY"
+    },
+    {
+      "object": "ZFI_RGGBS000",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZFI_RGGBS000",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"B01\" not found"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "empty_event",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty event"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "exit_or_check",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "CHECK is not allowed outside of loops"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "fully_type_itabs",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Specify table key"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "fully_type_itabs",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Specify table key"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "select_add_order_by",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Add ORDER BY"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "select_performance",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of SELECT *"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection-Screen variable name does not match pattern ^P_.+$: pv_bukrs"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection-Screen variable name does not match pattern ^S_.+$: so_aln1"
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"PV_BUKRS\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_ANKL\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_BUKRS\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_KOSTL\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_TEST\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"SO_ALN1\""
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZCREATE_ASSET",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "align_pseudo_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align pseudo comment to column 57"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "align_pseudo_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align pseudo comment to column 57"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "align_pseudo_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align pseudo comment to column 57"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "align_pseudo_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align pseudo comment to column 57"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFINE"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFINE"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Not possible to INCLUDE a main program, ZFICO_BTC_CSV_SCR"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Not possible to INCLUDE a main program, ZFICO_BTC_CSV_TOP"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"P01\" not found"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"P02\" not found"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"P03\" not found"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "db_operation_in_loop",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Database operation in loop"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "db_operation_in_loop",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Database operation in loop"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "empty_structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty block, add code: If"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "empty_structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty block, add code: If"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "expand_macros",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Expand macro call"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "fully_type_itabs",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Specify table key"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "fully_type_itabs",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Specify table key"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "fully_type_itabs",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Specify table key"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "identical_contents",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identical contents"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "identical_contents",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identical contents"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "in_statement_indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Fix in-statement indentation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 122"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 123"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 123"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 125"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 125"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 128"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 137"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 140"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 144"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 149"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <intab>"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: bktxt"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: count"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: message"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgid"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgno"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgty"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgv1"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgv2"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgv3"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: msgv4"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: only_balance_acc"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: ska1"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: subrc"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "macro_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Bad macro name naming, expected \"^_.+$\", got \"kopf\""
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "macro_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Bad macro name naming, expected \"^_.+$\", got \"pos\""
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "many_parentheses",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Too many parentheses, simple"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "many_parentheses",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Too many parentheses, simple"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "message_exists",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Message class \"zfico_btc\" not found"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce FORM length to max 100 statements, currently 255"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_macros",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not define macros"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_macros",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not define macros"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "pragma_style",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Place pragma at end of statement"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, COUNT"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "select_performance",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of SELECT *"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "select_performance",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of SELECT *"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-cloud-032-ddic-table-read",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "Direct SELECT from a SAP-namespace DDIC table — use the released CDS view (I_*) or BAPI (CLOUD-032)."
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-duplicate-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "6 consecutive statements duplicate lines 299-304 — extract a method instead of copy-pasting (HARDY-2)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-legacy-ui-rollup",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "40 classic-UI statements (WRITE/Dynpro/ALV) in this object — the app rides the legacy UI stack; target RAP/Fiori (CLOUD-28)"
+    },
+    {
+      "object": "ZFICO_BTC_CSV_GL",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "run-afd4f3d719be",
+  "plan_hash": "afd4f3d719be806f1381423e3823c560817ecd76abb87865a402f5bd2ccf2de7",
+  "gate": "offline SELF_CHECK = greenfield Clean-Core lint (0 errors) + the gap-2a structural rule gate (talos-rap-modify-*, talos-select-in-loop; exit 0 = no hit)",
+  "summary": { "objects": 11, "gated_to_syntax_ok": 7, "draft_swept": 4, "lint_errors_total": 0, "gap2a_hits_total": 0 },
+  "objects": [
+    { "object": "ZFI_C0002", "path": "ZFI_C0002/", "outcome": "gated:SYNTAX_OK", "target": "managed RAP BO", "artifacts": 10, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": null },
+    { "object": "ZFI_C0001", "path": "ZFI_C0001/", "outcome": "gated:SYNTAX_OK", "target": "managed RAP BO", "artifacts": 10, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": null },
+    { "object": "ZCREATE_ASSET", "path": "ZCREATE_ASSET/", "outcome": "gated:SYNTAX_OK", "target": "managed RAP BO (with additional save)", "artifacts": 6, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": "NEEDS_MANUAL_SEAM: BAPI_FIXEDASSET_CREATE1 (no offline released successor)" },
+    { "object": "ZFI_FIELDSTATUS_ANALYZE", "path": "ZFI_FIELDSTATUS_ANALYZE/", "outcome": "gated:SYNTAX_OK", "target": "CDS view entity + released-API class", "artifacts": 3, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": "field-status decode tables (T004F/TMOD*) have no released successor offline" },
+    { "object": "ZFI_BTE", "path": "ZFI_BTE/", "outcome": "gated:SYNTAX_OK", "target": "released-API class", "artifacts": 2, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": "NEEDS_MANUAL_SEAM: GET_PRINT_PARAMETERS, archive index" },
+    { "object": "ZFICO_BTC_CSV_SCR", "path": "ZFICO_BTC_CSV_SCR/", "outcome": "gated:SYNTAX_OK", "target": "released-API input-contract class", "artifacts": 2, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": "NEEDS_MANUAL_SEAM: classic batch-input screen params (wave-2 concern)" },
+    { "object": "ZFICO_BTC_CSV_TOP", "path": "ZFICO_BTC_CSV_TOP/", "outcome": "gated:SYNTAX_OK", "target": "shared types class", "artifacts": 2, "lint_errors": 0, "gap2a": "exit 0 (re-verified)", "seam": null },
+    { "object": "ZFICO_FUNCTIONS", "path": "ZFICO_FUNCTIONS/", "outcome": "draft-swept (dynamic-sealed, operator-confirmed manual seam)", "target": "released-API class", "artifacts": 2, "lint_errors": 0, "gap2a": "n/a (sweep = lint only)", "seam": "NEEDS_MANUAL_SEAM: dynamic SELECT FROM (iv_tabname) — runtime table set unknowable offline" },
+    { "object": "ZFI_RGGBR000", "path": "ZFI_RGGBR000/", "outcome": "draft-swept (dynamic-sealed, operator-confirmed manual seam)", "target": "BAdI extension-point class", "artifacts": 2, "lint_errors": 0, "gap2a": "n/a (sweep = lint only)", "seam": "NEEDS_MANUAL_SEAM: runtime-generated substitution user-exits -> BAdI (enumerate at live DEV)" },
+    { "object": "ZFI_RGGBS000", "path": "ZFI_RGGBS000/", "outcome": "draft-swept (starved: dep on ZFICO_FUNCTIONS)", "target": "BAdI extension-point class", "artifacts": 2, "lint_errors": 0, "gap2a": "n/a (sweep = lint only)", "seam": "NEEDS_MANUAL_SEAM: runtime-generated validation user-exits -> BAdI; U800 fully ported to call ZCL_FICOFUNCTIONS" },
+    { "object": "ZFICO_BTC_CSV_GL", "path": "ZFICO_BTC_CSV_GL/", "outcome": "draft-swept (wave-2 entry, starved)", "target": "released-API orchestrator class", "artifacts": 2, "lint_errors": 0, "gap2a": "n/a (sweep = lint only)", "seam": "NEEDS_MANUAL_SEAM: classic batch-input POSTING_INTERFACE GL posting -> released FI API / RAP action at live DEV" }
+  ],
+  "honesty": "OFFLINE run: every object rests at SYNTAX_OK (gated) or draft (swept); NONE is activated (P6 — offline never GREENs). blocked_on: DEV-CREDS for activation + ATC + ABAP Unit."
+}

@@ -1,0 +1,160 @@
+{
+  "labels": {
+    "before": "abap_fico",
+    "after": "abap_fico"
+  },
+  "readiness": [
+    {
+      "label": "S/4HANA-ready",
+      "before": 36,
+      "after": 100,
+      "delta": 64,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "ABAP Cloud-ready",
+      "before": 27,
+      "after": 91,
+      "delta": 64,
+      "unit": "%",
+      "improved": true
+    }
+  ],
+  "quality": [
+    {
+      "label": "Clean-Core grade",
+      "before": "D",
+      "after": "A",
+      "kind": "grade",
+      "improved": true
+    },
+    {
+      "label": "Priority-1 findings",
+      "before": 42,
+      "after": 0,
+      "delta": -42,
+      "improved": true
+    },
+    {
+      "label": "S/4 blocker findings",
+      "before": 28,
+      "after": 0,
+      "delta": -28,
+      "improved": true
+    },
+    {
+      "label": "Cloud blocker findings",
+      "before": 63,
+      "after": 1,
+      "delta": -62,
+      "improved": true
+    },
+    {
+      "label": "Total findings",
+      "before": 879,
+      "after": 676,
+      "delta": -203,
+      "improved": true
+    }
+  ],
+  "health": [
+    {
+      "label": "Clarity",
+      "before": 61,
+      "after": 74,
+      "delta": 13,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "Stability",
+      "before": 5,
+      "after": 75,
+      "delta": 70,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "Performance",
+      "before": 53,
+      "after": 36,
+      "delta": -17,
+      "unit": "%",
+      "improved": false
+    },
+    {
+      "label": "Compound",
+      "before": 40,
+      "after": 62,
+      "delta": 22,
+      "unit": "%",
+      "improved": true
+    }
+  ],
+  "clarity_axes": [
+    {
+      "label": "Cyclomatic",
+      "before": {
+        "value": 83,
+        "n": 8,
+        "total": 11,
+        "na": false
+      },
+      "after": {
+        "value": 100,
+        "n": 7,
+        "total": 8,
+        "na": false
+      }
+    },
+    {
+      "label": "Routine length",
+      "before": {
+        "value": 62,
+        "n": 11,
+        "total": 11,
+        "na": false
+      },
+      "after": {
+        "value": 98,
+        "n": 7,
+        "total": 8,
+        "na": false
+      }
+    },
+    {
+      "label": "Nesting",
+      "before": {
+        "value": 96,
+        "n": 11,
+        "total": 11,
+        "na": false
+      },
+      "after": {
+        "value": 100,
+        "n": 7,
+        "total": 8,
+        "na": false
+      }
+    },
+    {
+      "label": "Cohesion (LCOM*)",
+      "before": {
+        "value": 100,
+        "n": 1,
+        "total": 11,
+        "na": true
+      },
+      "after": {
+        "value": 75,
+        "n": 8,
+        "total": 8,
+        "na": false
+      }
+    }
+  ],
+  "notes": [
+    "Cohesion (LCOM*): measured population grew from 1 to 8 objects — the before score was not statistically meaningful (treat as unmeasured), so the 75% after is the first real reading, not a decline."
+  ]
+}

@@ -1,0 +1,1517 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "abap_fico",
+  "source_system": "bundle:demos/abap_fico-acceptance-2026-07-27/after/modernised-source",
+  "source_hash": "c8d5dcd0eb28060195bf5cd978ee91cc77b1b237f1bfe92d0e31423119a7903d",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "f79a87aa90d653c75cdd62a0590b6978dc9b52dd47a249a717cbc7bdcf6b11f5",
+  "object_count": 20,
+  "objects_included": 20,
+  "finding_count": 676,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZC_FICOSUBSTITUTION001",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZC_FICOSUBSTITUTION002",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_INPUT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_TYPES",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FIELDSTATUSANALYSIS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FI_BTE_PROCESSOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FI_SUBSTITUTION_EXIT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_FI_VALIDATION_EXIT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "I_GLACCOUNTINCOMPANYCODE",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_COMPANYCODE",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_CUSTOMER",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_CUSTOMERCOMPANY",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_POSTINGKEY",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_SUPPLIER",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "I_SUPPLIERCOMPANY",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZBP_IASSETCREATE, class XML file not found"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_class_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local class name does not match pattern ^LTCL_.+$: ltc_assetcreate"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: allowed"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: input"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: input"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: message"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: message"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: status"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: status"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: unauthorized"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZC(L|X): ZBP_IASSETCREATE"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "parser_error",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Statement does not exist in the configured ABAP version(or a parser error), \"cut\""
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "parser_error",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Statement does not exist in the configured ABAP version(or a parser error), \"cut\""
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "parser_error",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Statement does not exist in the configured ABAP version(or a parser error), \"needs_manual_seam_create_fixed_asset\""
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected TYPEBEGIN"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IASSETCREATE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZBP_IFICOSUBSTITUTION001, class XML file not found"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: mapped"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZC(L|X): ZBP_IFICOSUBSTITUTION001"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION001",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZBP_IFICOSUBSTITUTION002, class XML file not found"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: failed"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: mapped"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: reported"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZC(L|X): ZBP_IFICOSUBSTITUTION002"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_IFICOSUBSTITUTION002",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 25"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Database table or view \"zc_ficosubstitution001\" not found"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Database table or view \"zc_ficosubstitution002\" not found"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"needs_manual_seam_dynamic_table_read\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"test_unknown_table_routes_to_seam\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_FICOFUNCTIONS, class XML file not found"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "local_class_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local class name does not match pattern ^LTCL_.+$: zcl_ficofunctions_test"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"LT_DATA\" contains unknown: ZC_FICOSUBSTITUTION001 not found, lookup"
+    },
+    {
+      "object": "ZCL_FICOFUNCTIONS",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"LT_DATA\" contains unknown: ZC_FICOSUBSTITUTION002 not found, lookup"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 11"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 36"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 60"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 60"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 60"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 31"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 39"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 39"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"needs_manual_seam_post_gl_document\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_FICO_BTC_CSV_GL, class XML file not found"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_class_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local class name does not match pattern ^LTCL_.+$: ltc_fico_btc_csv_gl"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <a>"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <f>"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <fd>"
+    }
+  ]
+}
