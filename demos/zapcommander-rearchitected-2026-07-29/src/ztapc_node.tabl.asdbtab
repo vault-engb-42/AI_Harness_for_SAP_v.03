@@ -1,0 +1,27 @@
+@EndUserText.label : 'APC Browser - persistent node table'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table ztapc_node {
+
+  key client              : abap.clnt not null;
+  key node_uuid           : sysuuid_x16 not null;       // RAP managed UUID key (raw16)
+
+  parent_uuid             : sysuuid_x16;                // self-reference: parent node (null = root)
+  name                    : abap.char(255) not null;
+  node_type               : abap.char(6) not null;      // 'FOLDER' | 'ITEM'
+  byte_size               : abap.int8;                  // server-computed on content attach
+  mime_type               : abap.char(100);
+
+  // Large object: rawstring stores BLOB in separate LOB segment (LRAW in DDIC)
+  content                 : rawstring;
+
+  // RAP managed admin fields - framework fills via @Semantics.* annotations (abp_* data elements)
+  created_by              : abp_creation_user;
+  created_at              : abp_creation_time;
+  last_changed_by         : abp_locinst_lastchange_user;
+  last_changed_at         : abp_locinst_lastchange_time;    // instance ETag (etag master)
+  local_last_changed_at   : abp_lastchange_time;            // total ETag  (total etag)
+
+}

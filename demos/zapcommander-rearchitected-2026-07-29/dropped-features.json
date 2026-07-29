@@ -1,0 +1,23 @@
+[
+  {
+    "feature": "Execute OS command",
+    "classic_impl": "CALL 'SYSTEM' / SXPG_COMMAND_EXECUTE",
+    "disposition": "RETIRED",
+    "grounding_basis": "SXPG_COMMAND_EXECUTE not released for ABAP Cloud (KBA / SAP Note 3648256 category). No released Cloud API permits arbitrary OS-command execution. Cannot be re-scoped to a released surface.",
+    "impact": "The OS-shell execution capability of the classic zapcommander is dropped. Cloud apps must not execute arbitrary OS commands — this is a correct and intentional Clean-Core constraint, not a workaround."
+  },
+  {
+    "feature": "Browse arbitrary application-server directory (AL11 / OPEN DATASET)",
+    "classic_impl": "OPEN DATASET / AL11 file-system browser",
+    "disposition": "RETIRED",
+    "grounding_basis": "OPEN DATASET is not allowed in ABAP Cloud (migration analysis: not-to-be-released). AL11 is absent in BTP/RISE deployments. No released Cloud API allows arbitrary server-filesystem access.",
+    "impact": "The server-filesystem pane of classic zapcommander is dropped. Content that matters is re-modelled as ZI_ApcNode entities with @Semantics.largeObject streams — users upload/download content via OData V4 streaming instead of browsing the server FS."
+  },
+  {
+    "feature": "Frontend OS-shell 'execute file' (gui_execute_file / WS_EXECUTE)",
+    "classic_impl": "CALL FUNCTION 'WS_EXECUTE' / cl_gui_frontend_services=>execute",
+    "disposition": "RETIRED",
+    "grounding_basis": "cl_gui_frontend_services / WS_EXECUTE are Dynpro/classic-GUI APIs, not released for ABAP Cloud. ABAP Cloud applications are browser-based (Fiori); the browser sandbox prohibits client-side shell execution. No released Cloud form exists.",
+    "impact": "The 'run file on client OS' shortcut is dropped. This is both a Clean-Core constraint and a security improvement — browser-side execution is governed by the OS/browser, not the ABAP application."
+  }
+]

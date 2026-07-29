@@ -1,0 +1,19 @@
+// DCL access control for ZI_ApcNode.
+// P4 / INV-1: authorization gate - never weaken or remove.
+// pfcg_auth aspect maps PFCG role assignments to the CDS read path.
+//
+// Authorization object ZAPC_NODE (customer-defined, must be created in DDIC):
+//   Field ZAPC_NTYP  - node type restriction (FOLDER / ITEM / *)
+//   Field ACTVT      - activity (03 = display, 01 = create, 02 = change, 06 = delete)
+//
+// This grant restricts SELECT to users whose role carries ZAPC_NODE with
+// ZAPC_NTYP matching the row's NodeType and ACTVT = '03' (display).
+// The behavior pool's GET_INSTANCE_AUTHORIZATIONS additionally guards write
+// operations (update/delete/action) per P4.
+
+@EndUserText.label: 'ACL for ZI_ApcNode - pfcg node browse'
+@MappingRole: true
+define role ZI_ApcNode {
+  grant select on ZI_ApcNode
+    where (NodeType) = aspect pfcg_auth(ZAPC_NODE, ZAPC_NTYP, '03');
+}

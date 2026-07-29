@@ -1,0 +1,27 @@
+{
+  "demo": "zapcommander-rearchitected-2026-07-29",
+  "run_date": "2026-07-29",
+  "lane": "greenfield (rebuild) - clean-room from DESIGN.md + released-API grounding, NOT from the GPLv3 source",
+  "target": "100% Clean-Core (Level A) RAP + CDS + OData + Fiori Elements, ZERO NEEDS_MANUAL_SEAM",
+  "artifacts": {
+    "source_files": 15,
+    "source_loc": 1275,
+    "kinds": { "cds_view": 2, "custom_entity": 2, "dcl": 1, "bdef": 2, "metadata_ext": 1, "service_def": 1, "service_binding": 1, "table": 1, "class": 3 }
+  },
+  "gates": {
+    "greenfield_clean_core_lint": { "errors": 0, "warnings": 30, "note": "warnings are style only (hungarian / standalone-data / RAP-pool naming) - no Cloud-forbidden statements, no missing auth, no invariant breach" },
+    "gap_2a_structural": { "blocked": false, "hits": 0 },
+    "needs_manual_seam": 0,
+    "analyser_after": { "s4_readiness_pct": 100, "priority_1": 0, "clean_core_level": "A" },
+    "ascii_clean": true,
+    "nul_clean": true
+  },
+  "grounded_released_apis": [
+    "CL_HTTP_DESTINATION_PROVIDER", "IF_WEB_HTTP_CLIENT", "CL_WEB_HTTP_CLIENT_MANAGER",
+    "IF_RAP_QUERY_PROVIDER", "XCO_CP / XCO_CP_ABAP_REPOSITORY", "CL_ABAP_BEHV_TEST_ENVIRONMENT",
+    "@Semantics.largeObject / @Semantics.mimeType (RAP streams)", "CL_ABAP_UNIT_ASSERT"
+  ],
+  "dropped_features": 3,
+  "analyser_vs_greenfield_note": "The brownfield analyser flags 4 RAP-idiom findings the greenfield Level-A gate correctly passes: (1) EML IN LOCAL MODE inside behavior-pool actions (standard RAP, not a bypass); (2) DCL where(field) read as dynamic SQL (it is DCL grammar); (3) @AccessControl.authorizationCheck:#NOT_REQUIRED on custom entities (auth is in the IF_RAP_QUERY_PROVIDER class); (4) talos-rap-draft-lock-no-timeout requires @Locking.timeoutSeconds, which does NOT exist in released ABAP Cloud - a fabrication-inducing analyser bug logged for correction. See the analyser RAP-awareness backlog.",
+  "honesty": "Offline never GREENs (P6). This is a Level-A artifact + Level-A lint; activation, ATC (ABAP_CLEAN_CORE_DEVELOPMENT) and ABAP Unit need a live DEV tier. The 3 dropped features (OS exec, arbitrary server-FS browse, client shell-exec) are prohibited in ABAP Cloud by design - dropped and documented in dropped-features.json, never faked."
+}

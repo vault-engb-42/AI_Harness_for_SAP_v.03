@@ -1,0 +1,74 @@
+// Behavior definition for ZI_ApcNode - managed, draft-enabled.
+// Implementation type: plain `managed` - the RAP framework owns the save
+// (COMMIT ENTITIES).  No saver class is generated (P4 / INV-2).
+// The draft table ztapc_node_d is auto-generated from this declaration;
+// do NOT hand-write it.
+
+managed with draft;
+
+define behavior for ZI_ApcNode alias Node
+  implementation in class ZBP_ApcNode unique
+  persistent table ztapc_node
+  draft table ztapc_node_d
+  lock master
+  total etag LocalLastChangedAt
+  authorization master ( global, instance )   // P4/INV-1: both global (CUD ops) + instance (row) gates
+  etag master LastChangedAt
+{
+  // ---- Field control ---------------------------------------------------
+  // NodeUuid: server-assigned UUID - readonly to consumers and numbered by the framework.
+  field ( numbering : managed, readonly ) NodeUuid;
+  // ByteSize: server-computed when content is attached - never sent from client.
+  field ( readonly ) ByteSize;
+  // Admin fields: managed by the RAP framework via @Semantics annotations.
+  field ( readonly ) CreatedBy, CreatedAt, LastChangedBy, LastChangedAt, LocalLastChangedAt;
+
+  // ---- Standard CUD operations -----------------------------------------
+  create;
+  update;
+  delete;
+
+  // ---- Draft actions (mandatory with 'with draft') ---------------------
+  // 'optimized' on all draft actions: avoids redundant feature-control calls
+  // on the draft-activate path (talos-rap-draft-action-no-optimized fix).
+  draft action Resume optimized;
+  draft action Edit optimized;
+  draft action Activate optimized;
+  draft action Discard optimized;
+  draft determine action Prepare
+  {
+    validation validateName;        // run save-time validation during Prepare
+  }
+
+  // ---- Custom actions --------------------------------------------------
+  // createChild: creates a new child node under the current parent instance.
+  // attachContent: finalises content metadata (computes ByteSize) after an
+  //                OData streaming upload to the Content field.
+  action ( features : instance ) createChild  result [1] $self;
+  action ( features : instance ) attachContent result [1] $self;
+
+  // ---- Determination ON SAVE ------------------------------------------
+  // setDefaults: fills NodeType default ('FOLDER') if not supplied on create.
+  determination setDefaults on save { create; }
+
+  // ---- Validation ON SAVE ---------------------------------------------
+  // validateName: rejects empty Name before commit.
+  validation validateName on save { create; update; field Name; }
+
+  // ---- Table-to-CDS field mapping (explicit - no `corresponding`) ------
+  mapping for ztapc_node corresponding
+  {
+    NodeUuid          = node_uuid;
+    ParentUuid        = parent_uuid;
+    Name              = name;
+    NodeType          = node_type;
+    ByteSize          = byte_size;
+    MimeType          = mime_type;
+    Content           = content;
+    CreatedBy         = created_by;
+    CreatedAt         = created_at;
+    LastChangedBy     = last_changed_by;
+    LastChangedAt     = last_changed_at;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}

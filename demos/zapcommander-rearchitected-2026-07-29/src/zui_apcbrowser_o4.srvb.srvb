@@ -1,0 +1,25 @@
+# Service Binding: ZUI_ApcBrowser_O4
+# Binding Type:    OData V4 UI (ODATA;V4;UI)
+# Service Def:     ZUI_ApcBrowser
+# Package:         ZAPC_CLOUD
+#
+# Activate this binding in the SAP Fiori Launchpad OData V4 tile
+# (transaction /IWFND/V4_ADMIN or the Communication Management app).
+#
+# Exposed entity sets:
+#   Node       -> ZC_ApcNode       (RAP managed BO with draft + streams)
+#   RepoObject -> ZI_ApcRepoObject (XCO repository browser - customer scope)
+#   RemoteItem -> ZI_ApcRemoteItem (Released HTTP outbound remote pane)
+#
+# The Fiori Elements manifest.json (see fiori-app/ if generated) binds
+# to this SRVB:
+#   "dataSource": {
+#     "mainService": {
+#       "uri": "/sap/opu/odata4/sap/zui_apcbrowser_o4/srvd/sap/zui_apcbrowser/0001/",
+#       "type": "OData",
+#       "settings": { "odataVersion": "4.0" }
+#     }
+#   }
+binding_type:       ODATA_V4_UI
+service_definition: ZUI_ApcBrowser
+version:            0001

@@ -1,0 +1,1165 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "zapc_cloud",
+  "source_system": "bundle:demos/zapcommander-rearchitected-2026-07-29/src",
+  "source_hash": "ddd19fb1f2e2595fc18977625f42cd44cda23f6a094f7d4279f6f3337a2eb2f2",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "1642f0cf07f98606f04296a257cf9b24c193394e4e408365a7370b6750a735a6",
+  "object_count": 7,
+  "objects_included": 7,
+  "finding_count": 159,
+  "findings_included": 159,
+  "objects": [
+    {
+      "object": "ZC_APCNODE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZI_APCNODE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 18"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 18"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZBP_APCNODE, class XML file not found"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZC(L|X): ZBP_APCNODE"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "parser_error",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Statement does not exist in the configured ABAP version(or a parser error), \"METHODS\""
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-eml-local-mode-outside-test",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-73-eml-local-mode",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_APCREMOTEQUERY, class XML file not found"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_APCREPOQUERY, class XML file not found"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "no_comments_between_methods",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Comment between methods in global class implementation"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "talos-perf-08-loop-into-copy-on-assign",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-dynamic-where-subquery",
+      "severity": "priority-2",
+      "family": "dynamic-sql",
+      "message": "Dynamic WHERE condition (parenthesized variable); verify input is not attacker-controlled (SQL injection surface)"
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-rap-draft-lock-no-timeout",
+      "severity": "priority-2",
+      "family": "rap-odata",
+      "message": "Pessimistic draft lock without @Locking.timeoutSeconds — set a 60-120s timeout; the default lets abandoned drafts block other editors (ABAP-PERF-32)"
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "rule_id": "talos-cds-auth-not-required",
+      "severity": "priority-2",
+      "family": "security",
+      "message": "CDS view sets @AccessControl.authorizationCheck: #NOT_REQUIRED — confirm no sensitive data is exposed without a DCL"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "rule_id": "talos-cds-auth-not-required",
+      "severity": "priority-2",
+      "family": "security",
+      "message": "CDS view sets @AccessControl.authorizationCheck: #NOT_REQUIRED — confirm no sensitive data is exposed without a DCL"
+    },
+    {
+      "object": "ZC_APCNODE",
+      "rule_id": "talos-cds-missing-data-class",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.dataClass — declare the data class (#TRANSACTIONAL/#MASTER/...) as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZC_APCNODE",
+      "rule_id": "talos-cds-missing-service-quality",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.serviceQuality — declare the view's plan-stability class (#A..#D) as part of its runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZC_APCNODE",
+      "rule_id": "talos-cds-missing-size-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.sizeCategory — declare the expected result-set size as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZC_APCNODE",
+      "rule_id": "talos-cds-missing-view-enhancement-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "CDS view has no @AbapCatalog.viewEnhancementCategory — declare it (e.g. [#NONE]) so enhancement behavior is an explicit contract (ABAP-PERF-26)"
+    },
+    {
+      "object": "ZC_APCNODE",
+      "rule_id": "talos-perf29-authcheck-check-only",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "@AccessControl.authorizationCheck: #CHECK filters application-side; define DCL access control and use #PRIVILEGED_ONLY to push to SQL."
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-cds-missing-data-class",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.dataClass — declare the data class (#TRANSACTIONAL/#MASTER/...) as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-cds-missing-service-quality",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.serviceQuality — declare the view's plan-stability class (#A..#D) as part of its runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-cds-missing-size-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.sizeCategory — declare the expected result-set size as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCNODE",
+      "rule_id": "talos-perf29-authcheck-check-only",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "@AccessControl.authorizationCheck: #CHECK filters application-side; define DCL access control and use #PRIVILEGED_ONLY to push to SQL."
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "rule_id": "talos-cds-missing-data-class",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.dataClass — declare the data class (#TRANSACTIONAL/#MASTER/...) as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "rule_id": "talos-cds-missing-service-quality",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.serviceQuality — declare the view's plan-stability class (#A..#D) as part of its runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "rule_id": "talos-cds-missing-size-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.sizeCategory — declare the expected result-set size as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREMOTEITEM",
+      "rule_id": "talos-cds-missing-view-enhancement-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "CDS view has no @AbapCatalog.viewEnhancementCategory — declare it (e.g. [#NONE]) so enhancement behavior is an explicit contract (ABAP-PERF-26)"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "rule_id": "talos-cds-missing-data-class",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.dataClass — declare the data class (#TRANSACTIONAL/#MASTER/...) as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "rule_id": "talos-cds-missing-service-quality",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.serviceQuality — declare the view's plan-stability class (#A..#D) as part of its runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "rule_id": "talos-cds-missing-size-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "Missing @ObjectModel.usageType.sizeCategory — declare the expected result-set size as part of the view's runtime contract (ABAP-PERF-84)"
+    },
+    {
+      "object": "ZI_APCREPOOBJECT",
+      "rule_id": "talos-cds-missing-view-enhancement-category",
+      "severity": "priority-3",
+      "family": "performance",
+      "message": "CDS view has no @AbapCatalog.viewEnhancementCategory — declare it (e.g. [#NONE]) so enhancement behavior is an explicit contract (ABAP-PERF-26)"
+    },
+    {
+      "object": "ZBP_APCNODE",
+      "rule_id": "talos-perf-64-append-non-loop",
+      "severity": "info",
+      "family": "performance",
+      "message": "Standalone APPEND ... TO — INSERT INTO TABLE is table-type-agnostic (ABAP-PERF-64)."
+    },
+    {
+      "object": "ZCL_APCREMOTEQUERY",
+      "rule_id": "talos-perf-63-default-key",
+      "severity": "info",
+      "family": "performance",
+      "message": "WITH DEFAULT KEY leaves key composition implicit — use WITH EMPTY KEY or explicit keys (ABAP-PERF-63)."
+    },
+    {
+      "object": "ZCL_APCREPOQUERY",
+      "rule_id": "talos-perf-63-default-key",
+      "severity": "info",
+      "family": "performance",
+      "message": "WITH DEFAULT KEY leaves key composition implicit — use WITH EMPTY KEY or explicit keys (ABAP-PERF-63)."
+    }
+  ]
+}

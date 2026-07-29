@@ -1,0 +1,16 @@
+// Service definition ZUI_ApcBrowser.
+// Exposes the projection layer (ZC_*) and both custom entity panes.
+// P1/P3: interface views (ZI_*) are NEVER exposed directly to a service.
+
+@EndUserText.label: 'APC Browser - OData V4 service definition'
+define service ZUI_ApcBrowser
+{
+  // ---- Managed RAP BO projection (node tree + stream) ---------------
+  expose ZC_ApcNode        as Node;
+
+  // ---- Repository pane (XCO-backed custom entity) -------------------
+  expose ZI_ApcRepoObject  as RepoObject;
+
+  // ---- Remote pane (HTTP-outbound-backed custom entity) -------------
+  expose ZI_ApcRemoteItem  as RemoteItem;
+}

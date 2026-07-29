@@ -1,0 +1,62 @@
+// Metadata extension for ZC_ApcNode - full @UI min-set for Fiori Elements.
+// Externalised here (DDLX) so UI annotations evolve independently.
+// FE readiness gate (gf-x-ui-fe-readiness) requires:
+//   @UI.headerInfo, >=1 @UI.lineItem, >=1 @UI.selectionField,
+//   @UI.facet + @UI.identification (Object Page).
+
+@Metadata.layer: #CUSTOMER
+
+@UI: {
+  headerInfo: {
+    typeName:       'Node',
+    typeNamePlural: 'Nodes',
+    title:          { type: #STANDARD, value: 'Name' }
+  }
+}
+
+annotate view ZC_ApcNode with
+{
+  // ---- Object Page facets --------------------------------------------
+  @UI.facet: [
+    { id:            'NodeDetails',
+      purpose:       #STANDARD,
+      type:          #IDENTIFICATION_REFERENCE,
+      label:         'Node Details',
+      position:      10 },
+    { id:            'ChildNodes',
+      purpose:       #STANDARD,
+      type:          #LINEITEM_REFERENCE,
+      label:         'Child Nodes',
+      position:      20,
+      targetElement: '_Children' }
+  ]
+
+  // ---- NodeUuid: key - not shown in list but required for OData key --
+  NodeUuid;
+
+  // ---- Name: list column, filter bar, object-page field --------------
+  @UI: { lineItem:       [ { position: 10, importance: #HIGH } ],
+         identification: [ { position: 10 } ],
+         selectionField: [ { position: 10 } ] }
+  Name;
+
+  // ---- NodeType: list column, object-page field, filter --------------
+  @UI: { lineItem:       [ { position: 20, importance: #HIGH } ],
+         identification: [ { position: 20 } ],
+         selectionField: [ { position: 20 } ] }
+  NodeType;
+
+  // ---- ByteSize: object-page only (informational) --------------------
+  @UI.identification: [ { position: 30 } ]
+  ByteSize;
+
+  // ---- MimeType: object-page only ------------------------------------
+  @UI.identification: [ { position: 40 } ]
+  MimeType;
+
+  // ---- Content: stream property - rendered as upload/download button -
+  // @Semantics.largeObject on the interface view drives OData V4 streaming.
+  // Fiori Elements renders this as a file upload/download control automatically.
+  @UI.identification: [ { position: 50, label: 'Content (file)' } ]
+  Content;
+}
