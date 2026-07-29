@@ -11,10 +11,10 @@ const empty = () => ({ escalations: [] });
 const A = "a".repeat(64);
 const B = "b".repeat(64);
 
-test("the taxonomy is exactly the 7 §3.4 kinds", () => {
+test("the taxonomy is exactly the 7 §3.4 kinds + the plan-time DISPOSITION_REVIEW (B3/S2)", () => {
   assert.deepEqual(
     [...ESCALATION_KINDS].sort(),
-    ["AUTH_EQUIVALENCE", "BREAK_CYCLE", "NO_RELEASED_SUCCESSOR", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW"],
+    ["AUTH_EQUIVALENCE", "BREAK_CYCLE", "DISPOSITION_REVIEW", "NO_RELEASED_SUCCESSOR", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW"],
   );
 });
 

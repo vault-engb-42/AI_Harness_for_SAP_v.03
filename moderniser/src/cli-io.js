@@ -94,6 +94,11 @@ export const readSweepLedger = (io, runId) => readJson(sweepPath(io, runId), { s
 
 export const saveSweepLedger = (io, runId, ledger) => writeDurable(sweepPath(io, runId), JSON.stringify(ledger, null, 2));
 
+// disposition manifest (B3, §6.11) — the plan-gate artifact at specs/runs/<run_id>/disposition-manifest.json
+export const dispositionManifestPath = (io, runId) => join(io.runsDir, runId, "disposition-manifest.json");
+export const readDispositionManifest = (io, runId) => readJson(dispositionManifestPath(io, runId), null);
+export const saveDispositionManifest = (io, runId, m) => writeDurable(dispositionManifestPath(io, runId), JSON.stringify(m, null, 2));
+
 export function readBaselines(stateDir) {
   return {
     atcBaseline: readJson(join(stateDir, "atc-baseline.json"), { per_object: {} }),

@@ -26,6 +26,7 @@ export const ESCALATION_KINDS = Object.freeze([
   "REPLAN_WAVE_MOVE",
   "RISK_LEVEL_REVIEW",
   "PARITY_REVIEW",
+  "DISPOSITION_REVIEW", // plan-time disposition gate (B3, S2) — one per prompted node
 ]);
 
 const KIND_SET = new Set(ESCALATION_KINDS);

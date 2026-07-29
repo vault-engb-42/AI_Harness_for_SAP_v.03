@@ -11,7 +11,9 @@
  */
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
-import { loadRun, readEscalations, saveEscalations, log } from "./cli-io.js";
+import { recordDispositionDecision, raiseDispositionReviews } from "./plan/disposition-gate.js";
+import { buildDispositionManifest } from "./plan/manifest.js";
+import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, log } from "./cli-io.js";
 
 const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the manifest pins it
 
@@ -38,6 +40,22 @@ export function cmdEscalate(io, pos, flags) {
     log(io, runId, "escalate", { id: row.id, kind: row.kind, node_ids: row.node_ids });
   }
   return row; // idempotent repeat returns the already-open row
+}
+
+/**
+ * The plan-time DISPOSITION gate (B3, S1): emit `disposition-manifest.json` from the classified plan and
+ * raise one DISPOSITION_REVIEW per prompted node. Runs after `plan`, before the first `drive`. Idempotent —
+ * the manifest is a deterministic view of the frozen plan, and the bus dedupes an already-open review.
+ */
+export function cmdDisposition(io, pos) {
+  const [runId] = pos;
+  const { plan } = loadRun(io, runId); // a verified plan (hash-checked)
+  const manifest = buildDispositionManifest(plan, { run_id: runId });
+  saveDispositionManifest(io, runId, manifest);
+  const reg = raiseDispositionReviews(readEscalations(io), manifest, { ts: new Date().toISOString() });
+  saveEscalations(io, reg);
+  log(io, runId, "disposition", { rows: manifest.rows.length, prompt: manifest.summary.prompt_count, auto: manifest.summary.auto_count });
+  return { run_id: runId, summary: manifest.summary };
 }
 
 export function cmdEscalations(io, pos, flags) {
@@ -68,16 +86,23 @@ export function cmdDecide(io, pos, flags) {
   const { state } = loadRun(io, runId);
   const reg = readEscalations(io);
   const target = reg.escalations.find((e) => e.id === id && e.status === "OPEN");
-  // Temporal binding (ratified 2026-07-13; re-keyed per branch-review F4): stamp the run +
-  // each node's CURRENT artifact GENERATION into the audited row — the generation bumps on
-  // EVERY entry to GENERATED (retry AND re-entry regeneration; a pre-artifact decision
-  // stamps 0 and can never match generation ≥ 1), so this decision can never bless an
-  // artifact the human did not see, nor leak into another run.
-  const decided_generations = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.generation?.[s] ?? 0]));
   const ts = new Date().toISOString();
-  // decided_epoch: run_id alone cannot discriminate a --force-recreated run (same plan-hash
-  // id); the epoch stamped at plan time can (F4-escape review)
-  const next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_generations, decided_epoch: state.run_epoch ?? null });
+  let next;
+  if (target?.kind === "DISPOSITION_REVIEW") {
+    // Plan-time gate (B3): the decision precedes any artifact, so there is NO generation to bind —
+    // route to the parametrized recorder (approve | override:<disposition> | other:<freeform>), S2.
+    next = recordDispositionDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId });
+  } else {
+    // Temporal binding (ratified 2026-07-13; re-keyed per branch-review F4): stamp the run +
+    // each node's CURRENT artifact GENERATION into the audited row — the generation bumps on
+    // EVERY entry to GENERATED (retry AND re-entry regeneration; a pre-artifact decision
+    // stamps 0 and can never match generation ≥ 1), so this decision can never bless an
+    // artifact the human did not see, nor leak into another run.
+    const decided_generations = Object.fromEntries((target?.node_ids ?? []).map((s) => [s, state.generation?.[s] ?? 0]));
+    // decided_epoch: run_id alone cannot discriminate a --force-recreated run (same plan-hash
+    // id); the epoch stamped at plan time can (F4-escape review)
+    next = recordDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, decided_generations, decided_epoch: state.run_epoch ?? null });
+  }
   saveEscalations(io, next);
   const row = next.escalations.find((e) => e.id === id && e.status === "RESOLVED" && e.resolved_at === ts);
   log(io, runId, "decide", { id, decision, decided_by: flags.by });

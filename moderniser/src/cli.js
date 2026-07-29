@@ -36,7 +36,7 @@ import { renderVerdict, recordVerdict } from "./sched/verdict-ops.js";
 import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
 import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
-import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide } from "./cli-escalations.js";
+import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } from "./cli-escalations.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
@@ -56,6 +56,7 @@ const COMMANDS = {
   reprobe: cmdReprobe,
   seams: cmdSeams,
   "resolve-cycle": cmdResolveCycle,
+  disposition: cmdDisposition,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
   packets: cmdPackets,

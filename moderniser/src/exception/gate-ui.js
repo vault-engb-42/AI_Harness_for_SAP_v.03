@@ -21,6 +21,7 @@ export const DECISIONS = Object.freeze({
   RISK_LEVEL_REVIEW: ["ADVANCE", "HOLD_FLAGGED"],
   PARITY_REVIEW: ["ATTEST_EQUIVALENT", "REJECT"], //           attestation is evidence, never a machine PASS
   REPLAN_WAVE_MOVE: ["APPROVE_REPLAN", "KEEP_PLAN"],
+  DISPOSITION_REVIEW: ["approve", "override", "other"], //     plan-time disposition gate (B3/S2) — PARAMETRIZED (override:<disposition>, other:<freeform>); use plan/disposition-gate.js recordDispositionDecision, not the generic recorder
 });
 
 const CAUSE = {
@@ -31,6 +32,7 @@ const CAUSE = {
   RISK_LEVEL_REVIEW: () => "level contains flagged node(s) — advance or hold the flagged",
   PARITY_REVIEW: () => "parity score in the [0.30, 0.70) gray band — offline never auto-passes",
   REPLAN_WAVE_MOVE: () => "a re-parse moved a committed node's wave — approve or keep the frozen plan",
+  DISPOSITION_REVIEW: (e) => `disposition review for ${e.node_ids.length} node(s) — recommended disposition + alternatives in the manifest`,
 };
 
 /**
