@@ -24,6 +24,7 @@
  */
 import { canonicalNodeId } from "../state/node-id.js";
 import { buildObjectGraph } from "../graph/build.js";
+import { dispositionHint } from "./disposition-hints.js";
 
 export function scopeNodes(doc, objectGraph) {
   const og = objectGraph ?? buildObjectGraph(doc);
@@ -59,6 +60,7 @@ export function scopeNodes(doc, objectGraph) {
       meta: { grade, complexity, blast },
       finding_families: signalsOf.families.get(o.object) ?? [],
       driving_rule_ids: signalsOf.rule_ids.get(o.object) ?? [],
+      disposition_hints: signalsOf.hints.get(o.object) ?? [],
       resource_keys: resourceKeys(o.object, pools),
     };
   });
@@ -122,14 +124,19 @@ function programPools(edges) {
 function signalsByObject(findings) {
   const fam = new Map();
   const rid = new Map();
+  const hint = new Map();
   for (const f of findings ?? []) {
-    if (!fam.has(f.object)) fam.set(f.object, new Set());
-    if (!rid.has(f.object)) rid.set(f.object, new Set());
+    if (!fam.has(f.object)) {
+      fam.set(f.object, new Set());
+      rid.set(f.object, new Set());
+      hint.set(f.object, new Set());
+    }
     if (f.family) fam.get(f.object).add(f.family);
     if (f.rule_id) rid.get(f.object).add(f.rule_id);
+    hint.get(f.object).add(dispositionHint(f)); // B2-generalisation: the re-arch hint, from the analyser's description
   }
   const sortMap = (m) => new Map([...m].map(([k, s]) => [k, [...s].sort()]));
-  return { families: sortMap(fam), rule_ids: sortMap(rid) };
+  return { families: sortMap(fam), rule_ids: sortMap(rid), hints: sortMap(hint) };
 }
 
 /** object → the rule_id of its DRIVING finding: lowest atc_priority (P1<P2<P3), tiebreak rule_id. */

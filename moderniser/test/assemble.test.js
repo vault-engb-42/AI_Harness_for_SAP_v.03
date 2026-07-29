@@ -216,7 +216,7 @@ test("the signal-set fields ride plan_hash (present on the golden plan) + schema
   assert.ok(Array.isArray(gl.finding_families) && gl.finding_families.length > 0, "GL carries families");
   assert.ok(Array.isArray(gl.driving_rule_ids) && gl.driving_rule_ids.length > 0, "GL carries rule_ids");
   assert.equal(plan.plan_hash, planHash(plan.nodes), "the new fields are covered by plan_hash");
-  assert.equal(plan.schema_version, "1.3.0", "node-schema enrichment bumps the plan schema_version (B1 signals + B2 disposition + object_kind)");
+  assert.equal(plan.schema_version, "1.4.0", "node-schema enrichment (B1 signals + B2 disposition + object_kind + disposition_hints)");
 });
 
 // --- B2: the plan-time disposition rides the frozen node ---
@@ -236,4 +236,19 @@ test("every plan node carries a classified disposition + siblings + modernizatio
   assert.equal(gl.disposition, "re_architect");
   assert.equal(gl.disposition_autonomy, "prompt");
   assert.equal(plan.plan_hash, planHash(plan.nodes), "disposition_* are covered by plan_hash");
+});
+
+// B2-generalisation — an archetype the two example fixtures NEVER exercised, classified end-to-end via a hint.
+test("GENERALISATION: a dynpro screen (unseen archetype) enriches to a ui_rearch hint → re_architect", () => {
+  const d = doc({
+    nodes: [gnode("ZSD_ORDER_SCR")],
+    edges: [],
+    planObjects: [pobj("ZSD_ORDER_SCR", { kind: "report", modernization_target: "Fiori Elements App" })],
+    findings: [
+      { object: "ZSD_ORDER_SCR", rule_id: "talos-s4-004", family: "deprecation", atc_priority: "P1", message: "Dynpro screen flow logic — no successor in ABAP Cloud (S4-004)" },
+    ],
+  });
+  const n = assemblePlan(d).plan.nodes[0];
+  assert.ok(n.disposition_hints.includes("ui_rearch"), "the dynpro finding's MESSAGE enriched to a ui_rearch hint — no rule_id was hand-picked");
+  assert.equal(n.disposition, "re_architect", "classified via the hint, generalising to an unseen archetype");
 });

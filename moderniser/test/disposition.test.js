@@ -8,7 +8,7 @@ import { DISPOSITIONS } from "../src/plan/disposition-enum.js";
 // released-clean refactor with high grounding certainty is `auto`; everything else prompts.
 
 const node = (o = {}) => ({
-  object: "Z", object_kind: "class", finding_families: [], driving_rule_ids: [],
+  object: "Z", object_kind: "class", finding_families: [], driving_rule_ids: [], disposition_hints: [],
   member_meta: { Z: { grade: "C", complexity: 1, blast: 0 } }, modernization_target: null, ...o,
 });
 const OUT_KEYS = [
@@ -17,7 +17,7 @@ const OUT_KEYS = [
 ].sort();
 
 test("output shape: exactly the six disposition_* fields; disposition ∈ enum; confidence ∈ [0,1]; deterministic", () => {
-  const n = node({ driving_rule_ids: ["talos-cloud-006-write"], modernization_target: "Fiori Elements App" });
+  const n = node({ disposition_hints: ["ui_rearch"], modernization_target: "Fiori Elements App" });
   const d = classifyDisposition(n, {});
   assert.deepEqual(Object.keys(d).sort(), OUT_KEYS);
   assert.ok(DISPOSITIONS.includes(d.disposition), "disposition is a taxonomy member");
@@ -31,15 +31,15 @@ test("a dynamically-sealed node → seal (prompt, never auto)", () => {
   assert.equal(d.disposition_autonomy, "prompt");
 });
 
-test("classic-UI signal (WRITE / legacy-UI) → re_architect (prompt, irreversible)", () => {
-  const d = classifyDisposition(node({ driving_rule_ids: ["talos-cloud-006-write", "talos-legacy-ui-rollup"], modernization_target: "Fiori Elements App" }), {});
+test("ui_rearch hint → re_architect (prompt, irreversible) — archetype-agnostic (dynpro/WRITE/ALV/SmartForms all map here)", () => {
+  const d = classifyDisposition(node({ disposition_hints: ["ui_rearch"], modernization_target: "Fiori Elements App" }), {});
   assert.equal(d.disposition, "re_architect");
   assert.equal(d.disposition_autonomy, "prompt");
   assert.equal(d.disposition_reversible, false);
 });
 
-test("OS-exec signal (OPEN DATASET) → re_architect (prompt) — no in-stack cloud equivalent", () => {
-  const d = classifyDisposition(node({ driving_rule_ids: ["talos-sec-002-open-dataset-var"], modernization_target: "OData V4 Service" }), {});
+test("os_exec hint (OPEN DATASET / frontend services) → re_architect (prompt) — no in-stack cloud equivalent", () => {
+  const d = classifyDisposition(node({ disposition_hints: ["os_exec"], modernization_target: "OData V4 Service" }), {});
   assert.equal(d.disposition, "re_architect");
   assert.equal(d.disposition_autonomy, "prompt");
 });

@@ -8,11 +8,11 @@
 /** Auto-apply threshold (S3): a disposition is `auto` only if reversible ∧ confidence ≥ θ ∧ refactor. */
 export const DISPOSITION_AUTO_THRESHOLD = 0.9;
 
-// S3 seed signal sets (tune with fixtures). Classic-UI and OS-exec are the hard re-architect blockers —
-// neither has an in-stack ABAP-Cloud equivalent, so the object cannot merely be refactored in place.
-const UI_RULES = new Set(["talos-cloud-006-write", "talos-legacy-ui-rollup", "talos-s4-003-classic-list-output"]);
-const OSEXEC_RULES = new Set(["talos-sec-002-open-dataset-var", "talos-cloud-005-call-system", "talos-sec-001-sxpg"]);
-const UI_FAMILIES = new Set(["dynpro"]);
+// B2-generalisation (operator 2026-07-29): the classifier reasons on disposition HINTS
+// (`node.disposition_hints`, derived from the analyser's OWN description of each finding in
+// `node/disposition-hints.js`) — NOT a hand-picked list of rule_ids. So any legacy archetype the analyser
+// recognises (dynpro / ALV / SmartForms / Web Dynpro / IDoc) classifies correctly without per-fixture tuning.
+// `ui_rearch` + `os_exec` are the hard re-architect blockers (no in-stack ABAP-Cloud equivalent).
 const RE_ARCH_TARGET = /\b(RAP|CDS|OData|Fiori)\b/i;
 
 /**
@@ -22,11 +22,10 @@ const RE_ARCH_TARGET = /\b(RAP|CDS|OData|Fiori)\b/i;
  */
 export function classifyDisposition(node, cache = {}) {
   const g = cache[node.object] ?? {};
-  const rules = new Set(node.driving_rule_ids ?? []);
-  const families = new Set(node.finding_families ?? []);
+  const hints = new Set(node.disposition_hints ?? []);
   const target = node.modernization_target ?? null;
 
-  const pick = decide(node, g, rules, families, target);
+  const pick = decide(node, g, hints, target);
   const reversible = pick.disposition === "refactor";
   const autonomy = pick.disposition === "refactor" && pick.confidence >= DISPOSITION_AUTO_THRESHOLD ? "auto" : "prompt";
 
@@ -45,14 +44,14 @@ export function classifyDisposition(node, cache = {}) {
  * `modernization_target` is the fallback so an analysed-but-empty-signal object (e.g. an FM whose findings
  * are attributed to its function group) still routes to re_architect, never to refactor by mere absence.
  */
-function decide(node, g, rules, families, target) {
+function decide(node, g, hints, target) {
   if (node.dynamic_seal === "NEEDS_MANUAL_SEAM") {
     return { disposition: "seal", rationale: "dynamic dispatch sealed the node (NEEDS_MANUAL_SEAM)", target: null, confidence: 0.95 };
   }
-  if (hasAny(rules, UI_RULES) || hasAny(families, UI_FAMILIES)) {
-    return { disposition: "re_architect", rationale: "classic UI (WRITE/dynpro/list) — no in-stack Cloud UI; target RAP+Fiori", target, confidence: 0.85 };
+  if (hints.has("ui_rearch")) {
+    return { disposition: "re_architect", rationale: "classic UI (dynpro/WRITE/list/ALV/SmartForms/WebDynpro) — no in-stack Cloud UI; target RAP+Fiori", target, confidence: 0.85 };
   }
-  if (hasAny(rules, OSEXEC_RULES)) {
+  if (hints.has("os_exec")) {
     return { disposition: "re_architect", rationale: "OS/file operation — no released in-stack equivalent; arch design decides re-arch/retire", target, confidence: 0.85 };
   }
   if (g.released_standard_exists) {
@@ -85,10 +84,5 @@ function decide(node, g, rules, families, target) {
 function isRetainKind(node) {
   if (node.object_kind === "interface") return true;
   if (node.object_kind === "class" && /^Z?CX_|_ERROR$/i.test(node.object)) return true;
-  return false;
-}
-
-function hasAny(set, candidates) {
-  for (const x of candidates) if (set.has(x)) return true;
   return false;
 }
