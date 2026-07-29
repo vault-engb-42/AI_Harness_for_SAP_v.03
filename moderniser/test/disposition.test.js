@@ -8,7 +8,7 @@ import { DISPOSITIONS } from "../src/plan/disposition-enum.js";
 // released-clean refactor with high grounding certainty is `auto`; everything else prompts.
 
 const node = (o = {}) => ({
-  object: "Z", kind: "class", finding_families: [], driving_rule_ids: [],
+  object: "Z", object_kind: "class", finding_families: [], driving_rule_ids: [],
   member_meta: { Z: { grade: "C", complexity: 1, blast: 0 } }, modernization_target: null, ...o,
 });
 const OUT_KEYS = [
@@ -50,11 +50,28 @@ test("released-standard-exists grounding hit → replace (prompt)", () => {
   assert.equal(d.disposition_reversible, false);
 });
 
-test("released-API-clean with HIGH grounding certainty → refactor (AUTO)", () => {
-  const d = classifyDisposition(node({ modernization_target: "RAP Business Object" }), { Z: { released_clean: true, grounding_certainty: 1 } });
+test("released-API-clean, NO re-arch target, HIGH grounding certainty → refactor (AUTO)", () => {
+  const d = classifyDisposition(node({ modernization_target: null }), { Z: { released_clean: true, grounding_certainty: 1 } });
   assert.equal(d.disposition, "refactor");
   assert.equal(d.disposition_reversible, true);
   assert.equal(d.disposition_autonomy, "auto", "reversible ∧ confidence≥0.9 ∧ refactor");
+});
+
+// Role-aware balance (evidence: zapcommander 2026-07-29) — retain-kinds refactor; clean logic classes champion re-arch.
+test("a retain-kind INTERFACE → refactor, even with a RAP target (interfaces are structurally retained)", () => {
+  const d = classifyDisposition(node({ object_kind: "interface", object: "ZAPCMD_IF_FACTORY", modernization_target: "RAP Interface" }), {});
+  assert.equal(d.disposition, "refactor");
+});
+
+test("a retain-kind EXCEPTION class (ZCX_*) → refactor, even with a RAP BO target", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "ZCX_ZAPCMD_ERROR", modernization_target: "RAP Business Object" }), { ZCX_ZAPCMD_ERROR: { released_clean: true, grounding_certainty: 1 } });
+  assert.equal(d.disposition, "refactor", "an exception class is never re-architected into a RAP BO");
+});
+
+test("a CLEAN logic class WITH a re-arch target → re_architect (champion), not refactor", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "ZAPCMD_CL_DIR", modernization_target: "RAP Business Object" }), { ZAPCMD_CL_DIR: { released_clean: true, grounding_certainty: 1 } });
+  assert.equal(d.disposition, "re_architect", "a clean business/logic class in a RAP app should become a RAP BO");
+  assert.equal(d.disposition_autonomy, "prompt", "re_architect never auto-applies");
 });
 
 test("released-clean but LOW grounding certainty → refactor but PROMPT (θ=0.9 gate)", () => {
@@ -64,7 +81,7 @@ test("released-clean but LOW grounding certainty → refactor but PROMPT (θ=0.9
 });
 
 test("empty-signal FM with an OData target → re_architect, NOT refactor(auto) (zapcommander remediation)", () => {
-  const d = classifyDisposition(node({ kind: "function", finding_families: [], driving_rule_ids: [], modernization_target: "OData V4 Service" }), {});
+  const d = classifyDisposition(node({ object_kind: "function", finding_families: [], driving_rule_ids: [], modernization_target: "OData V4 Service" }), {});
   assert.equal(d.disposition, "re_architect", "target drives it — absence of findings is NOT cleanliness");
   assert.notEqual(d.disposition_autonomy, "auto");
 });

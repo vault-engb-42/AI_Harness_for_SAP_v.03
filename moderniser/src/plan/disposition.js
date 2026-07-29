@@ -58,13 +58,34 @@ function decide(node, g, rules, families, target) {
   if (g.released_standard_exists) {
     return { disposition: "replace", rationale: "a released SAP standard exists (fit-to-standard hit) — adopt, don't build", target: target ?? "released SAP standard", confidence: g.grounding_certainty ?? 0.8 };
   }
-  if (g.released_clean) {
-    return { disposition: "refactor", rationale: "released-API-clean (analysed, 0 P1 blockers) — in-stack Clean-Core refactor", target: target ?? "in-stack Clean-Core", confidence: g.grounding_certainty ?? 0.8 };
+  // Role-aware balance (evidence: zapcommander, 2026-07-29). Interfaces + exception classes are STRUCTURALLY
+  // never re-architected — retain-and-clean in place, regardless of the coarse target.
+  if (isRetainKind(node)) {
+    const what = node.kind === "interface" ? "interface" : "exception class";
+    return { disposition: "refactor", rationale: `${what} — structurally retained; Clean-Core refactor in place`, target: target ?? "in-stack retain", confidence: g.released_clean ? (g.grounding_certainty ?? 0.8) : 0.7 };
   }
+  // Champion re-architecture where the analyser assigned a Cloud target — even for a currently-clean logic/UI
+  // class (a clean business class in a RAP app should BECOME a RAP BO, not be left classic). Target wins over
+  // mere cleanliness here; the gate (B3) offers refactor/retire as alternatives, the app-blueprint (B3.5) decides absorption.
   if (target && RE_ARCH_TARGET.test(target)) {
     return { disposition: "re_architect", rationale: `analyser target "${target}" — re-architect to Cloud`, target, confidence: 0.7 };
   }
+  // Non-retain, no re-arch target, released-clean → in-stack Clean-Core refactor.
+  if (g.released_clean) {
+    return { disposition: "refactor", rationale: "released-API-clean (analysed, 0 P1 blockers), no re-arch target — in-stack Clean-Core refactor", target: target ?? "in-stack Clean-Core", confidence: g.grounding_certainty ?? 0.8 };
+  }
   return { disposition: "seal", rationale: "no clear disposition signal — manual review", target: null, confidence: 0.3 };
+}
+
+/**
+ * Structurally non-re-architectable kinds: interfaces stay interfaces; SAP exception classes
+ * (CX_/ZCX_/…_ERROR) stay exception classes. Keyed on `object_kind` (the ABAP kind carried from the scoped
+ * node) — NOT `node.kind`, which on a plan node is the graph kind ("object"/"super").
+ */
+function isRetainKind(node) {
+  if (node.object_kind === "interface") return true;
+  if (node.object_kind === "class" && /^Z?CX_|_ERROR$/i.test(node.object)) return true;
+  return false;
 }
 
 function hasAny(set, candidates) {

@@ -87,6 +87,7 @@ export function assemblePlan(doc, opts = {}) {
       member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
       finding_families: unionField(members, scopedByObject, "finding_families"),
       driving_rule_ids: unionField(members, scopedByObject, "driving_rule_ids"),
+      object_kind: rep.kind ?? null, // the ABAP kind (class/interface/function/…) — distinct from `kind` (graph: object/super)
       modernization_target: rep.modernization_target ?? null,
       parity_required: members.some((m) => scopedByObject.get(m).parity_required),
       artifacts: artifactSkeleton(members, scopedByObject),
