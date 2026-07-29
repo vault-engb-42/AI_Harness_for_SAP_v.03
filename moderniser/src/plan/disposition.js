@@ -63,6 +63,17 @@ function decide(node, g, hints, target) {
     const what = node.kind === "interface" ? "interface" : "exception class";
     return { disposition: "refactor", rationale: `${what} — structurally retained; Clean-Core refactor in place`, target: target ?? "in-stack retain", confidence: g.released_clean ? (g.grounding_certainty ?? 0.8) : 0.7 };
   }
+  // Cross-system integration (RFC / CALL FUNCTION DESTINATION / IDoc / ALE): re-architect to a released in-stack
+  // communication API (comm scenario / OData client proxy / RAP inbound) — the Clean-Core default. `rebuild`
+  // (side-by-side/BTP, §935-gated) is NOT emitted per object from a bare cross-system token; it is the grounded,
+  // app-level promotion the app-blueprint (B3.5) makes from this same `rfc_rebuild` hint. Placed BELOW isRetainKind
+  // (an integration interface / CX_ exception stays refactor) and ABOVE released_clean + target, so a clean-ish or
+  // untargeted integration object still routes to re_architect rather than masquerading as an in-place refactor.
+  // Ratified 2026-07-29 (BUILD_PLAN §186) — the generalisation guarantee: every cross-system archetype gets a
+  // true-modernisation disposition regardless of whether the analyser populated a target.
+  if (hints.has("rfc_rebuild")) {
+    return { disposition: "re_architect", rationale: "cross-system integration (RFC/IDoc/ALE) — re-architect to a released in-stack communication API; app-blueprint may promote to side-by-side rebuild", target, confidence: 0.8 };
+  }
   // Champion re-architecture where the analyser assigned a Cloud target — even for a currently-clean logic/UI
   // class (a clean business class in a RAP app should BECOME a RAP BO, not be left classic). Target wins over
   // mere cleanliness here; the gate (B3) offers refactor/retire as alternatives, the app-blueprint (B3.5) decides absorption.

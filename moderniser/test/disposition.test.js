@@ -44,6 +44,28 @@ test("os_exec hint (OPEN DATASET / frontend services) → re_architect (prompt) 
   assert.equal(d.disposition_autonomy, "prompt");
 });
 
+// rfc_rebuild — cross-system integration (RFC/DESTINATION/IDoc/ALE). Routes to re_architect (the in-stack
+// released-communication default), NOT rebuild: `rebuild` is the app-blueprint's grounded app-level promotion
+// (B3.5, §935), never a per-object B2 output. This is the generalisation fix (ratified 2026-07-29, §186) — an
+// integration object gets a true-modernisation disposition regardless of whether the analyser set a target.
+test("rfc_rebuild hint with NO target → re_architect (prompt) — never seals for want of a target", () => {
+  const d = classifyDisposition(node({ object_kind: "function", disposition_hints: ["rfc_rebuild"], modernization_target: null }), {});
+  assert.equal(d.disposition, "re_architect", "cross-system → in-stack re-arch default, independent of target presence");
+  assert.equal(d.disposition_autonomy, "prompt");
+  assert.notEqual(d.disposition, "seal", "must NOT degrade to seal — that is the port-or-seal failure the generalisation fix removes");
+  assert.notEqual(d.disposition, "rebuild", "rebuild is a B3.5 app-level promotion, never a per-object B2 output (§935)");
+});
+
+test("rfc_rebuild with a RAP target → re_architect (NOT rebuild) — the heaviest disposition is a B3.5 call", () => {
+  const d = classifyDisposition(node({ object_kind: "class", disposition_hints: ["rfc_rebuild"], modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "re_architect");
+});
+
+test("a retain-kind INTERFACE carrying an rfc_rebuild hint STAYS refactor (role-aware invariant: rfc_rebuild is below retain-kind)", () => {
+  const d = classifyDisposition(node({ object_kind: "interface", object: "ZAPCMD_IF_RFC", disposition_hints: ["rfc_rebuild"], modernization_target: "RAP Interface" }), {});
+  assert.equal(d.disposition, "refactor", "an integration interface is structurally retained, RFC signal notwithstanding");
+});
+
 test("released-standard-exists grounding hit → replace (prompt)", () => {
   const d = classifyDisposition(node({ modernization_target: "RAP Business Object" }), { Z: { released_standard_exists: true, grounding_certainty: 0.95 } });
   assert.equal(d.disposition, "replace");
