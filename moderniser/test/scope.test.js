@@ -109,3 +109,41 @@ test("canonical_sig uses the DRIVING (highest-severity) finding's rule, stable a
     "P1 'acrit' drives the sig, not the positional-first 'zlow'",
   );
 });
+
+// --- B1: the analyser signal set on the node (buildability audit 2026-07-29) ---
+// The classifier (B2) is PURE over (node, grounding-cache); its declared signal inputs
+// (finding families + rule_ids) must therefore live ON the node — sourced here in scope.js,
+// not recomputed from doc.findings downstream.
+
+test("scopeNodes carries finding_families + driving_rule_ids as sorted DISTINCT sets per object", () => {
+  const doc = {
+    findings: [
+      { object: "Z", rule_id: "talos-cloud-006-write", family: "deprecation", atc_priority: "P1" },
+      { object: "Z", rule_id: "talos-legacy-ui-rollup", family: "clean-core", atc_priority: "P2" },
+      { object: "Z", rule_id: "talos-cloud-006-write", family: "deprecation", atc_priority: "P1" }, // dup rule
+      { object: "Z", rule_id: "7bit_ascii", family: "abaplint", atc_priority: "P2" },
+      { object: "OTHER", rule_id: "x", family: "abaplint", atc_priority: "P2" }, // not this object
+    ],
+    modernization_plan: { objects: [{ object: "Z", transformation_count: 1, transformations: [{ rule_id: "x" }], migration_complexity: 0 }] },
+  };
+  const z = scopeNodes(doc)[0];
+  assert.deepEqual(z.finding_families, ["abaplint", "clean-core", "deprecation"], "distinct families, sorted");
+  assert.deepEqual(z.driving_rule_ids, ["7bit_ascii", "talos-cloud-006-write", "talos-legacy-ui-rollup"], "distinct rule_ids, sorted, deduped");
+});
+
+test("an object with no findings has empty signal-set arrays (deterministic, never undefined)", () => {
+  const doc = { modernization_plan: { objects: [{ object: "Z", kind: "class", transformation_count: 0, transformations: [] }] } };
+  const z = scopeNodes(doc)[0];
+  assert.deepEqual(z.finding_families, []);
+  assert.deepEqual(z.driving_rule_ids, []);
+});
+
+test("the real fixture GL object carries its clean-core/deprecation/performance/abaplint signal families", () => {
+  const gl = byObj(scopeNodes(DOC), "ZFICO_BTC_CSV_GL");
+  for (const fam of ["abaplint", "clean-core", "deprecation", "performance"]) {
+    assert.ok(gl.finding_families.includes(fam), `GL findings span the ${fam} family`);
+  }
+  assert.deepEqual(gl.finding_families, [...new Set(gl.finding_families)].sort(), "sorted + distinct");
+  assert.ok(gl.driving_rule_ids.includes("talos-cloud-006-write"), "the UI/WRITE signal is present for the classifier");
+  assert.deepEqual(gl.driving_rule_ids, [...new Set(gl.driving_rule_ids)].sort(), "sorted + distinct");
+});

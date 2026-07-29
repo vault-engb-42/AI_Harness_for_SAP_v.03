@@ -32,6 +32,7 @@ export function scopeNodes(doc, objectGraph) {
   const blastOf = new Map((doc.blast_radius ?? []).map((b) => [b.object, num(b.affected_program_count)]));
   const pools = programPools(og.edges);
   const drivingOf = drivingRules(doc.findings);
+  const signalsOf = signalsByObject(doc.findings);
 
   return (doc.modernization_plan?.objects ?? []).map((o) => {
     // canonical_sig keys the ratchet baseline, so `rule` must be STABLE: the object's
@@ -56,6 +57,8 @@ export function scopeNodes(doc, objectGraph) {
       debt: debtOf.get(o.object) ?? 0,
       blast,
       meta: { grade, complexity, blast },
+      finding_families: signalsOf.families.get(o.object) ?? [],
+      driving_rule_ids: signalsOf.rule_ids.get(o.object) ?? [],
       resource_keys: resourceKeys(o.object, pools),
     };
   });
@@ -107,6 +110,26 @@ function programPools(edges) {
   const pool = new Map();
   for (const o of parent.keys()) pool.set(o, find(o));
   return pool;
+}
+
+/**
+ * object → its analyser SIGNAL SET for the disposition classifier (B1): the DISTINCT, sorted
+ * finding families + rule_ids of the object's findings. The classifier (B2) is pure over the
+ * node, so its declared signals must ride the node — sourced here, never recomputed downstream.
+ * @param {Array<{object: string, family?: string, rule_id?: string}>} findings
+ * @returns {{families: Map<string, string[]>, rule_ids: Map<string, string[]>}}
+ */
+function signalsByObject(findings) {
+  const fam = new Map();
+  const rid = new Map();
+  for (const f of findings ?? []) {
+    if (!fam.has(f.object)) fam.set(f.object, new Set());
+    if (!rid.has(f.object)) rid.set(f.object, new Set());
+    if (f.family) fam.get(f.object).add(f.family);
+    if (f.rule_id) rid.get(f.object).add(f.rule_id);
+  }
+  const sortMap = (m) => new Map([...m].map(([k, s]) => [k, [...s].sort()]));
+  return { families: sortMap(fam), rule_ids: sortMap(rid) };
 }
 
 /** object → the rule_id of its DRIVING finding: lowest atc_priority (P1<P2<P3), tiebreak rule_id. */

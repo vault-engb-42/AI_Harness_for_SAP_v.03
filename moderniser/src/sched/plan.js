@@ -14,7 +14,7 @@ import { canonicalJSON } from "../state/canonical-json.js";
  * signatures (see `node-id.js`), never positional indices.
  */
 
-export const PLAN_SCHEMA_VERSION = "1.0.0";
+export const PLAN_SCHEMA_VERSION = "1.1.0";
 
 /**
  * Freeze a plan into the immutable, content-hashed, deep-frozen artifact.

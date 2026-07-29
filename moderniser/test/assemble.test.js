@@ -188,3 +188,33 @@ test("a plan object missing from the CPG fails closed with a NAMED error, not a 
   const d = doc({ nodes: [gnode("ZA")], edges: [], planObjects: [pobj("ZA"), pobj("ZGHOST")] });
   assert.throws(() => assemblePlan(d), /ZGHOST.*graph|graph.*ZGHOST/i);
 });
+
+// --- B1: the analyser signal set rides the (hashed) plan node, unioned across super-node members ---
+
+test("the plan node carries finding_families + driving_rule_ids, union-aggregated across super-node members", () => {
+  const d = doc({
+    nodes: [gnode("ZA"), gnode("ZB")],
+    edges: [
+      { source: "ZA", target: "ZB", kind: "calls" },
+      { source: "ZB", target: "ZA", kind: "calls" }, // cycle → one super-node
+    ],
+    planObjects: [pobj("ZA"), pobj("ZB")],
+    findings: [
+      { object: "ZA", rule_id: "talos-cloud-006-write", family: "deprecation", atc_priority: "P1" },
+      { object: "ZB", rule_id: "talos-legacy-ui-rollup", family: "clean-core", atc_priority: "P2" },
+    ],
+  });
+  const n = assemblePlan(d).plan.nodes[0];
+  assert.deepEqual([...n.members].sort(), ["ZA", "ZB"], "one super-node");
+  assert.deepEqual(n.finding_families, ["clean-core", "deprecation"], "union of member families, sorted");
+  assert.deepEqual(n.driving_rule_ids, ["talos-cloud-006-write", "talos-legacy-ui-rollup"], "union of member rule_ids, sorted");
+});
+
+test("the signal-set fields ride plan_hash (present on the golden plan) + schema_version is bumped to 1.1.0", () => {
+  const { plan } = assemblePlan(DOC);
+  const gl = byObj(plan, "ZFICO_BTC_CSV_GL");
+  assert.ok(Array.isArray(gl.finding_families) && gl.finding_families.length > 0, "GL carries families");
+  assert.ok(Array.isArray(gl.driving_rule_ids) && gl.driving_rule_ids.length > 0, "GL carries rule_ids");
+  assert.equal(plan.plan_hash, planHash(plan.nodes), "the new fields are covered by plan_hash");
+  assert.equal(plan.schema_version, "1.1.0", "node-schema enrichment bumps the plan schema_version");
+});

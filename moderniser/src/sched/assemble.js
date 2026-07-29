@@ -83,6 +83,8 @@ export function assemblePlan(doc, opts = {}) {
       dependencies: inPlanAncestors(superId, predecessors, sigOfSuper),
       conflict_keys: conflictKeys[sigOfSuper.get(superId)],
       member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
+      finding_families: unionField(members, scopedByObject, "finding_families"),
+      driving_rule_ids: unionField(members, scopedByObject, "driving_rule_ids"),
       parity_required: members.some((m) => scopedByObject.get(m).parity_required),
       artifacts: artifactSkeleton(members, scopedByObject),
       transport_id: opts.transportOf?.[rep.object],
@@ -100,6 +102,13 @@ export function assemblePlan(doc, opts = {}) {
     for (const m of members) objectToSig[m] = sigOfSuper.get(superId);
   }
   return { plan, runtime: { objectToSig } };
+}
+
+/** Union a set-like per-object field (B1 signal set) across a super-node's in-plan members → sorted distinct. */
+function unionField(members, scopedByObject, field) {
+  const s = new Set();
+  for (const m of members) for (const v of scopedByObject.get(m)[field] ?? []) s.add(v);
+  return [...s].sort();
 }
 
 /** superId -> sorted IN-PLAN member objects (only supers containing at least one plan object). */
