@@ -216,5 +216,24 @@ test("the signal-set fields ride plan_hash (present on the golden plan) + schema
   assert.ok(Array.isArray(gl.finding_families) && gl.finding_families.length > 0, "GL carries families");
   assert.ok(Array.isArray(gl.driving_rule_ids) && gl.driving_rule_ids.length > 0, "GL carries rule_ids");
   assert.equal(plan.plan_hash, planHash(plan.nodes), "the new fields are covered by plan_hash");
-  assert.equal(plan.schema_version, "1.1.0", "node-schema enrichment bumps the plan schema_version");
+  assert.equal(plan.schema_version, "1.2.0", "node-schema enrichment bumps the plan schema_version (B1 signals + B2 disposition)");
+});
+
+// --- B2: the plan-time disposition rides the frozen node ---
+
+test("every plan node carries a classified disposition + siblings + modernization_target (rides plan_hash)", () => {
+  const { plan } = assemblePlan(DOC); // abap_fico: 3 reports, all Fiori Elements App target, classic-UI findings
+  for (const n of plan.nodes) {
+    assert.ok(["refactor", "re_architect", "rebuild", "replace", "retire", "seal"].includes(n.disposition), `${n.object} has a disposition`);
+    assert.equal(typeof n.disposition_rationale, "string");
+    assert.ok(n.disposition_confidence >= 0 && n.disposition_confidence <= 1);
+    assert.ok(["auto", "prompt"].includes(n.disposition_autonomy));
+    assert.equal(typeof n.disposition_reversible, "boolean");
+    assert.equal(n.modernization_target, "Fiori Elements App");
+  }
+  // GL carries the classic-UI WRITE signal → re_architect, and re_architect never auto-applies
+  const gl = byObj(plan, "ZFICO_BTC_CSV_GL");
+  assert.equal(gl.disposition, "re_architect");
+  assert.equal(gl.disposition_autonomy, "prompt");
+  assert.equal(plan.plan_hash, planHash(plan.nodes), "disposition_* are covered by plan_hash");
 });

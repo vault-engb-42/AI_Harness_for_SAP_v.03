@@ -29,6 +29,8 @@ import { tarjanCondense } from "../graph/condense.js";
 import { kahnLevels } from "./levels.js";
 import { buildConflictGraph } from "../graph/conflict.js";
 import { freezePlan } from "./plan.js";
+import { classifyDisposition } from "../plan/disposition.js";
+import { groundCandidates } from "../plan/ground-candidates.js";
 
 export function assemblePlan(doc, opts = {}) {
   const og = buildObjectGraph(doc);
@@ -85,11 +87,18 @@ export function assemblePlan(doc, opts = {}) {
       member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
       finding_families: unionField(members, scopedByObject, "finding_families"),
       driving_rule_ids: unionField(members, scopedByObject, "driving_rule_ids"),
+      modernization_target: rep.modernization_target ?? null,
       parity_required: members.some((m) => scopedByObject.get(m).parity_required),
       artifacts: artifactSkeleton(members, scopedByObject),
       transport_id: opts.transportOf?.[rep.object],
     };
   });
+
+  // Plan-time disposition (B2): the classifier is PURE over (node, grounding-cache); the grounding
+  // pre-pass (S3) supplies the cache from the analyser doc. disposition_* ride the node → covered by
+  // plan_hash (§6.11); an override at the DISPOSITION gate (B3) triggers a REPLAN + re-freeze.
+  const groundingCache = groundCandidates(doc);
+  for (const n of nodes) Object.assign(n, classifyDisposition(n, groundingCache));
 
   const plan = freezePlan({
     nodes,
