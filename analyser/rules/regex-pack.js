@@ -10,10 +10,14 @@ import { objectsOf } from "../src/abaplint-loader.js";
  * is coded + tested once; coverage scales by adding data rows.
  *
  * Row shape: { id, family, severity, pattern, flags?, message, object_types?,
- *             when?, scan_comments? }
+ *             when?, unless?, scan_comments? }
  *   - when:          regex that must match somewhere in the FILE for the row
  *                    to apply (e.g. RAP-handler rules only fire inside
  *                    behavior handler/saver classes)
+ *   - unless:        regex that, if it matches the FILE, SUPPRESSES the row —
+ *                    the symmetric counterpart to `when`, for RAP-context
+ *                    gating (e.g. skip an EML `IN LOCAL MODE` finding inside a
+ *                    behavior pool, or a dynamic-WHERE finding inside a DCL)
  *   - scan_comments: the row sees raw comment lines (for rules whose subject
  *                    IS a comment marker, e.g. SAP modification markers)
  *
@@ -49,6 +53,7 @@ function compiledRules() {
         message: r.message,
         re: new RegExp(r.pattern, flags),
         when: r.when ? new RegExp(r.when, "i") : null,
+        unless: r.unless ? new RegExp(r.unless, "i") : null,
         scanComments: r.scan_comments === true,
         object_types: Array.isArray(r.object_types) ? r.object_types : [],
       });
@@ -124,7 +129,10 @@ export function sanitizeLine(line) {
  */
 function scanFile(raw, filename, objName, type, rules, findings) {
   const applicable = rules.filter(
-    (rule) => (!rule.object_types.length || rule.object_types.includes(type)) && (!rule.when || rule.when.test(raw)),
+    (rule) =>
+      (!rule.object_types.length || rule.object_types.includes(type)) &&
+      (!rule.when || rule.when.test(raw)) &&
+      (!rule.unless || !rule.unless.test(raw)),
   );
   if (!applicable.length) return;
 

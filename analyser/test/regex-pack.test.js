@@ -128,3 +128,47 @@ SELECT * FROM t000 CLIENT SPECIFIED INTO TABLE @DATA(lt) WHERE ( lv_dyn ).`);
     assert.ok(x.line > 0);
   }
 });
+
+test("A2: EML IN LOCAL MODE is not flagged inside a behavior pool, but is in a plain class", () => {
+  // `IN LOCAL MODE` on the same BO inside a behavior pool is the standard RAP pattern (avoids
+  // feature-control recursion), NOT an auth bypass. Outside a behavior pool it is a bypass smell.
+  const pool = findings(
+    `CLASS zbp_x DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_x.
+ENDCLASS.
+CLASS zbp_x IMPLEMENTATION.
+  METHOD create_child.
+    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY node CREATE FROM lt.
+  ENDMETHOD.
+ENDCLASS.`,
+    "zbp_x.clas.abap",
+  );
+  assert.deepEqual(pool.filter((x) => /eml-local-mode/.test(x.rule_id)), [], "behavior pool: local mode is the RAP norm");
+
+  const plain = findings(
+    `CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.
+ENDCLASS.
+CLASS zcl_x IMPLEMENTATION.
+  METHOD run.
+    MODIFY ENTITIES OF zi_x IN LOCAL MODE ENTITY node CREATE FROM lt.
+  ENDMETHOD.
+ENDCLASS.`,
+    "zcl_x.clas.abap",
+  );
+  assert.ok(plain.some((x) => /eml-local-mode/.test(x.rule_id)), "plain class: local mode outside a behavior pool still flagged");
+});
+
+test("A2: a DCL where(field) is not flagged as dynamic SQL; a real dynamic WHERE in a class is", () => {
+  const dcl = findings(
+    `@MappingRole: true
+define role ZI_X_Access {
+  grant select on ZI_X where ( CompanyCode ) = aspect pfcg_auth( F_BKPF_BUK, BUKRS, ACTVT = '03' );
+}`,
+    "zi_x.dcls.asdcls",
+  );
+  assert.deepEqual(dcl.filter((x) => x.rule_id === "talos-dynamic-where-subquery"), [], "DCL where(field) is grammar, not dynamic SQL");
+
+  const cls = findings(`REPORT zr_dyn.
+START-OF-SELECTION.
+  SELECT * FROM foo WHERE ( lv_cond ) INTO TABLE @DATA(lt).`);
+  assert.ok(cls.some((x) => x.rule_id === "talos-dynamic-where-subquery"), "a real dynamic WHERE clause still flagged");
+});

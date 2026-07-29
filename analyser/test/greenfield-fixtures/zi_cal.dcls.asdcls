@@ -1,0 +1,5 @@
+@MappingRole: true
+define role ZI_Cal_Access {
+  grant select on ZI_Cal
+    where ( Name ) = aspect pfcg_auth( S_DEVELOP, DEVCLASS, ACTVT = '03' );
+}

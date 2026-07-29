@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { loadRegistry } from "../src/abaplint-loader.js";
 import { metadataPack, _resetCache } from "../rules/metadata-pack.js";
 
@@ -28,6 +29,19 @@ test("a CDS with a proper #CHECK auth annotation raises neither auth rule", () =
 define view entity ZI_Z as select from vbak { key vbeln }`)]);
   assert.deepEqual(f.filter((x) => x.rule_id === "talos-cds-auth-not-required"), []);
   assert.deepEqual(f.filter((x) => x.rule_id === "talos-cds-missing-access-control"), []);
+});
+
+test("A2: #NOT_REQUIRED is not flagged on a custom entity with a query provider, but is on a plain view", () => {
+  // A custom entity enforces authorization in its IF_RAP_QUERY_PROVIDER class, not via a DCL, so
+  // @AccessControl.authorizationCheck: #NOT_REQUIRED is the correct, deliberate pattern there.
+  const q = findings([cds("zi_q", `@AccessControl.authorizationCheck: #NOT_REQUIRED
+@ObjectModel.query.implementedBy: 'ABAP:ZCL_Q'
+define custom entity ZI_Q { key id : abap.char(10); }`)]);
+  assert.deepEqual(q.filter((x) => x.rule_id === "talos-cds-auth-not-required"), [], "auth enforced in the query provider");
+
+  const plain = findings([cds("zi_p", `@AccessControl.authorizationCheck: #NOT_REQUIRED
+define view entity ZI_P as select from vbak { key vbeln }`)]);
+  assert.ok(plain.some((x) => x.rule_id === "talos-cds-auth-not-required"), "a plain view with #NOT_REQUIRED is still flagged");
 });
 
 test("legacy @AbapCatalog.sqlViewName is flagged as deprecation", () => {
@@ -133,18 +147,37 @@ define view entity ZI_Comp as select from vbak
   assert.ok(f.some((x) => x.rule_id === "talos-cds-expand-no-cardinality-cap"));
 });
 
-test("pessimistic draft without timeoutSeconds is flagged; optimistic is exempt (PERF-32)", () => {
-  const pess = bdef("zbp_pess", `managed implementation in class zbp_pess unique;
-define behavior for ZI_P alias P
+test("a draft BDEF with an ETag guard is not told to add a non-existent timeout annotation (A1)", () => {
+  // talos-rap-draft-lock-no-timeout required @Locking.timeoutSeconds, which does NOT exist in released
+  // ABAP Cloud (the draft exclusive-lock timeout is a framework/global setting, not a per-view
+  // annotation). A rule requiring a non-existent annotation can never be satisfied and induces a
+  // generator to fabricate one — it was removed. The real optimistic-concurrency concern is covered by
+  // talos-rap-draft-no-optimistic-lock, which correctly exempts an ETag guard.
+  const etag = bdef("zbp_etag", `managed implementation in class zbp_etag unique;
+define behavior for ZI_E alias E
 with draft
+lock master total etag LastChangedAt
 { create; }`);
-  assert.ok(findings([pess]).some((x) => x.rule_id === "talos-rap-draft-lock-no-timeout"), "pessimistic flagged");
-  const opti = bdef("zbp_opti", `managed implementation in class zbp_opti unique;
-"@ObjectModel.draftEnabled.lockingMode: #OPTIMISTIC
-define behavior for ZI_O alias O
-with draft
-{ create; }`);
-  assert.ok(!findings([opti]).some((x) => x.rule_id === "talos-rap-draft-lock-no-timeout"), "optimistic exempt via unless");
+  const f = findings([etag]);
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-draft-lock-no-timeout"), [], "no non-existent-annotation finding");
+  assert.deepEqual(f.filter((x) => x.rule_id === "talos-rap-draft-no-optimistic-lock"), [], "ETag guard exempts the real optimistic-lock rule");
+});
+
+test("every metadata rule 'require:' targets a real released SAP annotation (no fabrication-inducing rules)", () => {
+  // Guard: a rule that requires a non-existent annotation induces a generator to fabricate it. Every
+  // require: path must be a known SAP CDS/RAP annotation. Add a new one here only after verifying it exists.
+  const REAL_ANNOTATIONS = new Set([
+    "AccessControl.authorizationCheck",
+    "ObjectModel.draftEnabled.lockingMode",
+    "Analytics.dataCategory",
+    "ObjectModel.usageType.serviceQuality",
+    "ObjectModel.usageType.sizeCategory",
+    "ObjectModel.usageType.dataClass",
+    "AbapCatalog.viewEnhancementCategory",
+  ]);
+  const rules = JSON.parse(readFileSync(new URL("../rules/data/metadata-rules.json", import.meta.url), "utf8"));
+  const bad = rules.filter((r) => r.require && !REAL_ANNOTATIONS.has(r.require)).map((r) => `${r.id} -> @${r.require}`);
+  assert.deepEqual(bad, [], `rules require a non-existent annotation: ${bad.join(", ")}`);
 });
 
 test("managed + unmanaged implementation in one BDEF is flagged priority-1", () => {

@@ -1,0 +1,23 @@
+managed implementation in class zbp_cal unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_Cal alias Node
+persistent table ztcal_node
+draft table ztcal_node_d
+lock master total etag LastChangedAt
+authorization master ( instance )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+  field ( readonly ) NodeUuid;
+  association _Parent;
+
+  draft determine action Prepare;
+  draft action Edit optimized;
+  draft action Activate optimized;
+  draft action Discard optimized;
+  draft action Resume optimized;
+}

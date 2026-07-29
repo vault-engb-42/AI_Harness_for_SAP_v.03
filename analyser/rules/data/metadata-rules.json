@@ -8,6 +8,7 @@
     ],
     "forbid": "@AccessControl\\.authorizationCheck\\s*:\\s*#NOT_REQUIRED",
     "flags": "i",
+    "unless": "@ObjectModel\\.query\\.implementedBy",
     "message": "CDS view sets @AccessControl.authorizationCheck: #NOT_REQUIRED — confirm no sensitive data is exposed without a DCL"
   },
   {
@@ -43,19 +44,6 @@
     "require": "ObjectModel.draftEnabled.lockingMode",
     "message": "Draft-enabled entity without an optimistic-concurrency guard — set @ObjectModel.draftEnabled.lockingMode: #OPTIMISTIC and expose an ETag via @Semantics.systemDate.lastChangedAt (ABAP-PERF-23)",
     "unless": "\\btotal\\s+etag\\b|@Semantics\\.systemDate\\.lastChangedAt"
-  },
-  {
-    "id": "talos-rap-draft-lock-no-timeout",
-    "family": "rap-odata",
-    "severity": "priority-2",
-    "applies_to": [
-      "DDLS",
-      "BDEF"
-    ],
-    "when": "\\bwith\\s+draft\\b|@ObjectModel\\.draftEnabled",
-    "unless": "#OPTIMISTIC",
-    "require": "Locking.timeoutSeconds",
-    "message": "Pessimistic draft lock without @Locking.timeoutSeconds — set a 60-120s timeout; the default lets abandoned drafts block other editors (ABAP-PERF-32)"
   },
   {
     "id": "talos-cds-analytical-missing-analytics",

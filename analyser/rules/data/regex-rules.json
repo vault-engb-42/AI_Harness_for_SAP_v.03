@@ -35,6 +35,7 @@
     "severity": "priority-2",
     "pattern": "\\bWHERE\\s+\\(\\s*\\w+\\s*\\)",
     "flags": "i",
+    "unless": "\\bdefine\\s+role\\b",
     "message": "Dynamic WHERE condition (parenthesized variable); verify input is not attacker-controlled (SQL injection surface)",
     "object_types": [],
     "example": "  SELECT * FROM t000 INTO TABLE @DATA(lt) WHERE (lv_cond).",
@@ -790,6 +791,7 @@
     "severity": "priority-2",
     "pattern": "\\b(?:MODIFY|READ)\\s+ENTITIES?\\b.*\\bIN\\s+LOCAL\\s+MODE\\b",
     "flags": "i",
+    "unless": "\\bfor\\s+behavior\\s+of\\b",
     "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
     "object_types": [
       "CLAS"
@@ -1072,6 +1074,7 @@
     "severity": "priority-2",
     "pattern": "\\b(?:MODIFY|READ)\\s+ENTITIES?\\s+OF\\s+\\w+.*?\\bIN\\s+LOCAL\\s+MODE\\b",
     "flags": "i",
+    "unless": "\\bfor\\s+behavior\\s+of\\b",
     "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
     "object_types": [],
     "example": "    READ ENTITIES OF zi_travel IN LOCAL MODE ENTITY x.",
