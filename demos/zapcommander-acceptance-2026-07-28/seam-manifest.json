@@ -1,0 +1,1155 @@
+{
+  "demo": "zapcommander-acceptance-2026-07-28",
+  "purpose": "A driveable backlog: every NEEDS_MANUAL_SEAM the moderniser produced, categorized and assigned the modernisation DISPOSITION it would receive under the interactive-advisor model (MODERNISER_DESIGN L11 / §6.11). Today these are seals; under the advisor they become recommended, operator-approved transforms. This turns 'sealed, go figure it out' into 'here is what to do with each, by strategy'.",
+  "disposition_legend": {
+    "refactor": "in-stack Clean-Core ABAP (auto, reversible)",
+    "re_architect": "RAP + CDS + OData + Fiori Elements (prompt)",
+    "rebuild": "side-by-side BTP: released outbound / CAP-JS + Fiori (prompt)",
+    "replace": "released SAP standard (prompt)",
+    "retire": "dropped — no released Cloud form, grounded (prompt)",
+    "seal": "genuinely manual, last resort (prompt)"
+  },
+  "summary": {
+    "seams_total": 160,
+    "by_disposition": {
+      "retire": 94,
+      "re_architect": 41,
+      "refactor": 13,
+      "seal": 5,
+      "rebuild": 7
+    },
+    "by_category": {
+      "OS command execution": 19,
+      "Classic SAP GUI / dynpro": 29,
+      "Server file system (OPEN DATASET / AL11)": 75,
+      "Frontend / home-dir file I/O": 10,
+      "Dynamic dispatch / factory": 13,
+      "Other (manual review)": 5,
+      "Cluster persistence (EXPORT/IMPORT indx)": 2,
+      "Classic RFC-to-DESTINATION": 7
+    }
+  },
+  "seams": [
+    {
+      "object": "ZAPCMD_CALL_CMDLINE",
+      "seam": "needs_manual_seam_execute_os_command",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CALL_EDITOR",
+      "seam": "needs_manual_seam_open_editor",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CHECK_DIR",
+      "seam": "needs_manual_seam_check_directory",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "seam": "needs_manual_seam_execute_frontend_cmd",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "seam": "needs_manual_seam_execute_os_command",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "seam": "needs_manual_seam_show_dirname",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "seam": "needs_manual_seam_show_output",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "seam": "needs_manual_seam_show_screen",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_create_pane",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_editor_ui",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_get_files",
+      "category": "Other (manual review)",
+      "disposition": "seal",
+      "rationale": "No pattern match — genuinely manual; a human classifies at the disposition gate."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_prompt_dirname",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_refresh",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_refresh_focus",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_save_state",
+      "category": "Cluster persistence (EXPORT/IMPORT indx)",
+      "disposition": "re_architect",
+      "rationale": "Session/state persistence becomes a RAP draft table / released settings API."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_show",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "seam": "needs_manual_seam_show_info",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_create_new",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_get_freespace",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_get_toolbar",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "seam": "needs_manual_seam_read_rfc",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_EDITOR",
+      "seam": "needs_manual_seam_editor_ui",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_EDITOR",
+      "seam": "needs_manual_seam_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST_RIGHT",
+      "seam": "needs_manual_seam_get_factories",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_check_active",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_clone_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_confirm_copy",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_confirm_delete",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_confirm_move",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_edit_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_factories",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_factory_buttons",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_files",
+      "category": "Other (manual review)",
+      "disposition": "seal",
+      "rationale": "No pattern match — genuinely manual; a human classifies at the disposition gate."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_freespace",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_imp",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_get_selected_rows",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_contextmenu",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_doubleclick",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_drag",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_drop",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_set_toolbar",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_on_usercommand",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_refresh",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_report_progress",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_show",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "seam": "needs_manual_seam_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "seam": "needs_manual_seam_execute_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "seam": "needs_manual_seam_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "seam": "needs_manual_seam_read_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "seam": "needs_manual_seam_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "seam": "needs_manual_seam_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_create_new",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_directory_browse",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_directory_create",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_directory_delete",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_directory_get_current",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_directory_list_files",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_get_drive_type",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_get_free_space",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_get_freespace",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_get_toolbar",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "seam": "needs_manual_seam_read_rfc",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FACTORY",
+      "seam": "needs_manual_seam_create_frontend_dir",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FACTORY",
+      "seam": "needs_manual_seam_populate_button",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_execute_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_gui_execute_file",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_gui_file_delete",
+      "category": "Other (manual review)",
+      "disposition": "seal",
+      "rationale": "No pattern match — genuinely manual; a human classifies at the disposition gate."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_read_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_rename",
+      "category": "Other (manual review)",
+      "disposition": "seal",
+      "rationale": "No pattern match — genuinely manual; a human classifies at the disposition gate."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "seam": "needs_manual_seam_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "seam": "needs_manual_seam_exec_server",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_check_remote_drive",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_get_freespace",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_get_toolbar",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_remote_homedir",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_remote_opsys",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_rfc_exec_cmd",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "seam": "needs_manual_seam_rfc_list_dir",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "seam": "needs_manual_seam_build_toolbar_button",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "seam": "needs_manual_seam_create_rfc_backend",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "seam": "needs_manual_seam_create_server_backend",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "seam": "needs_manual_seam_prompt_rfc_dest",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_execute_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_execute_non_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_read_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_remote_opsys",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_delete",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_exec_cmd",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_read_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_rfc_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "seam": "needs_manual_seam_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_create_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_create_new",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_exec_server",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_get_freespace",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_get_toolbar",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_home_dir",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_prompt_logical_path",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_al11",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_drives",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_entries",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_logicaldir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_rfc",
+      "category": "Classic RFC-to-DESTINATION",
+      "disposition": "rebuild",
+      "rationale": "Cross-system access becomes released outbound (communication arrangement + CL_HTTP_DESTINATION_PROVIDER + IF_WEB_HTTP_CLIENT); remote OS browse itself is dropped."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_read_server",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "seam": "needs_manual_seam_resolve_logical_path",
+      "category": "Other (manual review)",
+      "disposition": "seal",
+      "rationale": "No pattern match — genuinely manual; a human classifies at the disposition gate."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FACTORY",
+      "seam": "needs_manual_seam_build_applserv_button",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FACTORY",
+      "seam": "needs_manual_seam_create_server_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_create_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_exec_server",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_execute_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_read_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_read_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_write_bin",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "seam": "needs_manual_seam_write_text",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_CL_USER_EXIT_FACTORY",
+      "seam": "needs_manual_seam_create_by_name",
+      "category": "Dynamic dispatch / factory",
+      "disposition": "refactor",
+      "rationale": "Runtime type resolution becomes a static released factory / sealed enumeration — an in-stack Clean-Core refactor."
+    },
+    {
+      "object": "ZAPCMD_DELETE_FILE",
+      "seam": "needs_manual_seam_delete_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_EXEC_CMD",
+      "seam": "needs_manual_seam_execute_os_command",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_FG_CMDLINE",
+      "seam": "needs_manual_seam_cmdline_ui",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_FG_EDITOR",
+      "seam": "needs_manual_seam_editor_ui",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_check_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_delete_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_exec_abap",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_exec_cmd",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_get_homedir",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_read_binfile",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_read_dir",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_read_textfile",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_write_binfile",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "seam": "needs_manual_seam_write_textfile",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_GET_HOMEDIR",
+      "seam": "needs_manual_seam_get_homedir",
+      "category": "Frontend / home-dir file I/O",
+      "disposition": "re_architect",
+      "rationale": "Client file up/download becomes OData V4 streaming + a Fiori file dialog (the dialog lives in the browser, not ABAP)."
+    },
+    {
+      "object": "ZAPCMD_GET_OPSYS",
+      "seam": "needs_manual_seam_get_opsys",
+      "category": "OS command execution",
+      "disposition": "retire",
+      "rationale": "CALL 'SYSTEM'/SXPG has no released ABAP Cloud form (KBA 3648256 class); arbitrary OS exec is prohibited by design."
+    },
+    {
+      "object": "ZAPCMD_READ_BINFILE",
+      "seam": "needs_manual_seam_read_binary",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_READ_DIR",
+      "seam": "needs_manual_seam_read_directory",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_READ_TEXTFILE",
+      "seam": "needs_manual_seam_read_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "seam": "needs_manual_seam_load_state",
+      "category": "Cluster persistence (EXPORT/IMPORT indx)",
+      "disposition": "re_architect",
+      "rationale": "Session/state persistence becomes a RAP draft table / released settings API."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "seam": "needs_manual_seam_run_ui",
+      "category": "Classic SAP GUI / dynpro",
+      "disposition": "re_architect",
+      "rationale": "Dynpro screens / cl_gui_* become Fiori Elements (List Report + Object Page) over the RAP service; interaction survives, the UI leaves ABAP."
+    },
+    {
+      "object": "ZAPCMD_WRITE_BINFILE",
+      "seam": "needs_manual_seam_write_binary",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    },
+    {
+      "object": "ZAPCMD_WRITE_TEXTFILE",
+      "seam": "needs_manual_seam_write_file",
+      "category": "Server file system (OPEN DATASET / AL11)",
+      "disposition": "retire",
+      "rationale": "Arbitrary application-server file/dir access has no released Cloud API; content that matters is re-modelled as RAP entities + @Semantics.largeObject streams."
+    }
+  ],
+  "honest_note": "The heavy 'retire' + 're_architect' share is a property of THIS corpus (a SAP-GUI/OS/RFC file manager is mostly boundary code). A business app would skew to 'refactor'. See the greenfield re-architecture demo (../zapcommander-rearchitected-2026-07-29/) for what the 're_architect' disposition actually generates: RAP+CDS+OData+Fiori at 0 seams, Level A."
+}

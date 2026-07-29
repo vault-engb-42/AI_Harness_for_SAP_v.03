@@ -1,0 +1,158 @@
+{
+  "labels": {
+    "before": "zapcommander",
+    "after": "zapcommander"
+  },
+  "readiness": [
+    {
+      "label": "S/4HANA-ready",
+      "before": 67,
+      "after": 100,
+      "delta": 33,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "ABAP Cloud-ready",
+      "before": 41,
+      "after": 77,
+      "delta": 36,
+      "unit": "%",
+      "improved": true
+    }
+  ],
+  "quality": [
+    {
+      "label": "Clean-Core grade",
+      "before": "A",
+      "after": "A",
+      "kind": "grade",
+      "improved": true
+    },
+    {
+      "label": "Priority-1 findings",
+      "before": 102,
+      "after": 1,
+      "delta": -101,
+      "improved": true
+    },
+    {
+      "label": "S/4 blocker findings",
+      "before": 83,
+      "after": 0,
+      "delta": -83,
+      "improved": true
+    },
+    {
+      "label": "Cloud blocker findings",
+      "before": 267,
+      "after": 13,
+      "delta": -254,
+      "improved": true
+    },
+    {
+      "label": "Total findings",
+      "before": 3224,
+      "after": 2728,
+      "delta": -496,
+      "improved": true
+    }
+  ],
+  "health": [
+    {
+      "label": "Clarity",
+      "before": 57,
+      "after": 74,
+      "delta": 17,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "Stability",
+      "before": 21,
+      "after": 38,
+      "delta": 17,
+      "unit": "%",
+      "improved": true
+    },
+    {
+      "label": "Performance",
+      "before": 73,
+      "after": 71,
+      "delta": -2,
+      "unit": "%",
+      "improved": false
+    },
+    {
+      "label": "Compound",
+      "before": 50,
+      "after": 61,
+      "delta": 11,
+      "unit": "%",
+      "improved": true
+    }
+  ],
+  "clarity_axes": [
+    {
+      "label": "Cyclomatic",
+      "before": {
+        "value": 88,
+        "n": 25,
+        "total": 25,
+        "na": false
+      },
+      "after": {
+        "value": 100,
+        "n": 25,
+        "total": 25,
+        "na": false
+      }
+    },
+    {
+      "label": "Routine length",
+      "before": {
+        "value": 71,
+        "n": 25,
+        "total": 25,
+        "na": false
+      },
+      "after": {
+        "value": 99,
+        "n": 25,
+        "total": 25,
+        "na": false
+      }
+    },
+    {
+      "label": "Nesting",
+      "before": {
+        "value": 94,
+        "n": 25,
+        "total": 25,
+        "na": false
+      },
+      "after": {
+        "value": 100,
+        "n": 25,
+        "total": 25,
+        "na": false
+      }
+    },
+    {
+      "label": "Cohesion (LCOM*)",
+      "before": {
+        "value": 68,
+        "n": 21,
+        "total": 25,
+        "na": false
+      },
+      "after": {
+        "value": 74,
+        "n": 25,
+        "total": 25,
+        "na": false
+      }
+    }
+  ],
+  "notes": []
+}

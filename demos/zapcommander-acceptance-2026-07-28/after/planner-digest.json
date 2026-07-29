@@ -1,0 +1,1627 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "zapcommander",
+  "source_system": "bundle:demos/zapcommander-acceptance-2026-07-28/after/modernised-source",
+  "source_hash": "41ca22c9776010f8f42e86db81b1cf51251255f2da37f8f21fe3a7f24e614656",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "dd5c38784f0132768c527f1aece3d23d40fb2d007d8aad2fcaba51b731e131d8",
+  "object_count": 42,
+  "objects_included": 42,
+  "finding_count": 2728,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZCL_ZAPCMD_KNOT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_DELETE_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_EDITOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_EDITOR2",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_EXEC_CMD",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FILELIST",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FILELIST_LEFT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FILELIST_RIGHT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FRONTEND_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FRONTEND_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_FRONTEND_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_GET_HOMEDIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_GET_OPSYS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_KNOTLIST",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_READ_BINFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_READ_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_READ_TEXTFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_RFC",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_RFC_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_RFC_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_RFC_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_SAPCOMMANDER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_SERVER_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_SERVER_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_SERVER_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_USER_EXIT_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_WRITE_BINFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_WRITE_TEXTFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_ZAPCMD_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POPUP_GET_VALUES",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CX_STATIC_CHECK",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "IF_T100_MESSAGE",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZCL_ZAPCMD_RFC_FACTORY",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method create_dir"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method get_button"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 21"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "align_type_expressions",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align TYPE expressions to column 21"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZAPCMD_IF_FACTORY, class XML file not found"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 167"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: i_dir"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: i_fcode"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^R._.+$: eo_dir"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^R._.+$: et_button"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZIF: ZAPCMD_IF_FACTORY"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains unknown, REF, unable to resolve zapcmd_cl_dir"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method change_default_directory"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method change_factories"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method change_toolbar"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method commander_create_splitter"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method commander_set_pfstatus"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method commander_user_command"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method filelist_user_command"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZAPCMD_IF_USER_EXIT, class XML file not found"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 129"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^R._.+$: result"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZIF: ZAPCMD_IF_USER_EXIT"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains unknown, REF, unable to resolve zapcmd_cl_filelist"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"CT_FACTORIES\" contains unknown: ZAPCMD_TBL_FACTORY not found, lookup"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"IO_DIRECTORY\" contains unknown: REF, unable to resolve zapcmd_cl_dir"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"IO_FILELIST\" contains unknown: REF, unable to resolve zapcmd_cl_filelist"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"IO_FILELIST_RIGHT\" contains unknown: REF, unable to resolve zapcmd_cl_filelist"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"needs_manual_seam_execute_os_command\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_ZAPCMD_CALL_CMDLINE, class XML file not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "in_statement_indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Fix in-statement indentation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "in_statement_indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Fix in-statement indentation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "in_statement_indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Fix in-statement indentation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "local_class_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local class name does not match pattern ^LTCL_.+$: ltc_call_cmdline"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: result_cd"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: result_seam"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^E._.+$: etx_output"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_CMDLINE",
+      "rule_id": "prefer_returning_to_exporting",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer RETURNING to EXPORTING"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class or type \"zcx_zapcmd_error\" not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class or type \"zcx_zapcmd_error\" not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_ZAPCMD_CALL_EDITOR, class XML file not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "keep_single_parameter_on_one_line",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Keep single parameter on one line"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "ZCX_ZAPCMD_ERROR unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CALL_EDITOR",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "ZCX_ZAPCMD_ERROR unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"needs_manual_seam_check_directory\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"needs_manual_seam_check_directory\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_ZAPCMD_CHECK_DIR, class XML file not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "local_class_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local class name does not match pattern ^LCL_.+$: ltcl_check_dir_stub"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"mv_inject_exists\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "omit_parameter_name",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Omit default parameter name \"IV_DIR\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "omit_parameter_name",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Omit default parameter name \"IV_DIR\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "omit_parameter_name",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Omit default parameter name \"IV_DIR\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "omit_parameter_name",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Omit default parameter name \"IV_DIR\""
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "talos-cloud-005-class-final-abstract",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CHECK_DIR",
+      "rule_id": "talos-cloud-005-class-final-abstract",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class or type \"zcx_zapcmd_error\" not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class or type \"zcx_zapcmd_error\" not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method name \"show_cmdline_ui_raises_seam_error\" is too long, maximum length is 30 characters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_ZAPCMD_CMDLINE, class XML file not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "keep_single_parameter_on_one_line",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Keep single parameter on one line"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "ZCX_ZAPCMD_ERROR unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "ZCX_ZAPCMD_ERROR unknown"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCL_ZAPCMD_CMDLINE2, class XML file not found"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "method_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Empty METHOD"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "structure",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unexpected CLASSDEFINITION"
+    },
+    {
+      "object": "ZCL_ZAPCMD_CMDLINE2",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZCL_ZAPCMD_COMMANDER",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    }
+  ]
+}

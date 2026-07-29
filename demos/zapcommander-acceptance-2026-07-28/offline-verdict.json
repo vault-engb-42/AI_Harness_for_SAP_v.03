@@ -1,0 +1,53 @@
+{
+  "demo": "zapcommander-acceptance-2026-07-28",
+  "run_date": "2026-07-29",
+  "mode": "OFFLINE (no DEV, no creds) — analyser -> moderniser -> analyser, engine-to-engine",
+  "corpus": {
+    "repo": "tricktresor/zapcommander",
+    "commit": "3f66b751828e587a522d851c79fb6b7bb3984ae1",
+    "licence": "GPLv3 (viral copyleft) — source AND modernised output NOT vendored, see FETCH.md"
+  },
+  "before": {
+    "source_hash": "b1ac5eab0c912730fc3b5b63f48297046c851fad937636a447224b3bdfad8e83",
+    "files": 47,
+    "auth_checks": 0,
+    "auth_bdef": 0,
+    "commit_work": 0,
+    "dcl_restrictions": 0
+  },
+  "after": {
+    "source_hash": "41ca22c9776010f8f42e86db81b1cf51251255f2da37f8f21fe3a7f24e614656",
+    "files": 64,
+    "auth_checks": 0,
+    "auth_bdef": 0,
+    "commit_work": 0,
+    "dcl_restrictions": 0
+  },
+  "verdict": {
+    "provisional": false,
+    "reasons": [
+      "atc-p1-nonzero",
+      "atc-p2-nonzero",
+      "parity-not-equivalent:needs_review"
+    ]
+  },
+  "driver_self_correction": {
+    "action": "generate",
+    "retry": true,
+    "findings": [
+      "atc-p1-nonzero",
+      "atc-p2-nonzero",
+      "parity-not-equivalent:needs_review"
+    ]
+  },
+  "invariant_diff": {
+    "intact": true,
+    "violations": [],
+    "auth_coverage": {
+      "lost": false,
+      "lost_scopes": []
+    },
+    "auth_delta": false
+  },
+  "honesty": "OFFLINE never GREENs (P6). provisional:false = BLOCK on residuals. zapcommander modernises to CLASSES not RAP BOs (no CDS/BDEF/DCL), so auth_bdef/commit_work/dcl_restrictions stay 0 and there is no paradigm_shift — that is HONEST for a SAP-GUI/OS file manager, not a defect. The value is scale (39 nodes / 6 waves) + honest NEEDS_MANUAL_SEAM sealing of GUI/OS/RFC/dynpro. Activation + ATC + ABAP Unit are DEV-creds-gated (blocked_on: DEV-CREDS)."
+}

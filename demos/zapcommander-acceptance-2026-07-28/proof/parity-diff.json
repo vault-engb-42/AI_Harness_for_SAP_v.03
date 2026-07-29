@@ -1,0 +1,14 @@
+{
+  "changed_edges": [],
+  "transformations": [],
+  "money_operands": [],
+  "statement_kind_changes": [],
+  "client_specified_delta": false,
+  "paradigm_shift": false,
+  "auth_vanished": false,
+  "reassembly_broken": false,
+  "auth_object_changed": false,
+  "exception_path_dropped": false,
+  "cfg_branch_regression": true,
+  "max_nesting_regression": true
+}

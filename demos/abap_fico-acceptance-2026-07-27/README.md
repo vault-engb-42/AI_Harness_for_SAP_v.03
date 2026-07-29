@@ -29,6 +29,29 @@ exists offline, isolated behind a named `NEEDS_MANUAL_SEAM` stub (never invented
 now runs inside SELF_CHECK — so the generated RAP never ships the handler-discipline residuals the
 2026-07-14 demo still carried (11 P1). This is a *cleaner* generation than before.
 
+## Why this corpus modernises to real RAP — and why some corpora can't
+
+abap_fico is a **FICO business application** — its substance is *data logic*: G/L postings, document
+validations, field-status checks, CDS-shaped reads of released business objects. That logic maps
+almost 1:1 onto the ABAP Cloud model, so the port is deep and mostly complete:
+
+| | abap_fico (this demo) | zapcommander (the scale/GUI demo) |
+|---|---|---|
+| Nature | FICO **business logic** | SAP-GUI/OS/RFC **file manager** |
+| Methods **ported to real Cloud code** | **85%** (44 of 52 methods, 90% of body-LOC) | 60% (197 of 333, 60% of body-LOC) |
+| `NEEDS_MANUAL_SEAM` methods | **8** (thin — BAPI/print/field-status residuals) | 136 (the entire I/O boundary) |
+| Full **managed RAP BOs** produced | **3** (`ZFI_C0001`, `ZFI_C0002`, `ZCREATE_ASSET`) + 5 BDEF / 7 CDS / 3 DCL | **0** (class-only — no Cloud form for its core) |
+| Honest verdict | **modernise** — it became Clean-Core RAP | **re-architect or retire** — its core is prohibited in ABAP Cloud |
+
+The difference is a property of the **corpus, not the harness**. A business app is mostly portable
+logic, so the seams are a handful of leaf residuals (a BAPI with no released successor, a print-params
+call) and the result is genuine Clean-Core RAP. A GUI/OS file manager is *mostly boundary code*
+(dynpro, `OPEN DATASET`, `CALL 'SYSTEM'`, RFC directory listing) that SAP deliberately removed from the
+Cloud language — so the harness ports the ~60% that is real logic and **honestly seals** the rest
+rather than fabricating Cloud APIs that don't exist. See
+[`../zapcommander-acceptance-2026-07-28/`](../zapcommander-acceptance-2026-07-28/) for that contrasting
+run: same pipeline, opposite corpus, honest opposite outcome.
+
 ## The run
 
 - **Corpus:** `PON-HANNES/abap_fico` @ `ebd429a1` — 77 source files, 11 modernisable objects. Fetched

@@ -1,0 +1,1697 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "zapcommander",
+  "source_system": "bundle:demos/zapcommander-acceptance-2026-07-28/before/source",
+  "source_hash": "b1ac5eab0c912730fc3b5b63f48297046c851fad937636a447224b3bdfad8e83",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "65ee99bb396a44251ba2daf46c9a0bd7a1706c94c4b30b87d136815a85833b12",
+  "object_count": 56,
+  "objects_included": 56,
+  "finding_count": 3224,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_IF_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CALL_CMDLINE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CALL_EDITOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_EXEC_CMD",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_GET_OPSYS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CHECK_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_GET_HOMEDIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_READ_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_DELETE_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_READ_BINFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_READ_TEXTFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_WRITE_BINFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_WRITE_TEXTFILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_EDITOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST_LEFT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST_RIGHT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_KNOTLIST",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_CL_USER_EXIT_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_FG_CMDLINE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_FG_EDITOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_ZAPCMD_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "RFCDES",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POPUP_GET_VALUES",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POPUP_TO_CONFIRM",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CX_STATIC_CHECK",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "DOKU_OBJECT_SHOW",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IF_T100_MESSAGE",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "POPUP_TO_GET_VALUE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "DD03L",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "LVC_FIELDCATALOG_MERGE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "POPUP_TO_INFORM",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SAPGUI_PROGRESS_INDICATOR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SEOMETAREL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SHOW_FILEPATH_FREESPACE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "FILEPATH",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "FILE_GET_NAME_USING_PATH",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "TH_SERVER_LIST",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "USER_DIR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_EDITOR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_EDITOR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILE",
+      "rule_id": "talos-sec-003-code-injection",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Dynamic ABAP source generation via INSERT REPORT / GENERATE SUBROUTINE POOL — RCE risk (SEC-003)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-cloud-008-describe-table-lines",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "DESCRIBE TABLE ... LINES is forbidden in ABAP Cloud — use lines( itab ) (CLOUD-008)."
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "Nested SELECT ... ENDSELECT inside a LOOP causes N+1 database round-trips (ABAP-N1)"
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "Nested SELECT ... ENDSELECT inside a LOOP causes N+1 database round-trips (ABAP-N1)"
+    },
+    {
+      "object": "ZAPCMD_CL_FILELIST",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "Nested SELECT ... ENDSELECT inside a LOOP causes N+1 database round-trips (ABAP-N1)"
+    },
+    {
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "rule_id": "talos-os-command",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core"
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "rule_id": "talos-os-command",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core"
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_KNOT",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_CMDLINE",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAPCMD_FG_CMDLINE",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZAPCMD_FG_EDITOR",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAPCMD_FG_EDITOR",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAPCMD_FG_EDITOR",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-cloud-006-write",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-os-command",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core"
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-os-command",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OS command execution (CALL 'SYSTEM') is forbidden in Clean-Core"
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-002-open-dataset-var",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "OPEN DATASET with a non-literal (variable) path — path-traversal vector; validate the path (SEC-002)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-003-code-injection",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Dynamic ABAP source generation via INSERT REPORT / GENERATE SUBROUTINE POOL — RCE risk (SEC-003)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_FG_RFC",
+      "rule_id": "talos-sec-007-kernel-call",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Direct kernel call CALL 'SYSTEM' / CALL 'C_*' bypasses the ABAP runtime + authority concept (SEC-007)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method execute"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method handle_doubleclick"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method show"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method show1"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method user_command"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 21"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 24"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_cmdline\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_commandlinenumber\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_dirname\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_filelist\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_gui_dirname\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"cf_gui_textedit\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "class_attribute_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Class attribute name \"ct_line\" does not match pattern ^M._.+$"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZAPCMD_CL_CMDLINE, class XML file not found"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "exporting",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "The EXPORTING keyword can be omitted"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "functional_writing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Use functional writing style for method calls"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "in_statement_indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Fix in-statement indentation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "keep_single_parameter_on_one_line",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Keep single parameter on one line"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <cmdline>"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <filelist>"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <filelist>"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <filelist>"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: e_ucomm"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_cmdline"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_cmdline"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_container"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_container"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_dir"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "method_parameter_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter name does not match pattern ^I._.+$: pf_filelist"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_cmdline\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_commandlinenumber\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_dirname\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_filelist\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_gui_dirname\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"cf_gui_textedit\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "no_public_attributes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Public attributes are not allowed, attribute \"ct_line\""
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "object_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Object name does not match pattern ^ZC(L|X): ZAPCMD_CL_CMDLINE"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, LF_CD"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, LF_CMDLINE"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, LF_DIRNAME"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, LF_LINE"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "prefer_inline",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Prefer Inline Declarations, LF_STREAM"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains unknown, REF, unable to resolve zapcmd_refref_filelist"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"CF_FILELIST\" contains unknown: REF, unable to resolve zapcmd_refref_filelist"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"CT_LINE\" contains unknown: ZAPCMD_TBL_STRING not found, lookup"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"LS_FILEDESCR\" contains unknown: ZAPCMD_FILE_DESCR not found, lookup"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"LT_OUTPUT\" contains unknown: ZAPCMD_TBL_STRING not found, lookup"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "unused_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"ls_filedescr\" not used"
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "use_new",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Use NEW #( ) to instantiate object."
+    },
+    {
+      "object": "ZAPCMD_CL_CMDLINE",
+      "rule_id": "use_new",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Use NEW #( ) to instantiate object."
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method handle_activate"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method show"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method user_command"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of EXPORT TO DATABASE"
+    },
+    {
+      "object": "ZAPCMD_CL_COMMANDER",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    }
+  ]
+}

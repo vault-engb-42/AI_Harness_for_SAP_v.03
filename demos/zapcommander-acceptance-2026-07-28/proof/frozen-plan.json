@@ -1,0 +1,2047 @@
+{
+  "schema_version": "1.0.0",
+  "plan_hash": "b2f93bd516bf3954ae3423ef9c3111fde61de58f7bbb75c4bce9b01808766c48",
+  "session_budget": null,
+  "generator_team_size": 4,
+  "nodes": [
+    {
+      "id": "008fd405309ecae3568088bb22163baae861f592a12878fd80e598bd12d2ae73",
+      "object": "ZAPCMD_CL_SERVER_FILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_SERVER_FILE"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "664ad31de9ee35d3b8736bc8fccc595290b5d5da689a785b82ec73141d839d3a",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_SERVER_FILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "0bd4bb79b2d37f82058f7a5afa42d3b10573d34a7a22ab57c258a8a134ac72fd",
+      "object": "ZAPCMD_CALL_CMDLINE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CALL_CMDLINE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CALL_CMDLINE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "0ce308a393fd74aad48e2903118ce26b715c8820c6c98937b3fe71c26f12555c",
+      "object": "ZAPCMD_SAPCOMMANDER",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_SAPCOMMANDER"
+      ],
+      "break_gate": false,
+      "wave": 5,
+      "dependencies": [
+        "20e3b4f106a5e15ac885b5c0e4c2d1a0d9cebfd46a597cccb31450dc27099d2b",
+        "5147c3d220954ae644c01e86294d2936355b61b9cb4ff94219c75c210ae9a0a7",
+        "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0",
+        "721aa71304453878a10fd1346a8e821fb22540cc6614b851a13015856b772014",
+        "9431530fcd5533bf253aaff70228f7f00383a5bf1cca483df8845c65aa363639"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_SAPCOMMANDER": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "report",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "13fe43c9489636766e3476bf9f75d857ef383cf02959d8afbfb71975247d76c5",
+      "object": "ZAPCMD_CALL_EDITOR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CALL_EDITOR"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CALL_EDITOR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+      "object": "ZAPCMD_CL_FILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FILE"
+      ],
+      "break_gate": false,
+      "dynamic_seal": "NEEDS_MANUAL_SEAM",
+      "wave": 2,
+      "dependencies": [
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "20e3b4f106a5e15ac885b5c0e4c2d1a0d9cebfd46a597cccb31450dc27099d2b",
+      "object": "ZAPCMD_IF_USER_EXIT",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_IF_USER_EXIT"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_IF_USER_EXIT": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "interface",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "286bedea20ea6ff7e31e476ae4a2bae0c7f51b56f50f8bb2222e7fbdc33dd77a",
+      "object": "ZCX_ZAPCMD_ERROR",
+      "kind": "object",
+      "members": [
+        "ZCX_ZAPCMD_ERROR"
+      ],
+      "break_gate": false,
+      "wave": 1,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZCX_ZAPCMD_ERROR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "2effc6bc74a0cfceefb71110fb33b06b6c93574a4c32554caf256fc009dc4957",
+      "object": "ZAPCMD_FG_RFC",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_FG_RFC"
+      ],
+      "break_gate": false,
+      "dynamic_seal": "NEEDS_MANUAL_SEAM",
+      "wave": 1,
+      "dependencies": [],
+      "conflict_keys": [
+        "pool:LZAPCMD_FG_RFCTOP"
+      ],
+      "member_meta": {
+        "ZAPCMD_FG_RFC": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "37b4665aea3f6151feb12485eb8f105b2edc4992e7eade5dbda5ddd82cd6986b",
+      "object": "ZAPCMD_CL_SERVER_FACTORY",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_SERVER_FACTORY"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_SERVER_FACTORY": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+      "object": "ZAPCMD_IF_FACTORY",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_IF_FACTORY"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_IF_FACTORY": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "interface",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "3e02d5c707faa61ec0d80dfc6da9a2017129ae52052e57f1120d57bec0d3e3ec",
+      "object": "ZAPCMD_CL_SERVER_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_SERVER_DIR"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_SERVER_DIR": {
+          "grade": "unknown",
+          "complexity": 1,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "3f1393b17135d5a918116c92dbf44204c7c58f12130b1dfac22044a7ae2050c9",
+      "object": "ZAPCMD_WRITE_TEXTFILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_WRITE_TEXTFILE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_WRITE_TEXTFILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "4765b0ffc0e381b962874320638b5297bfd10f688d1a5b806677cdab3f8dba53",
+      "object": "ZAPCMD_GET_OPSYS",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_GET_OPSYS"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_GET_OPSYS": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "482b957f3fc9bf0c2d25fb097f7afdcf59471cf91f6cd7a6069e264534b7c1a4",
+      "object": "ZAPCMD_FG_EDITOR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_FG_EDITOR"
+      ],
+      "break_gate": false,
+      "wave": 1,
+      "dependencies": [],
+      "conflict_keys": [
+        "pool:LZAPCMD_FG_EDITORTOP"
+      ],
+      "member_meta": {
+        "ZAPCMD_FG_EDITOR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "49af92cd2b42ecddc90d0db8d98b050518092328bd31f15924b984c9736e4322",
+      "object": "ZAPCMD_CL_RFC_FILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_RFC_FILE"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "3f1393b17135d5a918116c92dbf44204c7c58f12130b1dfac22044a7ae2050c9",
+        "4765b0ffc0e381b962874320638b5297bfd10f688d1a5b806677cdab3f8dba53",
+        "53524baf5c41f41f7880997abd569ac3d50f3627599d86eb9e83e955c6ce9966",
+        "664ad31de9ee35d3b8736bc8fccc595290b5d5da689a785b82ec73141d839d3a",
+        "7dd4d724d954ae3ce0d409b1e9cbf12669848321ea83a2a8d204a89824cb1b68",
+        "bf654d6d4fc52be5b4cd8506b29c05ab0f361fb4732d754a9750f66b5cc8c116",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+        "ecef8611e7877638efa0131dde6cd0af315ddcff25a11ad34196394e2b169654",
+        "f92f868992310755312491b205d876dcf85a31bb8ce04a574c98173874fc4cf5"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_RFC_FILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "4a825f1a4d7d8c7fb9e541815cc23214f696e6a902ac3902de02bbf15167452d",
+      "object": "ZAPCMD_CL_FILELIST_RIGHT",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FILELIST_RIGHT"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FILELIST_RIGHT": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "5147c3d220954ae644c01e86294d2936355b61b9cb4ff94219c75c210ae9a0a7",
+      "object": "ZAPCMD_CL_COMMANDER",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_COMMANDER"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "20e3b4f106a5e15ac885b5c0e4c2d1a0d9cebfd46a597cccb31450dc27099d2b",
+        "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0",
+        "721aa71304453878a10fd1346a8e821fb22540cc6614b851a13015856b772014",
+        "bd8fd1392a1a36a0f3dfb21ec86caddfc2914544589f88ef6cf75a36003c6027",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_COMMANDER": {
+          "grade": "unknown",
+          "complexity": 1,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "53524baf5c41f41f7880997abd569ac3d50f3627599d86eb9e83e955c6ce9966",
+      "object": "ZAPCMD_EXEC_CMD",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_EXEC_CMD"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_EXEC_CMD": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0",
+      "object": "ZAPCMD_CL_FILELIST",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FILELIST"
+      ],
+      "break_gate": false,
+      "dynamic_seal": "NEEDS_MANUAL_SEAM",
+      "wave": 3,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "20e3b4f106a5e15ac885b5c0e4c2d1a0d9cebfd46a597cccb31450dc27099d2b",
+        "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+        "721aa71304453878a10fd1346a8e821fb22540cc6614b851a13015856b772014",
+        "8b6fd277e3de6f425276e3a4aa1675519b4529ad093f5d02ff7e919020605842",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FILELIST": {
+          "grade": "unknown",
+          "complexity": 1,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "660d8209a8ad8633d70377100d70021c705c9ff25662effa06e935a4e4aad89c",
+      "object": "ZAPCMD_CL_RFC_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_RFC_DIR"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "4765b0ffc0e381b962874320638b5297bfd10f688d1a5b806677cdab3f8dba53",
+        "53524baf5c41f41f7880997abd569ac3d50f3627599d86eb9e83e955c6ce9966",
+        "81bf4f4659ace44e417b2c1cab759eb25b3c2d9a24b3d1cdaeda5ec17888e666",
+        "9c387af743c0e74910b1a56609708616c28fe9cb974e30bac05b25eb1823702e",
+        "bdccb82a860f5089ef856295f4ac0f03f30d4f9d84945c90adb2c89088aee49f",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_RFC_DIR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "664ad31de9ee35d3b8736bc8fccc595290b5d5da689a785b82ec73141d839d3a",
+      "object": "ZAPCMD_CL_FRONTEND_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FRONTEND_DIR"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FRONTEND_DIR": {
+          "grade": "unknown",
+          "complexity": 1,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "721aa71304453878a10fd1346a8e821fb22540cc6614b851a13015856b772014",
+      "object": "ZAPCMD_CL_USER_EXIT_FACTORY",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_USER_EXIT_FACTORY"
+      ],
+      "break_gate": false,
+      "dynamic_seal": "NEEDS_MANUAL_SEAM",
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_USER_EXIT_FACTORY": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "76a47de36ba44a926061bca84eaf5c0889cd03e1f48642134148ace18b5c06b2",
+      "object": "ZAPCMD_CL_FILELIST_LEFT",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FILELIST_LEFT"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FILELIST_LEFT": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "7c6cc340d43a703525b71036bf069d6b683bb524b77a7126c44294707fead31b",
+      "object": "ZAPCMD_CL_FRONTEND_FILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FRONTEND_FILE"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FRONTEND_FILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "7dd4d724d954ae3ce0d409b1e9cbf12669848321ea83a2a8d204a89824cb1b68",
+      "object": "ZAPCMD_DELETE_FILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_DELETE_FILE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_DELETE_FILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "81bf4f4659ace44e417b2c1cab759eb25b3c2d9a24b3d1cdaeda5ec17888e666",
+      "object": "ZAPCMD_READ_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_READ_DIR"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_READ_DIR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "8b6fd277e3de6f425276e3a4aa1675519b4529ad093f5d02ff7e919020605842",
+      "object": "ZAPCMD_CL_KNOTLIST",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_KNOTLIST"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_KNOTLIST": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "9431530fcd5533bf253aaff70228f7f00383a5bf1cca483df8845c65aa363639",
+      "object": "ZAPCMD_CL_CMDLINE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_CMDLINE"
+      ],
+      "break_gate": false,
+      "wave": 4,
+      "dependencies": [
+        "0bd4bb79b2d37f82058f7a5afa42d3b10573d34a7a22ab57c258a8a134ac72fd",
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+        "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0",
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_CMDLINE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "9c387af743c0e74910b1a56609708616c28fe9cb974e30bac05b25eb1823702e",
+      "object": "ZAPCMD_GET_HOMEDIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_GET_HOMEDIR"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_GET_HOMEDIR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "a07ae3cbec600240af351c8ad829062e93c8138cb5ca612eb567c5759b4f5323",
+      "object": "ZAPCMD_CL_RFC_FACTORY",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_RFC_FACTORY"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_RFC_FACTORY": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "bd8fd1392a1a36a0f3dfb21ec86caddfc2914544589f88ef6cf75a36003c6027",
+      "object": "ZAPCMD_CL_EDITOR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_EDITOR"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "13fe43c9489636766e3476bf9f75d857ef383cf02959d8afbfb71975247d76c5",
+        "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_EDITOR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "bdccb82a860f5089ef856295f4ac0f03f30d4f9d84945c90adb2c89088aee49f",
+      "object": "ZAPCMD_CHECK_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CHECK_DIR"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CHECK_DIR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "bf654d6d4fc52be5b4cd8506b29c05ab0f361fb4732d754a9750f66b5cc8c116",
+      "object": "ZAPCMD_READ_TEXTFILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_READ_TEXTFILE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_READ_TEXTFILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+      "object": "ZAPCMD_CL_KNOT",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_KNOT"
+      ],
+      "break_gate": false,
+      "wave": 1,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_KNOT": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "ecef8611e7877638efa0131dde6cd0af315ddcff25a11ad34196394e2b169654",
+      "object": "ZAPCMD_WRITE_BINFILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_WRITE_BINFILE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_WRITE_BINFILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "f4acdf07143dd08b65e62e772e0ed9d559514daea46c667d7ea437fc59569be4",
+      "object": "ZAPCMD_FG_CMDLINE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_FG_CMDLINE"
+      ],
+      "break_gate": false,
+      "wave": 1,
+      "dependencies": [],
+      "conflict_keys": [
+        "pool:LZAPCMD_FG_CMDLINETOP"
+      ],
+      "member_meta": {
+        "ZAPCMD_FG_CMDLINE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada",
+      "object": "ZAPCMD_CL_DIR",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_DIR"
+      ],
+      "break_gate": false,
+      "wave": 2,
+      "dependencies": [
+        "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_DIR": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "f92f868992310755312491b205d876dcf85a31bb8ce04a574c98173874fc4cf5",
+      "object": "ZAPCMD_READ_BINFILE",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_READ_BINFILE"
+      ],
+      "break_gate": false,
+      "wave": 0,
+      "dependencies": [],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_READ_BINFILE": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": false,
+      "artifacts": [
+        {
+          "obj_type": "function",
+          "transport_rank": 1,
+          "name": null
+        }
+      ]
+    },
+    {
+      "id": "ff8ace9c05467e9712dd7744a468c7cc8c3ca518e49d9ff51b1b121d2b924fa5",
+      "object": "ZAPCMD_CL_FRONTEND_FACTORY",
+      "kind": "object",
+      "members": [
+        "ZAPCMD_CL_FRONTEND_FACTORY"
+      ],
+      "break_gate": false,
+      "wave": 3,
+      "dependencies": [
+        "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+        "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+      ],
+      "conflict_keys": [],
+      "member_meta": {
+        "ZAPCMD_CL_FRONTEND_FACTORY": {
+          "grade": "unknown",
+          "complexity": 0,
+          "blast": 0
+        }
+      },
+      "parity_required": true,
+      "artifacts": [
+        {
+          "obj_type": "cds",
+          "transport_rank": 1,
+          "name": null
+        },
+        {
+          "obj_type": "dcls",
+          "transport_rank": 2,
+          "name": null
+        },
+        {
+          "obj_type": "ddlx",
+          "transport_rank": 3,
+          "name": null
+        },
+        {
+          "obj_type": "intf",
+          "transport_rank": 4,
+          "name": null
+        },
+        {
+          "obj_type": "class",
+          "transport_rank": 5,
+          "name": null
+        },
+        {
+          "obj_type": "bdef",
+          "transport_rank": 6,
+          "name": null
+        },
+        {
+          "obj_type": "srvd",
+          "transport_rank": 7,
+          "name": null
+        },
+        {
+          "obj_type": "srvb",
+          "transport_rank": 8,
+          "name": null
+        },
+        {
+          "obj_type": "test_class",
+          "transport_rank": 9,
+          "name": null
+        }
+      ]
+    }
+  ],
+  "waves": [
+    [
+      "0bd4bb79b2d37f82058f7a5afa42d3b10573d34a7a22ab57c258a8a134ac72fd",
+      "13fe43c9489636766e3476bf9f75d857ef383cf02959d8afbfb71975247d76c5",
+      "20e3b4f106a5e15ac885b5c0e4c2d1a0d9cebfd46a597cccb31450dc27099d2b",
+      "3dc076c18ee859877dd370221ebf8896cc930f473b1e05c5b3a8ce5ddbfb468c",
+      "3f1393b17135d5a918116c92dbf44204c7c58f12130b1dfac22044a7ae2050c9",
+      "4765b0ffc0e381b962874320638b5297bfd10f688d1a5b806677cdab3f8dba53",
+      "53524baf5c41f41f7880997abd569ac3d50f3627599d86eb9e83e955c6ce9966",
+      "721aa71304453878a10fd1346a8e821fb22540cc6614b851a13015856b772014",
+      "7dd4d724d954ae3ce0d409b1e9cbf12669848321ea83a2a8d204a89824cb1b68",
+      "81bf4f4659ace44e417b2c1cab759eb25b3c2d9a24b3d1cdaeda5ec17888e666",
+      "8b6fd277e3de6f425276e3a4aa1675519b4529ad093f5d02ff7e919020605842",
+      "9c387af743c0e74910b1a56609708616c28fe9cb974e30bac05b25eb1823702e",
+      "bdccb82a860f5089ef856295f4ac0f03f30d4f9d84945c90adb2c89088aee49f",
+      "bf654d6d4fc52be5b4cd8506b29c05ab0f361fb4732d754a9750f66b5cc8c116",
+      "ecef8611e7877638efa0131dde6cd0af315ddcff25a11ad34196394e2b169654",
+      "f92f868992310755312491b205d876dcf85a31bb8ce04a574c98173874fc4cf5"
+    ],
+    [
+      "286bedea20ea6ff7e31e476ae4a2bae0c7f51b56f50f8bb2222e7fbdc33dd77a",
+      "2effc6bc74a0cfceefb71110fb33b06b6c93574a4c32554caf256fc009dc4957",
+      "482b957f3fc9bf0c2d25fb097f7afdcf59471cf91f6cd7a6069e264534b7c1a4",
+      "db645b2a738416e23d2c30c02a269dc22e3751f657632e3791e7035249cc74f0",
+      "f4acdf07143dd08b65e62e772e0ed9d559514daea46c667d7ea437fc59569be4"
+    ],
+    [
+      "18bbfa519117fab2a7c289cd65037c3966ee8080d5fa886e382f68d9a19a979f",
+      "f7c73719e5a57390fe674cb90d5f8ed08cb30cd04360faa96aabe2b261168ada"
+    ],
+    [
+      "37b4665aea3f6151feb12485eb8f105b2edc4992e7eade5dbda5ddd82cd6986b",
+      "3e02d5c707faa61ec0d80dfc6da9a2017129ae52052e57f1120d57bec0d3e3ec",
+      "656d49f7fd755b737791c9d2f7a5460e40de7bccc52e10e5a0d012f3cdf373d0",
+      "660d8209a8ad8633d70377100d70021c705c9ff25662effa06e935a4e4aad89c",
+      "664ad31de9ee35d3b8736bc8fccc595290b5d5da689a785b82ec73141d839d3a",
+      "7c6cc340d43a703525b71036bf069d6b683bb524b77a7126c44294707fead31b",
+      "a07ae3cbec600240af351c8ad829062e93c8138cb5ca612eb567c5759b4f5323",
+      "bd8fd1392a1a36a0f3dfb21ec86caddfc2914544589f88ef6cf75a36003c6027",
+      "ff8ace9c05467e9712dd7744a468c7cc8c3ca518e49d9ff51b1b121d2b924fa5"
+    ],
+    [
+      "008fd405309ecae3568088bb22163baae861f592a12878fd80e598bd12d2ae73",
+      "49af92cd2b42ecddc90d0db8d98b050518092328bd31f15924b984c9736e4322",
+      "4a825f1a4d7d8c7fb9e541815cc23214f696e6a902ac3902de02bbf15167452d",
+      "5147c3d220954ae644c01e86294d2936355b61b9cb4ff94219c75c210ae9a0a7",
+      "76a47de36ba44a926061bca84eaf5c0889cd03e1f48642134148ace18b5c06b2",
+      "9431530fcd5533bf253aaff70228f7f00383a5bf1cca483df8845c65aa363639"
+    ],
+    [
+      "0ce308a393fd74aad48e2903118ce26b715c8820c6c98937b3fe71c26f12555c"
+    ]
+  ],
+  "edges_ref": [],
+  "edges_conflict": [],
+  "seams": [],
+  "park_register": []
+}

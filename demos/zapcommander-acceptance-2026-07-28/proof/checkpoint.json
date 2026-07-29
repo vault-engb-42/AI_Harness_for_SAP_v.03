@@ -1,0 +1,22 @@
+{
+  "atc_p1": 1,
+  "atc_p2": 2635,
+  "invariants": {
+    "intact": true,
+    "violations": [],
+    "auth_delta": false
+  },
+  "auth_coverage": {
+    "lost": false,
+    "lost_scopes": []
+  },
+  "parity": {
+    "score": 0.65,
+    "verdict": "needs_review",
+    "classes": [],
+    "evidence": [
+      "deduct:cfg_branch_regression:-0.2",
+      "deduct:max_nesting_regression:-0.15"
+    ]
+  }
+}
