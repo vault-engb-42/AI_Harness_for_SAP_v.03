@@ -17,6 +17,8 @@
  *   verdict <run_id> <sig> --checkpoint f --evidence f [--record]
  *   lint-rules <sig> --files <dir>   (gap-2a: analyser RAP/N+1 rule gate; exit 2 on a hit)
  *   findings-brief <object> --findings <analyser-findings.json>   (pre-gen "avoid these" grounding)
+ *   disposition <run_id>   (plan-time gate 1: emit disposition-manifest.json + raise DISPOSITION_REVIEWs)
+ *   arch <run_id> <findings.json> [--findings f] [--model m] [--prompt-hash h]   (plan-time gate 2: reason a target_shape per re_architect/rebuild node → app blueprint → freeze coarse Architecture Contracts → architecture-manifest.json + raise ARCH_REVIEWs; a cache miss surfaces await_arch requests for the judge fulfiller)
  *   drive <run_id> [--report <sig>=<syntax_ok|syntax_fail|generator_error>]   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked}; --report is the driver's retry-vs-ceiling channel, Option A)
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
@@ -37,6 +39,7 @@ import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
 import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } from "./cli-escalations.js";
+import { cmdArch } from "./cli-arch.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
@@ -57,6 +60,7 @@ const COMMANDS = {
   seams: cmdSeams,
   "resolve-cycle": cmdResolveCycle,
   disposition: cmdDisposition,
+  arch: cmdArch,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
   packets: cmdPackets,
@@ -94,7 +98,15 @@ function cmdPlan(io, pos, flags) {
   // run under the SAME id while escalations.json survives — the epoch makes each plan
   // invocation a distinct attestation domain, so a discarded run's attestation can never
   // bless the recreated run's artifact. Shell-side clock; the reducer stays pure.
-  saveState(io, runId, { ...initRun(plan), run_epoch: new Date().toISOString() });
+  // source_hash/config_hash (B3.5a, reviewer F2): pin the findings identity into run state so the plan-time
+  // `arch` verb can verify it re-reads the SAME source (an augment-safe check that a plan_hash re-assemble
+  // cannot do — re-assembling without the original --bundle augment always mismatches).
+  saveState(io, runId, {
+    ...initRun(plan),
+    run_epoch: new Date().toISOString(),
+    source_hash: doc.source_hash ?? null,
+    config_hash: doc.config_hash ?? null,
+  });
   log(io, runId, "plan", { plan_hash: plan.plan_hash, nodes: plan.nodes.length });
   return {
     run_id: runId,

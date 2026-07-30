@@ -103,6 +103,20 @@ export const dispositionManifestPath = (io, runId) => join(io.runsDir, runId, "d
 export const readDispositionManifest = (io, runId) => readJson(dispositionManifestPath(io, runId), null);
 export const saveDispositionManifest = (io, runId, m) => writeDurable(dispositionManifestPath(io, runId), JSON.stringify(m, null, 2));
 
+// architecture manifest + per-sig Architecture Contracts (B3.5a, S12/§6.13) — the arch-gate artifacts at
+// specs/runs/<run_id>/. The contract filename embeds the node sig, so guard it against path traversal (P8).
+export const architectureManifestPath = (io, runId) => join(io.runsDir, runId, "architecture-manifest.json");
+export const readArchManifest = (io, runId) => readJson(architectureManifestPath(io, runId), null);
+export const saveArchManifest = (io, runId, m) => writeDurable(architectureManifestPath(io, runId), JSON.stringify(m, null, 2));
+export function archContractPath(io, runId, sig) {
+  if (!/^[A-Za-z0-9._-]+$/.test(sig) || sig.includes("..")) {
+    throw new Error(`invalid contract sig '${sig}' — [A-Za-z0-9._-] only, no separators or '..' (path traversal, P8)`);
+  }
+  return join(io.runsDir, runId, `arch-contract-${sig}.json`);
+}
+export const readArchContract = (io, runId, sig) => readJson(archContractPath(io, runId, sig), null);
+export const saveArchContract = (io, runId, sig, c) => writeDurable(archContractPath(io, runId, sig), JSON.stringify(c, null, 2));
+
 export function readBaselines(stateDir) {
   return {
     atcBaseline: readJson(join(stateDir, "atc-baseline.json"), { per_object: {} }),

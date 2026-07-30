@@ -12,8 +12,10 @@
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
 import { recordDispositionDecision, raiseDispositionReviews } from "./plan/disposition-gate.js";
+import { recordArchDecision, parseArchDecision } from "./plan/arch-gate.js";
+import { bindArchContract } from "./plan/arch-contract.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
-import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, log } from "./cli-io.js";
+import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, saveState, log } from "./cli-io.js";
 
 const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the manifest pins it
 
@@ -88,7 +90,19 @@ export function cmdDecide(io, pos, flags) {
   const target = reg.escalations.find((e) => e.id === id && e.status === "OPEN");
   const ts = new Date().toISOString();
   let next;
-  if (target?.kind === "DISPOSITION_REVIEW") {
+  if (target?.kind === "ARCH_REVIEW") {
+    // Plan-time architecture ratification (B3.5a, S12): the decision precedes any artifact, so there is NO
+    // generation to bind. Bind the ratified contract_hash + reviewer verdict from run state onto the row; on
+    // approve, also stamp ratified_by into state.arch_contracts so isArchRatified passes for the driver. State
+    // is saved BEFORE the escalation resolves (below): a crash residue is a ratified-but-still-OPEN review,
+    // healed by the idempotent retry — the reverse order would resolve the review yet leave the driver blocked.
+    const sig = target.node_ids[0];
+    const binding = state.arch_contracts?.[sig];
+    next = recordArchDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, contract_hash: binding?.hash, reviewer_verdict: binding?.reviewer_verdict });
+    if (parseArchDecision(decision).verb === "approve") {
+      saveState(io, runId, bindArchContract(state, sig, { ref: binding?.ref, hash: binding?.hash, ratified_by: flags.by, reviewer_verdict: binding?.reviewer_verdict }));
+    }
+  } else if (target?.kind === "DISPOSITION_REVIEW") {
     // Plan-time gate (B3): the decision precedes any artifact, so there is NO generation to bind —
     // route to the parametrized recorder (approve | override:<disposition> | other:<freeform>), S2.
     next = recordDispositionDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId });
