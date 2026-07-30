@@ -1,6 +1,6 @@
 /**
  * Escalation bus (MODERNISER_DESIGN §3.4 #1/#3/#6, L2/L7). The human is an exception
- * handler + attester, never a volume gate: only the 7 taxonomy kinds exist (everything
+ * handler + attester, never a volume gate: only the 9 taxonomy kinds exist (everything
  * else is a machine BLOCK), raising is idempotent per (kind, node-id set) so one root
  * cause never storms the human, and surfacing is rate-limited — critical-path escalations
  * first, the rest QUEUED, never dropped.
@@ -27,6 +27,7 @@ export const ESCALATION_KINDS = Object.freeze([
   "RISK_LEVEL_REVIEW",
   "PARITY_REVIEW",
   "DISPOSITION_REVIEW", // plan-time disposition gate (B3, S2) — one per prompted node
+  "ARCH_REVIEW", //       plan-time architecture gate (B3.5a, S12) — one per re_architect/rebuild node
 ]);
 
 const KIND_SET = new Set(ESCALATION_KINDS);

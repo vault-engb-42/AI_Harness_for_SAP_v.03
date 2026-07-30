@@ -9,7 +9,9 @@
  * The §3.4 #8 text enumerates decisions for five kinds; PARITY_REVIEW and
  * REPLAN_WAVE_MOVE are derived from their governing sections (§6.1: the gray band needs a
  * human ATTESTATION recorded as evidence — not a PASS; §6.3: a committed wave move needs
- * sign-off or the old plan stands).
+ * sign-off or the old plan stands). The two plan-time gates DISPOSITION_REVIEW (B3/S2) and
+ * ARCH_REVIEW (B3.5a/S12) are PARAMETRIZED — their dedicated recorders (disposition-gate.js /
+ * arch-gate.js) parse the `verb:param` form; the generic recordDecision below is for the fixed sets.
  */
 import { resolveEscalation, ESCALATION_KINDS } from "./escalation-bus.js";
 
@@ -22,6 +24,7 @@ export const DECISIONS = Object.freeze({
   PARITY_REVIEW: ["ATTEST_EQUIVALENT", "REJECT"], //           attestation is evidence, never a machine PASS
   REPLAN_WAVE_MOVE: ["APPROVE_REPLAN", "KEEP_PLAN"],
   DISPOSITION_REVIEW: ["approve", "override", "other"], //     plan-time disposition gate (B3/S2) — PARAMETRIZED (override:<disposition>, other:<freeform>); use plan/disposition-gate.js recordDispositionDecision, not the generic recorder
+  ARCH_REVIEW: ["approve", "refine", "reject"], //             plan-time architecture gate (B3.5a/S12) — PARAMETRIZED (refine:<notes>); use plan/arch-gate.js recordArchDecision, not the generic recorder
 });
 
 const CAUSE = {
@@ -33,6 +36,7 @@ const CAUSE = {
   PARITY_REVIEW: () => "parity score in the [0.30, 0.70) gray band — offline never auto-passes",
   REPLAN_WAVE_MOVE: () => "a re-parse moved a committed node's wave — approve or keep the frozen plan",
   DISPOSITION_REVIEW: (e) => `disposition review for ${e.node_ids.length} node(s) — recommended disposition + alternatives in the manifest`,
+  ARCH_REVIEW: (e) => `architecture review for ${e.node_ids.length} node(s) — recommended target_shape + reviewer verdict in the architecture manifest`,
 };
 
 /**

@@ -2,19 +2,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { raiseEscalation, resolveEscalation, surfaceable, ESCALATION_KINDS } from "../src/exception/escalation-bus.js";
 
-// §3.4 #1/#3/#6 — the escalation bus. Only the 7 taxonomy kinds exist; raising is
-// idempotent per (kind, node_ids) so one root cause never storms the human; surfacing is
-// rate-limited (≤ max per window) with critical-path escalations first, the rest QUEUED,
-// never dropped. Pure copy-on-write over the escalations register; timestamps injected.
+// §3.4 #1/#3/#6 — the escalation bus. Only the 9 taxonomy kinds exist (the 7 §3.4 kinds + the two
+// plan-time gates DISPOSITION_REVIEW/B3 and ARCH_REVIEW/B3.5a); raising is idempotent per (kind, node_ids)
+// so one root cause never storms the human; surfacing is rate-limited (≤ max per window) with critical-path
+// escalations first, the rest QUEUED, never dropped. Pure copy-on-write over the register; timestamps injected.
 
 const empty = () => ({ escalations: [] });
 const A = "a".repeat(64);
 const B = "b".repeat(64);
 
-test("the taxonomy is exactly the 7 §3.4 kinds + the plan-time DISPOSITION_REVIEW (B3/S2)", () => {
+test("the taxonomy is exactly the 7 §3.4 kinds + the plan-time DISPOSITION_REVIEW (B3/S2) + ARCH_REVIEW (B3.5a/S12)", () => {
   assert.deepEqual(
     [...ESCALATION_KINDS].sort(),
-    ["AUTH_EQUIVALENCE", "BREAK_CYCLE", "DISPOSITION_REVIEW", "NO_RELEASED_SUCCESSOR", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW"],
+    ["ARCH_REVIEW", "AUTH_EQUIVALENCE", "BREAK_CYCLE", "DISPOSITION_REVIEW", "NO_RELEASED_SUCCESSOR", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW"],
   );
 });
 
