@@ -1,6 +1,7 @@
 [
   {
     "id": "talos-cds-auth-not-required",
+    "disposition_hint": "auth",
     "family": "security",
     "severity": "priority-2",
     "applies_to": [
@@ -13,6 +14,7 @@
   },
   {
     "id": "talos-cds-missing-access-control",
+    "disposition_hint": "auth",
     "family": "security",
     "severity": "priority-2",
     "applies_to": [

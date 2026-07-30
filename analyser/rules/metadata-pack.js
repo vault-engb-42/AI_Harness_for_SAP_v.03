@@ -101,6 +101,8 @@ function push(findings, rule, obj, file, line) {
     line,
     message: rule.message,
     family: rule.family,
+    // Only present on tagged rules — untagged findings stay byte-identical (no undefined key).
+    ...(rule.disposition_hint ? { disposition_hint: rule.disposition_hint } : {}),
   });
 }
 

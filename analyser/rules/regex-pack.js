@@ -49,6 +49,7 @@ function compiledRules() {
       _compiled.push({
         id: r.id,
         family: r.family,
+        disposition_hint: r.disposition_hint,
         severity: r.severity,
         message: r.message,
         re: new RegExp(r.pattern, flags),
@@ -154,6 +155,8 @@ function scanFile(raw, filename, objName, type, rules, findings) {
           line: i + 1,
           message: rule.message,
           family: rule.family,
+          // Only present on tagged (re-arch-forcing) rules — untagged findings stay byte-identical (no undefined key).
+          ...(rule.disposition_hint ? { disposition_hint: rule.disposition_hint } : {}),
         });
       }
     }

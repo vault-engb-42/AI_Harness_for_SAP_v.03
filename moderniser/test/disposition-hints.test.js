@@ -91,3 +91,16 @@ test("D3: a genuine CALL FUNCTION ... DESTINATION still → rfc_rebuild", () => 
 test("D3: IDoc / ALE still → rfc_rebuild", () => {
   assert.equal(dispositionHint(f({ message: "IDoc inbound processing (ALE) — cross-system integration" })), "rfc_rebuild");
 });
+
+// Data-driven hint (2026-07-30, operator priority): the analyser now tags each re-arch-forcing rule with a
+// `disposition_hint` at emission; the moderniser PREFERS the tag (robust to message wording), regex = fallback.
+test("DATA-DRIVE: a finding's disposition_hint tag WINS over the message regex", () => {
+  // The message alone would regex to `style`; the rule-author's tag says rfc_rebuild.
+  assert.equal(dispositionHint(f({ family: "clean-core", rule_id: "talos-x", message: "a generic clean-core issue", disposition_hint: "rfc_rebuild" })), "rfc_rebuild");
+});
+test("DATA-DRIVE: an unknown/garbage disposition_hint tag never propagates — regex fallback", () => {
+  assert.equal(dispositionHint(f({ rule_id: "talos-cloud-006-write", message: "WRITE: / at 10 'x'", disposition_hint: "nonsense" })), "ui_rearch");
+});
+test("DATA-DRIVE: an untagged finding still derives via the message regex (unchanged fallback = baseline safety)", () => {
+  assert.equal(dispositionHint(f({ message: "IDoc inbound processing (ALE)" })), "rfc_rebuild");
+});

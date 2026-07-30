@@ -29,11 +29,19 @@ const HINT_PATTERNS = [
   ["auth", /authority.?check|\bpfcg\b|\bdcl\b|authorization/i],
 ];
 
+const KNOWN_HINTS = new Set(["ui_rearch", "os_exec", "rfc_rebuild", "db_refactor", "auth", "style"]);
+
 /**
  * @param {{family?: string, rule_id?: string, message?: string}} finding
  * @returns {"ui_rearch"|"os_exec"|"rfc_rebuild"|"db_refactor"|"auth"|"style"}
  */
 export function dispositionHint(finding) {
+  // Data-driven (2026-07-30): the analyser tags each re-arch-forcing rule with a `disposition_hint` at emission
+  // (regex-pack / metadata-pack), captured from the rule author's construct intent. Prefer it — it is robust to
+  // message wording (fixes the real-code under-fire). The regex-over-message below is the FALLBACK for untagged
+  // findings (abaplint built-ins + un-tagged harness rules) and for STATIC fixture docs authored before tagging,
+  // so both fixture baselines are unchanged by construction.
+  if (finding.disposition_hint && KNOWN_HINTS.has(finding.disposition_hint)) return finding.disposition_hint;
   if ((finding.family || "") === "abaplint") return "style"; // abaplint = cosmetic/quality, never a re-arch signal
   const txt = `${finding.rule_id || ""} ${finding.message || ""}`;
   for (const [hint, re] of HINT_PATTERNS) if (re.test(txt)) return hint;

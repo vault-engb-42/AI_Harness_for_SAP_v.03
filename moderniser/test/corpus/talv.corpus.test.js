@@ -80,3 +80,12 @@ test("target-fallback carries generalisation when hints are sparse (analyser-cov
   const targetDriven = plan.nodes.filter((n) => n.disposition === "re_architect" && (n.disposition_hints ?? []).every((h) => h === "style"));
   assert.ok(targetDriven.length >= 1, "some re_architect verdicts come via the analyser TARGET, not a hint — the fallback that keeps generalisation robust to analyser under-description");
 });
+
+// DATA-DRIVE (2026-07-30): the analyser emits `disposition_hint` tags on re-arch-forcing findings (TALV fires
+// ~16: classic-dynpro, screen-flow, salv-factory, deprecated-ALV-FM, DESTINATION); the moderniser prefers them.
+// Pins the data-driven path LIVE on real code. Node distribution unchanged vs the regex era (tagged messages
+// already matched) — residual hint sparsity is rule COVERAGE (e.g. cl_gui_alv_grid unmatched), not prose.
+test("DATA-DRIVE: the analyser emits disposition_hint tags on real findings (mechanism live)", () => {
+  const tagged = (doc.findings ?? []).filter((f) => f.disposition_hint);
+  assert.ok(tagged.length >= 5, "many real findings carry an analyser-emitted disposition_hint tag (TALV is UI-heavy)");
+});

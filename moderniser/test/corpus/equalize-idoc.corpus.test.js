@@ -82,3 +82,12 @@ test("target-fallback carries generalisation when hints are sparse (analyser-cov
   const targetDriven = plan.nodes.filter((n) => n.disposition === "re_architect" && (n.disposition_hints ?? []).every((h) => h === "style"));
   assert.ok(targetDriven.length >= 1, "some re_architect verdicts come via the analyser TARGET, not a hint — the fallback that keeps generalisation robust to analyser under-description");
 });
+
+// DATA-DRIVE (2026-07-30): the analyser now emits `disposition_hint` tags on re-arch-forcing findings; the
+// moderniser prefers them over the message regex. This pins that the data-driven path is LIVE on real code
+// (not dead). NB the node-level distribution is unchanged vs the regex era because the tagged rules' messages
+// already described their construct — so residual hint sparsity is a rule-COVERAGE matter, not message prose.
+test("DATA-DRIVE: the analyser emits disposition_hint tags on real findings (mechanism live)", () => {
+  const tagged = (doc.findings ?? []).filter((f) => f.disposition_hint);
+  assert.ok(tagged.length >= 1, "at least one real finding carries an analyser-emitted disposition_hint tag");
+});

@@ -45,7 +45,8 @@
           "source_category": { "type": "string", "description": "The finding's native family/category, persisted for curation (§3.B)." },
           "grade": { "type": "string", "enum": ["advisory", "warning", "blocker", "needs_review"], "description": "Clean-core grade, routed total+disjoint by family (conv #17): registry families grade via the oracle on referenced_object, all others via severity." },
           "atc_priority": { "type": "string", "enum": ["P1", "P2", "P3", "none"], "description": "ATC priority derived from grade (blocker->P1, warning->P2, advisory->P3, needs_review->none)." },
-          "atcCheckId": { "type": "string", "description": "Nearest ATC check id (§15.7 family map)." }
+          "atcCheckId": { "type": "string", "description": "Nearest ATC check id (§15.7 family map)." },
+          "disposition_hint": { "type": "string", "enum": ["ui_rearch", "os_exec", "rfc_rebuild", "db_refactor", "auth", "style"], "description": "Moderniser disposition hint, tagged by construct-intent on re-arch-forcing rules; the moderniser prefers it over regex-over-message (data-driven, 2026-07-30). Optional — absent on untagged findings." }
         }
       }
     },

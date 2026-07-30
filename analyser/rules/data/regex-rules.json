@@ -11,6 +11,7 @@
   },
   {
     "id": "talos-os-command",
+    "disposition_hint": "os_exec",
     "family": "security",
     "severity": "priority-1",
     "pattern": "CALL\\s+['\"]SYSTEM['\"]",
@@ -43,6 +44,7 @@
   },
   {
     "id": "talos-cloud-006-write",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-1",
     "pattern": "^\\s*WRITE[:/\\s]",
@@ -193,6 +195,7 @@
   },
   {
     "id": "talos-cloud-014-classic-dynpro",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-1",
     "pattern": "^\\s*(?:CALL\\s+SCREEN|SET\\s+SCREEN|LEAVE\\s+SCREEN|LEAVE\\s+PROGRAM)\\b",
@@ -208,6 +211,7 @@
   },
   {
     "id": "talos-cloud-015-salv-table-factory",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-1",
     "pattern": "\\bcl_salv_table\\s*=>\\s*factory\\b",
@@ -401,6 +405,7 @@
   },
   {
     "id": "talos-sec-002-open-dataset-var",
+    "disposition_hint": "os_exec",
     "family": "security",
     "severity": "priority-1",
     "pattern": "\\bOPEN\\s+DATASET\\s+(?!')[^\\s'.]+",
@@ -476,6 +481,7 @@
   },
   {
     "id": "talos-sec-007-kernel-call",
+    "disposition_hint": "os_exec",
     "family": "security",
     "severity": "priority-1",
     "pattern": "\\bCALL\\s+'(?:SYSTEM|C_\\w+)'",
@@ -491,6 +497,7 @@
   },
   {
     "id": "talos-sec-009-dynamic-destination",
+    "disposition_hint": "rfc_rebuild",
     "family": "security",
     "severity": "priority-2",
     "pattern": "\\bDESTINATION\\s+(?!['\"])[\\w_]+",
@@ -536,6 +543,7 @@
   },
   {
     "id": "talos-s4-003-classic-list-output",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-2",
     "pattern": "^\\s*(?:WRITE:|FORMAT\\s+COLOR)\\b",
@@ -550,6 +558,7 @@
   },
   {
     "id": "talos-s4-004-screen-flow",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-1",
     "pattern": "^\\s*(?:SET\\s+SCREEN|CALL\\s+SCREEN)\\b",
@@ -564,6 +573,7 @@
   },
   {
     "id": "talos-s4-005-web-dynpro",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-1",
     "pattern": "\\bIF_WD_\\w+\\b|(?<!\\w)WD_[A-Z]\\w*\\b",
@@ -939,6 +949,7 @@
   },
   {
     "id": "talos-rap-screen-call-in-handler",
+    "disposition_hint": "ui_rearch",
     "family": "rap-odata",
     "severity": "priority-1",
     "pattern": "\\b(?:CALL\\s+SCREEN|SET\\s+SCREEN|CALL\\s+DIALOG|CALL\\s+TRANSACTION|MESSAGE\\s+\\w+\\s+(?:TYPE|WITH|DISPLAY))",
@@ -1250,6 +1261,7 @@
   },
   {
     "id": "talos-perf-18-callfunc-destination-no-bgrfc",
+    "disposition_hint": "rfc_rebuild",
     "family": "performance",
     "severity": "priority-2",
     "pattern": "\\bCALL\\s+FUNCTION\\s+\\S+\\s+DESTINATION\\s+\\S+",
@@ -1283,6 +1295,7 @@
   },
   {
     "id": "talos-deprecated-classic-function-module",
+    "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-2",
     "pattern": "CALL\\s+FUNCTION\\s+'(?:CONVERSION_EXIT_|NUMBER_GET_NEXT|POPUP_TO_CONFIRM|RS_COVERPAGE_|REUSE_ALV_GRID_DISPLAY)[^']*'",

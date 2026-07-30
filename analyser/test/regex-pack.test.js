@@ -29,6 +29,27 @@ START-OF-SELECTION.
   assert.ok(f.some((x) => x.rule_id === "talos-os-command" && x.severity === "priority-1"));
 });
 
+// Data-drive (2026-07-30): re-arch-forcing rules carry a disposition_hint that the pack emits on the finding,
+// so the moderniser reads the hint from data rather than regex-matching the message prose.
+test("regex pack emits disposition_hint on tagged re-arch rules (os_exec / ui_rearch)", () => {
+  const os = findings(`REPORT zr_x.
+START-OF-SELECTION.
+  CALL 'SYSTEM' ID 'COMMAND' FIELD lv_cmd.`).find((x) => x.rule_id === "talos-os-command");
+  assert.equal(os.disposition_hint, "os_exec", "OS-command rule carries its os_exec tag");
+  const wr = findings(`REPORT zr_x.
+START-OF-SELECTION.
+  WRITE: / 'hi'.`).find((x) => x.rule_id === "talos-cloud-006-write");
+  assert.equal(wr.disposition_hint, "ui_rearch", "WRITE rule carries its ui_rearch tag");
+});
+
+test("regex pack emits NO disposition_hint on an untagged rule (regex-fallback path preserved)", () => {
+  const ns = findings(`REPORT zr_x.
+EXEC SQL.
+  SELECT * FROM foo
+ENDEXEC.`).find((x) => x.rule_id === "talos-native-sql");
+  assert.equal(ns.disposition_hint, undefined, "untagged rule emits no tag → moderniser uses the message-regex fallback");
+});
+
 test("regex pack does not match inside full-line comments", () => {
   const f = findings(`REPORT zr_x.
 * EXEC SQL is mentioned here in a comment only
