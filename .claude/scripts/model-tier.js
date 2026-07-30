@@ -21,6 +21,11 @@ const ROLES = [
   "clean-core-reviewer",
   "abap-explorer",
   "transport-manager",
+  // Reasoned-architecture (B3.5, S14): the judgment-correctness reviewer (an agent file) and the
+  // `arch-judge` LOGICAL role — fileless, its pinned model_id keys the verdict cache so a model swap is
+  // a surfaced MISS (never silent). Both run judgment on Opus in every preset (not in any sonnet list).
+  "abap-arch-reviewer",
+  "arch-judge",
 ];
 
 // Every role on Opus except those named — the harness spends Opus on judgment.

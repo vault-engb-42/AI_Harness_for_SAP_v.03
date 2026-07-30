@@ -80,6 +80,7 @@ const GREENFIELD_WIRING = [
   { file: "agents/abap-generator.md", tools: ["mcp__greenfield__ground_released_apis", "mcp__greenfield__lint_abap_cloud"] },
   { file: "agents/planner.md", tools: ["mcp__greenfield__ground_released_apis"] },
   { file: "agents/abap-design-critic.md", tools: ["mcp__greenfield__ground_released_apis"] },
+  { file: "agents/abap-arch-reviewer.md", tools: ["mcp__greenfield__ground_released_apis"] },
 ];
 
 test("greenfield MCP tools are granted in the frontmatter of the agents that must call them", () => {
@@ -94,6 +95,21 @@ test("greenfield MCP tools are granted in the frontmatter of the agents that mus
 test("the greenfield MCP server backing those tools is declared in .mcp.json", () => {
   const mcp = JSON.parse(readFileSync(join(CLAUDE, "..", ".mcp.json"), "utf8"));
   assert.ok(mcp.mcpServers?.greenfield, ".mcp.json must declare the greenfield MCP server");
+});
+
+// B3.5 seam 5 (BUILD_PLAN S14 / the two Rule-11 reviewers): the reasoned-architecture GAN roles are FOUR
+// distinct agents — judge (planner) ≠ judgment-correctness reviewer (abap-arch-reviewer) ≠ model-quality
+// critic (abap-design-critic) ≠ writer (abap-generator). The arch-reviewer GRADES ONLY: it must hold no
+// write / ATC / activate tool (P5 fail-closed, GAN separation), and it runs judgment on Opus.
+test("the reasoned-architecture GAN roles are four distinct agents; the arch-reviewer is read-only", () => {
+  const roles = ["planner", "abap-arch-reviewer", "abap-design-critic", "abap-generator"];
+  assert.equal(new Set(roles).size, 4, "four distinct roles");
+  for (const r of roles) assert.ok(statSync(join(CLAUDE, "agents", `${r}.md`)).isFile(), `${r}.md exists`);
+  const frontmatter = readFileSync(join(CLAUDE, "agents", "abap-arch-reviewer.md"), "utf8").split(/^---$/m)[1] ?? "";
+  for (const forbidden of ["create_object", "update_source", "activate_object", "activate_objects_batch", "create_or_update_test_class", "run_atc_check", "run_unit_tests"]) {
+    assert.ok(!frontmatter.includes(forbidden), `arch-reviewer frontmatter must NOT grant ${forbidden} (grades only)`);
+  }
+  assert.match(frontmatter, /^model:\s*claude-opus-4-8\s*$/m, "arch-reviewer runs judgment on Opus");
 });
 
 // G1: the managed RAP-BO template must carry a saver-class skeleton for the

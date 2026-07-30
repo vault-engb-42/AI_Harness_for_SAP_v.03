@@ -6,9 +6,18 @@ import { PRESETS, modelForRole, rewriteModelLine } from "../model-tier.js";
 const OPUS = "claude-opus-4-8";
 const SONNET = "claude-sonnet-4-6";
 
-test("presets exist for cost, balanced, max-quality and cover all 9 agents", () => {
+test("presets exist for cost, balanced, max-quality and cover all 11 roles", () => {
   for (const p of ["cost", "balanced", "max-quality"]) {
-    assert.equal(Object.keys(PRESETS[p]).length, 9, `${p} should pin 9 roles`);
+    assert.equal(Object.keys(PRESETS[p]).length, 11, `${p} should pin 11 roles`);
+  }
+});
+
+test("the reasoned-architecture roles run judgment on Opus in every preset", () => {
+  // abap-arch-reviewer is a fresh-context judgment reviewer (agent file); arch-judge is the fileless
+  // logical role whose pinned model_id keys the verdict cache (a swap is a MISS, surfaced — S14).
+  for (const preset of ["cost", "balanced", "max-quality"]) {
+    assert.equal(modelForRole(preset, "abap-arch-reviewer"), OPUS, `${preset} abap-arch-reviewer`);
+    assert.equal(modelForRole(preset, "arch-judge"), OPUS, `${preset} arch-judge`);
   }
 });
 
