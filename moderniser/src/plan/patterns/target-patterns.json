@@ -1,0 +1,96 @@
+{
+  "schema": "moderniser/target-patterns@1",
+  "note": "The extensible target-shape patterns corpus (MODERNISER_DESIGN §6.13 / BUILD_PLAN S11). Grow the corpus, not the code. `when_signals` is a predicate over the STRUCTURAL fact stream (consumption booleans + families + disposition + object_kind), so a coarse analyser `modernization_target` never dictates the shape — the structural evidence does. CAP / side-by-side BTP is OUT OF SCOPE (§6.14) and is deliberately absent. Signal grammar: 'consumption:<fact>' | 'hint:<hint>' | 'family:<family>' | 'disposition:<d>' | 'target:<t>' | 'object_kind:<k>', combined via all/any/none.",
+  "patterns": [
+    {
+      "id": "rap_bo_headless",
+      "name": "Headless RAP Business Object",
+      "when_signals": {
+        "any": ["disposition:re_architect", "disposition:rebuild", "target:RAP Business Object"],
+        "none": ["consumption:ui_salv", "consumption:ui_dynpro", "consumption:remote_rfc", "consumption:remote_bapi", "consumption:remote_idoc"]
+      },
+      "components": ["cds_interface", "cds_projection", "bdef_managed", "behavior_pool", "dcl", "test_class"],
+      "grounding_refs": [],
+      "invariants": ["dcl_authorization", "commit_entities_only", "no_explicit_commit_work"],
+      "example": "abap_fico batch posting program — a transactional backend BO (CDS + managed RAP BO + DCL); no OData service, no Fiori metadata."
+    },
+    {
+      "id": "rap_bo_odata",
+      "name": "RAP Business Object exposed as an OData V4 service",
+      "when_signals": {
+        "any": ["consumption:remote_rfc", "consumption:remote_bapi"]
+      },
+      "components": ["cds_interface", "cds_projection", "bdef_managed", "behavior_pool", "dcl", "service_def", "service_binding", "test_class"],
+      "grounding_refs": [],
+      "invariants": ["dcl_authorization", "commit_entities_only"],
+      "example": "a function consumed remotely (RFC/BAPI) — a RAP BO exposed as an OData V4 service; no interactive Fiori UI."
+    },
+    {
+      "id": "rap_bo_fiori",
+      "name": "RAP Business Object with a Fiori Elements UI",
+      "when_signals": {
+        "any": ["consumption:ui_salv", "consumption:ui_dynpro"]
+      },
+      "components": ["cds_interface", "cds_projection", "bdef_managed", "behavior_pool", "dcl", "service_def", "service_binding", "metadata_ext", "test_class"],
+      "grounding_refs": [],
+      "invariants": ["dcl_authorization", "commit_entities_only", "draft_enabled"],
+      "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page."
+    },
+    {
+      "id": "rap_bo_events",
+      "name": "Event-driven RAP Business Object (RAP business events)",
+      "when_signals": {
+        "any": ["consumption:remote_idoc"]
+      },
+      "components": ["cds_interface", "cds_projection", "bdef_managed", "behavior_pool", "dcl", "rap_business_events", "test_class"],
+      "grounding_refs": [],
+      "invariants": ["dcl_authorization", "commit_entities_only"],
+      "example": "an IDoc / ALE inbound flow — a RAP BO raising/consuming RAP business events for the asynchronous integration."
+    },
+    {
+      "id": "analytical_cds",
+      "name": "Analytical CDS model",
+      "when_signals": {
+        "any": ["family:analytics", "target:CDS View", "target:CDS View Entity"]
+      },
+      "components": ["cds_analytical_cube", "cds_analytical_query"],
+      "grounding_refs": [],
+      "invariants": ["analytics_annotations"],
+      "example": "a reporting / aggregation program — an analytical CDS cube + query (@Analytics.dataCategory)."
+    },
+    {
+      "id": "value_help_cds",
+      "name": "Value-help CDS view",
+      "when_signals": {
+        "any": ["family:value-help", "family:search-help"]
+      },
+      "components": ["cds_value_help"],
+      "grounding_refs": [],
+      "invariants": ["search_help_semantics"],
+      "example": "a classic search help / F4 — a value-help CDS view with @Consumption.valueHelpDefinition."
+    },
+    {
+      "id": "custom_entity_query",
+      "name": "Custom entity + query provider",
+      "when_signals": {
+        "all": ["object_kind:function"],
+        "any": ["hint:os_exec", "hint:db_refactor", "consumption:remote_rfc"]
+      },
+      "components": ["custom_entity", "query_provider_class"],
+      "grounding_refs": [],
+      "invariants": ["readonly_query", "dcl_authorization"],
+      "example": "a function reading external / non-persisted data — a custom entity backed by a query-provider class."
+    },
+    {
+      "id": "released_replace",
+      "name": "Adopt a released SAP standard (fit-to-standard)",
+      "when_signals": {
+        "any": ["disposition:replace"]
+      },
+      "components": ["released_standard_wiring"],
+      "grounding_refs": [],
+      "invariants": ["no_bespoke_build"],
+      "example": "an area S/4 already delivers as a released app/API — wire to the standard instead of building bespoke (fit-to-standard)."
+    }
+  ]
+}
