@@ -96,6 +96,25 @@ test("a CLEAN logic class WITH a re-arch target → re_architect (champion), not
   assert.equal(d.disposition_autonomy, "prompt", "re_architect never auto-applies");
 });
 
+// D2 (adversarial-review hardening 2026-07-29) — isRetainKind must key on the SAP exception-class naming
+// convention (CX_ prefix, incl. Y-namespace + registered namespaces), NOT an over-broad `_ERROR$` suffix.
+test("D2: a Y-namespace exception class YCX_* → refactor (retain broadened beyond ZCX_)", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "YCX_APP_EXCEPTION", disposition_hints: ["rfc_rebuild"], modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "refactor", "a genuine Y-namespace exception class is structurally retained");
+});
+test("D2: a registered-namespace exception class /NS/CX_* → refactor", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "/ACME/CX_FOO", modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "refactor");
+});
+test("D2: a business class ending _ERROR is NOT retained → re_architect via its RAP target (over-match fixed)", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "ZCL_ORDER_ERROR", modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "re_architect", "an ordinary business class named ..._ERROR must not be falsely retained");
+});
+test("D2: the ZCX_ exception convention still retained (zapcommander baseline)", () => {
+  const d = classifyDisposition(node({ object_kind: "class", object: "ZCX_ZAPCMD_ERROR", modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "refactor");
+});
+
 test("released-clean but LOW grounding certainty → refactor but PROMPT (θ=0.9 gate)", () => {
   const d = classifyDisposition(node(), { Z: { released_clean: true, grounding_certainty: 0.8 } });
   assert.equal(d.disposition, "refactor");

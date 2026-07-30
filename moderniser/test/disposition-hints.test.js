@@ -54,3 +54,40 @@ test("hintsForFindings returns the sorted DISTINCT hint set of an object's findi
   ]);
   assert.deepEqual(hs, ["style", "ui_rearch"]);
 });
+
+// Adversarial-review hardening (2026-07-29). Precision fixes for over/under-matching found by the independent
+// generalisation review on REAL analyser rule messages — the two example fixtures were blind to these.
+
+// D1 — the ui_rearch WRITE token must be the ABAP WRITE *statement*, not the English verb "write" in prose.
+// 5 real analyser rules (ABAP-PERF-79, direct-table-write, strict-direct-db, …) carry "write" in remediation prose.
+test("D1: a real perf rule whose prose contains 'write inline' → NOT ui_rearch (ABAP-PERF-79)", () => {
+  const h = dispositionHint(f({ family: "rap-odata", rule_id: "talos-rap-update-task-in-late-save", message: "CALL FUNCTION ... IN UPDATE TASK inside the ADJUST_NUMBERS/SAVE phase queues work past the LUW boundary — write inline in SAVE (ABAP-PERF-79)." }));
+  assert.notEqual(h, "ui_rearch", "the English verb 'write' must not force re-architecture");
+});
+test("D1: a direct-table-write clean-core finding → NOT ui_rearch", () => {
+  assert.notEqual(dispositionHint(f({ family: "clean-core", rule_id: "talos-cloud-021-direct-table-write", message: "Direct write to a persistent table bypasses the buffer; use the released API" })), "ui_rearch");
+});
+test("D1: an AUTHORITY-CHECK finding whose prose contains 'write' → auth (not ui_rearch)", () => {
+  assert.equal(dispositionHint(f({ family: "security", message: "Missing AUTHORITY-CHECK before the write operation" })), "auth");
+});
+test("D1: the ABAP WRITE list STATEMENT still → ui_rearch (WRITE: / WRITE /)", () => {
+  assert.equal(dispositionHint(f({ rule_id: "talos-s4-003", message: "Classic list output: WRITE: / at 10 'x' — migrate to ALV or Fiori (S4-003)" })), "ui_rearch");
+});
+
+// D3 — rfc_rebuild must be the cross-system CALL FUNCTION ... DESTINATION / IDoc / ALE *construct*, not the BTP
+// "Destination service" noun, a dead SFW probe named "…RFC…", or the CSV standard "RFC 4180".
+test("D3: a dead Switch-Framework RFC probe → NOT rfc_rebuild", () => {
+  assert.notEqual(dispositionHint(f({ family: "deprecation", rule_id: "talos-cloud-033-sfw-rfc-get-bfs", message: "Switch Framework bulk-probe RFC 'SFW_BF_GET_BFS' — forbidden in ABAP Cloud; BF state is fixed per release" })), "rfc_rebuild");
+});
+test("D3: an 'RFC 4180' CSV-standard mention → NOT rfc_rebuild", () => {
+  assert.notEqual(dispositionHint(f({ family: "quality", message: "CSV output does not comply with RFC 4180 quoting rules" })), "rfc_rebuild");
+});
+test("D3: an HTTP 'Destination service' noun (create_by_url) → NOT rfc_rebuild", () => {
+  assert.notEqual(dispositionHint(f({ family: "performance", rule_id: "talos-perf-44", message: "HTTP destination created by URL instead of a communication arrangement; use cl_http_destination_provider=>create_by_comm_arrangement" })), "rfc_rebuild");
+});
+test("D3: a genuine CALL FUNCTION ... DESTINATION still → rfc_rebuild", () => {
+  assert.equal(dispositionHint(f({ rule_id: "talos-perf-18", message: "CALL FUNCTION 'Z_REMOTE' DESTINATION lv_dest — synchronous remote call" })), "rfc_rebuild");
+});
+test("D3: IDoc / ALE still → rfc_rebuild", () => {
+  assert.equal(dispositionHint(f({ message: "IDoc inbound processing (ALE) — cross-system integration" })), "rfc_rebuild");
+});

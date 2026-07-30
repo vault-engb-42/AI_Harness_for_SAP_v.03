@@ -16,9 +16,15 @@
  */
 
 const HINT_PATTERNS = [
-  ["ui_rearch", /dynpro|module.?pool|call\s+screen|selection.?screen|\bwrite\b|classic\s*list|list\s*processor|list\s*output|format\s+color|\balv\b|salv|reuse_alv|grid_display|smart\s*form|sapscript|adobe\s*form|web\s*dynpro|\bbsp\b|classic.?ui|legacy.?ui/i],
+  // `write\s*[:/]` is the ABAP WRITE *statement* (WRITE: / WRITE /) — NOT a bare `\bwrite\b`, which the
+  // adversarial review (2026-07-29) showed matches the English verb "write" in remediation prose of ≥5 real
+  // analyser rules (ABAP-PERF-79, direct-table-write, strict-direct-db, …) → false ui_rearch → false re_architect.
+  ["ui_rearch", /dynpro|module.?pool|call\s+screen|selection.?screen|write\s*[:/]|classic\s*list|list\s*processor|list\s*output|format\s+color|\balv\b|salv|reuse_alv|grid_display|smart\s*form|sapscript|adobe\s*form|web\s*dynpro|\bbsp\b|classic.?ui|legacy.?ui/i],
   ["os_exec", /open\s+dataset|call\s+.system.|\bsxpg\b|gui_download|gui_upload|frontend_services|cl_gui_frontend|cl_gui_/i],
-  ["rfc_rebuild", /\bdestination\b|\brfc\b|remote\s+function|\bidoc\b|\bale\b/i],
+  // The cross-system CONSTRUCT, not a coincidental noun: `CALL FUNCTION ... DESTINATION` (not the BTP
+  // "Destination service" noun), and `RFC` only in an ABAP RFC keyword context (not a dead "…RFC 'SFW…'" probe
+  // or the CSV standard "RFC 4180"). Hardened by the adversarial review (2026-07-29).
+  ["rfc_rebuild", /call\s+function\b[\s\S]{0,60}\bdestination\b|\brfc[-_ ]?(?:enabled|destination|call|function|server|client)\b|remote\s+function|\bidoc\b|\bale\b/i],
   ["db_refactor", /\bselect\b|\bddic\b|database|n\+1|host\s+variable|\bsql\b/i],
   ["auth", /authority.?check|\bpfcg\b|\bdcl\b|authorization/i],
 ];

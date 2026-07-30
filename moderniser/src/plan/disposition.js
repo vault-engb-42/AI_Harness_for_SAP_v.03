@@ -88,12 +88,16 @@ function decide(node, g, hints, target) {
 }
 
 /**
- * Structurally non-re-architectable kinds: interfaces stay interfaces; SAP exception classes
- * (CX_/ZCX_/…_ERROR) stay exception classes. Keyed on `object_kind` (the ABAP kind carried from the scoped
- * node) — NOT `node.kind`, which on a plan node is the graph kind ("object"/"super").
+ * Structurally non-re-architectable kinds: interfaces stay interfaces; SAP exception classes stay exception
+ * classes. Keyed on `object_kind` (the ABAP kind carried from the scoped node) — NOT `node.kind`, which on a
+ * plan node is the graph kind ("object"/"super"). Exception classes match the SAP naming convention `CX_`
+ * (incl. `ZCX_`/`YCX_` and registered namespaces `/NS/CX_`). The loose `_ERROR$` suffix was DROPPED
+ * (adversarial review 2026-07-29) — it over-matched ordinary business classes like `ZCL_ORDER_ERROR` and
+ * under-matched Y-namespace/namespaced exceptions. A fully robust check keys on superclass = CX_ROOT (a
+ * scope.js enhancement), not the name.
  */
 function isRetainKind(node) {
   if (node.object_kind === "interface") return true;
-  if (node.object_kind === "class" && /^Z?CX_|_ERROR$/i.test(node.object)) return true;
+  if (node.object_kind === "class" && /(^|\/)[YZ]?CX_/i.test(node.object)) return true;
   return false;
 }
