@@ -44,6 +44,10 @@ export const readParkRegister = (io) => readJson(join(io.stateDir, "park-registe
 export const saveParkRegister = (io, reg) => writeDurable(join(io.stateDir, "park-register.json"), JSON.stringify(reg, null, 2));
 export const readSeamMemory = (io) => readJson(join(io.stateDir, "seam-memory.json"), { learned: {} });
 export const saveSeamMemory = (io, mem) => writeDurable(join(io.stateDir, "seam-memory.json"), JSON.stringify(mem, null, 2));
+// arch-reason verdict cache (B3.5a, S14/ADDITION A) — CROSS-RUN (io.stateDir root, not run-scoped) so a
+// re-analyse reuses a frozen judgment; entry_hash integrity is verified in state/arch-verdict-cache.js.
+export const readArchVerdictCache = (io) => readJson(join(io.stateDir, "arch-verdict-cache.json"), { entries: {} });
+export const saveArchVerdictCache = (io, cache) => writeDurable(join(io.stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
 
 export const saveState = (io, runId, state) => writeDurable(statePath(io, runId), JSON.stringify(state, null, 2));
 
