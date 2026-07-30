@@ -48,6 +48,7 @@ export function initRun(plan, opts = {}) {
     deferral_track: [],
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig
+    arch_contracts: {}, // per-sig ratified Architecture Contract binding {ref,hash,ratified_by,reviewer_verdict} (S6 run state; NOT the frozen node, so plan_hash is unaffected)
     cancel_token: opts.cancel_token ?? null,
   };
 }
