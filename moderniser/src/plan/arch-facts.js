@@ -46,7 +46,12 @@ export function factStream(node, consumptionByObject = {}) {
 
 /** The content hash of the fact stream (S14 verdict-cache key preimage). */
 export function factHash(node, consumptionByObject = {}) {
-  return createHash("sha256").update(canonicalJSON(factStream(node, consumptionByObject))).digest("hex");
+  return hashFactStream(factStream(node, consumptionByObject));
+}
+
+/** The content hash of an already-built fact stream (same sha256(canonicalJSON) as plan_hash). */
+export function hashFactStream(fact) {
+  return createHash("sha256").update(canonicalJSON(fact)).digest("hex");
 }
 
 /** Sorted union of the consumption facts of every member (case-insensitive on the member id). */
