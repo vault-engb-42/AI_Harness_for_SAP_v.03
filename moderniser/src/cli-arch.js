@@ -132,6 +132,9 @@ function freezeContracts(io, runId, resolved, std, corpus, state) {
 /** Bind the contract, PRESERVING an existing ratification iff the hash is unchanged (idempotent re-run safety). */
 function rebind(state, sig, ref, hash) {
   const prior = state.arch_contracts?.[sig];
+  // Hash-guarded: an UNCHANGED contract keeps its human ratification (a re-run must never silently
+  // un-ratify — that would re-block the driver on work the human already approved); a CHANGED contract
+  // voids it, so the human re-ratifies exactly what changed.
   const keep = prior && prior.hash === hash
     ? { ratified_by: prior.ratified_by ?? null, reviewer_verdict: prior.reviewer_verdict ?? null }
     : { ratified_by: null, reviewer_verdict: null };

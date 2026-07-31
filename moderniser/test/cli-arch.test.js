@@ -113,6 +113,59 @@ test("arch is idempotent — a re-run rebinds the same contract hash + raises no
   assert.equal(archEscs(run, planned.run_id).length, 1, "no duplicate review on re-run");
 });
 
+// ---- the ratification-preservation invariant (cli-arch.js: "a re-run never silently un-ratifies") ----
+
+test("arch re-run PRESERVES an existing ratification when the contract hash is unchanged", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const id = archEscs(run, planned.run_id)[0].id;
+  run("decide", planned.run_id, id, "approve", "--by", "eng");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "precondition: ratified");
+
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1"); // identical facts → identical hash
+  const after = stateOf(stateDir, planned.run_id).arch_contracts[target.id];
+  assert.equal(after.ratified_by, "eng", "a re-run must NEVER silently un-ratify (it would re-block the driver)");
+});
+
+test("arch re-run CLEARS the ratification when the contract hash changes (re-ratification is required)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const id = archEscs(run, planned.run_id)[0].id;
+  run("decide", planned.run_id, id, "approve", "--by", "eng");
+
+  // a DIFFERENT judged shape → a different contract → the old ratification must not carry over
+  seedCache(stateDir, target, consOf(), { shape: "rap_bo_odata" });
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const after = stateOf(stateDir, planned.run_id).arch_contracts[target.id];
+  assert.equal(after.ratified_by, null, "a changed contract voids the ratification — the human must re-ratify what changed");
+});
+
+test("decide reject/refine on a re-raised ARCH_REVIEW CLEARS a prior ratification (approve→reject must not stay dispatchable)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "precondition: ratified");
+
+  // the re-run raises a FRESH ARCH_REVIEW over the (preserved) ratified contract; the operator now rejects
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const reopened = archEscs(run, planned.run_id);
+  assert.equal(reopened.length, 1, "a fresh OPEN ARCH_REVIEW is raised after the prior one resolved");
+  run("decide", planned.run_id, reopened[0].id, "reject", "--by", "eng");
+  assert.equal(
+    stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null,
+    "a reject must VOID the prior ratification — otherwise the driver keeps dispatching rejected architecture",
+  );
+});
+
 // ---- fail-closed guards ----
 
 test("arch fails closed when the findings doc source_hash drifts from the planned run (F2)", () => {

@@ -99,8 +99,18 @@ export function cmdDecide(io, pos, flags) {
     const sig = target.node_ids[0];
     const binding = state.arch_contracts?.[sig];
     next = recordArchDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, contract_hash: binding?.hash, reviewer_verdict: binding?.reviewer_verdict });
-    if (parseArchDecision(decision).verb === "approve") {
-      saveState(io, runId, bindArchContract(state, sig, { ref: binding?.ref, hash: binding?.hash, ratified_by: flags.by, reviewer_verdict: binding?.reviewer_verdict }));
+    // approve RATIFIES; refine/reject actively VOID any prior ratification. The clear is not merely the
+    // absence of a stamp: cmdArch PRESERVES a ratification across a re-run with an unchanged contract, so an
+    // approve → (re-raised review) → reject sequence would otherwise leave the node ratified and still
+    // dispatchable — the driver would keep building architecture the human has just rejected.
+    if (binding) {
+      const verb = parseArchDecision(decision).verb;
+      saveState(io, runId, bindArchContract(state, sig, {
+        ref: binding.ref,
+        hash: binding.hash,
+        ratified_by: verb === "approve" ? flags.by : null,
+        reviewer_verdict: binding.reviewer_verdict,
+      }));
     }
   } else if (target?.kind === "DISPOSITION_REVIEW") {
     // Plan-time gate (B3): the decision precedes any artifact, so there is NO generation to bind —
