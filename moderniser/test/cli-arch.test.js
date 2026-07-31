@@ -184,6 +184,21 @@ test("arch fails closed when the findings doc source_hash drifts from the planne
   assert.throws(() => run("arch", planned.run_id, p, "--model", "opus", "--prompt-hash", "ph1"));
 });
 
+test("M2 arch fails CLOSED when the findings doc carries no source_hash/config_hash (the check must not no-op)", () => {
+  const { base, run } = mk();
+  const hashless = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  delete hashless.source_hash;
+  delete hashless.config_hash;
+  const p = join(base, "hashless.json");
+  writeFileSync(p, JSON.stringify(hashless));
+  const planned = run("plan", p);
+  // Both sides are absent, so a `?? null` comparison finds them EQUAL — under which ANY unidentified doc
+  // verifies against a run planned from ANY other. Identity must be positively established, not merely
+  // "not mismatched".
+  assert.throws(() => run("arch", planned.run_id, p, "--model", "opus", "--prompt-hash", "ph1"));
+  assert.throws(() => run("arch-verdict", planned.run_id, p, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j"));
+});
+
 test("arch requires a findings doc (positional or --findings)", () => {
   const { run } = mk();
   const planned = run("plan", FIXTURE);
