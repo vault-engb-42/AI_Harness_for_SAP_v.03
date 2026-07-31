@@ -18,11 +18,7 @@
 import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from "./loop.js";
 import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES } from "../state/node-status.js";
-import { isArchRatified } from "../plan/arch-contract.js";
-
-// The dispositions whose target_shape is unknown until a human ratifies the Architecture Contract — the
-// driver must not generate them before ratification (B4 fail-closed precondition, §4c).
-const ARCH_GATED_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
+import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 
 // The states a node may legitimately rest in when the frontier is empty (offline or terminal). Includes the
 // B4 disposition-route terminals (RETIRED / REBUILT_HANDOFF) — else a retired/handed-off node would satisfy
@@ -40,16 +36,18 @@ const isStarved = (state, id) => state.status[id] === "PENDING" && (state.indegr
 export function driveDecision(plan, state) {
   if (runComplete(plan, state)) return { action: "complete" };
 
+  // The frontier already EXCLUDES arch-gated nodes awaiting ratification (M5: excluded before the team-size
+  // cap, so they never occupy a slot and starve dispatchable work).
   const frontier = nextDispatch(plan, state);
-  if (frontier.length > 0) {
-    // Fail-closed arch precondition (B4): a re_architect/rebuild node is never generated before its
-    // Architecture Contract is human-ratified — its target_shape (and thus what to generate) is unknown
-    // until then. Dispatch the ready (ratified / non-arch) frontier; if the frontier is ENTIRELY
-    // arch-gated, surface it as the ARCH_REVIEW human gate rather than dispatching blind.
-    const ready = frontier.filter((sig) => archReady(plan, state, sig));
-    if (ready.length > 0) return { action: "generate", packets: ready.map((sig) => packetOf(plan, sig)) };
-    return { action: "await_human", nodes: frontier, reason: "arch_ratification" };
-  }
+  if (frontier.length > 0) return { action: "generate", packets: frontier.map((sig) => packetOf(plan, sig)) };
+
+  // Nothing is dispatchable. An arch-gated node whose closure is green is not wedged — it is waiting on the
+  // human ARCH_REVIEW ratification (B4 fail-closed precondition), so name that gate rather than reporting a
+  // wedge the operator cannot act on.
+  const awaitingArch = plan.nodes
+    .filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && state.status[n.id] === "PENDING" && (state.indegree[n.id] ?? 0) === 0 && !isArchRatified(state, n.id))
+    .map((n) => n.id);
+  if (awaitingArch.length > 0) return { action: "await_human", nodes: awaitingArch, reason: "arch_ratification" };
 
   // Frontier is empty and the run is not complete. A human gate (a parked node awaiting its
   // successor, or a dynamic-sealed node awaiting caller-set confirmation) takes priority.
@@ -179,13 +177,6 @@ function ensureGenerated(plan, state, sig) {
   if (next.status[sig] === "PENDING") next = dispatch(plan, next, [sig]); // PENDING → GROUNDED
   if (next.status[sig] === "GROUNDED") next = applyProgress(plan, next, sig, "GENERATED"); // GROUNDED → GENERATED
   return next;
-}
-
-/** An arch-gated node (re_architect/rebuild) is dispatchable only once its contract is ratified; others always. */
-function archReady(plan, state, sig) {
-  const node = plan.nodes.find((n) => n.id === sig);
-  if (!ARCH_GATED_DISPOSITIONS.has(node?.disposition)) return true;
-  return isArchRatified(state, sig);
 }
 
 function packetOf(plan, sig) {

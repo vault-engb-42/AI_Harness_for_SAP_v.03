@@ -21,6 +21,13 @@ import { createHash } from "node:crypto";
 import { canonicalJSON } from "../state/canonical-json.js";
 import { loadPatternCorpus } from "./patterns/match.js";
 
+/**
+ * The dispositions whose TARGET SHAPE is undecided until a human ratifies the Architecture Contract — they
+ * may not enter the build lifecycle before that. Single source of truth for the reducer's dispatch veto, the
+ * driver's frontier exclusion, and the arch verbs, so the three can never drift apart.
+ */
+export const ARCH_GATED_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
+
 /** The content hash of a contract, EXCLUDING its own `contract_hash` field (self-excluding, deterministic). */
 export function contractHash(contract) {
   const { contract_hash, ...rest } = contract ?? {};

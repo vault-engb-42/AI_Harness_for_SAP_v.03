@@ -52,6 +52,35 @@ test("a node with NO disposition dispatches (legacy driver-mechanics path unaffe
   assert.equal(driveDecision(plan, initRun(plan)).action, "generate");
 });
 
+// M5 (Rule-11 review, CONFIRMED): the arch gate must apply BEFORE the team-size cap. nextFrontier sorts the
+// ready set worst-debt-first and then breaks at the cap with no knowledge of arch-gating, so a downstream
+// filter lets an unratified node CONSUME a cap slot and then vanish — starving genuinely dispatchable work
+// and stalling the run for a reason no gate explains.
+
+// The meta is chosen (probe-verified) so that A sorts AHEAD of B in the ready set: with one team slot, A
+// takes it. A is arch-gated and unratified; B is dispatchable right now.
+const cappedPlan = () => ({
+  plan_hash: "h",
+  generator_team_size: 1, // one slot: whoever sorts first takes it
+  nodes: [
+    { id: "A", object: "ZA", dependencies: [], members: ["ZA"], wave: 0, conflict_keys: [], disposition: "re_architect", member_meta: { ZA: { grade: "A", complexity: 1, blast: 0 } } },
+    { id: "B", object: "ZB", dependencies: [], members: ["ZB"], wave: 0, conflict_keys: [], disposition: "refactor", member_meta: { ZB: { grade: "F", complexity: 99, blast: 99 } } },
+  ],
+});
+
+test("M5 an unratified arch node must not CONSUME a team-size slot and starve ready work", () => {
+  const plan = cappedPlan();
+  const d = driveDecision(plan, initRun(plan));
+  assert.equal(d.action, "generate", "the ready refactor node is dispatchable — the run must not stall");
+  assert.deepEqual(d.packets.map((p) => p.sig), ["B"], "the cap slot goes to the node that can actually run");
+});
+
+test("M5 once the arch node is ratified it competes for the slot again (worst-debt-first restored)", () => {
+  const plan = cappedPlan();
+  const ratified = bindArchContract(initRun(plan), "A", { ref: "r", hash: "h1", ratified_by: "eng" });
+  assert.deepEqual(driveDecision(plan, ratified).packets.map((p) => p.sig), ["A"], "worst debt takes the slot");
+});
+
 // M1 (Rule-11 review, CONFIRMED by live probe): the veto must live in the REDUCER, not only in the driver's
 // frontier filter. cli.js exposes `dispatch` and `progress` as first-class verbs that call the reducer
 // directly, so a driveDecision-only guard is bypassable — an unratified re_architect node could be walked

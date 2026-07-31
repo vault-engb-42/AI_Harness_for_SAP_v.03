@@ -19,12 +19,8 @@
  * a state file from another plan is rejected — REPLAN is the only legal crossover, L6).
  */
 import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
-import { isArchRatified } from "../plan/arch-contract.js";
+import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { nextFrontier } from "./frontier.js";
-
-// Dispositions whose TARGET SHAPE is undecided until a human ratifies the Architecture Contract — they may
-// not enter the build lifecycle before that (B4 / M1). Mirrored in sched/drive.js's frontier filter.
-const ARCH_GATED_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -70,6 +66,9 @@ export function nextDispatch(plan, state) {
     status: state.status,
     indegree: state.indegree,
     park: state.park_register.map((p) => p.sig),
+    // An arch-gated node awaiting human ratification cannot run, so it must not occupy a team-size slot
+    // (M5) — the cap is applied to the ready list, and a downstream filter would starve dispatchable work.
+    ineligible: plan.nodes.filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id)).map((n) => n.id),
     meta: metaByMember(plan),
     teamSize: plan.generator_team_size ?? Infinity,
   });

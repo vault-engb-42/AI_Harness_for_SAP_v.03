@@ -31,6 +31,7 @@
  *   status: Record<string, string>,
  *   indegree: Record<string, number>,
  *   park?: string[],
+ *   ineligible?: string[],
  *   meta?: Record<string, {grade?: string, complexity?: number, blast?: number}>,
  *   teamSize?: number,
  * }} state
@@ -46,13 +47,20 @@ export function nextFrontier(state) {
   const keysOf = state.conflict?.keysOf || {};
   const refAdj = undirectedRefAdjacency(condensation.edges);
 
+  // `ineligible` nodes are excluded HERE — before the sort and before the team-size break — so a node that
+  // cannot run (e.g. an arch-gated node awaiting human ratification) can never consume a cap slot and starve
+  // work that is dispatchable right now (M5). A downstream filter cannot fix this: the cap has already
+  // truncated the ready list by then.
+  const ineligible = new Set(state.ineligible || []);
+
   const ready = condensation.superNodes
     .filter(
       (s) =>
         status[s.id] === "PENDING" &&
         indegree[s.id] === 0 && // fail-closed: a missing counter entry is NOT ready
         s.dynamic_seal !== NEEDS_MANUAL_SEAM &&
-        !parked.has(s.id),
+        !parked.has(s.id) &&
+        !ineligible.has(s.id),
     )
     .map((s) => s.id);
 

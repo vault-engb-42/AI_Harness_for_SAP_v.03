@@ -372,9 +372,9 @@ test("gap-1: plan --bundle wires the Stage-1 dynamic scan — seals land on plan
     );
     // without --bundle the same doc plans UNSEALED — and the plan hash records the difference
     const dirs2 = freshDirs();
-    const { cli: cli2 } = mkCli(dirs2);
+    const { cli: cli2, planRatified: planRatified2 } = mkCli(dirs2);
     try {
-      const plain = cli2("plan", FIXTURE);
+      const plain = planRatified2();
       assert.notEqual(plain.plan_hash, sealed.plan_hash, "the augment is part of the frozen, hashed plan");
       const scr2 = plain.nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR");
       assert.deepEqual(cli2("next", plain.run_id).ready.map((r) => r.sig), [scr2.sig], "the plain plan schedules SCR first, unsealed");
