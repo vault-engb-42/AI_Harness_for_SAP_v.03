@@ -7,30 +7,75 @@ import { driveDecision } from "../src/sched/drive.js";
 // node grounds then terminates at RETIRED / REBUILT_HANDOFF via applyOutcome (a TERMINAL_OUTCOMES member),
 // runComplete accepts it as a completion (not just GREEN), and it RESTS in the driver — a retired node must
 // never wedge the run. Real reducer, no mocks.
+//
+// H2 (Rule-11 review, CONFIRMED by live probe): these terminals complete a run with NO verdict, so they carry
+// their own fail-closed gate. Before it, ANY grounded node — including a re_architect node that was never
+// built or gated — could be declared RETIRED and the run reported complete: a ratchet fail-open. The gate
+// binds the terminal to the node's frozen disposition AND demands a named human sign-off + justification.
 
-const PLAN = { plan_hash: "h", nodes: [{ id: "N1", object: "ZRETIRE", dependencies: [], members: ["ZRETIRE"], wave: 0, disposition: "retire" }] };
-const grounded = () => dispatch(PLAN, initRun(PLAN), ["N1"]); // PENDING → GROUNDED
+const planOf = (disposition) => ({
+  plan_hash: "h",
+  nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [], disposition }],
+});
+const RETIRE_PLAN = planOf("retire");
+const REBUILD_PLAN = planOf("rebuild");
+const ARCH_PLAN = planOf("re_architect");
 
-test("a retire node grounds then terminates at RETIRED (no generation)", () => {
-  const s = applyOutcome(PLAN, grounded(), "N1", { status: "RETIRED", reason: "no released successor" });
+const grounded = (plan) => dispatch(plan, initRun(plan), ["N1"]); // PENDING → GROUNDED
+const signoff = { signed_by: "eng", justification: "no released successor; the capability is dropped" };
+
+test("a retire node grounds then terminates at RETIRED with a named sign-off (no generation)", () => {
+  const s = applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "RETIRED", reason: "no released successor", ...signoff });
   assert.equal(s.status.N1, "RETIRED");
 });
 
-test("REBUILT_HANDOFF is reachable from GROUNDED as a terminal", () => {
-  const s = applyOutcome(PLAN, grounded(), "N1", { status: "REBUILT_HANDOFF" });
+test("REBUILT_HANDOFF is reachable from GROUNDED as a terminal for a rebuild node", () => {
+  const s = applyOutcome(REBUILD_PLAN, grounded(REBUILD_PLAN), "N1", { status: "REBUILT_HANDOFF", ...signoff });
   assert.equal(s.status.N1, "REBUILT_HANDOFF");
 });
 
 test("applyProgress REFUSES the disposition terminals (they route through applyOutcome, not phase moves)", () => {
-  assert.throws(() => applyProgress(PLAN, grounded(), "N1", "RETIRED"), /terminal outcome/i);
+  assert.throws(() => applyProgress(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", "RETIRED"), /terminal outcome/i);
 });
 
 test("runComplete accepts RETIRED / REBUILT_HANDOFF as terminal completions (not just GREEN)", () => {
-  const s = applyOutcome(PLAN, grounded(), "N1", { status: "RETIRED" });
-  assert.equal(runComplete(PLAN, s), true);
+  const s = applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "RETIRED", ...signoff });
+  assert.equal(runComplete(RETIRE_PLAN, s), true);
 });
 
 test("a RETIRED node is RESTED — driveDecision completes the run, never wedges", () => {
-  const s = applyOutcome(PLAN, grounded(), "N1", { status: "RETIRED" });
-  assert.deepEqual(driveDecision(PLAN, s), { action: "complete" });
+  const s = applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "RETIRED", ...signoff });
+  assert.deepEqual(driveDecision(RETIRE_PLAN, s), { action: "complete" });
+});
+
+// ---- H2: the fail-closed gate on the disposition terminals ----
+
+test("H2 RETIRED is REFUSED for a node whose disposition is not 'retire' (a re_architect node cannot be dropped)", () => {
+  assert.throws(
+    () => applyOutcome(ARCH_PLAN, grounded(ARCH_PLAN), "N1", { status: "RETIRED", ...signoff }),
+    /only legal for a 'retire' node|disposition/i,
+    "an un-built, un-gated re_architect node must never reach a run-completing terminal",
+  );
+});
+
+test("H2 REBUILT_HANDOFF is REFUSED for a node whose disposition is not 'rebuild'", () => {
+  assert.throws(
+    () => applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "REBUILT_HANDOFF", ...signoff }),
+    /only legal for a 'rebuild' node|disposition/i,
+  );
+});
+
+test("H2 both terminals REQUIRE a named human sign-off + a justification (they complete a run with no verdict)", () => {
+  for (const [plan, status] of [[RETIRE_PLAN, "RETIRED"], [REBUILD_PLAN, "REBUILT_HANDOFF"]]) {
+    assert.throws(() => applyOutcome(plan, grounded(plan), "N1", { status }), /sign-off|signed_by/i, `${status} without a signer`);
+    assert.throws(() => applyOutcome(plan, grounded(plan), "N1", { status, signed_by: "eng" }), /justification/i, `${status} without a justification`);
+    assert.throws(() => applyOutcome(plan, grounded(plan), "N1", { status, justification: "x" }), /sign-off|signed_by/i, `${status} with a justification but no signer`);
+  }
+});
+
+test("H2 a node with NO disposition can reach neither terminal (fail-closed on an absent classification)", () => {
+  const bare = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [] }] };
+  for (const status of ["RETIRED", "REBUILT_HANDOFF"]) {
+    assert.throws(() => applyOutcome(bare, grounded(bare), "N1", { status, ...signoff }), /disposition|only legal/i, status);
+  }
 });

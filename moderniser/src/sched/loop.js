@@ -103,6 +103,11 @@ const TERMINAL_OUTCOMES = new Set(["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"
 // dropped object / an off-stack rebuild handoff). BLOCK / PARK / NEEDS_MANUAL_SEAM leave the run incomplete.
 const RUN_COMPLETE_TERMINALS = new Set(["GREEN", "RETIRED", "REBUILT_HANDOFF"]);
 
+// The disposition-route terminals and the frozen disposition each one REQUIRES. They complete a run without
+// any verdict (nothing is built, so nothing can be gated), which makes them the one place the ratchet could
+// be talked out of a verdict entirely — so each is bound to its classification and to a named human.
+const DISPOSITION_TERMINALS = new Map([["RETIRED", "retire"], ["REBUILT_HANDOFF", "rebuild"]]);
+
 /** A non-terminal per-node phase move reported by the node driver (FSM-checked, cycle-aware). */
 export function applyProgress(plan, state, sig, nextStatus) {
   bind(plan, state);
@@ -160,6 +165,7 @@ export function applyOutcome(plan, state, sig, outcome) {
   if (outcome.status === "GREEN" && state.verdict_green?.[sig] !== true) {
     throw new Error(`loop: GREEN for ${sig} refused — no recorded green verdict (record one at GATED first)`);
   }
+  if (DISPOSITION_TERMINALS.has(outcome.status)) assertDispositionTerminal(plan, sig, outcome);
   let next = setStatus(plan, state, sig, outcome.status, { reason: outcome.reason });
 
   if (outcome.status === "GREEN") {
@@ -188,6 +194,30 @@ export function applyOutcome(plan, state, sig, outcome) {
   }
 
   return releaseActivation(plan, next, sig); // idempotent when no mutex is held
+}
+
+/**
+ * The fail-closed gate on a disposition-route terminal (H2). RETIRED / REBUILT_HANDOFF complete a run with
+ * NO verdict — nothing is generated, so the ATC/ABAP-Unit ratchet never runs — which makes them the one
+ * channel where a run could be declared done without anything being gated. Two guards close it: the node's
+ * FROZEN disposition must actually be the matching non-build one (a re_architect node can never be dropped),
+ * and a NAMED human must sign off with a justification (mirroring PARK, L7). The disposition comes from the
+ * hashed plan, so an agent cannot talk its way past it — P4's agent-proof requirement.
+ */
+function assertDispositionTerminal(plan, sig, outcome) {
+  const required = DISPOSITION_TERMINALS.get(outcome.status);
+  const disposition = plan.nodes.find((n) => n.id === sig)?.disposition;
+  if (disposition !== required) {
+    throw new Error(
+      `loop: ${outcome.status} for ${sig} refused — only legal for a '${required}' node (its frozen disposition is '${disposition ?? "none"}'); a node that was never built must not complete the run`,
+    );
+  }
+  if (typeof outcome.signed_by !== "string" || outcome.signed_by.length === 0) {
+    throw new Error(`loop: ${outcome.status} for ${sig} refused — a NAMED human sign-off is required (it completes the run with no verdict)`);
+  }
+  if (typeof outcome.justification !== "string" || outcome.justification.length === 0) {
+    throw new Error(`loop: ${outcome.status} for ${sig} refused — a justification is required (it completes the run with no verdict)`);
+  }
 }
 
 /**
