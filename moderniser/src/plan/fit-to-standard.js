@@ -45,6 +45,22 @@ export function standardTablesByObject(doc) {
   return out;
 }
 
+// The case-folded view of the by-object map, cached per map INSTANCE. The advisory is called once per plan
+// node with the SAME map, so rebuilding the index inside made the pass O(nodes × objects) — invisible on a
+// toy fixture, quadratic at the 100K+ LOC scale this must hold (M6). Weakly keyed, so this stays a pure
+// function of its input and never retains a map the caller has dropped. Assumes the map is NOT mutated after
+// first use — it is a pure derivation of the frozen, content-hashed findings doc (standardTablesByObject).
+const _upperIndexCache = new WeakMap();
+function upperIndex(map) {
+  if (map === null || typeof map !== "object") return {};
+  const hit = _upperIndexCache.get(map);
+  if (hit) return hit;
+  const out = {};
+  for (const k of Object.keys(map)) out[k.toUpperCase()] = map[k];
+  _upperIndexCache.set(map, out);
+  return out;
+}
+
 /**
  * The advisory for one node. NEVER returns a disposition — `action` is `"verify_live"` (an opportunity to
  * confirm live) or `"build"` (fail-closed bespoke). The gate surfaces a `verify_live` advisory at
@@ -54,8 +70,7 @@ export function standardTablesByObject(doc) {
  * @returns {{advisory: boolean, domains: string[], tables: string[], action: "verify_live"|"build", note: string}}
  */
 export function fitToStandardAdvisory(node, standardByObject = {}) {
-  const byUpper = {};
-  for (const k of Object.keys(standardByObject)) byUpper[k.toUpperCase()] = standardByObject[k];
+  const byUpper = upperIndex(standardByObject);
   const members = node.members?.length ? node.members : [node.object];
 
   const domains = new Set();

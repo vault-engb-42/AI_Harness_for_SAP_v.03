@@ -54,10 +54,26 @@ export function hashFactStream(fact) {
   return createHash("sha256").update(canonicalJSON(fact)).digest("hex");
 }
 
+// The case-folded view of a by-object map, cached per map INSTANCE. factStream is called once per plan node
+// with the SAME map, so rebuilding the index inside made the pass O(nodes × objects) — invisible on a toy
+// fixture, quadratic at the 100K+ LOC scale this must hold (M6). Keyed weakly on the caller's own object, so
+// it stays a pure function of its input and never retains a map the caller has dropped. Assumes the map is
+// NOT mutated after first use — it is a pure derivation of the frozen, content-hashed findings doc
+// (consumption-facts.js), so a mutation would already have broken the fact hash's determinism.
+const _upperIndexCache = new WeakMap();
+function upperIndex(map) {
+  if (map === null || typeof map !== "object") return {};
+  const hit = _upperIndexCache.get(map);
+  if (hit) return hit;
+  const out = {};
+  for (const k of Object.keys(map)) out[k.toUpperCase()] = map[k];
+  _upperIndexCache.set(map, out);
+  return out;
+}
+
 /** Sorted union of the consumption facts of every member (case-insensitive on the member id). */
 function consumptionUnion(node, consumptionByObject) {
-  const byUpper = {};
-  for (const k of Object.keys(consumptionByObject ?? {})) byUpper[k.toUpperCase()] = consumptionByObject[k];
+  const byUpper = upperIndex(consumptionByObject);
   const members = node.members?.length ? node.members : [node.object];
   const set = new Set();
   for (const m of members) for (const f of byUpper[String(m).toUpperCase()] ?? []) set.add(f);

@@ -194,3 +194,15 @@ test("dependency_count is the cardinality of node.dependencies (opaque sigs neve
   const json = JSON.stringify(factStream(node({ dependencies: ["sig-secret"] }), {}));
   assert.ok(!json.includes("sig-secret"), "the raw dependency sigs are reduced to a count");
 });
+
+// M6 (Rule-11 review): the case-fold index is memoised per map INSTANCE — factStream runs once per plan
+// node with the SAME consumption map, so rebuilding it inside made the pass O(nodes × objects), quadratic
+// at 100K+ LOC. The cache must not leak between maps, and repeated calls must stay stable.
+test("M6 the memoised case-fold index is per-map and never bleeds between consumption maps", () => {
+  const n = node({ object: "ZFOO", members: ["ZFOO"] });
+  assert.deepEqual(factStream(n, { zfoo: ["ui_salv"] }).consumption, ["ui_salv"], "lower-cased key resolves");
+  assert.deepEqual(factStream(n, { ZFOO: ["batch_report"] }).consumption, ["batch_report"], "a DIFFERENT map is indexed independently");
+  const shared = { ZfOo: ["remote_rfc"] };
+  assert.deepEqual(factStream(n, shared).consumption, factStream(n, shared).consumption, "repeat calls on one map are stable");
+  assert.deepEqual(factStream(n, shared).consumption, ["remote_rfc"], "mixed-case key still resolves via the cached index");
+});

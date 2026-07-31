@@ -75,3 +75,13 @@ test("INTEGRATION abap_fico: the G/L program reads SKA1/SKB1 → a 'G/L Account'
   assert.ok(adv.domains.includes("G/L Account"));
   assert.equal(adv.action, "verify_live");
 });
+
+// M6 (Rule-11 review): same memoised case-fold index as arch-facts — per map instance, no bleed, stable.
+test("M6 the memoised case-fold index is per-map and never bleeds between standard-table maps", () => {
+  const n = { object: "ZFOO", members: ["ZFOO"] };
+  assert.deepEqual(fitToStandardAdvisory(n, { zfoo: [{ table: "EKKO", domain: "Purchasing" }] }).domains, ["Purchasing"]);
+  assert.deepEqual(fitToStandardAdvisory(n, { ZFOO: [{ table: "SKA1", domain: "G/L Account" }] }).domains, ["G/L Account"], "a DIFFERENT map is indexed independently");
+  const shared = { ZfOo: [{ table: "MARA", domain: "Material" }] };
+  assert.deepEqual(fitToStandardAdvisory(n, shared).tables, fitToStandardAdvisory(n, shared).tables, "repeat calls on one map are stable");
+  assert.deepEqual(fitToStandardAdvisory(n, shared).tables, ["MARA"], "mixed-case key still resolves via the cached index");
+});
