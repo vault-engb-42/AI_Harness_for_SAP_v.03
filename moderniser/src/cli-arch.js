@@ -52,10 +52,10 @@ export function cmdArch(io, pos, flags) {
   const cacheLookup = toLookup(readArchVerdictCache(io));
 
   const { resolved, pending } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
-  assertBlueprintOk(runId, resolved, corpus); // F1: prove the app blueprint consistent BEFORE any freeze
+  const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
   const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state);
 
-  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending };
+  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
   saveState(io, runId, nextState); // state BEFORE escalations: a crash residue leaves a bound-but-unraised node, healed on re-run
   saveEscalations(io, raiseArchReviews(readEscalations(io), archManifest, { ts: new Date().toISOString() }));
@@ -94,7 +94,10 @@ export function cmdArchVerdict(io, pos, flags) {
   }
   const corpus = loadPatternCorpus();
   const fact = factStream(node, consumptionFacts(doc));
-  const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape }, matchTargetShapes(fact, corpus));
+  // --shared-json carries the judge's APP-LEVEL grouping ({services|projections|fiori_apps}: [{id, members}])
+  // — the cross-object half of the two-level judgment, which the blueprint conformance tier checks.
+  const shared = flags["shared-json"] ? JSON.parse(readFileSync(flags["shared-json"], "utf8")) : undefined;
+  const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape, shared }, matchTargetShapes(fact, corpus));
   const model_id = flags.model ?? null;
   const prompt_hash = flags["prompt-hash"] ?? defaultPromptHash();
   const fact_hash = hashFactStream(fact);
@@ -145,15 +148,38 @@ function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
   return { resolved, pending };
 }
 
-/** F1: assemble the app-level verdict from the RESOLVED nodes and prove the blueprint consistent pre-freeze. */
+/**
+ * F1: assemble the app-level verdict from the RESOLVED nodes and prove the blueprint consistent BEFORE any
+ * contract freezes. M4: `shared` is the judge's real cross-object grouping merged across recommendations —
+ * hardcoding `{}` here made checkBlueprint's cross-object checks (3+4) unreachable, so the "mandatory" tier
+ * could never detect a violation. A group naming a member that is not in the app now blocks the freeze.
+ * @returns {object} the checked blueprint (its `shared` is carried onto the manifest)
+ */
 function assertBlueprintOk(runId, resolved, corpus) {
   const verdict = {
     app_id: runId,
     assignments: resolved.map((r) => ({ sig: r.node.id, target_shape: r.recommendation.target_shape })),
-    shared: {},
+    shared: mergeShared(resolved),
   };
-  const { ok, violations } = checkBlueprint(buildAppBlueprint(verdict, corpus), corpus);
+  const blueprint = buildAppBlueprint(verdict, corpus);
+  const { ok, violations } = checkBlueprint(blueprint, corpus);
   if (!ok) throw new Error(`arch: the app blueprint is not internally consistent — ${violations.join("; ")}`);
+  return blueprint;
+}
+
+/** Union the per-recommendation cross-object groups by id (members deduped, order canonical). */
+function mergeShared(resolved) {
+  const out = { services: [], projections: [], fiori_apps: [] };
+  for (const { recommendation } of resolved) {
+    for (const kind of Object.keys(out)) {
+      for (const g of recommendation.shared?.[kind] ?? []) {
+        const existing = out[kind].find((x) => x.id === g.id);
+        if (existing) existing.members = [...new Set([...existing.members, ...(g.members ?? [])])];
+        else out[kind].push({ id: g.id, members: [...new Set(g.members ?? [])] });
+      }
+    }
+  }
+  return out;
 }
 
 /** Freeze one coarse contract per resolved node, bind it (preserving an unchanged ratification), build rows. */

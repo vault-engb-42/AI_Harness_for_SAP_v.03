@@ -279,6 +279,40 @@ test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide appr
   assert.ok(d.packets.length > 0);
 });
 
+// ---- M4: the app-blueprint tier must be able to CATCH a cross-object inconsistency ----
+
+const writeShared = (base, name, shared) => {
+  const p = join(base, name);
+  writeFileSync(p, JSON.stringify(shared));
+  return p;
+};
+
+test("M4 the blueprint tier REFUSES a shared group naming a sig that is not a blueprint object", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const pending = manifestOf(runsDir, planned.run_id).pending;
+  // the judge groups this BO behind a shared OData service — but names a member that is not in the app
+  const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, "f".repeat(64)] }] });
+  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
+  assert.throws(
+    () => run("arch", planned.run_id, FIXTURE),
+    "a dangling cross-object reference must block BEFORE any contract freezes",
+  );
+});
+
+test("M4 a CONSISTENT shared group passes the tier and reaches the blueprint", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const pending = manifestOf(runsDir, planned.run_id).pending;
+  const shared = writeShared(base, "shared-ok.json", { services: [{ id: "SRV_OK", members: [pending[0].sig] }] });
+  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
+  const out = run("arch", planned.run_id, FIXTURE);
+  assert.equal(out.resolved, 1, "a consistent grouping freezes normally");
+  assert.deepEqual(manifestOf(runsDir, planned.run_id).shared.services, [{ id: "SRV_OK", members: [pending[0].sig] }], "the app-level grouping is carried into the manifest");
+});
+
 // ---- decide: the ARCH_REVIEW ratification branch ----
 
 test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratified_by in state", () => {

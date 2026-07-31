@@ -99,7 +99,11 @@ export function freezeJudgeSelection(node, selection, candidates) {
   if (!chosen) {
     throw new Error(`arch-reason: '${selection.target_shape}' cannot be frozen — add it to the patterns corpus first (grow the corpus, not the code)`);
   }
-  return recommend(node, chosen, candidates, "judge");
+  const rec = recommend(node, chosen, candidates, "judge");
+  // The judge reasons at the APP level first (§6.13 two-level): its optional cross-object grouping — one
+  // OData service fronting several BOs, a shared projection, screens collapsed into one Fiori app — rides
+  // the recommendation so cmdArch can assemble the app verdict the blueprint conformance tier checks.
+  return selection.shared ? { ...rec, shared: selection.shared } : rec;
 }
 
 /** A frozen recommendation attached to the node by sig (sigs live here, NEVER in the prompt-bound fact). */
