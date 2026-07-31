@@ -52,8 +52,10 @@ test("buildArchContract seeds grounded_apis from pattern.grounding_refs (reviewe
   const synthetic = { patterns: [{ id: "synthetic_shape", name: "syn", components: ["x", "y"], grounding_refs: ["I_ReleasedApi", "I_Other"], invariants: ["inv1"] }] };
   const c = buildArchContract(node(), rec({ target_shape: "synthetic_shape" }), synthetic);
   for (const o of c.objects) assert.deepEqual(o.grounded_apis, ["I_ReleasedApi", "I_Other"]);
-  // provenance is the pattern, not the recommendation — a recommendation carries no grounded_apis at all.
-  assert.ok(!("grounded_apis" in rec()), "the recommendation shape has no grounded_apis to copy");
+  // Provenance is the PATTERN: a grounded_apis on the recommendation is ignored, so a judge (or a tampered
+  // verdict cache) can never inject APIs into the contract that the corpus did not sanction.
+  const injected = buildArchContract(node(), { ...rec(), grounded_apis: ["I_Injected"] });
+  for (const o of injected.objects) assert.ok(!o.grounded_apis.includes("I_Injected"), "the recommendation cannot supply grounded_apis");
 });
 
 test("buildArchContract throws on a target_shape outside the corpus (closed vocabulary, fail-closed)", () => {

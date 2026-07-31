@@ -35,7 +35,7 @@ import { buildPromptOptions } from "./plan/prompt-options.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
-  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractPath, saveArchManifest,
+  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractRef, saveArchManifest,
 } from "./cli-io.js";
 
 const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
@@ -189,11 +189,11 @@ function freezeContracts(io, runId, resolved, std, corpus, state) {
   for (const { node, recommendation } of resolved) {
     const contract = buildArchContract(node, recommendation, corpus);
     saveArchContract(io, runId, node.id, contract);
-    nextState = rebind(nextState, node.id, archContractPath(io, runId, node.id), contract.contract_hash);
+    nextState = rebind(nextState, node.id, archContractRef(runId, node.id), contract.contract_hash);
     rows.push({
       sig: node.id,
       target_shape: recommendation.target_shape,
-      arch_contract_ref: archContractPath(io, runId, node.id),
+      arch_contract_ref: archContractRef(runId, node.id),
       arch_contract_hash: contract.contract_hash,
       reviewer_verdict: null, // the abap-arch-reviewer verdict is attached by the skill fulfiller (offline: null)
       fit_to_standard: fitToStandardAdvisory(node, std),

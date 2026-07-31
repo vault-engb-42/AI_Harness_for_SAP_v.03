@@ -86,6 +86,21 @@ test("M5 once the arch node is ratified it competes for the slot again (worst-de
 // directly, so a driveDecision-only guard is bypassable — an unratified re_architect node could be walked
 // to GENERATED through a different verb. dispatch() is the single chokepoint into the build lifecycle.
 
+test("LOW a PARTIAL arch frontier dispatches only the ratified node, never the unratified one", () => {
+  const plan = {
+    plan_hash: "h",
+    nodes: [
+      { id: "A", object: "ZA", dependencies: [], members: ["ZA"], wave: 0, conflict_keys: [], disposition: "re_architect", member_meta: { ZA: { grade: "A", complexity: 1, blast: 0 } } },
+      { id: "B", object: "ZB", dependencies: [], members: ["ZB"], wave: 0, conflict_keys: [], disposition: "re_architect", member_meta: { ZB: { grade: "F", complexity: 9, blast: 9 } } },
+    ],
+  };
+  const ratifiedB = bindArchContract(initRun(plan), "B", { ref: "r", hash: "h1", ratified_by: "eng" });
+  const d = driveDecision(plan, ratifiedB);
+  assert.equal(d.action, "generate");
+  assert.deepEqual(d.packets.map((p) => p.sig), ["B"], "only the ratified node is dispatched");
+  assert.ok(!d.packets.some((p) => p.sig === "A"), "the unratified node is genuinely absent from the packets");
+});
+
 test("M1 dispatch() REFUSES an unratified arch-gated node (the veto is not bypassable via the reducer verbs)", () => {
   for (const d of ["re_architect", "rebuild"]) {
     const plan = planWith(d);

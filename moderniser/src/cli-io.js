@@ -108,13 +108,18 @@ export const saveDispositionManifest = (io, runId, m) => writeDurable(dispositio
 export const architectureManifestPath = (io, runId) => join(io.runsDir, runId, "architecture-manifest.json");
 export const readArchManifest = (io, runId) => readJson(architectureManifestPath(io, runId), null);
 export const saveArchManifest = (io, runId, m) => writeDurable(architectureManifestPath(io, runId), JSON.stringify(m, null, 2));
-export function archContractPath(io, runId, sig) {
+/**
+ * The contract's ref RELATIVE to io.runsDir (`<run_id>/arch-contract-<sig>.json`). The ref is persisted in
+ * durable run state and committed, so it must not carry an absolute host path — that would bind the run to
+ * one machine's directory layout and leak it into the record. Resolve it with `archContractPath`.
+ */
+export function archContractRef(runId, sig) {
   if (!/^[A-Za-z0-9._-]+$/.test(sig) || sig.includes("..")) {
     throw new Error(`invalid contract sig '${sig}' — [A-Za-z0-9._-] only, no separators or '..' (path traversal, P8)`);
   }
-  return join(io.runsDir, runId, `arch-contract-${sig}.json`);
+  return `${validRunId(runId)}/arch-contract-${sig}.json`;
 }
-export const readArchContract = (io, runId, sig) => readJson(archContractPath(io, runId, sig), null);
+export const archContractPath = (io, runId, sig) => join(io.runsDir, archContractRef(runId, sig));
 export const saveArchContract = (io, runId, sig, c) => writeDurable(archContractPath(io, runId, sig), JSON.stringify(c, null, 2));
 
 export function readBaselines(stateDir) {

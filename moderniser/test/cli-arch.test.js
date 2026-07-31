@@ -31,8 +31,8 @@ function mk() {
 
 // Seed the CROSS-RUN verdict cache so a named node resolves as 'cached' — the real fulfiller flow (the judge
 // writes the cache, cmdArch re-run hits it). A real cache file + the real fact hash; no mocks.
-function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless" } = {}) {
-  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: [{ id: shape, score: 1 }], source: "judge" };
+function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates } = {}) {
+  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge" };
   const cache = putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec);
   writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
   return rec;
@@ -94,6 +94,9 @@ test("arch: a cached node → binds a contract + raises ONE ARCH_REVIEW + a fit_
   const st = stateOf(stateDir, planned.run_id);
   assert.ok(st.arch_contracts[target.id].hash, "the contract is bound into run state");
   assert.equal(st.arch_contracts[target.id].ratified_by, null, "bound but not yet ratified");
+
+  assert.ok(!/^([A-Za-z]:[\\/]|\/)/.test(st.arch_contracts[target.id].ref), "the persisted ref is host-portable, not an absolute path");
+  assert.equal(st.arch_contracts[target.id].ref, `${planned.run_id}/arch-contract-${target.id}.json`);
 
   const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.ok(["verify_live", "build"].includes(row.fit_to_standard.action), "a fit_to_standard advisory is carried");
@@ -277,6 +280,25 @@ test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide appr
   const d = run("drive", planned.run_id);
   assert.equal(d.action, "generate", "the ratified run now dispatches — the arch gate is operable end to end");
   assert.ok(d.packets.length > 0);
+});
+
+// ---- LOW: the MULTI-candidate options branch (buildPromptOptions) was never executed by any test ----
+
+test("LOW a multi-candidate node renders the full prompt contract (>= 3 options, one recommended, an 'other' escape)", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  // The judge weighed a competing shape — the recommendation carries BOTH candidates, so archOptions takes
+  // the buildPromptOptions arm rather than the single-candidate arm the fixture normally exercises.
+  seedCache(stateDir, target, consOf(), { candidates: [{ id: "rap_bo_headless", score: 2 }, { id: "rap_bo_odata", score: 1 }] });
+  const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  assert.equal(out.resolved, 1);
+  const { options } = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
+  assert.ok(options.length >= 3, `the prompt contract needs >= 3 options, got ${options.length}`);
+  assert.equal(options.filter((o) => o.recommended).length, 1, "EXACTLY one recommended option");
+  assert.equal(options[0].target_shape, "rap_bo_headless", "the recommendation is listed first");
+  assert.ok(options.some((o) => o.target_shape === "rap_bo_odata" && !o.recommended), "the competing shape is offered as an alternative");
+  assert.ok(options.some((o) => o.freeform && o.target_shape === "other"), "always an 'other' escape");
 });
 
 // ---- M4: the app-blueprint tier must be able to CATCH a cross-object inconsistency ----
