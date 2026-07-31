@@ -91,3 +91,19 @@ test("isActive marks exactly the eight in-flight states", () => {
   for (const s of ["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]) assert.equal(isActive(s), false, s);
   assert.equal(ACTIVE_STATES.length, 8);
 });
+
+// B4 (§4c): RETIRED + REBUILT_HANDOFF are the disposition-route terminals — a `retire` node grounds (to
+// establish the no-released-successor basis, L7/P6) then terminates at RETIRED with no generation; a
+// `rebuild` node grounds then hands off at REBUILT_HANDOFF. Terminal, never active; ACTIVE_STATES stays 8.
+test("RETIRED and REBUILT_HANDOFF are disposition-route terminals — reached from GROUNDED, terminal, not active", () => {
+  assert.equal(STATUSES.length, 14, "12 lifecycle states + the two disposition terminals");
+  for (const t of ["RETIRED", "REBUILT_HANDOFF"]) {
+    assert.ok(STATUSES.includes(t), t);
+    assert.equal(isActive(t), false, `${t} is terminal, not in-flight`);
+    assert.equal(canTransition("GROUNDED", t), true, `GROUNDED→${t} (ground first, then terminate)`);
+    assert.equal(canTransition("PENDING", t), false, `${t} needs a grounded basis — no convenience drop (L7/P6)`);
+    assert.equal(canTransition("GENERATED", t), false, `a retire/rebuild node never generates ABAP`);
+    for (const s of STATUSES) assert.equal(canTransition(t, s), false, `${t}→${s} — terminal, no outgoing edge`);
+  }
+  assert.equal(ACTIVE_STATES.length, 8, "the terminals do not widen the in-flight set");
+});

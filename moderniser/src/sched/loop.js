@@ -97,7 +97,11 @@ export function dispatch(plan, state, sigs) {
 // guard, the dependent indegree decrement, quarantine/park bookkeeping, and the mutex
 // release all live in applyOutcome — an FSM-legal GATED→GREEN through this channel would
 // bypass every one of them (branch review F2).
-const TERMINAL_OUTCOMES = new Set(["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]);
+const TERMINAL_OUTCOMES = new Set(["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM", "RETIRED", "REBUILT_HANDOFF"]);
+
+// The terminals that COMPLETE a run: a successful build (GREEN) or a resolved non-build disposition (a
+// dropped object / an off-stack rebuild handoff). BLOCK / PARK / NEEDS_MANUAL_SEAM leave the run incomplete.
+const RUN_COMPLETE_TERMINALS = new Set(["GREEN", "RETIRED", "REBUILT_HANDOFF"]);
 
 /** A non-terminal per-node phase move reported by the node driver (FSM-checked, cycle-aware). */
 export function applyProgress(plan, state, sig, nextStatus) {
@@ -141,8 +145,10 @@ export function applyProgress(plan, state, sig, nextStatus) {
 /**
  * A terminal outcome from the node driver. GREEN frees dependents (counter decrement, L2);
  * BLOCK quarantines into deferral_track; PARK (reason-gated) lands in the park register.
- * Any terminal outcome releases a held activation mutex.
- * @param {{status: "GREEN"|"BLOCK"|"PARK"|"NEEDS_MANUAL_SEAM", reason?: string}} outcome
+ * RETIRED / REBUILT_HANDOFF (disposition-route terminals) fall through like NEEDS_MANUAL_SEAM — they do
+ * NOT free dependents, because no successor artifact exists (a dependent of a dropped/off-stack node
+ * becomes a starved sweep target, never silently proceeds). Any terminal outcome releases the mutex.
+ * @param {{status: "GREEN"|"BLOCK"|"PARK"|"NEEDS_MANUAL_SEAM"|"RETIRED"|"REBUILT_HANDOFF", reason?: string}} outcome
  */
 export function applyOutcome(plan, state, sig, outcome) {
   bind(plan, state);
@@ -208,10 +214,11 @@ export function releaseActivation(plan, state, sig) {
   return { ...state, activate_mutex };
 }
 
-/** Done ⇔ EVERY plan node is GREEN — a quarantined/parked node leaves the run incomplete. */
+/** Done ⇔ EVERY plan node rests at a run-completing terminal (GREEN | RETIRED | REBUILT_HANDOFF) — a
+ * quarantined/parked/in-flight node leaves the run incomplete. */
 export function runComplete(plan, state) {
   bind(plan, state);
-  return plan.nodes.every((n) => state.status[n.id] === "GREEN");
+  return plan.nodes.every((n) => RUN_COMPLETE_TERMINALS.has(state.status[n.id]));
 }
 
 /** Fail-closed plan↔state binding: a state from another plan must never drive this one. Exported for the verdict-ops record* verbs, which are reducer entries too. */

@@ -19,8 +19,10 @@ import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from
 import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES } from "../state/node-status.js";
 
-// The states a node may legitimately rest in when the frontier is empty (offline or terminal).
-const RESTED = new Set(["GREEN", "SYNTAX_OK", "PROVISIONAL_GATED", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM"]);
+// The states a node may legitimately rest in when the frontier is empty (offline or terminal). Includes the
+// B4 disposition-route terminals (RETIRED / REBUILT_HANDOFF) — else a retired/handed-off node would satisfy
+// neither RESTED nor runComplete and driveDecision would wedge the run forever.
+const RESTED = new Set(["GREEN", "SYNTAX_OK", "PROVISIONAL_GATED", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM", "RETIRED", "REBUILT_HANDOFF"]);
 
 /** A starved dependent (PENDING, still waiting on a non-GREEN dep) — a sweep target, not a wedge. */
 const isStarved = (state, id) => state.status[id] === "PENDING" && (state.indegree[id] ?? 0) > 0;

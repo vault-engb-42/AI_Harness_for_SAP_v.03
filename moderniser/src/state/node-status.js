@@ -39,6 +39,11 @@ export const STATUSES = Object.freeze([
   "BLOCK",
   "PARK",
   "NEEDS_MANUAL_SEAM",
+  // Disposition-route terminals (B4): reached at drive time from a non-generating disposition. A `retire`
+  // node grounds (to establish the no-released-successor basis, L7/P6) then terminates at RETIRED with no
+  // generation; a `rebuild` node grounds then hands off (handoff-spec.json) at REBUILT_HANDOFF. Terminal.
+  "RETIRED",
+  "REBUILT_HANDOFF",
 ]);
 
 // The in-flight states a node can escalate from (BLOCK / NEEDS_MANUAL_SEAM) — everything
@@ -53,7 +58,7 @@ const ACTIVE_SET = new Set(ACTIVE_STATES);
 // are handled specially in canTransition.
 const FORWARD = new Map([
   ["PENDING", new Set(["GROUNDED"])],
-  ["GROUNDED", new Set(["GENERATED"])],
+  ["GROUNDED", new Set(["GENERATED", "RETIRED", "REBUILT_HANDOFF"])], // GENERATED = build; RETIRED/REBUILT_HANDOFF = disposition-route terminals (retire/rebuild ground then terminate, no ABAP)
   ["GENERATED", new Set(["SYNTAX_OK"])],
   ["SYNTAX_OK", new Set(["PUSHED", "PROVISIONAL_GATED"])], // PUSHED = live DEV; PROVISIONAL_GATED = offline verdict
   ["PUSHED", new Set(["ACTIVATED"])],
