@@ -48,7 +48,7 @@ function mkCli() {
  * abap_fico is all re_architect, so the run must clear the ARCH_REVIEW gate before the driver dispatches. */
 function atSyntaxOk(cli) {
   const planned = cli("plan", FIXTURE);
-  ratifyArch(cli, cli.stateDir, planned.run_id, FIXTURE);
+  ratifyArch(cli.stateDir, planned.run_id);
   const sig = cli("drive", planned.run_id).packets[0].sig;
   cli("drive", planned.run_id, "--report", `${sig}=syntax_ok`);
   return { runId: planned.run_id, sig };

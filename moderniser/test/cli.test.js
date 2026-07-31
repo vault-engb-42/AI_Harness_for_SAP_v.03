@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "no
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
+import { ratifyArch } from "./support/ratify-arch.js";
 
 // /modernise CLI (§6.5) — the deterministic imperative shell over the pure reducer, driven
 // by the skill via Bash. REAL code path: subprocess + real fs against a temp state dir with
@@ -45,19 +46,30 @@ function freshDirs() {
 
 const mkCli = ({ base, state, runs }) => {
   const cli = (...a) => run([...a, "--state-dir", state, "--runs-dir", runs]);
+  /**
+   * plan + clear the ARCH gate. The golden fixture is entirely `re_architect`, and the reducer refuses to
+   * dispatch an unratified arch node (M1), so these CLI/FSM-mechanics tests must enter past gate 2 exactly
+   * as a real run does: `ratifyArch` seeds the judge verdict cache, runs the real `arch` verb, and stamps
+   * the ratification. No-op for a plan with no arch-gated node.
+   */
+  const planRatified = (findings = FIXTURE, ...extra) => {
+    const planned = cli("plan", findings, ...extra);
+    ratifyArch(state, planned.run_id);
+    return planned;
+  };
   const walk = (rid, sig) => {
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
     cli("verdict", rid, sig, "--checkpoint", join(base, "cp.json"), "--evidence", join(base, "ev.json"), "--record");
     cli("outcome", rid, sig, "GREEN");
   };
-  return { cli, walk };
+  return { cli, walk, planRatified };
 };
 
 test("plan → next → dispatch → FSM walk → verdict → GREEN runs the golden fixture to complete", () => {
   const dirs = freshDirs();
-  const { cli, walk } = mkCli(dirs);
+  const { cli, walk, planRatified } = mkCli(dirs);
   try {
-    const planned = cli("plan", FIXTURE);
+    const planned = planRatified();
     assert.match(planned.run_id, /^run-[0-9a-f]{12}$/, "deterministic run id from the plan hash");
     assert.equal(planned.nodes.length, 3);
     assert.ok(existsSync(join(dirs.state, "plan", `${planned.run_id}.plan.json`)), "plan persisted");
@@ -85,9 +97,9 @@ test("plan → next → dispatch → FSM walk → verdict → GREEN runs the gol
 
 test("outcome GREEN without a green verdict is REFUSED through the CLI (gate not bypassable)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     cli("dispatch", rid, r1.ready[0].sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, r1.ready[0].sig, s);
@@ -99,9 +111,9 @@ test("outcome GREEN without a green verdict is REFUSED through the CLI (gate not
 
 test("verdict is refused unless the node is at GATED (no out-of-lifecycle baseline moves)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sig = nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR").sig;
     assert.throws(
       () => cli("verdict", rid, sig, "--checkpoint", join(dirs.base, "cp.json"), "--evidence", join(dirs.base, "ev.json"), "--record"),
@@ -115,9 +127,9 @@ test("verdict is refused unless the node is at GATED (no out-of-lifecycle baseli
 
 test("a green verdict at GATED records baselines once (--record) and GREEN completes", () => {
   const dirs = freshDirs();
-  const { cli, walk } = mkCli(dirs);
+  const { cli, walk, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     cli("dispatch", rid, r1.ready[0].sig);
     walk(rid, r1.ready[0].sig);
@@ -131,9 +143,9 @@ test("a green verdict at GATED records baselines once (--record) and GREEN compl
 
 test("resume verifies both hashes; a tampered state fails CLOSED", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     cli("dispatch", rid, r1.ready[0].sig);
     const resumed = cli("resume", rid);
@@ -152,17 +164,17 @@ test("resume verifies both hashes; a tampered state fails CLOSED", () => {
 
 test("guards: run-id traversal, non-positive team-size, un-ready dispatch, existing run", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    throwsWith(() => cli("plan", FIXTURE, "--run-id", "../../evil/pwn"), /run.id/i, "path traversal rejected");
+    throwsWith(() => planRatified(FIXTURE, "--run-id", "../../evil/pwn"), /run.id/i, "path traversal rejected");
     assert.ok(!existsSync(join(dirs.base, "evil")), "nothing written outside containment");
-    throwsWith(() => cli("plan", FIXTURE, "--team-size", "0"), /team-size/i);
-    throwsWith(() => cli("plan", FIXTURE, "--team-size", "abc"), /team-size/i);
+    throwsWith(() => planRatified(FIXTURE, "--team-size", "0"), /team-size/i);
+    throwsWith(() => planRatified(FIXTURE, "--team-size", "abc"), /team-size/i);
 
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const gl = nodes.find((n) => n.object === "ZFICO_BTC_CSV_GL").sig;
     throwsWith(() => cli("dispatch", rid, gl), /ready/i, "GL's closure is not green");
-    throwsWith(() => cli("plan", FIXTURE), /exists|resume/i, "re-planning a live run refused");
+    throwsWith(() => planRatified(), /exists|resume/i, "re-planning a live run refused");
   } finally {
     rmSync(dirs.base, { recursive: true, force: true });
   }
@@ -170,9 +182,9 @@ test("guards: run-id traversal, non-positive team-size, un-ready dispatch, exist
 
 test("offline draft sweep: sweep-order lists PENDING nodes topologically; sweep-mark ledgers OUTSIDE loop state", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     // gated offline pass: SCR and TOP (depth-0) dispatch and stop at SYNTAX_OK; GL never greens
     for (let i = 0; i < 2; i += 1) {
       const r = cli("next", rid);
@@ -208,9 +220,9 @@ test("offline draft sweep: sweep-order lists PENDING nodes topologically; sweep-
 
 test("sweep-mark fails closed on unknown sigs and bogus results; re-mark is idempotent", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sig = nodes[0].sig;
     throwsWith(() => cli("sweep-mark", rid, "9".repeat(64), "--result", "drafted"), /unknown/i);
     throwsWith(() => cli("sweep-mark", rid, sig, "--result", "shiny"), /result/i);
@@ -224,9 +236,9 @@ test("sweep-mark fails closed on unknown sigs and bogus results; re-mark is idem
 
 test("escalation wiring: escalate → escalations (rate-limited) → decide writes the audited register", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sig = nodes[0].sig;
     const raised = cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig, "--root-signature", "talos-select-in-loop|SKB1");
     assert.match(raised.id, /^esc-[0-9a-f]{12}$/);
@@ -254,9 +266,9 @@ test("escalation wiring: escalate → escalations (rate-limited) → decide writ
 
 test("PARK through the CLI enforces sign-off + justification and writes the audit register", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     const sig = r1.ready[0].sig;
     cli("dispatch", rid, sig);
@@ -279,9 +291,9 @@ test("PARK through the CLI enforces sign-off + justification and writes the audi
 
 test("PARITY_REVIEW attestation: joined ONLY from the audited register; forged checkpoint fields ignored; re-raise voids it", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     const sig = r1.ready[0].sig;
     cli("dispatch", rid, sig);
@@ -311,9 +323,9 @@ test("PARITY_REVIEW attestation: joined ONLY from the audited register; forged c
 
 test("an attestation is bound to the ARTIFACT: a retry voids it; another run cannot inherit it", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
@@ -331,7 +343,7 @@ test("an attestation is bound to the ARTIFACT: a retry voids it; another run can
     assert.equal(vd(rid).green, false, "the human never saw THIS artifact — the cycle stamp voids the attestation");
 
     // ANOTHER RUN (same state dir, same sigs) can never inherit the attestation
-    const { run_id: rid2 } = cli("plan", FIXTURE, "--run-id", "run2");
+    const { run_id: rid2 } = planRatified(FIXTURE, "--run-id", "run2");
     const sig2 = cli("next", rid2).ready[0].sig;
     cli("dispatch", rid2, sig2);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid2, sig2, s);
@@ -343,10 +355,10 @@ test("an attestation is bound to the ARTIFACT: a retry voids it; another run can
 
 test("gap-1: plan --bundle wires the Stage-1 dynamic scan — seals land on plan nodes and gate dispatch", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   const BUNDLE = join(HERE, "fixtures", "bundle");
   try {
-    const sealed = cli("plan", FIXTURE, "--bundle", BUNDLE);
+    const sealed = planRatified(FIXTURE, "--bundle", BUNDLE);
     const rid = sealed.run_id;
     // the SCR source carries CALL FUNCTION <var> → its plan node must be sealed
     const scr = sealed.nodes.find((n) => n.object === "ZFICO_BTC_CSV_SCR");
@@ -376,10 +388,10 @@ test("gap-1: plan --bundle wires the Stage-1 dynamic scan — seals land on plan
 
 test("gap-1: plan --bundle fails loud on a missing dir — never a silent unsealed plan", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
     assert.throws(
-      () => cli("plan", FIXTURE, "--bundle", join(dirs.base, "no-such-bundle")),
+      () => planRatified(FIXTURE, "--bundle", join(dirs.base, "no-such-bundle")),
       (e) => /bundle/i.test(String(e.stderr ?? e.message)),
     );
   } finally {
@@ -389,7 +401,7 @@ test("gap-1: plan --bundle fails loud on a missing dir — never a silent unseal
 
 test("plan fails LOUD on a findings doc without modernization_plan — never a vacuous complete run (F25)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
     const doc = JSON.parse(readFileSync(FIXTURE, "utf8"));
     delete doc.modernization_plan; // schema-valid: the ADT-only analyser mode emits exactly this shape
@@ -413,9 +425,9 @@ test("plan fails LOUD on a findings doc without modernization_plan — never a v
 
 test("a re-park after re-entry REPLACES the audit row — the register reflects the LIVE park (F17/F26)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
@@ -439,9 +451,9 @@ test("a re-park after re-entry REPLACES the audit row — the register reflects 
 
 test("sweep-order distinguishes drafted from failed deps; sweep-mark is PENDING-only (F16)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     // no gated pass at all: every node is PENDING and sweepable, deps sort first
     const order = cli("sweep-order", rid);
     assert.equal(order.remaining.length, 3);
@@ -457,9 +469,9 @@ test("sweep-order distinguishes drafted from failed deps; sweep-mark is PENDING-
     assert.equal(d2.sweep_result, "drafted");
     // a gated-pass node is not sweepable — the ledger stays clean of non-PENDING pollution
     const dirs2 = freshDirs();
-    const { cli: cli2 } = mkCli(dirs2);
+    const { cli: cli2, planRatified: planRatified2 } = mkCli(dirs2);
     try {
-      const { run_id: rid2 } = cli2("plan", FIXTURE);
+      const { run_id: rid2 } = planRatified2();
       const sig2 = cli2("next", rid2).ready[0].sig;
       cli2("dispatch", rid2, sig2);
       cli2("progress", rid2, sig2, "GENERATED");
@@ -479,9 +491,9 @@ test("sweep-order distinguishes drafted from failed deps; sweep-mark is PENDING-
 
 test("attestation is bound to the artifact GENERATION: pre-attestation and re-entry regeneration both void (F4)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     const gray = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 } };
     writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(gray), "utf8");
@@ -518,9 +530,9 @@ test("attestation is bound to the artifact GENERATION: pre-attestation and re-en
 
 test("verdict evidence missing diff_changed_lines fails CLOSED through the CLI (F1 — no ?? [] erasure)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
@@ -536,9 +548,9 @@ test("verdict evidence missing diff_changed_lines fails CLOSED through the CLI (
 
 test("an attestation never survives plan --force — the recreated run cannot inherit it (F4 escape)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     const gray = { ...GREEN_CP, parity: { verdict: "needs_review", score: 0.55 } };
     writeFileSync(join(dirs.base, "gray.json"), JSON.stringify(gray), "utf8");
@@ -551,7 +563,7 @@ test("an attestation never survives plan --force — the recreated run cannot in
 
     // --force discards the run but reuses the SAME plan-hash-derived run id; the register
     // survives in the state dir — the recreated walk re-reaches generation 1
-    const { run_id: rid2 } = cli("plan", FIXTURE, "--force");
+    const { run_id: rid2 } = planRatified(FIXTURE, "--force");
     assert.equal(rid2, rid, "the collision the escape rides on");
     cli("dispatch", rid2, sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid2, sig, s);
@@ -584,10 +596,10 @@ const CYCLE_DOC = {
 
 test("D4: seams proposes cuts for a break_gate super-node; resolve-cycle learns + audits (F22)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
     writeFileSync(join(dirs.base, "cycle.json"), JSON.stringify(CYCLE_DOC), "utf8");
-    const { run_id: rid, nodes } = cli("plan", join(dirs.base, "cycle.json"));
+    const { run_id: rid, nodes } = planRatified(join(dirs.base, "cycle.json"));
     assert.equal(nodes.length, 1, "the 2-cycle condenses to ONE break_gate super-node");
     const sig = nodes[0].sig;
 
@@ -626,9 +638,9 @@ test("D4: seams proposes cuts for a break_gate super-node; resolve-cycle learns 
 
 test("D1 residual: the temporally-FINAL decision governs across interleaved escalation rows", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sigA = cli("next", rid).ready[0].sig;
     const sigB = nodes.find((n) => n.sig !== sigA).sig;
     cli("dispatch", rid, sigA);
@@ -650,10 +662,10 @@ test("D1 residual: the temporally-FINAL decision governs across interleaved esca
 
 test("D4 residual: resolve-cycle refuses a resolution naming non-members — a typo is never learned", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
     writeFileSync(join(dirs.base, "cycle.json"), JSON.stringify(CYCLE_DOC), "utf8");
-    const { run_id: rid, nodes } = cli("plan", join(dirs.base, "cycle.json"));
+    const { run_id: rid, nodes } = planRatified(join(dirs.base, "cycle.json"));
     const sig = nodes[0].sig;
     assert.throws(
       () => cli("resolve-cycle", rid, sig, "--kind", "CUT", "--edge", "ZFOO,ZBAR", "--by", "j.doe"),
@@ -668,9 +680,9 @@ test("D4 residual: resolve-cycle refuses a resolution naming non-members — a t
 
 test("D4: seams refuses a non-break_gate node — nothing to cut", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     assert.throws(
       () => cli("seams", rid, nodes[0].sig, "--findings", FIXTURE),
       (e) => /break_gate|nothing to cut/i.test(String(e.stderr ?? e.message)),
@@ -682,9 +694,9 @@ test("D4: seams refuses a non-break_gate node — nothing to cut", () => {
 
 test("D1: AUTH_EQUIVALENCE attestation joined from the audited register only — forged fields ignored, regeneration voids (mirrors parity)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
@@ -717,9 +729,9 @@ test("D1: AUTH_EQUIVALENCE attestation joined from the audited register only —
 
 test("progress refuses terminal outcomes through the CLI — outcome is the only terminal verb (F2)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     for (const s of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) cli("progress", rid, sig, s);
@@ -739,9 +751,9 @@ test("progress refuses terminal outcomes through the CLI — outcome is the only
 
 test("reprobe re-enters parked nodes whose successor shipped — audited row released, node reschedulable (F18/F26)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const sig = cli("next", rid).ready[0].sig;
     cli("dispatch", rid, sig);
     cli("outcome", rid, sig, "BLOCK", "--reason", "NO_RELEASED_SUCCESSOR");
@@ -766,9 +778,9 @@ test("reprobe re-enters parked nodes whose successor shipped — audited row rel
 
 test("packets renders surfaced escalations as GatePackets — kind, cause, typed decisions (F18)", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sig = nodes[0].sig;
     cli("escalate", rid, "--kind", "OSCILLATION", "--nodes", sig, "--root-signature", "talos-select-in-loop|SKB1");
     cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", sig);
@@ -791,9 +803,9 @@ test("packets renders surfaced escalations as GatePackets — kind, cause, typed
 
 test("escalate validates sigs against the plan; decide's receipt names the CORRECT resolver after a re-raise", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid, nodes } = cli("plan", FIXTURE);
+    const { run_id: rid, nodes } = planRatified();
     const sig = nodes[0].sig;
     throwsWith(() => cli("escalate", rid, "--kind", "PARITY_REVIEW", "--nodes", "NOT_A_NODE"), /plan|unknown/i);
 
@@ -810,9 +822,9 @@ test("escalate validates sigs against the plan; decide's receipt names the CORRE
 
 test("repeating a mutating command after a half-commit is an idempotent no-op, never a wedge", () => {
   const dirs = freshDirs();
-  const { cli } = mkCli(dirs);
+  const { cli, planRatified } = mkCli(dirs);
   try {
-    const { run_id: rid } = cli("plan", FIXTURE);
+    const { run_id: rid } = planRatified();
     const r1 = cli("next", rid);
     const sig = r1.ready[0].sig;
     cli("dispatch", rid, sig);

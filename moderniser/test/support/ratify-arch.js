@@ -1,45 +1,32 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadPlan } from "../../src/sched/plan.js";
-import { consumptionFacts } from "../../src/plan/consumption-facts.js";
-import { factStream, factHash } from "../../src/plan/arch-facts.js";
-import { matchTargetShapes } from "../../src/plan/patterns/match.js";
-import { putEntry } from "../../src/state/arch-verdict-cache.js";
+import { bindArchContract } from "../../src/plan/arch-contract.js";
 
 /**
- * Test support (B4): ratify every re_architect/rebuild node's architecture so the driver's isArchRatified
- * precondition passes and `drive` dispatches. No mocks — real modules + the real `arch` verb:
- *   1. seed the judge verdict cache (the fulfiller's output) with each node's TOP structural candidate, so
- *      `arch` RESOLVES the node as cached and BINDS a real Architecture Contract;
- *   2. run the real `arch` verb (builds + binds the contracts, raises the ARCH_REVIEWs);
- *   3. stamp the human ratification (ratified_by) directly into run state — a FIXTURE, not a mock: the real
- *      `decide approve` verb is exercised end to end in cli-arch.test.js; the driver reads only
- *      arch_contracts[sig].ratified_by, and seeding it directly keeps these driver-mechanics tests fast
- *      (one subprocess, not one-per-ARCH_REVIEW — the CI wall-clock budget, testing.md).
+ * Test support (B4/M1): clear the ARCHITECTURE gate for a planned run so the reducer will dispatch its
+ * `re_architect`/`rebuild` nodes. Both `dispatch()` and `driveDecision` refuse an arch-gated node whose
+ * Architecture Contract is not human-ratified, and the golden abap_fico fixture is entirely re_architect —
+ * so every CLI/FSM-mechanics test must enter past gate 2.
  *
- * @param {(...args: string[]) => any} cli a JSON-returning CLI runner bound to a --state-dir/--runs-dir
- * @param {string} stateDir the run's state dir @param {string} runId @param {string} fixturePath the findings doc
+ * This is a STATE FIXTURE, not a mock: it writes real bindings through the real `bindArchContract` reducer
+ * into the run's real durable state, which the production code then reads unchanged — the same class of
+ * setup as seeding a status map. It deliberately does NOT shell out to the `arch` + `decide` verbs, because
+ * that costs a subprocess per test and would push the suite past its wall-clock budget (testing.md). The
+ * REAL gate flow — arch → arch-verdict → arch → decide approve → drive dispatches — is covered end to end,
+ * against the real verbs and real fs, in cli-arch.test.js.
+ *
+ * @param {string} stateDir the run's --state-dir @param {string} runId
  */
-export function ratifyArch(cli, stateDir, runId, fixturePath, { model = "opus", promptHash = "ph1" } = {}) {
-  const doc = JSON.parse(readFileSync(fixturePath, "utf8"));
-  const cons = consumptionFacts(doc);
+export function ratifyArch(stateDir, runId) {
   const plan = loadPlan(runId, stateDir);
-
-  let cache = { entries: {} };
-  for (const n of plan.nodes) {
-    if (n.disposition !== "re_architect" && n.disposition !== "rebuild") continue;
-    const cands = matchTargetShapes(factStream(n, cons));
-    if (cands.length === 0) continue; // no structural candidate → stays await_arch, not ratified here
-    const rec = { sig: n.id, target_shape: cands[0].id, components: cands[0].components, invariants: cands[0].invariants, candidates: cands.map((c) => ({ id: c.id, score: c.score })), source: "judge" };
-    cache = putEntry(cache, factHash(n, cons), model, promptHash, rec);
-  }
-  writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
-
-  cli("arch", runId, fixturePath, "--model", model, "--prompt-hash", promptHash);
+  const archNodes = plan.nodes.filter((n) => n.disposition === "re_architect" || n.disposition === "rebuild");
+  if (archNodes.length === 0) return; // nothing is arch-gated — no gate to clear
 
   const statePath = join(stateDir, "runs", `${runId}.state.json`);
-  const state = JSON.parse(readFileSync(statePath, "utf8"));
-  const arch_contracts = { ...(state.arch_contracts ?? {}) };
-  for (const sig of Object.keys(arch_contracts)) arch_contracts[sig] = { ...arch_contracts[sig], ratified_by: "test" };
-  writeFileSync(statePath, JSON.stringify({ ...state, arch_contracts }, null, 2), "utf8");
+  let state = JSON.parse(readFileSync(statePath, "utf8"));
+  for (const n of archNodes) {
+    state = bindArchContract(state, n.id, { ref: `arch-contract-${n.id}.json`, hash: `h-${n.id}`, ratified_by: "test" });
+  }
+  writeFileSync(statePath, JSON.stringify(state, null, 2), "utf8");
 }

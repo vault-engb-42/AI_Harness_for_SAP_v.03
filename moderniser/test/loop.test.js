@@ -8,6 +8,7 @@ import { renderVerdict, recordVerdict } from "../src/sched/verdict-ops.js";
 import { assemblePlan } from "../src/sched/assemble.js";
 import { freezePlan } from "../src/sched/plan.js";
 import { NO_RELEASED_SUCCESSOR } from "../src/state/node-status.js";
+import { bindArchContract } from "../src/plan/arch-contract.js";
 
 // The scheduler LOOP (§3.1 Stage 5/6, §3.3) — a pure, resumable, sig-space reducer over the
 // frozen plan alone: FSM-guarded status moves (L9), live-decrementing in-degree counter (L2),
@@ -22,6 +23,19 @@ const DOC = JSON.parse(readFileSync(join(HERE, "fixtures", "analyser-findings.js
 const mkPlan = (nodes) =>
   freezePlan({ nodes: nodes.map((n) => ({ wave: 0, dependencies: [], members: [n.id], member_meta: {}, conflict_keys: [], ...n })) });
 
+/**
+ * initRun + a ratified Architecture Contract for every arch-gated node. The reducer refuses to dispatch an
+ * unratified re_architect/rebuild node (M1), and the golden abap_fico plan is entirely re_architect; these
+ * tests exercise the SCHEDULER (frontier, in-degree, FSM), not the arch gate, so they enter past it.
+ */
+const initRatified = (plan) =>
+  plan.nodes.reduce(
+    (st, n) => (["re_architect", "rebuild"].includes(n.disposition)
+      ? bindArchContract(st, n.id, { ref: "r", hash: `h-${n.id}`, ratified_by: "test" })
+      : st),
+    initRun(plan),
+  );
+
 const FORWARD = ["GROUNDED", "GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"];
 /** drive one dispatched node through its whole per-node FSM — verdict recorded at GATED — to GREEN */
 function walkGreen(plan, state, sig) {
@@ -32,7 +46,7 @@ function walkGreen(plan, state, sig) {
 
 test("the golden ZFICO plan runs bottom-up to completion: SCR → TOP → GL", () => {
   const { plan } = assemblePlan(DOC);
-  let st = initRun(plan);
+  let st = initRatified(plan);
   assert.equal(st.plan_hash, plan.plan_hash, "state is bound to the plan");
 
   const sigOf = (o) => plan.nodes.find((n) => n.object === o).id;
@@ -349,7 +363,7 @@ test("dispatch refuses a dynamic-sealed node — the L5 seam gate holds on direc
 
 test("state is JSON-durable: a serialize/revive round-trip resumes identically", () => {
   const { plan } = assemblePlan(DOC);
-  let st = initRun(plan);
+  let st = initRatified(plan);
   const r1 = nextDispatch(plan, st);
   st = dispatch(plan, st, r1);
   const revived = JSON.parse(JSON.stringify(st));

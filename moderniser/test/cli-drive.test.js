@@ -8,9 +8,10 @@ import { tmpdir } from "node:os";
 import { ratifyArch } from "./support/ratify-arch.js";
 
 // `drive <run_id>` end-to-end (real subprocess, real fs, golden fixture — no mocks): the abap_fico fixture
-// is all re_architect, so the B4 fail-closed precondition holds it at the ARCH_REVIEW gate until ratified;
-// `ratifyArch` walks the real gated pipeline (seed judge cache → arch → decide approve) so the driver then
-// returns `generate`. A run driven to a rested/terminal state returns the right terminal action.
+// is all re_architect, so the B4 fail-closed precondition holds it at the ARCH_REVIEW gate until ratified.
+// `ratifyArch` clears that gate by writing real ratified bindings into the run's durable state (a state
+// FIXTURE — the real `arch` → `arch-verdict` → `decide approve` verb flow is covered end to end in
+// cli-arch.test.js). A run driven to a rested/terminal state returns the right terminal action.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
@@ -36,7 +37,7 @@ test("drive REFUSES a planned-but-unratified re_architect run — await_human (a
 test("drive on a planned + arch-ratified run returns generate for the ready frontier", () => {
   const cli = mkCli();
   const planned = cli("plan", FIXTURE);
-  ratifyArch(cli, cli.stateDir, planned.run_id, FIXTURE);
+  ratifyArch(cli.stateDir, planned.run_id);
   const d = cli("drive", planned.run_id);
   assert.equal(d.action, "generate");
   assert.ok(Array.isArray(d.packets) && d.packets.length > 0, "frontier packets present");
@@ -54,7 +55,7 @@ test("drive fails loud when the run does not exist", () => {
 test("drive --report syntax_ok advances the reported node and returns the next action", () => {
   const cli = mkCli();
   const planned = cli("plan", FIXTURE);
-  ratifyArch(cli, cli.stateDir, planned.run_id, FIXTURE);
+  ratifyArch(cli.stateDir, planned.run_id);
   const sig = cli("drive", planned.run_id).packets[0].sig;
   const action = cli("drive", planned.run_id, "--report", `${sig}=syntax_ok`);
   assert.ok(typeof action.action === "string", "returns a next top-level action");
@@ -65,7 +66,7 @@ test("drive --report syntax_ok advances the reported node and returns the next a
 test("drive --report syntax_fail retries below the ceiling, then BLOCKs at it (SYNTAX_CEILING)", () => {
   const cli = mkCli();
   const planned = cli("plan", FIXTURE);
-  ratifyArch(cli, cli.stateDir, planned.run_id, FIXTURE);
+  ratifyArch(cli.stateDir, planned.run_id);
   const sig = cli("drive", planned.run_id).packets[0].sig;
   const a1 = cli("drive", planned.run_id, "--report", `${sig}=syntax_fail`);
   assert.equal(a1.action, "generate");

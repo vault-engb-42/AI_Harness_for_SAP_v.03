@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { driveDecision } from "../src/sched/drive.js";
-import { initRun } from "../src/sched/loop.js";
+import { initRun, dispatch } from "../src/sched/loop.js";
 import { bindArchContract } from "../src/plan/arch-contract.js";
 
 // B4 (§4c): the fail-closed drive precondition — driveDecision REFUSES to dispatch a re_architect/rebuild
@@ -50,4 +50,24 @@ test("a non-arch disposition (refactor) dispatches without ratification (control
 test("a node with NO disposition dispatches (legacy driver-mechanics path unaffected)", () => {
   const plan = planWith(null);
   assert.equal(driveDecision(plan, initRun(plan)).action, "generate");
+});
+
+// M1 (Rule-11 review, CONFIRMED by live probe): the veto must live in the REDUCER, not only in the driver's
+// frontier filter. cli.js exposes `dispatch` and `progress` as first-class verbs that call the reducer
+// directly, so a driveDecision-only guard is bypassable — an unratified re_architect node could be walked
+// to GENERATED through a different verb. dispatch() is the single chokepoint into the build lifecycle.
+
+test("M1 dispatch() REFUSES an unratified arch-gated node (the veto is not bypassable via the reducer verbs)", () => {
+  for (const d of ["re_architect", "rebuild"]) {
+    const plan = planWith(d);
+    assert.throws(() => dispatch(plan, initRun(plan), ["N1"]), /arch-gated|not human-ratified/i, d);
+  }
+});
+
+test("M1 dispatch() admits a RATIFIED arch node, and any non-arch node, unchanged", () => {
+  const plan = planWith("re_architect");
+  const ratified = bindArchContract(initRun(plan), "N1", { ref: "r", hash: "h1", ratified_by: "eng" });
+  assert.equal(dispatch(plan, ratified, ["N1"]).status.N1, "GROUNDED", "a ratified arch node grounds");
+  const refactor = planWith("refactor");
+  assert.equal(dispatch(refactor, initRun(refactor), ["N1"]).status.N1, "GROUNDED", "a non-arch node is untouched");
 });

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { initRun, dispatch, applyProgress, applyOutcome, runComplete } from "../src/sched/loop.js";
 import { driveDecision } from "../src/sched/drive.js";
+import { bindArchContract } from "../src/plan/arch-contract.js";
 
 // B4 (§4c): the disposition-route terminals end to end through the loop reducer + driver. A retire/rebuild
 // node grounds then terminates at RETIRED / REBUILT_HANDOFF via applyOutcome (a TERMINAL_OUTCOMES member),
@@ -21,7 +22,15 @@ const RETIRE_PLAN = planOf("retire");
 const REBUILD_PLAN = planOf("rebuild");
 const ARCH_PLAN = planOf("re_architect");
 
-const grounded = (plan) => dispatch(plan, initRun(plan), ["N1"]); // PENDING → GROUNDED
+// PENDING → GROUNDED. An arch-gated disposition (re_architect/rebuild) may not enter the lifecycle before
+// its Architecture Contract is ratified (M1), so those plans are handed a ratified binding first — the
+// subject under test here is the TERMINAL gate, not the arch gate.
+const grounded = (plan) => {
+  const base = initRun(plan);
+  const archGated = ["re_architect", "rebuild"].includes(plan.nodes[0].disposition);
+  const state = archGated ? bindArchContract(base, "N1", { ref: "r", hash: "h1", ratified_by: "eng" }) : base;
+  return dispatch(plan, state, ["N1"]);
+};
 const signoff = { signed_by: "eng", justification: "no released successor; the capability is dropped" };
 
 test("a retire node grounds then terminates at RETIRED with a named sign-off (no generation)", () => {

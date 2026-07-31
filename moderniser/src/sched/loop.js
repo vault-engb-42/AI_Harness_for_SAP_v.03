@@ -19,7 +19,12 @@
  * a state file from another plan is rejected — REPLAN is the only legal crossover, L6).
  */
 import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
+import { isArchRatified } from "../plan/arch-contract.js";
 import { nextFrontier } from "./frontier.js";
+
+// Dispositions whose TARGET SHAPE is undecided until a human ratifies the Architecture Contract — they may
+// not enter the build lifecycle before that (B4 / M1). Mirrored in sched/drive.js's frontier filter.
+const ARCH_GATED_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -87,6 +92,13 @@ export function dispatch(plan, state, sigs) {
     // driver — signature-changing modernisation waits for the human caller-set confirmation.
     if (plan.nodes.find((n) => n.id === sig)?.dynamic_seal === "NEEDS_MANUAL_SEAM") {
       throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
+    }
+    // The arch veto belongs HERE, not only in driveDecision's frontier filter (M1): `dispatch` and
+    // `progress` are first-class CLI verbs that reach the reducer directly, so a driver-only guard is
+    // bypassable — an unratified re_architect node could be walked to GENERATED through another verb.
+    // dispatch() is the single chokepoint into the build lifecycle, so the veto is fail-closed here.
+    if (ARCH_GATED_DISPOSITIONS.has(plan.nodes.find((n) => n.id === sig)?.disposition) && !isArchRatified(state, sig)) {
+      throw new Error(`loop: ${sig} is arch-gated — its Architecture Contract is not human-ratified (clear the ARCH_REVIEW gate first)`);
     }
     next = setStatus(plan, next, sig, "GROUNDED");
   }
