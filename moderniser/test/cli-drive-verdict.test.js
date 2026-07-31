@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
+import { ratifyArch } from "./support/ratify-arch.js";
 
 // gap-2b B6.5 F12 — the offline verdict arc had NO EXECUTABLE ENTRY POINT. `cli-drive.js` imported
 // only `driveDecision` and `driveReport`; nothing in moderniser/src ever called
@@ -28,6 +29,7 @@ function mkCli() {
   const state = join(base, "state");
   const runs = join(base, "runs");
   const cli = (...a) => JSON.parse(execFileSync(process.execPath, [CLI, ...a, "--state-dir", state, "--runs-dir", runs], { encoding: "utf8" }));
+  cli.stateDir = state;
   const writeDir = (name, files) => {
     const dir = join(base, name);
     mkdirSync(dir, { recursive: true });
@@ -42,9 +44,11 @@ function mkCli() {
   return { cli, writeDir, writeJson };
 }
 
-/** Drive a freshly planned run's first node to SYNTAX_OK — the offline verdict's entry state. */
+/** Drive a planned + arch-ratified run's first node to SYNTAX_OK — the offline verdict's entry state.
+ * abap_fico is all re_architect, so the run must clear the ARCH_REVIEW gate before the driver dispatches. */
 function atSyntaxOk(cli) {
   const planned = cli("plan", FIXTURE);
+  ratifyArch(cli, cli.stateDir, planned.run_id, FIXTURE);
   const sig = cli("drive", planned.run_id).packets[0].sig;
   cli("drive", planned.run_id, "--report", `${sig}=syntax_ok`);
   return { runId: planned.run_id, sig };
