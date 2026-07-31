@@ -286,6 +286,21 @@ test("the /greenfield entry-point exists and delegates to /abap-build", () => {
   assert.match(skill, /ground_released_apis/, "greenfield must document the offline grounding path");
 });
 
+// H3 (Rule-11 adversarial review, CONFIRMED): the driver hard-refuses to dispatch a re_architect/rebuild
+// node whose Architecture Contract is not human-ratified, so a lane that runs `plan` then `drive` DEADLOCKS
+// on real findings — every node sits at await_human forever. The /modernise skill must therefore invoke both
+// plan-time gates AND the judge write seam that clears the escalated subset. This test is the guard: the
+// gate machinery being reachable only from tests is exactly the defect the review found.
+test("the /modernise skill wires both plan-time gates (disposition + arch) and the judge write seam", () => {
+  const skill = readFileSync(join(CLAUDE, "skills", "modernise", "SKILL.md"), "utf8");
+  for (const verb of ["disposition <R>", "arch <R>", "arch-verdict <R>"]) {
+    assert.ok(skill.includes(verb), `modernise SKILL.md must invoke \`${verb}\` — without it the driver deadlocks`);
+  }
+  assert.match(skill, /arch_ratification/, "the skill must explain the driver's fail-closed arch refusal");
+  assert.match(skill, /ARCH_REVIEW/, "the skill must surface the ARCH_REVIEW ratification gate");
+  assert.match(skill, /abap-arch-reviewer/, "the skill must spawn the independent arch reviewer (GAN counter-party)");
+});
+
 // Skills-review remediation (L2): /abap-brd never existed — abap-spec pointed the human at it; the
 // real upstream BRD producer is /fit-to-standard (writes specs/brd/brd.md). A dangling slash-command
 // leaves the human at a non-command; its reappearance is a regression (mirrors RETIRED_ARTIFACTS).

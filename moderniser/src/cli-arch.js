@@ -23,10 +23,10 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { consumptionFacts } from "./plan/consumption-facts.js";
-import { factStream } from "./plan/arch-facts.js";
+import { factStream, hashFactStream } from "./plan/arch-facts.js";
 import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "./plan/patterns/match.js";
-import { reasonArchitecture } from "./plan/arch-reason.js";
-import { toLookup } from "./state/arch-verdict-cache.js";
+import { reasonArchitecture, validateSelection, freezeJudgeSelection } from "./plan/arch-reason.js";
+import { toLookup, putEntry } from "./state/arch-verdict-cache.js";
 import { buildArchContract, bindArchContract } from "./plan/arch-contract.js";
 import { buildAppBlueprint } from "./plan/app-blueprint.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
@@ -35,7 +35,7 @@ import { buildPromptOptions } from "./plan/prompt-options.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
-  readArchVerdictCache, saveArchContract, archContractPath, saveArchManifest,
+  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractPath, saveArchManifest,
 } from "./cli-io.js";
 
 const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
@@ -68,6 +68,41 @@ export function cmdArch(io, pos, flags) {
   };
 }
 
+/**
+ * `arch-verdict <run_id> <findings.json> <sig> --shape <target_shape> --by <judge> [--model m] [--prompt-hash h]`
+ *
+ * The judge's WRITE seam (H3) — the counterpart to the `await_arch` requests `arch` emits. The fulfiller
+ * spawns the judge on `manifest.pending[].fact` (the sig-free P8 fact stream, the ONLY prompt input) and
+ * records the returned selection here; the next `arch` run then resolves that node from the cache. Without
+ * this verb nothing could ever write the verdict cache, so every escalated node stayed `await_arch` forever
+ * and the driver's arch precondition deadlocked the run on real findings.
+ *
+ * Fail-closed: the selection is validated against the candidates THIS run's facts produce (a shape outside
+ * them — hallucinated, injected, or stale — is refused), the doc identity is re-verified exactly as `arch`
+ * does, and a named judge is required for the audit trail.
+ */
+export function cmdArchVerdict(io, pos, flags) {
+  const [runId, docPath, sig] = pos;
+  const { plan, state } = loadRun(io, runId);
+  const doc = readVerifiedDoc(docPath ?? flags.findings, state);
+  if (typeof flags.by !== "string" || !flags.by) throw new Error("arch-verdict: --by <judge> is required (the named judge whose selection this is)");
+  if (typeof flags.shape !== "string" || !flags.shape) throw new Error("arch-verdict: --shape <target_shape> is required");
+  const node = plan.nodes.find((n) => n.id === sig);
+  if (!node) throw new Error(`arch-verdict: unknown node ${sig}`);
+  if (!REASONING_DISPOSITIONS.has(node.disposition)) {
+    throw new Error(`arch-verdict: node ${sig} has disposition '${node.disposition}' — only re_architect/rebuild nodes are judged`);
+  }
+  const corpus = loadPatternCorpus();
+  const fact = factStream(node, consumptionFacts(doc));
+  const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape }, matchTargetShapes(fact, corpus));
+  const model_id = flags.model ?? null;
+  const prompt_hash = flags["prompt-hash"] ?? defaultPromptHash();
+  const fact_hash = hashFactStream(fact);
+  saveArchVerdictCache(io, putEntry(readArchVerdictCache(io), fact_hash, model_id, prompt_hash, { ...recommendation, judged_by: flags.by }));
+  log(io, runId, "arch-verdict", { sig, target_shape: recommendation.target_shape, judged_by: flags.by });
+  return { run_id: runId, sig, target_shape: recommendation.target_shape, fact_hash, model_id, prompt_hash };
+}
+
 /** Read the findings doc + verify it is the SAME source the run was planned on (augment-safe, reviewer F2). */
 function readVerifiedDoc(path, state) {
   if (!path) throw new Error("arch: a findings doc is required (positional <findings.json> or --findings)");
@@ -91,6 +126,10 @@ function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
     const fact = factStream(node, cons);
     const cands = matchTargetShapes(fact, corpus);
     const res = reasonArchitecture(node, fact, cands, cacheLookup, opts);
+    // M3: re-validate a CACHED judge verdict against THIS run's candidates before trusting it. entry_hash
+    // proves the cache file was not edited after it was written; it says nothing about whether the shape it
+    // carries is one this node was ever offered. Fail-closed here keeps the judge-output boundary honest.
+    if (res.status === "cached") validateSelection(res.recommendation, cands);
     if (res.status === "deterministic" || res.status === "cached") resolved.push({ node, recommendation: res.recommendation });
     else if (res.status === "await_arch") pending.push(res.request); // the P8 request the fulfiller judges
   }

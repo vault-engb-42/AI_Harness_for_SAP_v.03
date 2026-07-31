@@ -136,11 +136,17 @@ test("arch re-run CLEARS the ratification when the contract hash changes (re-rat
   const target = loadPlan(planned.run_id, stateDir).nodes[0];
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  const id = archEscs(run, planned.run_id)[0].id;
-  run("decide", planned.run_id, id, "approve", "--by", "eng");
+  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
 
-  // a DIFFERENT judged shape → a different contract → the old ratification must not carry over
-  seedCache(stateDir, target, consOf(), { shape: "rap_bo_odata" });
+  // What the human ratified is a SPECIFIC contract hash. Simulate the contract having been ratified under a
+  // different hash (the shape the operator approved is not the shape now being frozen): the re-run must NOT
+  // carry that ratification over. Written against the durable state, since this fixture's node has exactly
+  // one structural candidate — a different shape could never legitimately reach the cache (see M3).
+  const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
+  const st = JSON.parse(readFileSync(statePath, "utf8"));
+  st.arch_contracts[target.id].hash = "a-different-contract-hash";
+  writeFileSync(statePath, JSON.stringify(st, null, 2));
+
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const after = stateOf(stateDir, planned.run_id).arch_contracts[target.id];
   assert.equal(after.ratified_by, null, "a changed contract voids the ratification — the human must re-ratify what changed");
@@ -182,6 +188,80 @@ test("arch requires a findings doc (positional or --findings)", () => {
   const { run } = mk();
   const planned = run("plan", FIXTURE);
   assert.throws(() => run("arch", planned.run_id));
+});
+
+// ---- H3+M3: the judge-verdict ingestion verb (closes the await_arch loop) ----
+
+test("H3 arch-verdict ingests a judge selection, and a following `arch` RESOLVES the node from cache", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const first = run("arch", planned.run_id, FIXTURE);
+  assert.equal(first.resolved, 0, "precondition: every node awaits the judge");
+  const pending = manifestOf(runsDir, planned.run_id).pending;
+
+  // the fulfiller judged the FIRST pending request (P8: it only ever saw request.fact) and records it
+  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "judge-agent");
+  assert.equal(ing.target_shape, "rap_bo_headless");
+  assert.ok(ing.fact_hash, "the verdict is keyed on the P8 fact hash");
+
+  const second = run("arch", planned.run_id, FIXTURE);
+  assert.equal(second.resolved, 1, "the ingested verdict resolves the node — the loop closes");
+  assert.equal(second.pending, pending.length - 1);
+  assert.equal(archEscs(run, planned.run_id).length, 1, "an ARCH_REVIEW is now raised for the resolved node");
+  assert.ok(stateOf(stateDir, planned.run_id).arch_contracts[pending[0].sig].hash, "a contract is bound");
+});
+
+test("H3/M3 arch-verdict REFUSES a shape outside the offered candidates (validateSelection, fail-closed)", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  // rap_bo_fiori is a real corpus shape but is NOT among this node's structural candidates
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_fiori", "--by", "j"));
+  // a shape outside the corpus entirely is refused too (a hallucinated/injected shape can never widen the vocabulary)
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "cap_side_by_side", "--by", "j"));
+});
+
+test("H3 arch-verdict refuses the 'other' sentinel (a bespoke shape needs a corpus entry first) and an unknown sig", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "other", "--by", "j"), /corpus/i);
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j"));
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--by", "j"), /shape/i);
+});
+
+test("H3 arch-verdict requires a named judge and verifies the findings doc like `arch` does", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless"), /--by/i);
+  const drifted = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  drifted.source_hash = "0".repeat(64);
+  const p = join(base, "drift.json");
+  writeFileSync(p, JSON.stringify(drifted));
+  assert.throws(() => run("arch-verdict", planned.run_id, p, sig, "--shape", "rap_bo_headless", "--by", "j"));
+});
+
+test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide approve → drive DISPATCHES (no deadlock)", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  assert.equal(run("drive", planned.run_id).action, "await_human", "precondition: the driver is arch-blocked");
+
+  run("arch", planned.run_id, FIXTURE);
+  for (const p of manifestOf(runsDir, planned.run_id).pending) {
+    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "judge-agent");
+  }
+  const resolved = run("arch", planned.run_id, FIXTURE);
+  assert.equal(resolved.pending, 0, "every node is judged");
+  assert.equal(resolved.resolved, planned.nodes.length);
+  for (const e of archEscs(run, planned.run_id)) run("decide", planned.run_id, e.id, "approve", "--by", "eng");
+
+  const d = run("drive", planned.run_id);
+  assert.equal(d.action, "generate", "the ratified run now dispatches — the arch gate is operable end to end");
+  assert.ok(d.packets.length > 0);
 });
 
 // ---- decide: the ARCH_REVIEW ratification branch ----

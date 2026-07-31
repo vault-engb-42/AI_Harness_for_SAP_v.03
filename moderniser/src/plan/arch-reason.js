@@ -86,6 +86,22 @@ export function validateSelection(selection, candidates) {
   return true;
 }
 
+/**
+ * Freeze a JUDGE selection into the exact recommendation shape the deterministic path produces — the
+ * fulfiller's write seam (S14), the counterpart to the `await_arch` request. The selection is validated
+ * against the offered candidates FIRST, so a hallucinated or injected shape can never widen the closed
+ * target_shape vocabulary (P8). The `other` corpus-extension sentinel is accepted by `validateSelection`
+ * but cannot be frozen: a bespoke shape must be added to the patterns corpus before it can be contracted.
+ */
+export function freezeJudgeSelection(node, selection, candidates) {
+  validateSelection(selection, candidates);
+  const chosen = (candidates ?? []).find((c) => c.id === selection.target_shape);
+  if (!chosen) {
+    throw new Error(`arch-reason: '${selection.target_shape}' cannot be frozen — add it to the patterns corpus first (grow the corpus, not the code)`);
+  }
+  return recommend(node, chosen, candidates, "judge");
+}
+
 /** A frozen recommendation attached to the node by sig (sigs live here, NEVER in the prompt-bound fact). */
 function recommend(node, chosen, candidates, source) {
   return {
