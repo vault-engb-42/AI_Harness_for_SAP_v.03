@@ -35,7 +35,7 @@ import { buildPromptOptions } from "./plan/prompt-options.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
-  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractRef, saveArchManifest,
+  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractRef, saveArchManifest, readArchManifest,
 } from "./cli-io.js";
 
 const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
@@ -101,9 +101,36 @@ export function cmdArchVerdict(io, pos, flags) {
   const model_id = flags.model ?? null;
   const prompt_hash = flags["prompt-hash"] ?? defaultPromptHash();
   const fact_hash = hashFactStream(fact);
+  assertServesRequest(io, runId, sig, { fact_hash, model_id, prompt_hash });
   saveArchVerdictCache(io, putEntry(readArchVerdictCache(io), fact_hash, model_id, prompt_hash, { ...recommendation, judged_by: flags.by }));
   log(io, runId, "arch-verdict", { sig, target_shape: recommendation.target_shape, judged_by: flags.by });
   return { run_id: runId, sig, target_shape: recommendation.target_shape, fact_hash, model_id, prompt_hash };
+}
+
+/**
+ * The write seam must SERVE AN OUTSTANDING REQUEST and prove its key matches it (B).
+ *
+ * The verdict cache is keyed on (fact_hash, model_id, prompt_hash). A verdict judged under a different model
+ * or prompt than the request was ISSUED under lands on a key `arch` will never read: every step returns a
+ * success JSON, no error surfaces anywhere, and the run silently deadlocks at await_human forever — which is
+ * precisely the failure the judge write seam was built to close. Refusing here makes the seam self-proving:
+ * a recorded verdict is, by construction, one the next `arch` will consume.
+ */
+function assertServesRequest(io, runId, sig, key) {
+  const request = (readArchManifest(io, runId)?.pending ?? []).find((p) => p.sig === sig);
+  if (!request) {
+    throw new Error(
+      `arch-verdict: no outstanding await_arch request for ${sig} — run \`arch\` first; a verdict nothing asked for would be frozen under a key no run reads`,
+    );
+  }
+  for (const field of ["fact_hash", "model_id", "prompt_hash"]) {
+    if ((request[field] ?? null) !== (key[field] ?? null)) {
+      throw new Error(
+        `arch-verdict: ${field} '${key[field] ?? "∅"}' does not match the outstanding request ('${request[field] ?? "∅"}') — ` +
+        `the verdict would be frozen under a key \`arch\` never reads (a silent deadlock); judge under the request's model + prompt`,
+      );
+    }
+  }
 }
 
 /** Read the findings doc + verify it is the SAME source the run was planned on (augment-safe, reviewer F2). */

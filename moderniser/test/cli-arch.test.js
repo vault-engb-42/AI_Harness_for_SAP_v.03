@@ -250,6 +250,47 @@ test("H3 arch-verdict refuses the 'other' sentinel (a bespoke shape needs a corp
   assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--by", "j"), /shape/i);
 });
 
+// B (adversarial pass #2, CONFIRMED by probe): the verdict cache is keyed on (fact_hash, model_id,
+// prompt_hash). If the fulfiller judges under a different model/prompt than the request was ISSUED under,
+// the verdict is frozen under a key `arch` will never read — every step returns success JSON and the run
+// silently deadlocks again, which is exactly the failure H3 existed to close. The write seam must therefore
+// serve an OUTSTANDING request and prove the key matches it.
+
+test("B arch-verdict REFUSES a key that diverges from the outstanding request (silent deadlock)", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE); // requests issued with model_id null + the committed prompt hash
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--model", "some-other-model"),
+    "a verdict judged under a different model than the request must not be silently frozen",
+  );
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--prompt-hash", "not-the-committed-prompt"),
+    "a verdict judged under a different prompt must not be silently frozen",
+  );
+});
+
+test("B arch-verdict REFUSES a sig with no outstanding request (nothing asked for this judgment)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const sig = loadPlan(planned.run_id, stateDir).nodes[0].id;
+  // `arch` has never run, so no request exists for this node
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j"), /outstanding|request|arch/i);
+});
+
+test("B the matching key still records, and the recorded key equals the request's (the loop provably closes)", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE, "--model", "opus-x", "--prompt-hash", "ph-x");
+  const pending = manifestOf(runsDir, planned.run_id).pending[0];
+  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending.sig, "--shape", "rap_bo_headless", "--by", "j", "--model", "opus-x", "--prompt-hash", "ph-x");
+  assert.equal(ing.model_id, pending.model_id, "the verdict is recorded under the request's model");
+  assert.equal(ing.prompt_hash, pending.prompt_hash, "…and the request's prompt hash");
+  assert.equal(ing.fact_hash, pending.fact_hash, "…and the request's fact hash");
+  assert.equal(run("arch", planned.run_id, FIXTURE, "--model", "opus-x", "--prompt-hash", "ph-x").resolved, 1, "so the next `arch` resolves it");
+});
+
 test("H3 arch-verdict requires a named judge and verifies the findings doc like `arch` does", () => {
   const { base, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
