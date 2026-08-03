@@ -95,8 +95,9 @@ export function cmdArchVerdict(io, pos, flags) {
   const corpus = loadPatternCorpus();
   const fact = factStream(node, consumptionFacts(doc));
   // --shared-json carries the judge's APP-LEVEL grouping ({services|projections|fiori_apps}: [{id, members}])
-  // — the cross-object half of the two-level judgment, which the blueprint conformance tier checks.
-  const shared = flags["shared-json"] ? JSON.parse(readFileSync(flags["shared-json"], "utf8")) : undefined;
+  // — the cross-object half of the two-level judgment, which the blueprint conformance tier checks. It is
+  // UNTRUSTED fulfiller input that gets frozen into the cross-run cache, so it is validated here (F).
+  const shared = flags["shared-json"] ? validateShared(JSON.parse(readFileSync(flags["shared-json"], "utf8")), plan) : undefined;
   const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape, shared }, matchTargetShapes(fact, corpus));
   const model_id = flags.model ?? null;
   const prompt_hash = flags["prompt-hash"] ?? defaultPromptHash();
@@ -105,6 +106,37 @@ export function cmdArchVerdict(io, pos, flags) {
   saveArchVerdictCache(io, putEntry(readArchVerdictCache(io), fact_hash, model_id, prompt_hash, { ...recommendation, judged_by: flags.by }));
   log(io, runId, "arch-verdict", { sig, target_shape: recommendation.target_shape, judged_by: flags.by });
   return { run_id: runId, sig, target_shape: recommendation.target_shape, fact_hash, model_id, prompt_hash };
+}
+
+const SHARED_KINDS = ["services", "projections", "fiori_apps"];
+
+/**
+ * Validate the judge's cross-object grouping AT THE BOUNDARY, before anything is frozen (F).
+ *
+ * `--shared-json` is untrusted fulfiller output that `putEntry` freezes into the CROSS-RUN verdict cache.
+ * Unvalidated, a malformed grouping is not a local error: it throws a raw TypeError out of `mergeShared` on
+ * every subsequent `arch`, permanently, for every run sharing that cache — a wedge no operator could
+ * diagnose from the message. Members are checked against the PLAN (not the resolved subset) so a dangling
+ * sig is refused by the writer that produced it, rather than blocking the whole verb for everyone later.
+ */
+function validateShared(shared, plan) {
+  const bad = (m) => { throw new Error(`arch-verdict: --shared-json ${m}`); };
+  if (shared === null || typeof shared !== "object" || Array.isArray(shared)) {
+    bad(`must be an object of {${SHARED_KINDS.join(" | ")}: [{id, members}]}`);
+  }
+  const known = new Set(plan.nodes.map((n) => n.id));
+  for (const [kind, groups] of Object.entries(shared)) {
+    if (!SHARED_KINDS.includes(kind)) bad(`has unknown group kind '${kind}' (expected ${SHARED_KINDS.join(" | ")})`);
+    if (!Array.isArray(groups)) bad(`'${kind}' must be an array of {id, members}`);
+    for (const g of groups) {
+      if (!g || typeof g !== "object" || typeof g.id !== "string" || g.id === "") bad(`'${kind}' has a group with no non-empty string id`);
+      if (!Array.isArray(g.members)) bad(`group '${g.id}' members must be an array of plan node sigs`);
+      for (const m of g.members) {
+        if (typeof m !== "string" || !known.has(m)) bad(`group '${g.id}' names member '${m}' which is not a plan node of this run`);
+      }
+    }
+  }
+  return shared;
 }
 
 /**

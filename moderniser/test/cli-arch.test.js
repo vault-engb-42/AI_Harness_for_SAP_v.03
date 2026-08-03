@@ -350,17 +350,61 @@ const writeShared = (base, name, shared) => {
   return p;
 };
 
-test("M4 the blueprint tier REFUSES a shared group naming a sig that is not a blueprint object", () => {
+test("M4 the blueprint tier REFUSES a shared group naming a plan node that is not in the app", () => {
   const { base, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
   run("arch", planned.run_id, FIXTURE);
   const pending = manifestOf(runsDir, planned.run_id).pending;
-  // the judge groups this BO behind a shared OData service — but names a member that is not in the app
-  const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, "f".repeat(64)] }] });
+  // The judge groups this BO behind a shared OData service and names a SECOND member which is a real plan
+  // node — so the write seam accepts it (F) — but which is never judged, so it is absent from the blueprint.
+  // That is the live path for checkBlueprint's cross-object checks: a group referencing an object the app
+  // does not contain must block BEFORE any contract freezes.
+  const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, pending[1].sig] }] });
   run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
   assert.throws(
     () => run("arch", planned.run_id, FIXTURE),
-    "a dangling cross-object reference must block BEFORE any contract freezes",
+    /blueprint|not a blueprint object/i,
+    "a cross-object reference to an unjudged node must block the freeze",
+  );
+});
+
+// F (adversarial pass #2, CONFIRMED — both failure modes reproduced): --shared-json is untrusted fulfiller
+// input that gets FROZEN into the CROSS-RUN verdict cache. Unvalidated, a malformed grouping either corrupts
+// the manifest or throws a raw TypeError out of mergeShared on EVERY subsequent `arch` — permanently, for
+// every run sharing that cache. Validate at the boundary where it enters, before anything is frozen.
+
+test("F arch-verdict REFUSES a malformed shared grouping at the boundary (never freezes it into the cache)", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  const bad = (name, doc) => {
+    const p = join(base, name);
+    writeFileSync(p, JSON.stringify(doc));
+    return () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", p);
+  };
+  assert.throws(bad("s1.json", { services: 5 }), /shared/i, "a non-array group kind");
+  assert.throws(bad("s2.json", { services: [{ members: ["x"] }] }), /shared/i, "a group with no id");
+  assert.throws(bad("s3.json", { services: [{ id: "S", members: "not-an-array" }] }), /shared/i, "members must be an array");
+  assert.throws(bad("s4.json", { bogus_kind: [{ id: "S", members: [] }] }), /shared/i, "an unknown group kind");
+  assert.throws(bad("s5.json", [1, 2, 3]), /shared/i, "the grouping must be an object");
+  // and nothing was frozen: the gate still works for a well-formed verdict afterwards
+  const ok = run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j");
+  assert.equal(ok.target_shape, "rap_bo_headless", "the cache is uncorrupted — a valid verdict still records");
+  assert.equal(run("arch", planned.run_id, FIXTURE).resolved, 1, "and `arch` is not wedged");
+});
+
+test("F a shared group naming a member that is not a PLAN node is refused at the write seam", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  const p = join(base, "ghost.json");
+  writeFileSync(p, JSON.stringify({ services: [{ id: "SRV", members: [sig, "f".repeat(64)] }] }));
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", p),
+    /not a plan node|member/i,
+    "caught at the boundary against the PLAN, not later against the resolved subset",
   );
 });
 
