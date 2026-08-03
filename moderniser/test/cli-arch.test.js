@@ -155,24 +155,50 @@ test("arch re-run CLEARS the ratification when the contract hash changes (re-rat
   assert.equal(after.ratified_by, null, "a changed contract voids the ratification — the human must re-ratify what changed");
 });
 
-test("decide reject/refine on a re-raised ARCH_REVIEW CLEARS a prior ratification (approve→reject must not stay dispatchable)", () => {
+test("decide reject leaves the node UNRATIFIED, so the driver refuses to build it", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "reject", "--by", "eng");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null, "a reject ratifies nothing");
+  assert.equal(run("drive", planned.run_id).action, "await_human", "and the driver will not build it");
+});
+
+// G (adversarial pass #2, conflicting verdicts — adjudicated): raising a review for a contract the human
+// already ratified at the SAME hash shows a gate the driver correctly ignores, accumulates duplicate rows,
+// and contradicts the lane's promise that re-ratification is required only for what CHANGED.
+
+test("G a re-run does NOT re-raise ARCH_REVIEW for a still-ratified, unchanged contract", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
   const target = loadPlan(planned.run_id, stateDir).nodes[0];
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
-  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "precondition: ratified");
 
-  // the re-run raises a FRESH ARCH_REVIEW over the (preserved) ratified contract; the operator now rejects
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  const reopened = archEscs(run, planned.run_id);
-  assert.equal(reopened.length, 1, "a fresh OPEN ARCH_REVIEW is raised after the prior one resolved");
-  run("decide", planned.run_id, reopened[0].id, "reject", "--by", "eng");
-  assert.equal(
-    stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null,
-    "a reject must VOID the prior ratification — otherwise the driver keeps dispatching rejected architecture",
-  );
+  assert.equal(archEscs(run, planned.run_id).length, 0, "nothing to ask: the human already approved this exact contract");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "and the ratification survives");
+});
+
+test("G a CHANGED contract DOES raise a fresh ARCH_REVIEW (re-ratify exactly what changed)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
+
+  const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
+  const st = JSON.parse(readFileSync(statePath, "utf8"));
+  st.arch_contracts[target.id].hash = "a-different-contract-hash"; // what was ratified is not what is now frozen
+  writeFileSync(statePath, JSON.stringify(st, null, 2));
+
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  assert.equal(archEscs(run, planned.run_id).length, 1, "the changed contract must be re-ratified");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null);
 });
 
 // ---- fail-closed guards ----

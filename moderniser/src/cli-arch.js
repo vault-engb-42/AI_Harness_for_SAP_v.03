@@ -27,7 +27,7 @@ import { factStream, hashFactStream } from "./plan/arch-facts.js";
 import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "./plan/patterns/match.js";
 import { reasonArchitecture, validateSelection, freezeJudgeSelection } from "./plan/arch-reason.js";
 import { toLookup, putEntry } from "./state/arch-verdict-cache.js";
-import { buildArchContract, bindArchContract } from "./plan/arch-contract.js";
+import { buildArchContract, bindArchContract, isArchRatified } from "./plan/arch-contract.js";
 import { buildAppBlueprint } from "./plan/app-blueprint.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
 import { standardTablesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
@@ -58,7 +58,13 @@ export function cmdArch(io, pos, flags) {
   const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
   saveState(io, runId, nextState); // state BEFORE escalations: a crash residue leaves a bound-but-unraised node, healed on re-run
-  saveEscalations(io, raiseArchReviews(readEscalations(io), archManifest, { ts: new Date().toISOString() }));
+  // Raise ONLY for contracts that still need a human (G). A re-run preserves the ratification of an
+  // unchanged contract, so re-raising would show the operator a gate for work they already approved — one
+  // the driver correctly ignores, accumulating duplicate rows and eroding what an open ARCH_REVIEW means.
+  // A CHANGED contract has had its ratification voided by `rebind`, so it reappears here, which is the
+  // promise the lane makes: re-ratify exactly what changed.
+  const unratified = { rows: rows.filter((r) => !isArchRatified(nextState, r.sig)) };
+  saveEscalations(io, raiseArchReviews(readEscalations(io), unratified, { ts: new Date().toISOString() }));
   log(io, runId, "arch", { resolved: rows.length, pending: pending.length });
   return {
     run_id: runId,
