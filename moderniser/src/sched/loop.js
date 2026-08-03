@@ -50,6 +50,7 @@ export function initRun(plan, opts = {}) {
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig
     arch_contracts: {}, // per-sig ratified Architecture Contract binding {ref,hash,ratified_by,reviewer_verdict} (S6 run state; NOT the frozen node, so plan_hash is unaffected)
+    disposition_register: [], // audited RETIRED / REBUILT_HANDOFF sign-offs — these terminals complete a run with NO verdict, so this row is the only record of who authorised the drop/handoff and why
     cancel_token: opts.cancel_token ?? null,
   };
 }
@@ -207,6 +208,17 @@ export function applyOutcome(plan, state, sig, outcome) {
       park_register: [
         ...next.park_register,
         { sig, reason: outcome.reason, signed_by: outcome.signed_by, justification: outcome.justification },
+      ],
+    };
+  } else if (DISPOSITION_TERMINALS.has(outcome.status)) {
+    // The sign-off is validated by assertDispositionTerminal; PERSIST it. These terminals complete a run
+    // with no verdict behind them, so this row is the only evidence in the proof bundle of who authorised
+    // dropping the object (RETIRED) or handing it off the stack (REBUILT_HANDOFF), and why.
+    next = {
+      ...next,
+      disposition_register: [
+        ...(next.disposition_register ?? []),
+        { sig, status: outcome.status, reason: outcome.reason, signed_by: outcome.signed_by, justification: outcome.justification },
       ],
     };
   }

@@ -82,6 +82,27 @@ test("H2 both terminals REQUIRE a named human sign-off + a justification (they c
   }
 });
 
+// H2-followup (adversarial pass #2): the sign-off was VALIDATED and then discarded. PARK persists its
+// audited row (signer + justification) into the run state; these terminals complete a run with no verdict
+// at all, so their justification is the ONLY record of why an object was dropped or handed off — losing it
+// leaves the proof bundle unable to say who authorised it.
+
+test("H2-followup the terminal's sign-off is PERSISTED as an audit row, like PARK's register", () => {
+  const s = applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "RETIRED", reason: "no released successor", ...signoff });
+  assert.deepEqual(s.disposition_register, [{
+    sig: "N1", status: "RETIRED", reason: "no released successor",
+    signed_by: "eng", justification: "no released successor; the capability is dropped",
+  }]);
+});
+
+test("H2-followup initRun seeds the register, and REBUILT_HANDOFF records its own row", () => {
+  assert.deepEqual(initRun(RETIRE_PLAN).disposition_register, []);
+  const s = applyOutcome(REBUILD_PLAN, grounded(REBUILD_PLAN), "N1", { status: "REBUILT_HANDOFF", ...signoff });
+  assert.equal(s.disposition_register.length, 1);
+  assert.equal(s.disposition_register[0].status, "REBUILT_HANDOFF");
+  assert.equal(s.disposition_register[0].signed_by, "eng");
+});
+
 test("H2 a node with NO disposition can reach neither terminal (fail-closed on an absent classification)", () => {
   const bare = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [] }] };
   for (const status of ["RETIRED", "REBUILT_HANDOFF"]) {
