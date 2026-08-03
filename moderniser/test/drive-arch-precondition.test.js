@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { driveDecision } from "../src/sched/drive.js";
-import { initRun, dispatch } from "../src/sched/loop.js";
+import { initRun, dispatch, applyProgress } from "../src/sched/loop.js";
 import { bindArchContract } from "../src/plan/arch-contract.js";
 
 // B4 (§4c): the fail-closed drive precondition — driveDecision REFUSES to dispatch a re_architect/rebuild
@@ -85,6 +85,47 @@ test("M5 once the arch node is ratified it competes for the slot again (worst-de
 // frontier filter. cli.js exposes `dispatch` and `progress` as first-class verbs that call the reducer
 // directly, so a driveDecision-only guard is bypassable — an unratified re_architect node could be walked
 // to GENERATED through a different verb. dispatch() is the single chokepoint into the build lifecycle.
+
+// A (adversarial pass #2, CONFIRMED): the veto guarded ONLY the PENDING→GROUNDED edge. isArchRatified had
+// three call sites, all PENDING-scoped — so a `reject`/`refine` that voids a ratification did nothing to a
+// node already in flight: it kept advancing and the run could COMPLETE on architecture the human rejected.
+// The gate must hold for the whole lifecycle, not just the entry edge.
+
+/** Ratify, dispatch, and advance to GENERATED — a legitimately in-flight arch node. */
+const inFlight = (plan) => {
+  const ratified = bindArchContract(initRun(plan), "N1", { ref: "r", hash: "h1", ratified_by: "eng" });
+  return applyProgress(plan, dispatch(plan, ratified, ["N1"]), "N1", "GENERATED");
+};
+
+test("A a de-ratified in-flight arch node cannot ADVANCE (no completing on rejected architecture)", () => {
+  const plan = planWith("re_architect");
+  const rejected = bindArchContract(inFlight(plan), "N1", { ref: "r", hash: "h1", ratified_by: null });
+  assert.throws(
+    () => applyProgress(plan, rejected, "N1", "SYNTAX_OK"),
+    /arch-gated|not human-ratified/i,
+    "the operator rejected this architecture — the build must stop, not finish",
+  );
+});
+
+test("A a node that is STILL ratified advances normally (the guard is targeted, not a blanket freeze)", () => {
+  const plan = planWith("re_architect");
+  assert.equal(applyProgress(plan, inFlight(plan), "N1", "SYNTAX_OK").status.N1, "SYNTAX_OK");
+});
+
+test("A re-entry to PENDING stays legal for a de-ratified node (it must be able to re-enter and re-gate)", () => {
+  const plan = planWith("re_architect");
+  const parked = { ...inFlight(plan), status: { N1: "NEEDS_MANUAL_SEAM" }, arch_contracts: { N1: { ref: "r", hash: "h1", ratified_by: null } } };
+  assert.equal(applyProgress(plan, parked, "N1", "PENDING").status.N1, "PENDING");
+});
+
+test("A the driver surfaces a de-ratified IN-FLIGHT node as the arch gate, never as a wedge", () => {
+  const plan = planWith("re_architect");
+  const rejected = bindArchContract(inFlight(plan), "N1", { ref: "r", hash: "h1", ratified_by: null });
+  const d = driveDecision(plan, rejected);
+  assert.equal(d.action, "await_human");
+  assert.equal(d.reason, "arch_ratification");
+  assert.deepEqual(d.nodes, ["N1"]);
+});
 
 test("LOW a PARTIAL arch frontier dispatches only the ratified node, never the unratified one", () => {
   const plan = {

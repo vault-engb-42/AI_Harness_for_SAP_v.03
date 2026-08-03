@@ -17,13 +17,25 @@
  */
 import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from "./loop.js";
 import { recordProvisionalVerdict } from "./verdict-ops.js";
-import { MAX_PHASE_RETRY_CYCLES } from "../state/node-status.js";
+import { MAX_PHASE_RETRY_CYCLES, isActive } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 
 // The states a node may legitimately rest in when the frontier is empty (offline or terminal). Includes the
 // B4 disposition-route terminals (RETIRED / REBUILT_HANDOFF) — else a retired/handed-off node would satisfy
 // neither RESTED nor runComplete and driveDecision would wedge the run forever.
 const RESTED = new Set(["GREEN", "SYNTAX_OK", "PROVISIONAL_GATED", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM", "RETIRED", "REBUILT_HANDOFF"]);
+
+/**
+ * An arch-gated node is waiting on ratification iff it could otherwise make progress: either it is PENDING
+ * with a green closure (never entered), or it is IN FLIGHT at a non-terminal, non-resting status and can no
+ * longer advance because its ratification was voided. A PENDING node still waiting on its dependencies is a
+ * starved sweep target, not an arch gate.
+ */
+const isAwaitingArch = (state, id) => {
+  const status = state.status[id];
+  if (status === "PENDING") return (state.indegree[id] ?? 0) === 0;
+  return isActive(status) && !RESTED.has(status);
+};
 
 /** A starved dependent (PENDING, still waiting on a non-GREEN dep) — a sweep target, not a wedge. */
 const isStarved = (state, id) => state.status[id] === "PENDING" && (state.indegree[id] ?? 0) > 0;
@@ -41,11 +53,13 @@ export function driveDecision(plan, state) {
   const frontier = nextDispatch(plan, state);
   if (frontier.length > 0) return { action: "generate", packets: frontier.map((sig) => packetOf(plan, sig)) };
 
-  // Nothing is dispatchable. An arch-gated node whose closure is green is not wedged — it is waiting on the
+  // Nothing is dispatchable. An arch-gated node that is not ratified is not wedged — it is waiting on the
   // human ARCH_REVIEW ratification (B4 fail-closed precondition), so name that gate rather than reporting a
-  // wedge the operator cannot act on.
+  // wedge the operator cannot act on. This covers BOTH a node that never entered (PENDING with a green
+  // closure) and one whose ratification was VOIDED mid-flight by a reject/refine (A) — the latter can no
+  // longer advance, so without this it would read as a wedge.
   const awaitingArch = plan.nodes
-    .filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && state.status[n.id] === "PENDING" && (state.indegree[n.id] ?? 0) === 0 && !isArchRatified(state, n.id))
+    .filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id) && isAwaitingArch(state, n.id))
     .map((n) => n.id);
   if (awaitingArch.length > 0) return { action: "await_human", nodes: awaitingArch, reason: "arch_ratification" };
 

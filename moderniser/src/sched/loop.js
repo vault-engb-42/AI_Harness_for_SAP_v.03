@@ -130,6 +130,13 @@ export function applyProgress(plan, state, sig, nextStatus) {
     // seal; PENDING→GROUNDED through this channel would bypass all three (F11 escape)
     throw new Error(`loop: GROUNDED is dispatch's move — dispatch re-checks readiness, park, and the L5 seal`);
   }
+  // The arch gate holds for the WHOLE lifecycle, not just the entry edge (A). Voiding a ratification —
+  // what `decide reject|refine` does — must stop a node that is already in flight, or the build continues
+  // and the run COMPLETES on architecture the human rejected. Re-entry to PENDING stays legal: that is how
+  // a node returns to be re-gated.
+  if (nextStatus !== "PENDING" && ARCH_GATED_DISPOSITIONS.has(plan.nodes.find((n) => n.id === sig)?.disposition) && !isArchRatified(state, sig)) {
+    throw new Error(`loop: ${sig} is arch-gated — its Architecture Contract is not human-ratified (a rejected or unratified architecture must not keep building)`);
+  }
   const reentry = (state.status[sig] === "PARK" || state.status[sig] === "NEEDS_MANUAL_SEAM") && nextStatus === "PENDING";
   let next = setStatus(plan, state, sig, nextStatus);
   if (reentry) {
