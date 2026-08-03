@@ -49,6 +49,17 @@ CANDIDATES: <the ranked match.js candidates: id, name, components>
   "target_shape": "<a candidate id, or 'other'>",
   "rationale": "<1–3 sentences grounded in the FACTS>",
   "grounded_apis": ["<released CDS/API names to be oracle-verified, or empty>"],
-  "shared_hint": "<optional: a cross-object sharing note for the app blueprint, or empty>"
+  "shared_groups": [
+    { "kind": "services | projections | fiori_apps", "id": "<a stable label for the shared thing>" }
+  ]
 }
 ```
+
+`shared_groups` is THIS object's membership in app-level shared structure — one OData service fronting
+several BOs, a projection reused across them, dynpro screens collapsing into one Fiori app. Name the group
+with a stable label you would reuse for every object that belongs to it (e.g. `SRV_ORDER_MGMT`); judging two
+objects into the same label is what places them in one group. Emit `[]` when the object shares nothing.
+
+You never see, and never emit, object names or node identifiers — only the FACTS and the CANDIDATES above.
+The fulfiller maps your labels onto the app's objects; that mapping is what keeps this prompt injection-closed
+(P8). A label is a name YOU choose, not an identifier read out of the customer's system.

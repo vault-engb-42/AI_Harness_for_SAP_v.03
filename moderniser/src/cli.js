@@ -19,7 +19,7 @@
  *   findings-brief <object> --findings <analyser-findings.json>   (pre-gen "avoid these" grounding)
  *   disposition <run_id>   (plan-time gate 1: emit disposition-manifest.json + raise DISPOSITION_REVIEWs)
  *   arch <run_id> <findings.json> [--findings f] [--model m] [--prompt-hash h]   (plan-time gate 2: reason a target_shape per re_architect/rebuild node → app blueprint → freeze coarse Architecture Contracts → architecture-manifest.json + raise ARCH_REVIEWs; a cache miss surfaces await_arch requests for the judge fulfiller)
- *   arch-verdict <run_id> <findings.json> <sig> --shape <target_shape> --by <judge> [--model m] [--prompt-hash h]   (the judge's write seam: record a selection for an await_arch node; the next `arch` resolves it from cache)
+ *   arch-verdict <run_id> <findings.json> <sig> --shape <target_shape> --by <judge> [--model m] [--prompt-hash h] [--shared-json f]   (the judge's write seam: record a selection for an await_arch node; the next `arch` resolves it from cache. --model/--prompt-hash MUST match the outstanding request. --shared-json carries the judge's app-level grouping {services|projections|fiori_apps: [{id, members}]}, unioned by label across nodes)
  *   drive <run_id> [--report <sig>=<syntax_ok|syntax_fail|generator_error>]   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked}; --report is the driver's retry-vs-ceiling channel, Option A)
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)

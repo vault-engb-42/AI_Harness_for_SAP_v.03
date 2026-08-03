@@ -408,6 +408,38 @@ test("F a shared group naming a member that is not a PLAN node is refused at the
   );
 });
 
+// E (adversarial pass #2, CONFIRMED): M4's tier was inert on the real lane because --shared-json had no
+// producer — the judge is P8-blocked from naming sigs and the prompt emitted free text. The prompt now
+// returns `shared_groups: [{kind, id}]` (this object's membership under a LABEL the judge chose), the
+// fulfiller maps label+its own sig into --shared-json, and `arch` UNIONS by label across nodes. This test
+// walks that exact lane shape for two objects the judge put under one label.
+
+test("E per-node memberships UNION by label into one app-level group (the lane's real grouping path)", () => {
+  const { base, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const pending = manifestOf(runsDir, planned.run_id).pending;
+
+  // the judge put both objects under the same service label; the fulfiller passes each node's OWN sig only
+  for (const p of pending.slice(0, 2)) {
+    const f = writeShared(base, `grp-${p.sig.slice(0, 8)}.json`, { services: [{ id: "SRV_ORDER_MGMT", members: [p.sig] }] });
+    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", f);
+  }
+  const out = run("arch", planned.run_id, FIXTURE);
+  assert.equal(out.resolved, 2);
+  const { services } = manifestOf(runsDir, planned.run_id).shared;
+  assert.equal(services.length, 1, "one label → ONE group, not two");
+  assert.equal(services[0].id, "SRV_ORDER_MGMT");
+  assert.deepEqual(services[0].members.slice().sort(), [pending[0].sig, pending[1].sig].sort(), "both judged objects are members");
+});
+
+test("E the committed judge prompt emits the sig-free grouping contract the lane consumes", () => {
+  const prompt = readFileSync(new URL("../src/plan/patterns/arch-reason-prompt.md", import.meta.url), "utf8");
+  assert.match(prompt, /shared_groups/, "the prompt must ask for the structured grouping");
+  assert.match(prompt, /services \| projections \| fiori_apps/, "…keyed on the kinds the blueprint understands");
+  assert.ok(!/shared_hint/.test(prompt), "the free-text field the lane could not consume is gone");
+});
+
 test("M4 a CONSISTENT shared group passes the tier and reaches the blueprint", () => {
   const { base, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
