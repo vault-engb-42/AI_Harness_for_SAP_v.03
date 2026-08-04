@@ -21,6 +21,8 @@
 import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { nextFrontier } from "./frontier.js";
+import { refEdges, metaByMember, transportOf } from "./plan-views.js";
+import { TERMINAL_OUTCOMES, RUN_COMPLETE_TERMINALS, DISPOSITION_TERMINALS, NON_BUILD_DISPOSITIONS, assertDispositionTerminal } from "./terminals.js";
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -67,9 +69,14 @@ export function nextDispatch(plan, state) {
     status: state.status,
     indegree: state.indegree,
     park: state.park_register.map((p) => p.sig),
-    // An arch-gated node awaiting human ratification cannot run, so it must not occupy a team-size slot
-    // (M5) — the cap is applied to the ready list, and a downstream filter would starve dispatchable work.
-    ineligible: plan.nodes.filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id)).map((n) => n.id),
+    // Nodes that cannot become build work right now, excluded BEFORE the team-size cap (M5) so they never
+    // occupy a slot and starve dispatchable work: an arch-gated node awaiting human ratification, a `retire`
+    // node (routed by driveDecision's own action, never generated), and a `seal` node (the classifier asked
+    // for manual review — generating it is the fail-open the seam exists to prevent). S5.
+    ineligible: plan.nodes
+      .filter((n) => NON_BUILD_DISPOSITIONS.has(n.disposition)
+        || (ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id)))
+      .map((n) => n.id),
     meta: metaByMember(plan),
     teamSize: plan.generator_team_size ?? Infinity,
   });
@@ -104,21 +111,6 @@ export function dispatch(plan, state, sigs) {
   }
   return next;
 }
-
-// Terminal outcomes carry semantics applyProgress cannot honour: the earned-GREEN verdict
-// guard, the dependent indegree decrement, quarantine/park bookkeeping, and the mutex
-// release all live in applyOutcome — an FSM-legal GATED→GREEN through this channel would
-// bypass every one of them (branch review F2).
-const TERMINAL_OUTCOMES = new Set(["GREEN", "BLOCK", "PARK", "NEEDS_MANUAL_SEAM", "RETIRED", "REBUILT_HANDOFF"]);
-
-// The terminals that COMPLETE a run: a successful build (GREEN) or a resolved non-build disposition (a
-// dropped object / an off-stack rebuild handoff). BLOCK / PARK / NEEDS_MANUAL_SEAM leave the run incomplete.
-const RUN_COMPLETE_TERMINALS = new Set(["GREEN", "RETIRED", "REBUILT_HANDOFF"]);
-
-// The disposition-route terminals and the frozen disposition each one REQUIRES. They complete a run without
-// any verdict (nothing is built, so nothing can be gated), which makes them the one place the ratchet could
-// be talked out of a verdict entirely — so each is bound to its classification and to a named human.
-const DISPOSITION_TERMINALS = new Map([["RETIRED", "retire"], ["REBUILT_HANDOFF", "rebuild"]]);
 
 /** A non-terminal per-node phase move reported by the node driver (FSM-checked, cycle-aware). */
 export function applyProgress(plan, state, sig, nextStatus) {
@@ -227,30 +219,6 @@ export function applyOutcome(plan, state, sig, outcome) {
 }
 
 /**
- * The fail-closed gate on a disposition-route terminal (H2). RETIRED / REBUILT_HANDOFF complete a run with
- * NO verdict — nothing is generated, so the ATC/ABAP-Unit ratchet never runs — which makes them the one
- * channel where a run could be declared done without anything being gated. Two guards close it: the node's
- * FROZEN disposition must actually be the matching non-build one (a re_architect node can never be dropped),
- * and a NAMED human must sign off with a justification (mirroring PARK, L7). The disposition comes from the
- * hashed plan, so an agent cannot talk its way past it — P4's agent-proof requirement.
- */
-function assertDispositionTerminal(plan, sig, outcome) {
-  const required = DISPOSITION_TERMINALS.get(outcome.status);
-  const disposition = plan.nodes.find((n) => n.id === sig)?.disposition;
-  if (disposition !== required) {
-    throw new Error(
-      `loop: ${outcome.status} for ${sig} refused — only legal for a '${required}' node (its frozen disposition is '${disposition ?? "none"}'); a node that was never built must not complete the run`,
-    );
-  }
-  if (typeof outcome.signed_by !== "string" || outcome.signed_by.length === 0) {
-    throw new Error(`loop: ${outcome.status} for ${sig} refused — a NAMED human sign-off is required (it completes the run with no verdict)`);
-  }
-  if (typeof outcome.justification !== "string" || outcome.justification.length === 0) {
-    throw new Error(`loop: ${outcome.status} for ${sig} refused — a justification is required (it completes the run with no verdict)`);
-  }
-}
-
-/**
  * Acquire the per-transport activate mutex (L4). A node with no transport_id activates on
  * its own implicit transport (keyed by its sig). Re-acquire by the owner is idempotent.
  * @returns {{state: object, acquired: boolean}}
@@ -324,26 +292,6 @@ function setStatus(plan, state, sig, to, ctx = {}) {
   }
   if (retry) next.cycle = { ...state.cycle, [sig]: (state.cycle[sig] ?? 0) + 1 };
   return next;
-}
-
-/** dep → dependent edge pairs, derived from the hashed node dependencies. */
-function refEdges(plan) {
-  const edges = [];
-  for (const n of plan.nodes) for (const d of n.dependencies ?? []) edges.push([d, n.id]);
-  return edges;
-}
-
-/** member-object-keyed meta for the frontier's worst-member aggregation. */
-function metaByMember(plan) {
-  const meta = {};
-  for (const n of plan.nodes) for (const [m, v] of Object.entries(n.member_meta ?? {})) meta[m] = v;
-  return meta;
-}
-
-function transportOf(plan, sig) {
-  const n = plan.nodes.find((x) => x.id === sig);
-  if (!n) throw new Error(`loop: unknown node ${sig}`);
-  return n.transport_id ?? `own:${sig}`;
 }
 
 export { NO_RELEASED_SUCCESSOR };

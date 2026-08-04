@@ -20,6 +20,19 @@ import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES, isActive } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 
+// The states a `retire` node passes through on its way to RETIRED. The FSM requires GROUNDED before the
+// terminal, so both the ready-to-route state and that transit state must keep returning the retire action.
+const RETIRE_ROUTE_STATES = new Set(["PENDING", "GROUNDED"]);
+
+// What each frozen disposition means for the generator (S5's `transform` discriminator). `retire` is absent
+// deliberately — it never becomes a build packet — and `seal` is absent because it goes to the human seam.
+const TRANSFORM_BY_DISPOSITION = Object.freeze({
+  refactor: "port_in_place",
+  re_architect: "greenfield_rap",
+  rebuild: "greenfield_rap_plus_handoff", // S4: metadata generated + gated, then the JS handoff spec
+  replace: "released_standard_wiring",
+});
+
 // The states a node may legitimately rest in when the frontier is empty (offline or terminal). Includes the
 // B4 disposition-route terminals (RETIRED / REBUILT_HANDOFF) — else a retired/handed-off node would satisfy
 // neither RESTED nor runComplete and driveDecision would wedge the run forever.
@@ -48,10 +61,19 @@ const isStarved = (state, id) => state.status[id] === "PENDING" && (state.indegr
 export function driveDecision(plan, state) {
   if (runComplete(plan, state)) return { action: "complete" };
 
+  // S5 — disposition partitioning, ABOVE the frontier and before any `generate` is emitted. A `retire` node
+  // is not build work: it has no generation at all, so it gets its own action and the fulfiller records the
+  // drop and terminates it at RETIRED. Its GROUNDED transit (the FSM requires GROUNDED→RETIRED) is included,
+  // or the node reads as a wedge in the window between dispatch and outcome.
+  const retiring = plan.nodes
+    .filter((n) => n.disposition === "retire" && RETIRE_ROUTE_STATES.has(state.status[n.id]) && (state.indegree[n.id] ?? 0) === 0)
+    .map((n) => n.id);
+  if (retiring.length > 0) return { action: "retire", packets: retiring.map((sig) => packetOf(plan, sig, state)) };
+
   // The frontier already EXCLUDES arch-gated nodes awaiting ratification (M5: excluded before the team-size
   // cap, so they never occupy a slot and starve dispatchable work).
   const frontier = nextDispatch(plan, state);
-  if (frontier.length > 0) return { action: "generate", packets: frontier.map((sig) => packetOf(plan, sig)) };
+  if (frontier.length > 0) return { action: "generate", packets: frontier.map((sig) => packetOf(plan, sig, state)) };
 
   // Nothing is dispatchable. An arch-gated node that is not ratified is not wedged — it is waiting on the
   // human ARCH_REVIEW ratification (B4 fail-closed precondition), so name that gate rather than reporting a
@@ -66,8 +88,12 @@ export function driveDecision(plan, state) {
   // Frontier is empty and the run is not complete. A human gate (a parked node awaiting its
   // successor, or a dynamic-sealed node awaiting caller-set confirmation) takes priority.
   const parked = (state.park_register ?? []).map((p) => p.sig);
+  // A `seal` DISPOSITION is the classifier saying "no clear signal — manual review"; S5 routes it to the
+  // same human seam as a dynamic_seal. Before this it reached `generate`: the harness built precisely what
+  // it had flagged for review, which is the fail-open the seam exists to prevent.
   const seamed = plan.nodes
-    .filter((n) => state.status[n.id] === "NEEDS_MANUAL_SEAM" || (n.dynamic_seal === "NEEDS_MANUAL_SEAM" && state.status[n.id] === "PENDING"))
+    .filter((n) => state.status[n.id] === "NEEDS_MANUAL_SEAM"
+      || ((n.dynamic_seal === "NEEDS_MANUAL_SEAM" || n.disposition === "seal") && state.status[n.id] === "PENDING"))
     .map((n) => n.id);
   // A node resting at PROVISIONAL_GATED with a RECORDED FAILING verdict is not rested — it is
   // waiting on the attestation that `driveOfflineVerdict` escalated for (B6.5 F8). Without this the
@@ -193,7 +219,23 @@ function ensureGenerated(plan, state, sig) {
   return next;
 }
 
-function packetOf(plan, sig) {
+/**
+ * The work packet (S5). Beyond {sig, object, wave} it carries the node's frozen `disposition` and the
+ * `transform` that disposition implies, so the fulfiller can tell packets apart instead of treating every
+ * one as an in-place port — and, for an arch-gated node, the ratified contract's ref, which is what the
+ * generator must build to. The ref is read from run state (pure); VERIFYING it against the on-disk contract
+ * hash is the impure read seam (S6) and belongs to the fulfiller, not here.
+ */
+function packetOf(plan, sig, state) {
   const n = plan.nodes.find((x) => x.id === sig);
-  return { sig, object: n.object, wave: n.wave };
+  const transform = TRANSFORM_BY_DISPOSITION[n.disposition];
+  const ref = state?.arch_contracts?.[sig]?.ref;
+  return {
+    sig,
+    object: n.object,
+    wave: n.wave,
+    ...(n.disposition ? { disposition: n.disposition } : {}),
+    ...(transform ? { transform } : {}),
+    ...(ref ? { arch_contract_ref: ref } : {}),
+  };
 }

@@ -164,14 +164,31 @@ test("opts.augment threads Stage-1 seals and synthetic edges into the assembled 
 
 test("a sealed plan node is never dispatched (the frontier veto is reachable end-to-end)", async () => {
   const { initRun, nextDispatch } = await import("../src/sched/loop.js");
+  // ZFREE is an interface, so the classifier gives it `refactor` — a BUILDABLE disposition. That matters
+  // since S5: a node the classifier could not classify (the `seal` fallthrough) is now held for manual
+  // review rather than dispatched, so a default-shaped node would be excluded for that reason instead and
+  // the dynamic-seal veto under test here would not be what the assertion proved.
   const d = doc({
-    nodes: [gnode("ZS"), gnode("ZFREE")],
+    nodes: [gnode("ZS"), gnode("ZFREE", "interface")],
     edges: [],
-    planObjects: [pobj("ZS"), pobj("ZFREE")],
+    planObjects: [pobj("ZS"), pobj("ZFREE", { kind: "interface" })],
   });
   const { plan } = assemblePlan(d, { augment: { seals: { ZS: true } } });
   const ready = nextDispatch(plan, initRun(plan));
   assert.deepEqual(ready.map((s) => plan.nodes.find((n) => n.id === s).object), ["ZFREE"], "ZS is sealed out");
+});
+
+test("S5 a node the classifier SEALED (no clear signal) is held for manual review, never dispatched", async () => {
+  const { initRun, nextDispatch } = await import("../src/sched/loop.js");
+  const { driveDecision } = await import("../src/sched/drive.js");
+  // Two default-shaped report nodes: no findings, no target → the classifier's `seal` fallthrough
+  // ("no clear disposition signal — manual review"). Before S5 these were handed to the generator.
+  const d = doc({ nodes: [gnode("ZA"), gnode("ZB")], edges: [], planObjects: [pobj("ZA"), pobj("ZB")] });
+  const { plan } = assemblePlan(d);
+  assert.ok(plan.nodes.every((n) => n.disposition === "seal"), "precondition: the classifier sealed them");
+  const state = initRun(plan);
+  assert.deepEqual(nextDispatch(plan, state), [], "a sealed-by-disposition node never reaches the frontier");
+  assert.equal(driveDecision(plan, state).action, "await_human", "it surfaces as the human seam gate");
 });
 
 test("member transports become tr: conflict keys (Stage-4 'shares a transport')", () => {
