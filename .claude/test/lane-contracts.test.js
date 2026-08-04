@@ -293,7 +293,7 @@ test("the /greenfield entry-point exists and delegates to /abap-build", () => {
 // gate machinery being reachable only from tests is exactly the defect the review found.
 test("the /modernise skill wires both plan-time gates (disposition + arch) and the judge write seam", () => {
   const skill = readFileSync(join(CLAUDE, "skills", "modernise", "SKILL.md"), "utf8");
-  for (const verb of ["disposition <R>", "arch <R>", "arch-verdict <R>"]) {
+  for (const verb of ["disposition <R>", "arch <R>", "arch-verdict <R>", "arch-review <R>"]) {
     assert.ok(skill.includes(verb), `modernise SKILL.md must invoke \`${verb}\` — without it the driver deadlocks`);
   }
   assert.match(skill, /arch_ratification/, "the skill must explain the driver's fail-closed arch refusal");

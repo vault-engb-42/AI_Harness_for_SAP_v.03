@@ -40,7 +40,9 @@ import { onPass } from "./state/ratchet.js";
 import { tryPark } from "./exception/park.js";
 import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } from "./cli-escalations.js";
-import { cmdArch, cmdArchVerdict } from "./cli-arch.js";
+import { cmdArch } from "./cli-arch.js";
+import { cmdArchVerdict } from "./cli-arch-verdict.js";
+import { cmdArchReview } from "./cli-arch-review.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
@@ -63,6 +65,7 @@ const COMMANDS = {
   disposition: cmdDisposition,
   arch: cmdArch,
   "arch-verdict": cmdArchVerdict,
+  "arch-review": cmdArchReview,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
   packets: cmdPackets,

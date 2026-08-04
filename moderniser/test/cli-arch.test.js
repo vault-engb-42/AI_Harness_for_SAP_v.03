@@ -125,6 +125,7 @@ test("arch re-run PRESERVES an existing ratification when the contract hash is u
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
+  reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, id, "approve", "--by", "eng");
   assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "precondition: ratified");
 
@@ -139,6 +140,7 @@ test("arch re-run CLEARS the ratification when the contract hash changes (re-rat
   const target = loadPlan(planned.run_id, stateDir).nodes[0];
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
 
   // What the human ratified is a SPECIFIC contract hash. Simulate the contract having been ratified under a
@@ -176,6 +178,7 @@ test("G a re-run does NOT re-raise ARCH_REVIEW for a still-ratified, unchanged c
   const target = loadPlan(planned.run_id, stateDir).nodes[0];
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
 
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
@@ -189,6 +192,7 @@ test("G a CHANGED contract DOES raise a fresh ARCH_REVIEW (re-ratify exactly wha
   const target = loadPlan(planned.run_id, stateDir).nodes[0];
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
 
   const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
@@ -342,7 +346,7 @@ test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide appr
   const resolved = run("arch", planned.run_id, FIXTURE);
   assert.equal(resolved.pending, 0, "every node is judged");
   assert.equal(resolved.resolved, planned.nodes.length);
-  for (const e of archEscs(run, planned.run_id)) run("decide", planned.run_id, e.id, "approve", "--by", "eng");
+  reviewAndApprove(run, planned.run_id);
 
   const d = run("drive", planned.run_id);
   assert.equal(d.action, "generate", "the ratified run now dispatches — the arch gate is operable end to end");
@@ -478,6 +482,83 @@ test("M4 a CONSISTENT shared group passes the tier and reaches the blueprint", (
   assert.deepEqual(manifestOf(runsDir, planned.run_id).shared.services, [{ id: "SRV_OK", members: [pending[0].sig] }], "the app-level grouping is carried into the manifest");
 });
 
+// ---- D: the independent reviewer's verdict must be RECORDABLE and REQUIRED (GAN separation) ----
+
+/** Record a passing abap-arch-reviewer verdict for a sig — the fresh-context counter-party to the judge. */
+function reviewOk(run, runId, sig, payload = { verdict: "pass", flags: [] }) {
+  const p = join(mkdtempSync(join(tmpdir(), "arch-rev-")), "verdict.json");
+  writeFileSync(p, JSON.stringify(payload));
+  return run("arch-review", runId, sig, "--verdict", p, "--by", "abap-arch-reviewer");
+}
+
+/** Ratify every OPEN ARCH_REVIEW the way the lane does: independent review first, then the human. */
+const reviewAndApprove = (run, runId) => {
+  for (const e of archEscs(run, runId)) {
+    reviewOk(run, runId, e.node_ids[0]);
+    run("decide", runId, e.id, "approve", "--by", "eng");
+  }
+};
+
+test("D arch-review records the reviewer verdict against the CURRENT contract hash", () => {
+  const { base, stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  const out = reviewOk(run, planned.run_id, target.id, { verdict: "concerns", flags: ["over_built"], notes: "a headless BO would do" });
+  assert.equal(out.sig, target.id);
+  const bound = stateOf(stateDir, planned.run_id).arch_contracts[target.id].reviewer_verdict;
+  assert.equal(bound.verdict, "concerns");
+  assert.deepEqual(bound.flags, ["over_built"]);
+  assert.equal(bound.reviewed_by, "abap-arch-reviewer");
+  assert.equal(bound.contract_hash, stateOf(stateDir, planned.run_id).arch_contracts[target.id].hash, "bound to what was reviewed");
+});
+
+test("D approve is REFUSED without an independent reviewer verdict (GAN separation enforced, not prose)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const id = archEscs(run, planned.run_id)[0].id;
+  assert.throws(() => run("decide", planned.run_id, id, "approve", "--by", "eng"), "the judge's work must be independently reviewed before a human ratifies it");
+  // refine / reject need no reviewer — they ratify nothing
+  assert.equal(run("decide", planned.run_id, id, "reject", "--by", "eng").decision.verb, "reject");
+});
+
+test("D a verdict bound to a DIFFERENT contract hash does not satisfy the gate (no inheriting a review)", () => {
+  const { base, stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, target.id);
+
+  const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
+  const st = JSON.parse(readFileSync(statePath, "utf8"));
+  st.arch_contracts[target.id].hash = "a-different-contract-hash"; // the contract moved on after the review
+  writeFileSync(statePath, JSON.stringify(st, null, 2));
+  assert.throws(() => run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng"), /review/i);
+});
+
+test("D the reviewer payload is validated, and an unknown sig / unbound contract is refused", () => {
+  const { base, stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, consOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const bad = (doc) => {
+    const p = join(base, `bad-${Math.abs(JSON.stringify(doc).length)}.json`);
+    writeFileSync(p, JSON.stringify(doc));
+    return () => run("arch-review", planned.run_id, target.id, "--verdict", p, "--by", "r");
+  };
+  assert.throws(bad({ flags: [] }), /verdict/i, "a missing verdict");
+  assert.throws(bad({ verdict: "maybe", flags: [] }), /verdict/i, "a verdict outside the closed set");
+  assert.throws(bad({ verdict: "pass", flags: "nope" }), /flags/i, "flags must be an array");
+  assert.throws(() => reviewOk(run, planned.run_id, "0".repeat(64)), /unknown|contract/i, "a sig with no bound contract");
+});
+
 // ---- decide: the ARCH_REVIEW ratification branch ----
 
 test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratified_by in state", () => {
@@ -487,6 +568,7 @@ test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratifie
   seedCache(stateDir, target, consOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
+  reviewOk(run, planned.run_id, target.id);
   const row = run("decide", planned.run_id, id, "approve", "--by", "eng");
   assert.equal(row.status, "RESOLVED");
   assert.equal(row.decision.verb, "approve");

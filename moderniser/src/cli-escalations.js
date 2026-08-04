@@ -14,6 +14,7 @@ import { recordDecision, renderPacket } from "./exception/gate-ui.js";
 import { recordDispositionDecision, raiseDispositionReviews } from "./plan/disposition-gate.js";
 import { recordArchDecision, parseArchDecision } from "./plan/arch-gate.js";
 import { bindArchContract } from "./plan/arch-contract.js";
+import { assertReviewed } from "./cli-arch-review.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
 import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, saveState, log } from "./cli-io.js";
 
@@ -98,6 +99,9 @@ export function cmdDecide(io, pos, flags) {
     // healed by the idempotent retry — the reverse order would resolve the review yet leave the driver blocked.
     const sig = target.node_ids[0];
     const binding = state.arch_contracts?.[sig];
+    // GAN separation (D): ratifying requires an INDEPENDENT review of the contract being ratified. Only
+    // approve is gated — refine/reject ratify nothing, so they need no reviewer.
+    if (parseArchDecision(decision).verb === "approve") assertReviewed(state, sig);
     next = recordArchDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId, contract_hash: binding?.hash, reviewer_verdict: binding?.reviewer_verdict });
     // approve RATIFIES; refine/reject actively VOID any prior ratification. The clear is not merely the
     // absence of a stamp: cmdArch PRESERVES a ratification across a re-run with an unchanged contract, so an
