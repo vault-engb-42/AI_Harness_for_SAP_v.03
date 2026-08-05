@@ -59,11 +59,19 @@ test("needsReasoning: rebuild is a reasoning disposition like re_architect", () 
   assert.equal(needsReasoning(node({ disposition: "rebuild", disposition_confidence: 0.7 }), [cand("x")]), true);
 });
 
-// P3: an operator-overridden node carries confidence 1 because a HUMAN decided the disposition — that
-// certainty is about the disposition, never about the target shape, which nobody has reasoned yet.
-test("needsReasoning: an operator-overridden arch node ALWAYS escalates — human certainty about the disposition is not certainty about the shape", () => {
-  const n = node({ disposition_confidence: 1, disposition_source: "operator_override", member_meta: { ZFOO: { grade: "B", complexity: 2, blast: 1 } } });
-  assert.equal(needsReasoning(n, [cand("rap_bo_headless")]), true, "the bypass conditions are all met and it must STILL reason");
+// P3: an operator-overridden node has NO classifier confidence — the human rejected the classifier's
+// recommendation, so there is no number to carry. Absence propagates and the existing `?? 0` coercion
+// escalates on its own; the predicate never reads decision provenance. (Same doctrine as F1/F5 elsewhere:
+// a fabricated value is indistinguishable from a real one, so absence must reach the guard intact.)
+test("needsReasoning: an ABSENT classifier confidence escalates — the bypass needs an established number, not a default", () => {
+  const lowBlast = { ZFOO: { grade: "B", complexity: 2, blast: 1 } }; // every other bypass condition is met
+  for (const absent of [null, undefined]) {
+    const n = node({ disposition_confidence: absent, disposition_source: "operator_override", member_meta: lowBlast });
+    assert.equal(needsReasoning(n, [cand("rap_bo_headless")]), true, `confidence ${absent} must not buy a deterministic bypass`);
+  }
+  // and it escalates on the ABSENCE alone — the predicate must not need to know who decided
+  const noProvenance = node({ disposition_confidence: null, member_meta: lowBlast });
+  assert.equal(needsReasoning(noProvenance, [cand("rap_bo_headless")]), true, "no special case on disposition_source");
 });
 
 // ---- reasonArchitecture (the 4 outcomes) ----

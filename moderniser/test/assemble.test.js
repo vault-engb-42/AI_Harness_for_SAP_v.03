@@ -294,6 +294,7 @@ test("an override REPLACES the classified disposition and stamps the accountable
   assert.equal(gl.disposition_autonomy, "auto", "the gate exists to obtain a human decision — it has one, so it must not re-prompt for it");
   assert.equal(gl.disposition_reversible, false, "reversibility follows the NEW disposition, not the old one");
   assert.equal(gl.disposition_target, null, "the classifier's target was reasoned for a disposition that no longer applies");
+  assert.equal(gl.disposition_confidence, null, "there is no CLASSIFIER confidence when the human rejected the classifier — absence, never a fabricated 1");
   assert.match(gl.disposition_rationale, /re_architect/, "the superseded recommendation stays legible in the proof bundle");
   assert.deepEqual(byObj(plan, "ZFICO_BTC_CSV_SCR").disposition_source, "classifier", "an override touches only its own node");
 });

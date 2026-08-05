@@ -31,10 +31,6 @@ export const ARCH_REASON_BLAST_BOUND = 10;
  */
 export function needsReasoning(node, candidates, opts = {}) {
   if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) return false;
-  // P3: an operator-overridden node carries confidence 1 because a HUMAN chose the disposition. That
-  // certainty says nothing about the TARGET SHAPE, which no one has reasoned — reading it as shape
-  // confidence would let an override silently buy a deterministic bypass of the architecture judge.
-  if (node.disposition_source === "operator_override") return true;
   const ceiling = opts.ceiling ?? ARCH_REASON_CONFIDENCE_CEILING;
   const bound = opts.blastBound ?? ARCH_REASON_BLAST_BOUND;
   const confidence = Number(node.disposition_confidence ?? 0);

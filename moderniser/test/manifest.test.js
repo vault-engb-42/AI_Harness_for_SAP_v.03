@@ -45,6 +45,34 @@ test("emits one row per node + a by-disposition summary; prompt rows carry optio
   assert.equal(m.summary.auto_count, 1);
 });
 
+// P3: the manifest is the artifact a human RATIFIES. If it cannot show that a disposition came from an
+// operator override rather than the classifier, the reader has no way to tell an absent confidence from a
+// low one — which is exactly what makes propagating absence (rather than fabricating a 1) legible.
+test("every row carries its disposition PROVENANCE — who decided, and whether a classifier decided at all", () => {
+  const m = buildDispositionManifest(
+    plan([
+      { id: "s1", object: "A", disposition: "re_architect", disposition_rationale: "ui", disposition_confidence: 0.85, disposition_autonomy: "prompt", disposition_source: "classifier", disposition_decided_by: null },
+      { id: "s2", object: "B", disposition: "retire", disposition_rationale: "operator override", disposition_confidence: null, disposition_autonomy: "auto", disposition_source: "operator_override", disposition_decided_by: "panos" },
+    ]),
+    { run_id: "r1" },
+  );
+  const a = m.rows.find((r) => r.object === "A");
+  assert.equal(a.source, "classifier");
+  assert.equal(a.decided_by, null);
+  assert.equal(a.confidence, 0.85);
+
+  const b = m.rows.find((r) => r.object === "B");
+  assert.equal(b.source, "operator_override");
+  assert.equal(b.decided_by, "panos", "the accountable human reaches the ratification artifact");
+  assert.equal(b.confidence, null, "no classifier ran — the row says so instead of inventing a number");
+});
+
+test("provenance is reported, never invented — an unprovenanced node reads as unknown, not as 'classifier'", () => {
+  const m = buildDispositionManifest(plan([{ id: "s1", object: "A", disposition: "seal", disposition_rationale: "x", disposition_confidence: 0.3, disposition_autonomy: "prompt" }]), { run_id: "r1" });
+  assert.equal(m.rows[0].source, null, "defaulting to 'classifier' would be the same fabrication in a different field");
+  assert.equal(m.rows[0].decided_by, null);
+});
+
 test("rows are sorted by sig and the manifest is deterministic", () => {
   const p = plan([
     { id: "sB", object: "B", disposition: "seal", disposition_rationale: "manual", disposition_confidence: 0.3, disposition_autonomy: "prompt" },

@@ -27,6 +27,7 @@ function mkCli() {
   // backdoor added for a test would be a write seam the harness has to defend forever.
   cli.putState = (runId, st) => writeFileSync(join(state, "runs", `${runId}.state.json`), JSON.stringify(st, null, 2));
   cli.putPlan = (runId, p) => writeFileSync(join(state, "plan", `${runId}.plan.json`), JSON.stringify(p, null, 2));
+  cli.runsDir = runs;
   return cli;
 }
 
@@ -177,6 +178,13 @@ test("END-TO-END: override:retire → replan → drive routes to retire → RETI
   // dependents waiting at indegree > 0 with no verb able to move them.
   assert.deepEqual(retired.sort(), out.changed.map((c) => c.sig).sort(), "every node reached its terminal");
   assert.deepEqual(decision, { action: "complete" });
+
+  // The manifest is what a human ratifies: it must show the drop was a human's call, not a classification.
+  cli("disposition", out.new_run_id);
+  const row = JSON.parse(readFileSync(join(cli.runsDir, out.new_run_id, "disposition-manifest.json"), "utf8")).rows[0];
+  assert.equal(row.source, "operator_override");
+  assert.equal(row.decided_by, "alice");
+  assert.equal(row.confidence, null, "no classifier confidence is reported for a decision the classifier did not make");
 
   const status = cli("status", out.new_run_id);
   assert.equal(status.complete, true, "a run of dropped objects completes with no verdict — and only with signed terminals");

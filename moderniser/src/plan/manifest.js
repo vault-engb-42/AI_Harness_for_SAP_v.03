@@ -60,7 +60,14 @@ export function buildDispositionManifest(plan, { run_id }) {
         disposition: n.disposition,
         target: n.disposition_target ?? null,
         rationale: n.disposition_rationale,
+        // `confidence` is the CLASSIFIER's confidence, so it is null on an operator override — and these two
+        // provenance fields are what make that absence legible rather than merely blank. Without them the
+        // artifact a human ratifies cannot distinguish "no classifier ran" from "the classifier was unsure",
+        // and cannot name who decided. Reported, never invented: an unprovenanced node reads as null, since
+        // defaulting it to "classifier" would be the same fabrication in a different field.
         confidence: n.disposition_confidence,
+        source: n.disposition_source ?? null,
+        decided_by: n.disposition_decided_by ?? null,
         autonomy: n.disposition_autonomy,
       };
       if (n.disposition_autonomy === "prompt") {

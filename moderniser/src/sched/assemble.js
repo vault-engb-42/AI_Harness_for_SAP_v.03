@@ -144,7 +144,12 @@ function applyDispositionOverrides(nodes, overrides) {
       disposition: o.disposition,
       disposition_rationale: `operator override at the disposition gate (classifier recommended '${n.disposition}': ${n.disposition_rationale})`,
       disposition_target: null,
-      disposition_confidence: 1, // a human decided — certainty about the DISPOSITION, not about any target shape
+      // NOT a fabricated 1. This field means "the CLASSIFIER's confidence in its own recommendation", and
+      // the human just rejected that recommendation — so no such number exists. Absence propagates instead,
+      // the way an absent ATC count or an absent diff must (F5, F1): every reader then fails closed on its
+      // own terms, rather than being handed a value that is indistinguishable from a real one. It is what
+      // makes the arch gate escalate an overridden node without needing to know who decided.
+      disposition_confidence: null,
       disposition_reversible: o.disposition === "refactor",
       disposition_autonomy: "auto",
       disposition_source: "operator_override",
