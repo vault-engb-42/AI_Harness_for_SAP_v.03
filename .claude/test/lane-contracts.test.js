@@ -293,9 +293,13 @@ test("the /greenfield entry-point exists and delegates to /abap-build", () => {
 // gate machinery being reachable only from tests is exactly the defect the review found.
 test("the /modernise skill wires both plan-time gates (disposition + arch) and the judge write seam", () => {
   const skill = readFileSync(join(CLAUDE, "skills", "modernise", "SKILL.md"), "utf8");
-  for (const verb of ["disposition <R>", "arch <R>", "arch-verdict <R>", "arch-review <R>"]) {
+  for (const verb of ["disposition <R>", "replan <R>", "arch <R>", "arch-verdict <R>", "arch-review <R>"]) {
     assert.ok(skill.includes(verb), `modernise SKILL.md must invoke \`${verb}\` — without it the driver deadlocks`);
   }
+  // P3: `decide … override:<disposition>` only changes what gets built if the lane then re-freezes the plan.
+  // A lane that records the override and drives on leaves it inert — the frozen node keeps the classifier's
+  // disposition and the run builds the object the human just said to drop.
+  assert.match(skill, /new_run_id/, "the skill must carry the run forward under the replanned run id");
   assert.match(skill, /arch_ratification/, "the skill must explain the driver's fail-closed arch refusal");
   // S5: every action the driver can return needs a fulfiller, or the route is inert. `retire` and the
   // transform discriminator are the ones this range added.

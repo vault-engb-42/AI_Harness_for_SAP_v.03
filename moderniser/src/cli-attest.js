@@ -1,4 +1,5 @@
 import { readEscalations } from "./cli-io.js";
+import { latestEvent } from "./exception/escalation-bus.js";
 
 /**
  * Join an attestation from the AUDITED escalations register (ratified 2026-07-12/13). Shared by the
@@ -18,7 +19,7 @@ import { readEscalations } from "./cli-io.js";
  */
 export function registerAttestation(io, sig, runId, state, kind, attestDecision) {
   const rows = readEscalations(io).escalations.filter((e) => e.kind === kind && e.node_ids.includes(sig));
-  const latest = rows.reduce((a, b) => ((b.resolved_at ?? b.opened_at ?? "") >= (a.resolved_at ?? a.opened_at ?? "") ? b : a), rows[0]);
+  const latest = latestEvent(rows); // EVERY row, OPEN included — a re-raise voids a prior attestation here
   if (latest?.status !== "RESOLVED" || latest?.decision !== attestDecision) return null;
   if (latest.run_id !== runId) return null;
   if ((latest.decided_epoch ?? null) !== (state.run_epoch ?? null)) return null;

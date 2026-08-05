@@ -233,7 +233,7 @@ test("the signal-set fields ride plan_hash (present on the golden plan) + schema
   assert.ok(Array.isArray(gl.finding_families) && gl.finding_families.length > 0, "GL carries families");
   assert.ok(Array.isArray(gl.driving_rule_ids) && gl.driving_rule_ids.length > 0, "GL carries rule_ids");
   assert.equal(plan.plan_hash, planHash(plan.nodes), "the new fields are covered by plan_hash");
-  assert.equal(plan.schema_version, "1.5.0", "node-schema enrichment (B1 signals + B2 disposition + object_kind + disposition_hints + P1 disposition_evidence)");
+  assert.equal(plan.schema_version, "1.6.0", "node-schema enrichment (B1 signals + B2 disposition + object_kind + disposition_hints + P1 disposition_evidence + P3 disposition provenance)");
 });
 
 // --- B2: the plan-time disposition rides the frozen node ---
@@ -268,4 +268,61 @@ test("GENERALISATION: a dynpro screen (unseen archetype) enriches to a ui_rearch
   const n = assemblePlan(d).plan.nodes[0];
   assert.ok(n.disposition_hints.includes("ui_rearch"), "the dynpro finding's MESSAGE enriched to a ui_rearch hint — no rule_id was hand-picked");
   assert.equal(n.disposition, "re_architect", "classified via the hint, generalising to an unseen archetype");
+});
+
+// --- P3 / S-b: the operator's disposition OVERRIDE re-assembles into a NEW frozen plan ---
+// The override is applied AFTER the classifier and rides plan_hash, so a changed disposition is a
+// REPLAN (a new plan identity), never an in-place mutation of a frozen node and never a state-level
+// shadow value that would let state and plan disagree about what is being built.
+
+const OVERRIDE = { disposition: "retire", decided_by: "panos", decided_at: "2026-08-05T10:00:00.000Z" };
+
+test("with no overrides every node is provenanced to the classifier", () => {
+  const { plan } = assemblePlan(DOC);
+  for (const n of plan.nodes) {
+    assert.equal(n.disposition_source, "classifier");
+    assert.equal(n.disposition_decided_by, null);
+  }
+});
+
+test("an override REPLACES the classified disposition and stamps the accountable human onto the frozen node", () => {
+  const { plan } = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } });
+  const gl = byObj(plan, "ZFICO_BTC_CSV_GL");
+  assert.equal(gl.disposition, "retire", "the human's decision, not the classifier's re_architect");
+  assert.equal(gl.disposition_source, "operator_override");
+  assert.equal(gl.disposition_decided_by, "panos");
+  assert.equal(gl.disposition_autonomy, "auto", "the gate exists to obtain a human decision — it has one, so it must not re-prompt for it");
+  assert.equal(gl.disposition_reversible, false, "reversibility follows the NEW disposition, not the old one");
+  assert.equal(gl.disposition_target, null, "the classifier's target was reasoned for a disposition that no longer applies");
+  assert.match(gl.disposition_rationale, /re_architect/, "the superseded recommendation stays legible in the proof bundle");
+  assert.deepEqual(byObj(plan, "ZFICO_BTC_CSV_SCR").disposition_source, "classifier", "an override touches only its own node");
+});
+
+test("the override rides plan_hash — a changed disposition is a NEW plan identity", () => {
+  const base = assemblePlan(DOC).plan;
+  const { plan } = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } });
+  assert.equal(plan.plan_hash, planHash(plan.nodes), "provenance + disposition are covered by the hash");
+  assert.notEqual(plan.plan_hash, base.plan_hash, "the same doc under a different human decision is a different plan");
+});
+
+test("deterministic: the same doc + the same overrides re-freeze byte-identically", () => {
+  const a = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } }).plan;
+  const b = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } }).plan;
+  assert.equal(a.plan_hash, b.plan_hash);
+  assert.equal(JSON.stringify(a.nodes), JSON.stringify(b.nodes));
+});
+
+test("the registry-grounded evidence survives an override — it describes the object, not the decision", () => {
+  const { plan } = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } });
+  const gl = byObj(plan, "ZFICO_BTC_CSV_GL");
+  assert.ok(gl.disposition_evidence, "P1 evidence is still on the node");
+  assert.ok(Array.isArray(gl.disposition_evidence.no_successor_refs));
+});
+
+test("fail closed: an override for a sig that is not in the plan is refused, never silently dropped", () => {
+  // A human's recorded decision evaporating without a word is the exact failure P3 exists to remove.
+  assert.throws(
+    () => assemblePlan(DOC, { dispositionOverrides: { "sig-not-in-this-plan": OVERRIDE } }),
+    /not a plan node/,
+  );
 });

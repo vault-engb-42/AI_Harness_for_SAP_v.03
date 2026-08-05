@@ -73,9 +73,12 @@ export function cmdArch(io, pos, flags) {
   };
 }
 
-/** Read the findings doc + verify it is the SAME source the run was planned on (augment-safe, reviewer F2). */
-export function readVerifiedDoc(path, state) {
-  if (!path) throw new Error("arch: a findings doc is required (positional <findings.json> or --findings)");
+/**
+ * Read the findings doc + verify it is the SAME source the run was planned on (augment-safe, reviewer F2).
+ * @param {string} verb the calling verb, so a failure names the command the operator actually ran
+ */
+export function readVerifiedDoc(path, state, verb = "arch") {
+  if (!path) throw new Error(`${verb}: a findings doc is required (positional <findings.json> or --findings)`);
   const doc = JSON.parse(readFileSync(path, "utf8"));
   // Identity must be POSITIVELY established, never merely "not mismatched" (M2): an absent hash normalises
   // to null on BOTH sides, and `null !== null` is false — so an unidentified doc would verify against a run
@@ -84,12 +87,12 @@ export function readVerifiedDoc(path, state) {
     const value = doc[field];
     if (typeof value !== "string" || value === "") {
       throw new Error(
-        `arch: the findings doc carries no ${field} — re-run /abap-analyser; an unidentified doc cannot be verified against the planned run`,
+        `${verb}: the findings doc carries no ${field} — re-run /abap-analyser; an unidentified doc cannot be verified against the planned run`,
       );
     }
     if (state[field] !== value) {
       throw new Error(
-        `arch: findings doc ${field} ${value} does not match the planned run (${state[field] ?? "∅"}) — REPLAN; do not re-architect against drifted findings`,
+        `${verb}: findings doc ${field} ${value} does not match the planned run (${state[field] ?? "∅"}) — REPLAN; do not re-architect against drifted findings`,
       );
     }
   }

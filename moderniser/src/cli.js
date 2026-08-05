@@ -18,6 +18,7 @@
  *   lint-rules <sig> --files <dir>   (gap-2a: analyser RAP/N+1 rule gate; exit 2 on a hit)
  *   findings-brief <object> --findings <analyser-findings.json>   (pre-gen "avoid these" grounding)
  *   disposition <run_id>   (plan-time gate 1: emit disposition-manifest.json + raise DISPOSITION_REVIEWs)
+ *   replan <run_id> <findings.json> --by <name> [--bundle dir] [--force]   (apply the gate's `override:<disposition>` decisions: re-assemble + re-freeze under a NEW plan_hash/run id, migrating run state; --force is required to restart in-flight work or void a ratified architecture)
  *   arch <run_id> <findings.json> [--findings f] [--model m] [--prompt-hash h]   (plan-time gate 2: reason a target_shape per re_architect/rebuild node → app blueprint → freeze coarse Architecture Contracts → architecture-manifest.json + raise ARCH_REVIEWs; a cache miss surfaces await_arch requests for the judge fulfiller)
  *   arch-verdict <run_id> <findings.json> <sig> --shape <target_shape> --by <judge> [--model m] [--prompt-hash h] [--shared-json f]   (the judge's write seam: record a selection for an await_arch node; the next `arch` resolves it from cache. --model/--prompt-hash MUST match the outstanding request. --shared-json carries the judge's app-level grouping {services|projections|fiori_apps: [{id, members}]}, unioned by label across nodes)
  *   arch-review <run_id> <sig> --verdict <file> --by <reviewer>   (the INDEPENDENT reviewer's write seam: record the abap-arch-reviewer verdict against the bound contract; `decide … approve` is refused without it — GAN separation)
@@ -43,6 +44,7 @@ import { tryPark } from "./exception/park.js";
 import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } from "./cli-escalations.js";
 import { cmdArch } from "./cli-arch.js";
+import { cmdReplan } from "./cli-replan.js";
 import { cmdArchVerdict } from "./cli-arch-verdict.js";
 import { cmdArchReview } from "./cli-arch-review.js";
 import { cmdConformance } from "./cli-conformance.js";
@@ -66,6 +68,7 @@ const COMMANDS = {
   seams: cmdSeams,
   "resolve-cycle": cmdResolveCycle,
   disposition: cmdDisposition,
+  replan: cmdReplan,
   arch: cmdArch,
   "arch-verdict": cmdArchVerdict,
   "arch-review": cmdArchReview,

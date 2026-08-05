@@ -86,6 +86,20 @@ export function resolveEscalation(register, id, { resolved_by, ts, decision, run
 }
 
 /**
+ * The temporally FINAL row of a same-subject set: the latest EVENT governs, not the latest RAISE — an
+ * OPEN row's event is its `opened_at`, a RESOLVED row's is its `resolved_at`. Array order breaks
+ * timestamp ties. The CALLER picks the row set, and that choice is what defines "supersede": the
+ * artifact-time attestation join (cli-attest.js) feeds it every row so a re-raise voids a prior
+ * attestation, while the plan-time override read (plan/replan-overrides.js) feeds it only RESOLVED
+ * rows so an idempotent re-raise cannot erase a decision. One rule, two deliberate scopes.
+ * @param {object[]} rows
+ * @returns {object|undefined} undefined for an empty set
+ */
+export function latestEvent(rows) {
+  return rows.reduce((a, b) => ((b.resolved_at ?? b.opened_at ?? "") >= (a.resolved_at ?? a.opened_at ?? "") ? b : a), rows[0]);
+}
+
+/**
  * Rate-limited surfacing (§3.4 #3): at most `max` OPEN escalations reach the human this
  * window — critical-path ones (any node in `criticalSigs`) first, then by opened_at + id;
  * the rest are returned as `queued`, never dropped.

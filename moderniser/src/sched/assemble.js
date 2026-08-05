@@ -100,7 +100,10 @@ export function assemblePlan(doc, opts = {}) {
   // pre-pass (S3) supplies the cache from the analyser doc. disposition_* ride the node → covered by
   // plan_hash (§6.11); an override at the DISPOSITION gate (B3) triggers a REPLAN + re-freeze.
   const groundingCache = groundCandidates(doc);
-  for (const n of nodes) Object.assign(n, classifyDisposition(n, groundingCache));
+  for (const n of nodes) {
+    Object.assign(n, classifyDisposition(n, groundingCache), { disposition_source: "classifier", disposition_decided_by: null });
+  }
+  applyDispositionOverrides(nodes, opts.dispositionOverrides ?? {});
 
   const plan = freezePlan({
     nodes,
@@ -113,6 +116,41 @@ export function assemblePlan(doc, opts = {}) {
     for (const m of members) objectToSig[m] = sigOfSuper.get(superId);
   }
   return { plan, runtime: { objectToSig } };
+}
+
+/**
+ * Apply the operator's disposition overrides ON TOP of the classification (P3, S-b). Runs AFTER the
+ * classifier so the human's decision is the last word, and BEFORE the freeze so it rides `plan_hash` — a
+ * changed disposition is therefore a NEW plan identity (the L6 REPLAN gate), never an in-place edit of a
+ * frozen node and never a state-level shadow value that would put state and plan into disagreement.
+ *
+ * The classifier's own reasoning is superseded, not merged: its `target` was reasoned for a disposition
+ * that no longer applies, and its `confidence` was a statement about a recommendation the human rejected.
+ * The superseded recommendation survives inside the rationale so the proof bundle stays legible.
+ * `disposition_evidence` (P1) is deliberately KEPT — the registry facts describe the object, not the
+ * decision. `autonomy` becomes `auto` because the gate exists to obtain a human decision and it now has
+ * one; re-prompting would ask the operator to approve their own override (see also arch-reason.js, where
+ * `operator_override` still forces target-shape reasoning — deciding the disposition is not deciding the
+ * architecture).
+ */
+function applyDispositionOverrides(nodes, overrides) {
+  const bySig = new Map(nodes.map((n) => [n.id, n]));
+  for (const [sig, o] of Object.entries(overrides)) {
+    const n = bySig.get(sig);
+    // Fail closed: a recorded human decision that quietly matches nothing is the exact failure mode P3
+    // exists to remove — the operator would be told the override landed while the plan ignored it.
+    if (!n) throw new Error(`assemble: disposition override for '${sig}' is not a plan node — the decision would be silently dropped`);
+    Object.assign(n, {
+      disposition: o.disposition,
+      disposition_rationale: `operator override at the disposition gate (classifier recommended '${n.disposition}': ${n.disposition_rationale})`,
+      disposition_target: null,
+      disposition_confidence: 1, // a human decided — certainty about the DISPOSITION, not about any target shape
+      disposition_reversible: o.disposition === "refactor",
+      disposition_autonomy: "auto",
+      disposition_source: "operator_override",
+      disposition_decided_by: o.decided_by ?? null,
+    });
+  }
 }
 
 /** Union a set-like per-object field (B1 signal set) across a super-node's in-plan members → sorted distinct. */

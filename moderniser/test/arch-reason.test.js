@@ -59,6 +59,13 @@ test("needsReasoning: rebuild is a reasoning disposition like re_architect", () 
   assert.equal(needsReasoning(node({ disposition: "rebuild", disposition_confidence: 0.7 }), [cand("x")]), true);
 });
 
+// P3: an operator-overridden node carries confidence 1 because a HUMAN decided the disposition — that
+// certainty is about the disposition, never about the target shape, which nobody has reasoned yet.
+test("needsReasoning: an operator-overridden arch node ALWAYS escalates — human certainty about the disposition is not certainty about the shape", () => {
+  const n = node({ disposition_confidence: 1, disposition_source: "operator_override", member_meta: { ZFOO: { grade: "B", complexity: 2, blast: 1 } } });
+  assert.equal(needsReasoning(n, [cand("rap_bo_headless")]), true, "the bypass conditions are all met and it must STILL reason");
+});
+
 // ---- reasonArchitecture (the 4 outcomes) ----
 
 test("reasonArchitecture: a non-arch disposition → status 'skip' (no fact hash needed, no model)", () => {
