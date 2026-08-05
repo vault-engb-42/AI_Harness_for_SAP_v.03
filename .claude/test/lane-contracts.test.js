@@ -300,6 +300,9 @@ test("the /modernise skill wires both plan-time gates (disposition + arch) and t
   // A lane that records the override and drives on leaves it inert — the frozen node keeps the classifier's
   // disposition and the run builds the object the human just said to drop.
   assert.match(skill, /new_run_id/, "the skill must carry the run forward under the replanned run id");
+  // §7.4: an escalation kind with no fulfiller in the lane is a row nobody ever surfaces to the human.
+  assert.match(skill, /DROPPED_DEPENDENCY/, "the skill must surface the dropped-dependency consequence gate");
+  assert.match(skill, /ACCEPT_DROP/, "the skill must present its typed decisions, not invent its own");
   assert.match(skill, /arch_ratification/, "the skill must explain the driver's fail-closed arch refusal");
   // S5: every action the driver can return needs a fulfiller, or the route is inert. `retire` and the
   // transform discriminator are the ones this range added.

@@ -180,7 +180,8 @@ test("END-TO-END: override:retire → replan → drive routes to retire → RETI
   assert.deepEqual(decision, { action: "complete" });
 
   // The manifest is what a human ratifies: it must show the drop was a human's call, not a classification.
-  cli("disposition", out.new_run_id);
+  const gate = cli("disposition", out.new_run_id);
+  assert.deepEqual(gate.dropped_dependencies, [], "§7.4: retiring the WHOLE cluster is coherent — nothing is left calling a dropped object");
   const row = JSON.parse(readFileSync(join(cli.runsDir, out.new_run_id, "disposition-manifest.json"), "utf8")).rows[0];
   assert.equal(row.source, "operator_override");
   assert.equal(row.decided_by, "alice");
@@ -189,6 +190,54 @@ test("END-TO-END: override:retire → replan → drive routes to retire → RETI
   const status = cli("status", out.new_run_id);
   assert.equal(status.complete, true, "a run of dropped objects completes with no verdict — and only with signed terminals");
   assert.equal(cli.stateOf(out.new_run_id).disposition_register.length, planned.nodes.length, "each drop is audited to a named human");
+});
+
+// §7.4 (operator-ruled) — dropping an object that other in-plan work still depends on is ALLOWED, but the
+// consequence must reach the human at the plan gate. Whole-cluster drops raise nothing (covered above: the
+// end-to-end retires all three nodes and asserts no DROPPED_DEPENDENCY).
+test("§7.4 dropping an object other nodes still depend on raises a DROPPED_DEPENDENCY at gate 1", () => {
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE);
+  cli("disposition", planned.run_id);
+  // pick a node that something else in the plan actually depends on, rather than assuming an ordering
+  const plan = cli.planOf(planned.run_id);
+  const depended = plan.nodes.find((n) => plan.nodes.some((m) => (m.dependencies ?? []).includes(n.id)));
+  assert.ok(depended, "the golden fixture has a dependency edge to exercise");
+
+  const esc = cli("escalations", planned.run_id, "--max", "50").surfaced.find((e) => e.node_ids[0] === depended.id);
+  cli("decide", planned.run_id, esc.id, "override:retire", "--by", "alice");
+  const out = cli("replan", planned.run_id, FIXTURE, "--by", "alice");
+
+  const gate = cli("disposition", out.new_run_id);
+  assert.equal(gate.dropped_dependencies.length, 1, "the drop is reported at the gate, not left to an ATC failure downstream");
+  assert.equal(gate.dropped_dependencies[0].retired, depended.id);
+  assert.ok(gate.dropped_dependencies[0].dependents.length > 0);
+
+  const raised = cli("packets", out.new_run_id, "--max", "50").packets.find((p) => p.kind === "DROPPED_DEPENDENCY");
+  assert.ok(raised, "it reaches the human as a GatePacket");
+  assert.ok(raised.cause.includes(depended.id), "the packet names the object being dropped");
+  assert.deepEqual(raised.decisions, ["ACCEPT_DROP", "REVISE_DISPOSITION"]);
+
+  // A gate the human cannot DECIDE is an inert mechanism. `decide` routes this kind through the generic
+  // recorder, so prove both that a typed decision resolves it and that an untyped one is refused.
+  const row = cli("decide", out.new_run_id, raised.id, "ACCEPT_DROP", "--by", "alice");
+  assert.equal(row.status, "RESOLVED");
+  assert.equal(row.resolved_by, "alice");
+  assert.equal(row.decision, "ACCEPT_DROP");
+});
+
+test("§7.4 an untyped decision on a DROPPED_DEPENDENCY is refused", () => {
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE);
+  const plan = cli.planOf(planned.run_id);
+  const depended = plan.nodes.find((n) => plan.nodes.some((m) => (m.dependencies ?? []).includes(n.id)));
+  cli("disposition", planned.run_id);
+  const esc = cli("escalations", planned.run_id, "--max", "50").surfaced.find((e) => e.node_ids[0] === depended.id);
+  cli("decide", planned.run_id, esc.id, "override:retire", "--by", "alice");
+  const out = cli("replan", planned.run_id, FIXTURE, "--by", "alice");
+  cli("disposition", out.new_run_id);
+  const id = cli("packets", out.new_run_id, "--max", "50").packets.find((p) => p.kind === "DROPPED_DEPENDENCY").id;
+  assert.throws(() => cli("decide", out.new_run_id, id, "LOOKS_FINE", "--by", "alice"), /LOOKS_FINE|decision/i);
 });
 
 test("a ratified architecture survives a replan of a DIFFERENT node, and is voided for the changed one", () => {

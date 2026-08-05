@@ -27,6 +27,17 @@ test("every taxonomy kind has a TYPED decision set and none of them grants a mac
   assert.deepEqual(DECISIONS.NO_RELEASED_SUCCESSOR, ["PARK_JUSTIFY", "DENY"]);
   assert.deepEqual(DECISIONS.OSCILLATION, ["RESEED_GENERATOR", "MANUAL_SEAM", "DEFER"]);
   assert.deepEqual(DECISIONS.RISK_LEVEL_REVIEW, ["ADVANCE", "HOLD_FLAGGED"]);
+  assert.deepEqual(DECISIONS.DROPPED_DEPENDENCY, ["ACCEPT_DROP", "REVISE_DISPOSITION"], "§7.4: accept the drop, or go change a disposition and replan");
+});
+
+// §7.4 — the cause must name the DROPPED object, not just count nodes: the whole point of the gate is that
+// the human learns WHICH object is going away and WHO still calls it, while they can still act on it.
+test("a DROPPED_DEPENDENCY packet names the dropped object and the dependents still calling it", () => {
+  const reg = raise("DROPPED_DEPENDENCY", { node_ids: ["dropped-sig", "dependent-sig"], root_signature: "dropped-sig" });
+  const p = renderPacket(reg.escalations[0], CONTEXT);
+  assert.ok(p.cause.includes("dropped-sig"), "the dropped object is named");
+  assert.ok(/1 /.test(p.cause), "the dependent count excludes the dropped node itself");
+  assert.deepEqual(p.decisions, DECISIONS.DROPPED_DEPENDENCY);
 });
 
 test("renderPacket assembles kind + cause + evidence + plan fields + the typed decisions", () => {

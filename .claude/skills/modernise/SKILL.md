@@ -99,6 +99,7 @@ context: fork
 | `OSCILLATION` | generator thrash cluster (root-signature grouped) | present the cluster once, not per retry |
 | `REPLAN_WAVE_MOVE` | a re-parse moved an already-gated node's wave (or dropped it) | human sign-off before any re-freeze |
 | `RISK_LEVEL_REVIEW` | batched approval of a level containing a flagged node | present the level's wave table + flags in one gate |
+| `DROPPED_DEPENDENCY` | an object is being RETIRED while other in-plan nodes still depend on it | raised by `disposition <R>` (its `.dropped_dependencies[]` names each `{retired, object, dependents}`). Present the dropped object and everything still calling it. `ACCEPT_DROP` = build the dependents anyway (the human knows the call is dead, or will adapt them); `REVISE_DISPOSITION` = go change a disposition at gate 1 and re-run `replan`. It does NOT block — but do not skip it: past this gate the mismatch only resurfaces as an ATC/syntax failure on a generated object, far from its cause |
 | `PARITY_REVIEW` | parity score in the [0.30, 0.70) gray band | present score + evidence; **offline never auto-passes**. On `ATTEST_EQUIVALENT` (via `decide … --by <name>`), re-run `verdict` — the CLI joins the attestation from the audited register (a checkpoint-supplied field is ignored; a re-raised review voids it); vetoes/`scope_reduced` are never attestable |
 | seam confirm (§3.1 Stage 1) | `NEEDS_MANUAL_SEAM` — dynamic caller set unresolved | present the seam evidence; on confirmation `... progress <sig> PENDING` re-enters |
 

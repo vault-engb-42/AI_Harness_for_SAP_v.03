@@ -25,6 +25,51 @@ export function raiseDispositionReviews(register, manifest, { ts }) {
 }
 
 /**
+ * DROPPED-DEPENDENCY detection (§7.4, operator-ratified 2026-08-05). PURE over the frozen plan.
+ *
+ * A run-completing terminal releases its dependents' readiness counter, and RETIRED is one — so dropping B
+ * lets A, which still depends on B, proceed to be built against something that will not exist. The ruling
+ * was to ALLOW that (the human may know the call is dead, or intend to adapt A) but to make the consequence
+ * visible at the plan gate, where it can still be acted on, rather than let it surface far from its cause as
+ * an ATC or syntax failure on a generated object.
+ *
+ * `dependencies` are TRANSITIVE in-plan ancestors (assemble.js), so a dependent that reaches the dropped
+ * object through an intermediate node is reported too — which is correct: its closure still contains the
+ * object being dropped. A dependent that is ITSELF retired is not reported: dropping a whole cluster is
+ * coherent, and reporting it would bury the real cases in noise.
+ *
+ * @param {{nodes: Array<{id: string, object: string, disposition?: string, dependencies?: string[]}>}} plan
+ * @returns {Array<{retired: string, object: string, dependents: string[]}>} ordered by retired sig
+ */
+export function droppedDependencies(plan) {
+  const out = [];
+  for (const r of plan.nodes.filter((n) => n.disposition === "retire").sort(byId)) {
+    const dependents = plan.nodes
+      .filter((n) => n.disposition !== "retire" && (n.dependencies ?? []).includes(r.id))
+      .map((n) => n.id)
+      .sort();
+    if (dependents.length > 0) out.push({ retired: r.id, object: r.object, dependents });
+  }
+  return out;
+}
+
+/**
+ * Raise one DROPPED_DEPENDENCY per dropped object that in-plan work still depends on (idempotent per the
+ * bus). The dropped sig rides `node_ids` as well as `root_signature`: the register keys an escalation id on
+ * (kind, node_ids), so reporting only the dependents would give two drops that share a dependent the SAME
+ * id — the second would dedupe into the first and one dropped object would never reach the human.
+ */
+export function raiseDroppedDependencies(register, plan, { ts }) {
+  let reg = register;
+  for (const { retired, dependents } of droppedDependencies(plan)) {
+    reg = raiseEscalation(reg, { kind: "DROPPED_DEPENDENCY", node_ids: [retired, ...dependents], root_signature: retired }, { ts });
+  }
+  return reg;
+}
+
+const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/**
  * Parse + validate a parametrized disposition decision (S2): approve | override:<disposition> | other:<text>.
  * @param {string} raw
  * @returns {{verb: "approve"} | {verb: "override", disposition: string} | {verb: "other", freeform: string}}

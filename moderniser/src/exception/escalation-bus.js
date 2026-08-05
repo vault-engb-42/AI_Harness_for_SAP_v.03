@@ -28,6 +28,11 @@ export const ESCALATION_KINDS = Object.freeze([
   "PARITY_REVIEW",
   "DISPOSITION_REVIEW", // plan-time disposition gate (B3, S2) — one per prompted node
   "ARCH_REVIEW", //       plan-time architecture gate (B3.5a, S12) — one per re_architect/rebuild node
+  // plan-time consequence gate (§7.4, operator-ratified 2026-08-05) — one per DROPPED object that in-plan
+  // nodes still depend on. Its own kind rather than a reuse: RISK_LEVEL_REVIEW already means "a wave level
+  // contains flagged nodes" (exception/risk-gate.js), and DISPOSITION_REVIEW both collides on id with the
+  // per-node review and would let one `override:<d>` rewrite the dropped node through collectOverrides.
+  "DROPPED_DEPENDENCY",
 ]);
 
 const KIND_SET = new Set(ESCALATION_KINDS);

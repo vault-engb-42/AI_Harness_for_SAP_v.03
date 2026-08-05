@@ -25,6 +25,7 @@ export const DECISIONS = Object.freeze({
   REPLAN_WAVE_MOVE: ["APPROVE_REPLAN", "KEEP_PLAN"],
   DISPOSITION_REVIEW: ["approve", "override", "other"], //     plan-time disposition gate (B3/S2) — PARAMETRIZED (override:<disposition>, other:<freeform>); use plan/disposition-gate.js recordDispositionDecision, not the generic recorder
   ARCH_REVIEW: ["approve", "refine", "reject"], //             plan-time architecture gate (B3.5a/S12) — PARAMETRIZED (refine:<notes>); use plan/arch-gate.js recordArchDecision, not the generic recorder
+  DROPPED_DEPENDENCY: ["ACCEPT_DROP", "REVISE_DISPOSITION"], // §7.4 — accept building the dependents against a dropped object, or go revise a disposition and `replan`
 });
 
 const CAUSE = {
@@ -37,6 +38,10 @@ const CAUSE = {
   REPLAN_WAVE_MOVE: () => "a re-parse moved a committed node's wave — approve or keep the frozen plan",
   DISPOSITION_REVIEW: (e) => `disposition review for ${e.node_ids.length} node(s) — recommended disposition + alternatives in the manifest`,
   ARCH_REVIEW: (e) => `architecture review for ${e.node_ids.length} node(s) — recommended target_shape + reviewer verdict in the architecture manifest`,
+  // The dropped object is named, not merely counted: the human is being asked about THIS drop, and the
+  // dropped sig rides node_ids too (so two drops sharing a dependent get distinct ids), hence the -1.
+  DROPPED_DEPENDENCY: (e) =>
+    `${e.root_signature} is being dropped but ${e.node_ids.length - 1} in-plan node(s) still depend on it — accept the drop, or revise a disposition and replan`,
 };
 
 /**

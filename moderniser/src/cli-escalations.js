@@ -11,7 +11,7 @@
  */
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
-import { recordDispositionDecision, raiseDispositionReviews } from "./plan/disposition-gate.js";
+import { recordDispositionDecision, raiseDispositionReviews, droppedDependencies, raiseDroppedDependencies } from "./plan/disposition-gate.js";
 import { recordArchDecision, parseArchDecision } from "./plan/arch-gate.js";
 import { bindArchContract } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
@@ -55,10 +55,15 @@ export function cmdDisposition(io, pos) {
   const { plan } = loadRun(io, runId); // a verified plan (hash-checked)
   const manifest = buildDispositionManifest(plan, { run_id: runId });
   saveDispositionManifest(io, runId, manifest);
-  const reg = raiseDispositionReviews(readEscalations(io), manifest, { ts: new Date().toISOString() });
+  const ts = new Date().toISOString();
+  // §7.4: raised HERE rather than in `replan` so it covers every producer of a `retire` node, not just the
+  // operator override that produces them today. A dropped object whose dependents are still being built is
+  // a consequence the human must see while the plan gate is still open.
+  const dropped = droppedDependencies(plan);
+  const reg = raiseDroppedDependencies(raiseDispositionReviews(readEscalations(io), manifest, { ts }), plan, { ts });
   saveEscalations(io, reg);
-  log(io, runId, "disposition", { rows: manifest.rows.length, prompt: manifest.summary.prompt_count, auto: manifest.summary.auto_count });
-  return { run_id: runId, summary: manifest.summary };
+  log(io, runId, "disposition", { rows: manifest.rows.length, prompt: manifest.summary.prompt_count, auto: manifest.summary.auto_count, dropped_dependencies: dropped.length });
+  return { run_id: runId, summary: manifest.summary, dropped_dependencies: dropped };
 }
 
 export function cmdEscalations(io, pos, flags) {
