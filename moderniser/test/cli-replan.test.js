@@ -57,6 +57,41 @@ test("an override re-freezes the plan under a NEW plan_hash and a NEW run id", (
   assert.equal(node.disposition_decided_by, "alice");
 });
 
+// R1 (adversarial pass, CONFIRMED + reproduced): a run that `replan` itself produced carries overrides in
+// its frozen nodes, so re-assembling it from the classifier alone can never reproduce its own plan_hash —
+// the honesty check was structurally unsatisfiable for exactly the runs the lane tells the operator to
+// continue under. A second decision was therefore hard-refused with a diagnosis blaming --bundle (never
+// passed), and the fallback of re-running the FIRST replan reported success while dropping it.
+test("R1 a SECOND override chains: `replan` runs on a run that `replan` itself produced", () => {
+  const { cli, planned, sig } = upToDecision("override:retire");
+  const first = cli("replan", planned.run_id, FIXTURE, "--by", "alice");
+
+  // continue under .new_run_id, exactly as the SKILL prescribes
+  cli("disposition", first.new_run_id);
+  const next = cli("escalations", first.new_run_id, "--max", "50").surfaced
+    .find((e) => e.kind === "DISPOSITION_REVIEW" && !e.node_ids.includes(sig));
+  assert.ok(next, "the other nodes still have an open disposition review");
+  cli("decide", first.new_run_id, next.id, "override:retire", "--by", "bob");
+
+  const second = cli("replan", first.new_run_id, FIXTURE, "--by", "alice");
+  assert.equal(second.replanned, true, "the chained replan must not be refused");
+  assert.notEqual(second.new_run_id, first.new_run_id);
+  assert.deepEqual(second.changed.map((c) => c.sig), next.node_ids, "only the NEW decision is a delta — the inherited one already rides the plan");
+
+  const nodes = cli.planOf(second.new_run_id).nodes.filter((n) => n.disposition_source === "operator_override");
+  assert.equal(nodes.length, 2, "BOTH human decisions ride the frozen plan");
+  assert.deepEqual(nodes.map((n) => n.disposition_decided_by).sort(), ["alice", "bob"], "each decision keeps its own accountable human");
+});
+
+test("R1 an inherited override is not re-reported as a change, and a no-new-decision replan is a no-op", () => {
+  const { cli, planned } = upToDecision("override:retire");
+  const first = cli("replan", planned.run_id, FIXTURE, "--by", "alice");
+  const again = cli("replan", first.new_run_id, FIXTURE, "--by", "alice");
+  assert.equal(again.replanned, false, "nothing new was decided against this run");
+  assert.deepEqual(again.changed, []);
+  assert.equal(again.run_id, first.new_run_id);
+});
+
 test("the ORIGINAL plan is left untouched — a frozen artifact is never edited in place", () => {
   const { cli, planned, sig } = upToDecision("override:retire");
   cli("replan", planned.run_id, FIXTURE, "--by", "alice");

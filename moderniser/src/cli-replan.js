@@ -43,17 +43,27 @@ export function cmdReplan(io, pos, flags) {
   const doc = readVerifiedDoc(pos[1] ?? flags.findings, state, "replan");
   const opts = assembleOptions(plan, doc, flags);
 
+  // The run's OWN overrides, read back off its frozen nodes (R1). A run that `replan` produced already
+  // carries the human's earlier decisions, so re-assembling it from the classifier alone could never
+  // reproduce its plan_hash — the honesty check below was unsatisfiable for exactly the runs the lane tells
+  // the operator to continue under, which made a SECOND override impossible to apply. The plan is the record
+  // of what was decided, so it is also the right place to read it from: the escalation register is scoped to
+  // one run id and knows nothing of the chain.
+  const inherited = inheritedOverrides(plan);
+
   // Honesty check before anything is built on the result (see the file header). Assembling twice is
   // deliberate: `replan` is a rare human-gated verb, and proving the inputs reproduce the run is worth more
   // than one saved traversal.
-  const base = assemblePlan(doc, opts).plan;
+  const base = assemblePlan(doc, { ...opts, dispositionOverrides: inherited }).plan;
   if (base.plan_hash !== plan.plan_hash) {
     throw new Error(
-      `replan: re-assembling this run's own inputs produced plan ${base.plan_hash.slice(0, 12)}, not the run's ${plan.plan_hash.slice(0, 12)} — pass the SAME --bundle that 'plan' was given, or the override would carry unrelated structural drift with it`,
+      `replan: re-assembling this run's own inputs produced plan ${base.plan_hash.slice(0, 12)}, not the run's ${plan.plan_hash.slice(0, 12)} — the findings identity matched, so the difference is in the assembly inputs: pass the SAME --bundle that 'plan' was given (an omitted bundle plans an unsealed graph). An override must not carry unrelated structural drift with it`,
     );
   }
 
-  const overrides = collectOverrides(readEscalations(io), runId);
+  // Newly recorded decisions win over the inherited ones for the same node (the human changed their mind
+  // again); an inherited override that nobody re-decided simply carries forward unchanged.
+  const overrides = { ...inherited, ...collectOverrides(readEscalations(io), runId) };
   const next = assemblePlan(doc, { ...opts, dispositionOverrides: overrides }).plan;
   const changed = dispositionDelta(plan, next, overrides);
   if (changed.length === 0) {
@@ -75,6 +85,21 @@ export function cmdReplan(io, pos, flags) {
   log(io, runId, "replan", { new_run_id: newRunId, changed: changed.length, by: flags.by, forced: flags.force !== undefined });
   log(io, newRunId, "replan-from", { old_run_id: runId, changed, restarted, by: flags.by });
   return { replanned: true, old_run_id: runId, new_run_id: newRunId, old_plan_hash: plan.plan_hash, new_plan_hash: next.plan_hash, changed, restarted };
+}
+
+/**
+ * The overrides already frozen into this plan, in the shape `applyDispositionOverrides` consumes. Round-trip
+ * safe by construction: that function is a pure function of {classified node, disposition, decided_by}, and
+ * both fields ride the hashed node — so re-applying these to a fresh assembly reproduces the plan exactly.
+ * (`decided_at` is deliberately not on the node — it would make plan_hash depend on decision timestamps —
+ * and is not an input to the override, so nothing is lost here. The audit trail lives in the register.)
+ */
+function inheritedOverrides(plan) {
+  return Object.fromEntries(
+    plan.nodes
+      .filter((n) => n.disposition_source === "operator_override")
+      .map((n) => [n.id, { disposition: n.disposition, decided_by: n.disposition_decided_by }]),
+  );
 }
 
 /** The run's own resource knobs (outside plan_hash) + the same Stage-1 bundle augment `plan` was given. */
