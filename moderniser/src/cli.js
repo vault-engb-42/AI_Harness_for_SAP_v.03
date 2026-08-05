@@ -20,6 +20,8 @@
  *   disposition <run_id>   (plan-time gate 1: emit disposition-manifest.json + raise DISPOSITION_REVIEWs)
  *   arch <run_id> <findings.json> [--findings f] [--model m] [--prompt-hash h]   (plan-time gate 2: reason a target_shape per re_architect/rebuild node → app blueprint → freeze coarse Architecture Contracts → architecture-manifest.json + raise ARCH_REVIEWs; a cache miss surfaces await_arch requests for the judge fulfiller)
  *   arch-verdict <run_id> <findings.json> <sig> --shape <target_shape> --by <judge> [--model m] [--prompt-hash h] [--shared-json f]   (the judge's write seam: record a selection for an await_arch node; the next `arch` resolves it from cache. --model/--prompt-hash MUST match the outstanding request. --shared-json carries the judge's app-level grouping {services|projections|fiori_apps: [{id, members}]}, unioned by label across nodes)
+ *   arch-review <run_id> <sig> --verdict <file> --by <reviewer>   (the INDEPENDENT reviewer's write seam: record the abap-arch-reviewer verdict against the bound contract; `decide … approve` is refused without it — GAN separation)
+ *   conformance <run_id> <sig> --generated <file>   (SELF_CHECK: load the RATIFIED contract through the S6 seam — hash-verified, fail-closed on drift — and check `output ⊨ contract`; exit 2 on a violation)
  *   drive <run_id> [--report <sig>=<syntax_ok|syntax_fail|generator_error>]   (deterministic driver step → next action {generate|await_human|provisional_complete|complete|blocked}; --report is the driver's retry-vs-ceiling channel, Option A)
  *   sweep-order <run_id> · sweep-mark <run_id> <sig> --result drafted|failed   (offline draft sweep, §6.5)
  *   reprobe <run_id> --available I_X[,I_Y...]   (park successor re-probe → re-entry, §3.4 #5)
@@ -43,6 +45,7 @@ import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } fr
 import { cmdArch } from "./cli-arch.js";
 import { cmdArchVerdict } from "./cli-arch-verdict.js";
 import { cmdArchReview } from "./cli-arch-review.js";
+import { cmdConformance } from "./cli-conformance.js";
 import { cmdSweepOrder, cmdSweepMark } from "./cli-sweep.js";
 import { cmdReprobe } from "./cli-park.js";
 import { cmdSeams, cmdResolveCycle } from "./cli-cycle.js";
@@ -66,6 +69,7 @@ const COMMANDS = {
   arch: cmdArch,
   "arch-verdict": cmdArchVerdict,
   "arch-review": cmdArchReview,
+  conformance: cmdConformance,
   escalate: cmdEscalate,
   escalations: cmdEscalations,
   packets: cmdPackets,

@@ -302,6 +302,8 @@ test("the /modernise skill wires both plan-time gates (disposition + arch) and t
   assert.match(skill, /RETIRED/, "the skill must fulfil the driver's `retire` action (dispatch → ledger → outcome RETIRED)");
   assert.match(skill, /transform/, "the skill must read the packet's transform discriminator — the transforms are not interchangeable");
   assert.match(skill, /arch_contract_ref/, "the skill must load the ratified contract the generator builds to");
+  // H: a ratified contract that nothing checks against is inert — SELF_CHECK must run the conformance gate.
+  assert.ok(skill.includes("conformance <R>"), "the skill must run the conformance gate for an arch-gated node");
   assert.match(skill, /ARCH_REVIEW/, "the skill must surface the ARCH_REVIEW ratification gate");
   assert.match(skill, /abap-arch-reviewer/, "the skill must spawn the independent arch reviewer (GAN counter-party)");
 });
