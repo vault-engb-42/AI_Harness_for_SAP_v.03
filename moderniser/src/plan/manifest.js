@@ -18,6 +18,34 @@ const ALTERNATIVES = Object.freeze({
 });
 
 /**
+ * Replace an alternative's placeholder rationale with the GROUNDED one when the node carries evidence (P1).
+ *
+ * The `retire` and `replace` options were always offered, but with rationales like "drop if obsolete" — a
+ * choice the operator had no basis to make. Where the cloudification registry supplies a basis, say exactly
+ * what it is and name the objects; where it does not, leave the option available but do NOT dress it up as
+ * grounded. A `replace` alternative is only ADDED when a standard domain was actually detected — offering it
+ * with no basis at all is what made the original option meaningless.
+ */
+function groundAlternatives(alternatives, evidence) {
+  const noSucc = evidence?.no_successor_refs ?? [];
+  const domains = evidence?.standard_domains ?? [];
+  const grounded = alternatives.map((a) => {
+    if (a.disposition === "retire" && noSucc.length > 0) {
+      return { ...a, rationale: `${noSucc.length} referenced SAP ${noSucc.length === 1 ? "API has" : "APIs have"} no released successor (${noSucc.join(", ")}) — no forward path as built` };
+    }
+    if (a.disposition === "replace" && domains.length > 0) {
+      return { ...a, rationale: `reads standard ${domains.join(", ")} data — a released SAP standard may already deliver this; verify via /fit-to-standard` };
+    }
+    return a;
+  });
+  const hasReplace = grounded.some((a) => a.disposition === "replace");
+  if (domains.length > 0 && !hasReplace) {
+    grounded.push({ disposition: "replace", rationale: `reads standard ${domains.join(", ")} data — a released SAP standard may already deliver this; verify via /fit-to-standard` });
+  }
+  return grounded;
+}
+
+/**
  * @param {{plan_hash: string, nodes: Array<object>}} plan a frozen, classified plan (disposition_* on each node)
  * @param {{run_id: string}} opts
  * @returns {{run_id: string, plan_hash: string, rows: object[], summary: {by_disposition: Record<string, number>, prompt_count: number, auto_count: number}}}
@@ -38,7 +66,7 @@ export function buildDispositionManifest(plan, { run_id }) {
       if (n.disposition_autonomy === "prompt") {
         row.options = buildPromptOptions(
           { disposition: n.disposition, rationale: n.disposition_rationale },
-          ALTERNATIVES[n.disposition] ?? [],
+          groundAlternatives(ALTERNATIVES[n.disposition] ?? [], n.disposition_evidence),
         );
       }
       return row;

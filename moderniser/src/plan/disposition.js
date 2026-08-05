@@ -36,6 +36,16 @@ export function classifyDisposition(node, cache = {}) {
     disposition_confidence: pick.confidence,
     disposition_reversible: reversible,
     disposition_autonomy: autonomy,
+    // P1: the grounded basis behind the OPTIONS the human chooses from — which referenced SAP APIs have no
+    // released successor (the basis a `retire` is specified to rest on) and which standard business domains
+    // the object reads (the basis for a `replace`). It rides the node so the disposition gate can show the
+    // operator what a choice would rest on. It deliberately does NOT change the recommendation above:
+    // "no forward path as built" still admits re-architecting rather than dropping, and whether a capability
+    // is still wanted is a business call no registry can make.
+    disposition_evidence: {
+      no_successor_refs: [...(g.no_successor_refs ?? [])],
+      standard_domains: [...(g.standard_domains ?? [])],
+    },
   };
 }
 

@@ -14,9 +14,12 @@ const node = (o = {}) => ({
 const OUT_KEYS = [
   "disposition", "disposition_rationale", "disposition_target",
   "disposition_confidence", "disposition_reversible", "disposition_autonomy",
+  // P1: the registry-grounded basis behind the gate's OPTIONS (no_successor_refs / standard_domains).
+  // It informs the human's choice; it never changes the recommendation above.
+  "disposition_evidence",
 ].sort();
 
-test("output shape: exactly the six disposition_* fields; disposition ∈ enum; confidence ∈ [0,1]; deterministic", () => {
+test("output shape: exactly the seven disposition_* fields; disposition ∈ enum; confidence ∈ [0,1]; deterministic", () => {
   const n = node({ disposition_hints: ["ui_rearch"], modernization_target: "Fiori Elements App" });
   const d = classifyDisposition(n, {});
   assert.deepEqual(Object.keys(d).sort(), OUT_KEYS);
