@@ -103,6 +103,45 @@ test("H2-followup initRun seeds the register, and REBUILT_HANDOFF records its ow
   assert.equal(s.disposition_register[0].signed_by, "eng");
 });
 
+// P3: a dependency that RESOLVES stops blocking its dependents. Only GREEN used to decrement the readiness
+// counter, which was invisible while no plan could contain a `retire` node — the B2 classifier deliberately
+// never emits one (§186). The operator-override path creates the first, and with it the deadlock: a node
+// whose dependency was dropped waited at indegree > 0 forever, `dispatch` refused it ("its closure is not
+// green"), the retire route skipped it (it requires indegree 0), and the run could never complete.
+
+const CHAIN = (disposition) => ({
+  plan_hash: "h",
+  nodes: [
+    { id: "N1", object: "ZDEP", dependencies: [], members: ["ZDEP"], wave: 0, conflict_keys: [], disposition },
+    { id: "N2", object: "ZUSE", dependencies: ["N1"], members: ["ZUSE"], wave: 1, conflict_keys: [], disposition },
+  ],
+});
+
+test("P3 a RETIRED dependency releases its dependents — a dropped object must not deadlock the run", () => {
+  const plan = CHAIN("retire");
+  const state = dispatch(plan, initRun(plan), ["N1"]);
+  assert.equal(state.indegree.N2, 1, "N2 waits on N1 while N1 is unresolved");
+  const s = applyOutcome(plan, state, "N1", { status: "RETIRED", ...signoff });
+  assert.equal(s.indegree.N2, 0, "N1 is resolved — it is not coming, so N2 stops waiting for it");
+  assert.equal(driveDecision(plan, s).action, "retire", "and the driver can now route N2");
+});
+
+test("P3 a REBUILT_HANDOFF dependency releases its dependents too (the capability moved off-stack)", () => {
+  const plan = CHAIN("rebuild");
+  const ratifiedState = ["N1", "N2"].reduce((st, sig) => bindArchContract(st, sig, { ref: "r", hash: "h1", ratified_by: "eng" }), initRun(plan));
+  const s = applyOutcome(plan, dispatch(plan, ratifiedState, ["N1"]), "N1", { status: "REBUILT_HANDOFF", ...signoff });
+  assert.equal(s.indegree.N2, 0);
+});
+
+test("P3 a non-completing terminal still blocks: a BLOCKed dependency leaves the dependent waiting", () => {
+  // The rule is 'a RESOLVED dependency stops blocking', not 'any terminal'. A quarantined dependency is
+  // unresolved — its dependents must keep waiting, which is what quarantine means (L2). PARK is not
+  // reachable from GROUNDED at all (its own FSM gate), so BLOCK is the case that could have regressed.
+  const plan = CHAIN("refactor");
+  const state = dispatch(plan, initRun(plan), ["N1"]);
+  assert.equal(applyOutcome(plan, state, "N1", { status: "BLOCK", reason: "r" }).indegree.N2, 1);
+});
+
 test("H2 a node with NO disposition can reach neither terminal (fail-closed on an absent classification)", () => {
   const bare = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [] }] };
   for (const status of ["RETIRED", "REBUILT_HANDOFF"]) {

@@ -3,7 +3,9 @@
  * the fail-closed gate on the two disposition-route terminals. Extracted from loop.js so the reducer stays
  * within the file-size limit and this one question — "what does it take to end a node?" — reads in one place.
  *
- * Pure: no state, no I/O. loop.js owns the moves; this module owns the rules those moves are checked against.
+ * Pure: no I/O, copy-on-write. loop.js owns the moves; this module owns the rules those moves are checked
+ * against — including the readiness consequence a completing terminal has for its dependents, which lives
+ * beside the terminal set it is keyed on so the two can never drift apart.
  */
 
 /**
@@ -32,6 +34,26 @@ export const RUN_COMPLETE_TERMINALS = new Set(["GREEN", "RETIRED", "REBUILT_HAND
  * be talked out of a verdict entirely — so each is bound to its classification and to a named human.
  */
 export const DISPOSITION_TERMINALS = new Map([["RETIRED", "retire"], ["REBUILT_HANDOFF", "rebuild"]]);
+
+/**
+ * A RESOLVED dependency stops blocking its dependents: decrement the readiness counter of every node that
+ * depended on `sig`. Keyed on RUN_COMPLETE_TERMINALS by the caller, so the counter and `runComplete` can
+ * never disagree about what counts as resolved.
+ *
+ * Only GREEN used to release dependents. That was invisible while no frozen plan could contain a `retire`
+ * node — the B2 classifier deliberately never emits one (§186) — but the operator-override path (P3)
+ * creates the first, and with a GREEN-only decrement a node whose dependency was DROPPED waited at
+ * indegree > 0 forever: `dispatch` refused it ("its closure is not green"), the retire route skipped it (it
+ * requires indegree 0), and the run could never complete. BLOCK/PARK deliberately keep blocking — a
+ * quarantined dependency is precisely one that is NOT resolved (L2/L7).
+ */
+export function releaseDependents(plan, state, sig) {
+  const indegree = { ...state.indegree };
+  for (const n of plan.nodes) {
+    if ((n.dependencies ?? []).includes(sig)) indegree[n.id] -= 1;
+  }
+  return { ...state, indegree };
+}
 
 /**
  * The fail-closed gate on a disposition-route terminal (H2). RETIRED / REBUILT_HANDOFF complete a run with

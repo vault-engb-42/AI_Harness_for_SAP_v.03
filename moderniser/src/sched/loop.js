@@ -22,7 +22,7 @@ import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { nextFrontier } from "./frontier.js";
 import { refEdges, metaByMember, transportOf } from "./plan-views.js";
-import { TERMINAL_OUTCOMES, RUN_COMPLETE_TERMINALS, DISPOSITION_TERMINALS, NON_BUILD_DISPOSITIONS, assertDispositionTerminal } from "./terminals.js";
+import { TERMINAL_OUTCOMES, RUN_COMPLETE_TERMINALS, DISPOSITION_TERMINALS, NON_BUILD_DISPOSITIONS, assertDispositionTerminal, releaseDependents } from "./terminals.js";
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -179,13 +179,11 @@ export function applyOutcome(plan, state, sig, outcome) {
   if (DISPOSITION_TERMINALS.has(outcome.status)) assertDispositionTerminal(plan, sig, outcome);
   let next = setStatus(plan, state, sig, outcome.status, { reason: outcome.reason });
 
-  if (outcome.status === "GREEN") {
-    const indegree = { ...next.indegree };
-    for (const n of plan.nodes) {
-      if ((n.dependencies ?? []).includes(sig)) indegree[n.id] -= 1;
-    }
-    next = { ...next, indegree };
-  } else if (outcome.status === "BLOCK") {
+  // Every RESOLVED dependency releases its dependents, not just GREEN (P3 — see terminals.js for why the
+  // GREEN-only decrement deadlocked a run the moment a `retire` node could exist).
+  if (RUN_COMPLETE_TERMINALS.has(outcome.status)) next = releaseDependents(plan, next, sig);
+
+  if (outcome.status === "BLOCK") {
     next = { ...next, deferral_track: [...next.deferral_track, { sig, reason: outcome.reason ?? "unspecified" }] };
   } else if (outcome.status === "PARK") {
     // L7: the EXECUTABLE park path enforces the audited sign-off — never optional
