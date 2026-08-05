@@ -27,7 +27,7 @@ import { factStream, hashFactStream } from "./plan/arch-facts.js";
 import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "./plan/patterns/match.js";
 import { reasonArchitecture, validateSelection, freezeJudgeSelection } from "./plan/arch-reason.js";
 import { toLookup, putEntry } from "./state/arch-verdict-cache.js";
-import { buildArchContract, bindArchContract, isArchRatified } from "./plan/arch-contract.js";
+import { buildArchContract, bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { buildAppBlueprint } from "./plan/app-blueprint.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
 import { standardTablesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
@@ -38,7 +38,6 @@ import {
   readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractRef, saveArchManifest, readArchManifest,
 } from "./cli-io.js";
 
-const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
 const PROMPT_PATH = new URL("./plan/patterns/arch-reason-prompt.md", import.meta.url);
 
 export function cmdArch(io, pos, flags) {
@@ -102,7 +101,7 @@ function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
   const resolved = [];
   const pending = [];
   for (const node of plan.nodes) {
-    if (!REASONING_DISPOSITIONS.has(node.disposition)) continue;
+    if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) continue;
     const fact = factStream(node, cons);
     const cands = matchTargetShapes(fact, corpus);
     const res = reasonArchitecture(node, fact, cands, cacheLookup, opts);

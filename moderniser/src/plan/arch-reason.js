@@ -14,13 +14,12 @@
  * node sig never enters the fact, so the judge prompt is injection-closed.
  */
 import { hashFactStream } from "./arch-facts.js";
+import { ARCH_GATED_DISPOSITIONS } from "./arch-contract.js";
 
 /** Below this classifier confidence, an arch node is escalated to the judge (Sharpening 5 cost control). */
 export const ARCH_REASON_CONFIDENCE_CEILING = 0.9;
 /** Above this blast radius (Σ at-risk SAP deps over members), escalate even a single high-confidence candidate. */
 export const ARCH_REASON_BLAST_BOUND = 10;
-
-const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
 
 /**
  * The escalation predicate (S14): reason iff the disposition is arch-shaped AND the deterministic
@@ -31,7 +30,7 @@ const REASONING_DISPOSITIONS = new Set(["re_architect", "rebuild"]);
  * @returns {boolean}
  */
 export function needsReasoning(node, candidates, opts = {}) {
-  if (!REASONING_DISPOSITIONS.has(node.disposition)) return false;
+  if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) return false;
   const ceiling = opts.ceiling ?? ARCH_REASON_CONFIDENCE_CEILING;
   const bound = opts.blastBound ?? ARCH_REASON_BLAST_BOUND;
   const confidence = Number(node.disposition_confidence ?? 0);
@@ -52,7 +51,7 @@ export function entryKey(factHashValue, modelId, promptHash) {
  * @returns {{status: "skip"|"deterministic"|"cached"|"await_arch", fact_hash?: string, recommendation?: object, request?: object, reason?: string}}
  */
 export function reasonArchitecture(node, fact, candidates, cache = {}, opts = {}) {
-  if (!REASONING_DISPOSITIONS.has(node.disposition)) {
+  if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) {
     return { status: "skip", reason: `disposition '${node.disposition}' needs no architecture reasoning` };
   }
   const fact_hash = hashFactStream(fact);

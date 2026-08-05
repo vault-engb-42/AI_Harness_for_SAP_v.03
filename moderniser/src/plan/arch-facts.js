@@ -18,8 +18,12 @@ const KNOWN_TARGETS = new Set([
   "Fiori Elements App", "OData V4 Service", "RAP Business Object", "RAP Interface", "CDS View", "CDS View Entity",
 ]);
 
-// Higher rank = worse code health. `unknown` (analyser could not grade) never counts as the worst.
-const GRADE_RANK = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 };
+// Higher rank = worse code health. This is the ANALYSER's clean-core grade vocabulary — A–D plus the
+// explicit `unknown`, exactly as `analyser/src/compare.js` and the findings docs emit it. It previously
+// carried speculative E/F entries the system never produces: unreachable, and (worse) a second, conflicting
+// grade scale in a codebase whose scheduler already ranks A–D. `unknown` (the analyser could not grade)
+// never counts as the worst — absence of a grade is not evidence of a bad one.
+const GRADE_RANK = { A: 1, B: 2, C: 3, D: 4 };
 
 /**
  * @param {object} node a frozen plan node (assemble.js shape: object_kind/kind/finding_families/

@@ -49,8 +49,11 @@ const mkCli = ({ base, state, runs }) => {
   /**
    * plan + clear the ARCH gate. The golden fixture is entirely `re_architect`, and the reducer refuses to
    * dispatch an unratified arch node (M1), so these CLI/FSM-mechanics tests must enter past gate 2 exactly
-   * as a real run does: `ratifyArch` seeds the judge verdict cache, runs the real `arch` verb, and stamps
-   * the ratification. No-op for a plan with no arch-gated node.
+   * as a real run does. `ratifyArch` writes real ratified bindings through the real `bindArchContract`
+   * reducer into the run's durable state — a state FIXTURE, not a mock, and deliberately NOT the verb flow:
+   * shelling out to `arch` + `arch-review` + `decide` per test pushed this file past the suite's wall-clock
+   * budget. That flow is covered end to end, against the real verbs, in cli-arch.test.js. No-op for a plan
+   * with no arch-gated node.
    */
   const planRatified = (findings = FIXTURE, ...extra) => {
     const planned = cli("plan", findings, ...extra);

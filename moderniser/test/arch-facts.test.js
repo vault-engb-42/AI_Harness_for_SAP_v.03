@@ -206,3 +206,17 @@ test("M6 the memoised case-fold index is per-map and never bleeds between consum
   assert.deepEqual(factStream(n, shared).consumption, factStream(n, shared).consumption, "repeat calls on one map are stable");
   assert.deepEqual(factStream(n, shared).consumption, ["remote_rfc"], "mixed-case key still resolves via the cached index");
 });
+
+// GRADE (surfaced while investigating the frontier ordering): the fact stream's grade scale must be the
+// ANALYSER's real vocabulary — A–D + unknown, as analyser/src/compare.js and the findings docs emit it.
+// It previously declared A–F, inventing E/F grades the system never produces: unreachable entries, and a
+// second conflicting scale in a codebase whose scheduler (sched/risk.js) already ranks A–D.
+test("GRADE worst_grade ranks the analyser's real A–D vocabulary, and `unknown` never reads as the worst", () => {
+  const meta = (grades) => Object.fromEntries(grades.map((g, i) => [`M${i}`, { grade: g, complexity: 1, blast: 0 }]));
+  const worst = (grades) => factStream(node({ member_meta: meta(grades) }), {}).member_summary.worst_grade;
+  assert.equal(worst(["A", "D", "B"]), "D", "D is the worst real grade");
+  assert.equal(worst(["A", "B"]), "B");
+  assert.equal(worst(["unknown", "C"]), "C", "a graded member outranks an ungraded one");
+  assert.equal(worst(["unknown"]), "unknown", "…but an all-ungraded node reports unknown, not a fabricated grade");
+  assert.equal(worst(["D", "unknown"]), "D", "absence of a grade is never evidence of a worse one");
+});
