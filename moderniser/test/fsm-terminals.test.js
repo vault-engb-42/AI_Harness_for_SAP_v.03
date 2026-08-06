@@ -43,6 +43,32 @@ test("REBUILT_HANDOFF is reachable from GROUNDED as a terminal for a rebuild nod
   assert.equal(s.status.N1, "REBUILT_HANDOFF");
 });
 
+// V2 (adversarial pass #3, CONFIRMED): the FSM admitted REBUILT_HANDOFF only from GROUNDED, but drive.js
+// routes `rebuild` through FULL generation (transform `greenfield_rap_plus_handoff`). So the driver's own
+// prescribed action and the terminal were mutually exclusive: follow `drive`, land at SYNTAX_OK or
+// PROVISIONAL_GATED, and the terminal became permanently unreachable for that node.
+//
+// BUILD_PLAN S4 is unambiguous about which side is wrong — REBUILT_HANDOFF is "ABAP/OData/Fiori-metadata
+// generated+gated, JS handoff-spec emitted", i.e. entered AFTER generation. The pre-generation edge stays
+// legal too: a rebuild that is entirely off-stack has nothing to generate first.
+test("V2 a rebuild node hands off AFTER generation — the route the driver actually prescribes", () => {
+  const plan = REBUILD_PLAN;
+  let s = grounded(plan);
+  for (const st of ["GENERATED", "SYNTAX_OK", "PROVISIONAL_GATED"]) s = applyProgress(plan, s, "N1", st);
+  const out = applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF", ...signoff });
+  assert.equal(out.status.N1, "REBUILT_HANDOFF");
+  assert.equal(runComplete(plan, out), true, "and the run completes on the designed lifecycle");
+});
+
+test("V2 the live path lands it too (GATED), and the gate still binds", () => {
+  const plan = REBUILD_PLAN;
+  let s = grounded(plan);
+  for (const st of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) s = applyProgress(plan, s, "N1", st);
+  assert.equal(applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF", ...signoff }).status.N1, "REBUILT_HANDOFF");
+  assert.throws(() => applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF" }), /sign-off|signed_by/i, "the named-human gate is unchanged");
+  assert.throws(() => applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "REBUILT_HANDOFF", ...signoff }), /only legal for a 'rebuild' node/);
+});
+
 test("applyProgress REFUSES the disposition terminals (they route through applyOutcome, not phase moves)", () => {
   assert.throws(() => applyProgress(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", "RETIRED"), /terminal outcome/i);
 });

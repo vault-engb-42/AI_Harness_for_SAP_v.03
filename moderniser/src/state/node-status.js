@@ -58,12 +58,18 @@ const ACTIVE_SET = new Set(ACTIVE_STATES);
 // are handled specially in canTransition.
 const FORWARD = new Map([
   ["PENDING", new Set(["GROUNDED"])],
-  ["GROUNDED", new Set(["GENERATED", "RETIRED", "REBUILT_HANDOFF"])], // GENERATED = build; RETIRED/REBUILT_HANDOFF = disposition-route terminals (retire/rebuild ground then terminate, no ABAP)
+  ["GROUNDED", new Set(["GENERATED", "RETIRED", "REBUILT_HANDOFF"])], // GENERATED = build; RETIRED = the retire route (no ABAP); REBUILT_HANDOFF here = an entirely off-stack rebuild with nothing to generate first
   ["GENERATED", new Set(["SYNTAX_OK"])],
   ["SYNTAX_OK", new Set(["PUSHED", "PROVISIONAL_GATED"])], // PUSHED = live DEV; PROVISIONAL_GATED = offline verdict
   ["PUSHED", new Set(["ACTIVATED"])],
   ["ACTIVATED", new Set(["GATED"])],
-  ["GATED", new Set(["GREEN"])],
+  // REBUILT_HANDOFF from the GATED states is the DESIGNED rebuild lifecycle (BUILD_PLAN S4: "ABAP/OData/
+  // Fiori-metadata generated+gated, JS handoff-spec emitted") — the terminal is entered AFTER generation.
+  // Admitting it only from GROUNDED made the terminal and the driver's own action mutually exclusive:
+  // drive.js routes `rebuild` through full generation (transform `greenfield_rap_plus_handoff`), so
+  // following the prescribed action landed the node here and the terminal became unreachable for it.
+  ["GATED", new Set(["GREEN", "REBUILT_HANDOFF"])],
+  ["PROVISIONAL_GATED", new Set(["REBUILT_HANDOFF"])], // the offline lane's equivalent rest state
   ["PARK", new Set(["PENDING"])],
   ["NEEDS_MANUAL_SEAM", new Set(["PENDING"])],
 ]);
