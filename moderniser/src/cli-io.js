@@ -120,6 +120,18 @@ export function archContractRef(runId, sig) {
   return `${validRunId(runId)}/arch-contract-${sig}.json`;
 }
 export const archContractPath = (io, runId, sig) => join(io.runsDir, archContractRef(runId, sig));
+/**
+ * Resolve a STORED contract ref (the counterpart to `archContractRef`, which mints one). Re-validated on
+ * READ, not merely on write: run state is durable and hand-editable, so the shape is re-checked here before
+ * it reaches a path join (P8). A binding survives a replan, and the contract stays in the run it was frozen
+ * under — so resolving the bound ref is what lets the ratification the human gave still be honoured.
+ */
+export function archContractPathFromRef(io, ref) {
+  if (typeof ref !== "string" || !/^[A-Za-z0-9._-]+\/arch-contract-[A-Za-z0-9._-]+\.json$/.test(ref) || ref.includes("..")) {
+    throw new Error(`invalid contract ref '${ref}' — expected '<run_id>/arch-contract-<sig>.json' with no separators or dot-segments (path traversal, P8)`);
+  }
+  return join(io.runsDir, ref);
+}
 export const saveArchContract = (io, runId, sig, c) => writeDurable(archContractPath(io, runId, sig), JSON.stringify(c, null, 2));
 
 export function readBaselines(stateDir) {

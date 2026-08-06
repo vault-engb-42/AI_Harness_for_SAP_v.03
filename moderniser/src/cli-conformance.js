@@ -23,7 +23,7 @@
 import { readFileSync } from "node:fs";
 import { checkConformance } from "./sched/conformance.js";
 import { isArchRatified } from "./plan/arch-contract.js";
-import { loadRun, archContractPath, log } from "./cli-io.js";
+import { loadRun, archContractPath, archContractPathFromRef, log } from "./cli-io.js";
 
 export function cmdConformance(io, pos, flags) {
   const [runId, sig] = pos;
@@ -58,7 +58,13 @@ export function loadContract(io, runId, sig, state) {
   if (!isArchRatified(state, sig)) {
     throw new Error(`conformance: ${sig}'s Architecture Contract is not human-ratified — checking output against unapproved architecture proves nothing`);
   }
-  const path = archContractPath(io, runId, sig);
+  // Resolve the BOUND ref, not a path re-derived from the current run (R5). The binding survives a replan
+  // while the contract file stays in the run it was frozen under, so re-deriving looked in a directory
+  // nothing had written yet and failed closed on a path the operator had never seen. sched/drive.js already
+  // hands the fulfiller this same `ref` — one binding must have one resolution rule, or the two readers
+  // disagree about which file the human actually ratified. The derived path remains the fallback for a
+  // binding written before refs were recorded.
+  const path = binding.ref ? archContractPathFromRef(io, binding.ref) : archContractPath(io, runId, sig);
   let contract;
   try {
     contract = JSON.parse(readFileSync(path, "utf8"));

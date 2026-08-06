@@ -90,6 +90,38 @@ test("H conformance BLOCKS when a pinned object is missing from the generated se
   assert.throws(() => run("conformance", runId, sig, "--generated", writeGen(base, "gen-missing.json", gen)));
 });
 
+// R5 (adversarial pass, CONFIRMED): a replan carries an untouched node's ratification forward, but the two
+// readers of that binding disagreed about where the contract LIVES. sched/drive.js:232 hands the fulfiller
+// the bound `ref`; loadContract ignored it and re-derived the path from the CURRENT run id, so after a
+// replan it looked in the new run's directory — where nothing had been written yet — and failed closed with
+// a path the operator had never seen. One binding, one resolution rule.
+test("R5 the ratified contract is found through its BOUND ref, not a path re-derived from the current run", () => {
+  const { base, stateDir, runsDir, run, runId, sig, contract } = ratifiedRun();
+  // Exactly what migrateState produces: the binding survives, the contract file stays in the run it was
+  // frozen under, and the node is now being checked under a DIFFERENT run id.
+  const carried = stateOf(stateDir, runId);
+  const newRunId = "run-carriedbind01";
+  writeFileSync(join(stateDir, "plan", `${newRunId}.plan.json`), readFileSync(join(stateDir, "plan", `${runId}.plan.json`), "utf8"));
+  writeFileSync(statePath(stateDir, newRunId), JSON.stringify(carried, null, 2));
+
+  const out = run("conformance", newRunId, sig, "--generated", writeGen(base, "gen-carried.json", matching(contract)));
+  assert.equal(out.ok, true, JSON.stringify(out.violations));
+  assert.equal(out.contract_hash, contract.contract_hash, "the human's ratified contract, read from where it was frozen");
+  assert.ok(readFileSync(join(runsDir, runId, `arch-contract-${sig}.json`), "utf8"), "the file never moved");
+});
+
+test("R5 a hand-edited contract ref cannot escape the runs directory (durable state is untrusted, P8)", () => {
+  const { base, stateDir, run, runId, sig, contract } = ratifiedRun();
+  const escape = [["..", ".."].join("/"), "arch-contract-x.json"].join("/"); // a ref pointing above runsDir
+  const tampered = stateOf(stateDir, runId);
+  tampered.arch_contracts[sig].ref = escape;
+  writeFileSync(statePath(stateDir, runId), JSON.stringify(tampered, null, 2));
+  assert.throws(
+    () => run("conformance", runId, sig, "--generated", writeGen(base, "gen-tamper.json", matching(contract))),
+    /contract ref/i,
+  );
+});
+
 // ---- the S6 read seam: hash-verified, ratification-required, fail-closed ----
 
 test("H the read seam FAILS CLOSED when the on-disk contract drifts from the ratified hash", () => {
