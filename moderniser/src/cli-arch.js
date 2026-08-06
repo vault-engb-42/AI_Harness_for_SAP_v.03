@@ -103,19 +103,40 @@ export function readVerifiedDoc(path, state, verb = "arch") {
 function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
   const resolved = [];
   const pending = [];
+  const known = new Set(plan.nodes.map((n) => n.id));
   for (const node of plan.nodes) {
     if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) continue;
     const fact = factStream(node, cons);
     const cands = matchTargetShapes(fact, corpus);
-    const res = reasonArchitecture(node, fact, cands, cacheLookup, opts);
+    let res = reasonArchitecture(node, fact, cands, cacheLookup, opts);
     // M3: re-validate a CACHED judge verdict against THIS run's candidates before trusting it. entry_hash
     // proves the cache file was not edited after it was written; it says nothing about whether the shape it
     // carries is one this node was ever offered. Fail-closed here keeps the judge-output boundary honest.
-    if (res.status === "cached") validateSelection(res.recommendation, cands);
+    if (res.status === "cached") {
+      validateSelection(res.recommendation, cands);
+      // V1: the same argument, applied to the OTHER half of a cached verdict. The cache is cross-run by
+      // design and `factStream` is sig-free for P8, so two structurally identical objects in different
+      // packages share a fact hash while their sigs are disjoint — which means a cached `shared` grouping
+      // can name sigs that mean nothing here. Those foreign sigs reached checkBlueprint and threw the whole
+      // verb BEFORE the manifest was written, leaving no pending request for `arch-verdict` to serve: an
+      // unrecoverable run. An entry whose grouping does not fit this plan was frozen for a different one,
+      // which is precisely a MISS — re-escalate to the judge by re-reasoning with an empty cache.
+      if (!sharedFitsPlan(res.recommendation, known)) res = reasonArchitecture(node, fact, cands, {}, opts);
+    }
     if (res.status === "deterministic" || res.status === "cached") resolved.push({ node, recommendation: res.recommendation });
     else if (res.status === "await_arch") pending.push(res.request); // the P8 request the fulfiller judges
   }
   return { resolved, pending };
+}
+
+/** Every sig in a recommendation's cross-object grouping must be a node of THIS plan (V1). */
+function sharedFitsPlan(recommendation, known) {
+  for (const groups of Object.values(recommendation?.shared ?? {})) {
+    for (const g of groups ?? []) {
+      for (const m of g?.members ?? []) if (!known.has(m)) return false;
+    }
+  }
+  return true;
 }
 
 /**

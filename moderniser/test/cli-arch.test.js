@@ -38,6 +38,18 @@ function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", s
   return rec;
 }
 
+/** Seed the cache with a judge verdict whose `shared` grouping names a sig from ANOTHER run. */
+function seedCacheWithForeignShared(stateDir, node, cons, foreignSig, opts = {}) {
+  const { model = "opus", promptHash = "ph1", shape = "rap_bo_headless" } = opts;
+  const rec = {
+    sig: node.id, target_shape: shape, components: [], invariants: [],
+    candidates: [{ id: shape, score: 1 }], source: "judge",
+    shared: { services: [{ id: "SRV_ORDER_MGMT", members: [foreignSig] }], projections: [], fiori_apps: [] },
+  };
+  writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec), null, 2));
+  return rec;
+}
+
 const consOf = () => consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
 const stateOf = (stateDir, runId) => JSON.parse(readFileSync(join(stateDir, "runs", `${runId}.state.json`), "utf8"));
 const manifestOf = (runsDir, runId) => JSON.parse(readFileSync(join(runsDir, runId, "architecture-manifest.json"), "utf8"));
@@ -257,6 +269,38 @@ test("H3 arch-verdict ingests a judge selection, and a following `arch` RESOLVES
   assert.equal(second.pending, pending.length - 1);
   assert.equal(archEscs(run, planned.run_id).length, 1, "an ARCH_REVIEW is now raised for the resolved node");
   assert.ok(stateOf(stateDir, planned.run_id).arch_contracts[pending[0].sig].hash, "a contract is bound");
+});
+
+// V1 (adversarial pass #3, CONFIRMED by end-to-end reproduction): the verdict cache is CROSS-RUN by design,
+// and `factStream` is deliberately sig-free for P8 — so two structurally identical objects in different
+// packages produce the SAME fact hash with DISJOINT sigs. That is exactly what makes the cache reusable, and
+// exactly what makes its PAYLOAD dangerous: a judge verdict frozen in run X carries run X's sigs inside
+// `shared`. M3 re-validates the cached target_shape and nothing else, so those foreign sigs reached
+// checkBlueprint, which threw out of the whole `arch` verb BEFORE the manifest was written — leaving no
+// pending request, so `arch-verdict` refused every correction and the run could never recover in-band.
+//
+// A cached entry whose grouping names sigs this plan does not contain was frozen for a different run. That
+// is a cache MISS, not a fatal error: re-escalate the node to the judge.
+test("V1 a cached grouping naming a FOREIGN run's sig is a cache miss, not a dead run", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCacheWithForeignShared(stateDir, target, consOf(), "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+
+  const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  assert.ok(out.pending >= 1, "the poisoned node re-escalates to the judge");
+  assert.ok(!out.rows.some((r) => r.sig === target.id), "it is NOT resolved from the foreign entry");
+  const m = manifestOf(runsDir, planned.run_id);
+  assert.ok(m.pending.some((p) => p.sig === target.id), "and the manifest records the outstanding request, so arch-verdict can serve it");
+});
+
+test("V1 a cached grouping naming THIS plan's sigs still resolves from cache (no false miss)", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCacheWithForeignShared(stateDir, target, consOf(), target.id); // its OWN sig — the documented lane shape
+  const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  assert.ok(out.rows.some((r) => r.sig === target.id), "a legitimate cached grouping is still reused");
 });
 
 test("H3/M3 arch-verdict REFUSES a shape outside the offered candidates (validateSelection, fail-closed)", () => {
