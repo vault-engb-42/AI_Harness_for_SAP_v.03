@@ -6,7 +6,7 @@
 export const DISPOSITIONS = Object.freeze([
   "refactor", // Clean-Core ABAP in place
   "re_architect", // RAP + CDS + OData + Fiori (target-shape from the patterns corpus)
-  "rebuild", // side-by-side handoff spec — no in-stack generation
+  "rebuild", // in-stack metadata generated + gated, PLUS a side-by-side handoff spec for the off-stack work (drive.js: `greenfield_rap_plus_handoff`)
   "replace", // wire to a released SAP standard
   "retire", // grounded drop (no released successor)
   "seal", // genuinely manual — NEEDS_MANUAL_SEAM

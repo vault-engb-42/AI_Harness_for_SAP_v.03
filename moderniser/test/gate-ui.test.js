@@ -40,6 +40,15 @@ test("a DROPPED_DEPENDENCY packet names the dropped object and the dependents st
   assert.deepEqual(p.decisions, DECISIONS.DROPPED_DEPENDENCY);
 });
 
+// A row raised through the generic `escalate` verb carries no root_signature. Rendering the literal
+// "undefined" plus an off-by-one count is a worse failure than saying the object is unnamed — and
+// OSCILLATION guards the same field eight lines above, so this was divergence, not an oversight.
+test("a DROPPED_DEPENDENCY packet raised without a root_signature degrades honestly", () => {
+  const p = renderPacket(raise("DROPPED_DEPENDENCY", { node_ids: ["a", "b"] }).escalations[0], CONTEXT);
+  assert.ok(!/undefined/.test(p.cause), `no literal "undefined" reaches the human: ${p.cause}`);
+  assert.ok(/2 in-plan node/.test(p.cause), "with nothing to exclude, the count is not decremented");
+});
+
 test("renderPacket assembles kind + cause + evidence + plan fields + the typed decisions", () => {
   const reg = raise("BREAK_CYCLE", { seam_candidates: [{ source: A, target: "b".repeat(64), rank: 1, confidence: 0.5 }] });
   const p = renderPacket(reg.escalations[0], CONTEXT);

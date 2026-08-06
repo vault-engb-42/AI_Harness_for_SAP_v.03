@@ -23,10 +23,10 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { consumptionFacts } from "./plan/consumption-facts.js";
-import { factStream, hashFactStream } from "./plan/arch-facts.js";
+import { factStream } from "./plan/arch-facts.js";
 import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "./plan/patterns/match.js";
-import { reasonArchitecture, validateSelection, freezeJudgeSelection } from "./plan/arch-reason.js";
-import { toLookup, putEntry } from "./state/arch-verdict-cache.js";
+import { reasonArchitecture, validateSelection } from "./plan/arch-reason.js";
+import { toLookup } from "./state/arch-verdict-cache.js";
 import { buildArchContract, bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { buildAppBlueprint } from "./plan/app-blueprint.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
@@ -35,7 +35,7 @@ import { buildPromptOptions } from "./plan/prompt-options.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
-  readArchVerdictCache, saveArchVerdictCache, saveArchContract, archContractRef, saveArchManifest, readArchManifest,
+  readArchVerdictCache, saveArchContract, archContractRef, saveArchManifest,
 } from "./cli-io.js";
 
 const PROMPT_PATH = new URL("./plan/patterns/arch-reason-prompt.md", import.meta.url);

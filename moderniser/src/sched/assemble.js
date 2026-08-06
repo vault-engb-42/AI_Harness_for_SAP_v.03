@@ -139,9 +139,10 @@ function buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals,
  * The superseded recommendation survives inside the rationale so the proof bundle stays legible.
  * `disposition_evidence` (P1) is deliberately KEPT — the registry facts describe the object, not the
  * decision. `autonomy` becomes `auto` because the gate exists to obtain a human decision and it now has
- * one; re-prompting would ask the operator to approve their own override (see also arch-reason.js, where
- * `operator_override` still forces target-shape reasoning — deciding the disposition is not deciding the
- * architecture).
+ * one; re-prompting would ask the operator to approve their own override. Deciding the disposition is not
+ * deciding the architecture, and the arch gate still reasons a target_shape for the node — not through any
+ * provenance special case (that was deleted), but because `disposition_confidence` is NULL here and
+ * arch-reason.js escalates on an absent classifier confidence.
  */
 function applyDispositionOverrides(nodes, overrides) {
   const bySig = new Map(nodes.map((n) => [n.id, n]));

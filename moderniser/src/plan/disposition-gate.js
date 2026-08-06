@@ -33,21 +33,36 @@ export function raiseDispositionReviews(register, manifest, { ts }) {
  * visible at the plan gate, where it can still be acted on, rather than let it surface far from its cause as
  * an ATC or syntax failure on a generated object.
  *
- * `dependencies` are TRANSITIVE in-plan ancestors (assemble.js), so a dependent that reaches the dropped
- * object through an intermediate node is reported too — which is correct: its closure still contains the
- * object being dropped. A dependent that is ITSELF retired is not reported: dropping a whole cluster is
- * coherent, and reporting it would bury the real cases in noise.
+ * `dependencies` are the NEAREST in-plan ancestors — `inPlanAncestors` (assemble.js) stops at the first
+ * in-plan node and walks only THROUGH out-of-plan ones. That is exactly the right relation here, and
+ * deliberately so: this predicate is the SAME one `releaseDependents` (sched/terminals.js) and the indegree
+ * initialiser use, so the nodes reported are precisely the nodes whose readiness the drop releases. A
+ * dependent reached through a SURVIVING in-plan node is not released by the drop and is not reported; if
+ * that intermediary is itself retired, the dependent appears under the intermediary's own row.
+ *
+ * (An earlier docblock here claimed full transitive coverage. It was wrong, and a maintainer trusting the
+ * stated reason would make the wrong call the first time these two predicates are asked to diverge.)
+ *
+ * A dependent that is ITSELF retired is not reported: dropping a whole cluster is coherent, and reporting
+ * it would bury the real cases in noise.
  *
  * @param {{nodes: Array<{id: string, object: string, disposition?: string, dependencies?: string[]}>}} plan
  * @returns {Array<{retired: string, object: string, dependents: string[]}>} ordered by retired sig
  */
 export function droppedDependencies(plan) {
+  // Indexed by dependency, ONCE. The scan-all-nodes-per-retired-node shape was O(retired × nodes × closure)
+  // — 4.9s at 10k nodes / 1k drops / 200 deps per node, against a stated 100K+ LOC NFR. This is one pass.
+  const dependentsOf = new Map();
+  for (const n of plan.nodes) {
+    if (n.disposition === "retire") continue; // a dropped cluster is coherent — see the docblock
+    for (const d of n.dependencies ?? []) {
+      if (!dependentsOf.has(d)) dependentsOf.set(d, []);
+      dependentsOf.get(d).push(n.id);
+    }
+  }
   const out = [];
   for (const r of plan.nodes.filter((n) => n.disposition === "retire").sort(byId)) {
-    const dependents = plan.nodes
-      .filter((n) => n.disposition !== "retire" && (n.dependencies ?? []).includes(r.id))
-      .map((n) => n.id)
-      .sort();
+    const dependents = (dependentsOf.get(r.id) ?? []).slice().sort();
     if (dependents.length > 0) out.push({ retired: r.id, object: r.object, dependents });
   }
   return out;

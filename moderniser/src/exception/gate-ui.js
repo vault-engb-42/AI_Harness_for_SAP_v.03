@@ -40,8 +40,14 @@ const CAUSE = {
   ARCH_REVIEW: (e) => `architecture review for ${e.node_ids.length} node(s) — recommended target_shape + reviewer verdict in the architecture manifest`,
   // The dropped object is named, not merely counted: the human is being asked about THIS drop, and the
   // dropped sig rides node_ids too (so two drops sharing a dependent get distinct ids), hence the -1.
-  DROPPED_DEPENDENCY: (e) =>
-    `${e.root_signature} is being dropped but ${e.node_ids.length - 1} in-plan node(s) still depend on it — accept the drop, or revise a disposition and replan`,
+  // Both are GUARDED, matching OSCILLATION eight lines above: a row raised through the generic `escalate`
+  // verb carries no root_signature, and rendering the literal "undefined" plus an off-by-one count is a
+  // worse failure than saying plainly that the dropped object is unnamed.
+  DROPPED_DEPENDENCY: (e) => {
+    const dropped = e.root_signature ?? null;
+    const dependents = e.node_ids.length - (dropped && e.node_ids.includes(dropped) ? 1 : 0);
+    return `${dropped ?? "an unnamed object"} is being dropped but ${dependents} in-plan node(s) still depend on it — accept the drop, or revise a disposition and replan`;
+  },
 };
 
 /**
