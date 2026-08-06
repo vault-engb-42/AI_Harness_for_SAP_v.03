@@ -15,8 +15,18 @@ const BLOCKER_FAMILIES = new Set(["clean-core", "deprecation"]);
 // Below the source-grounded 1.0 — keeps a finding-derived refactor at PROMPT until real source grounding (θ=0.9).
 const FINDING_DERIVED_CERTAINTY = 0.8;
 
-// Registry states that mean "this API is not coming to the cloud as-is".
-const NO_FORWARD_PATH = new Set(["deprecated", "notToBeReleased"]);
+/**
+ * Registry states that mean "this API is not coming to the cloud as-is" — expressed in the vocabulary
+ * `classify()` actually RETURNS, which is not the registry's raw vocabulary.
+ *
+ * The raw dataset says `released | deprecated | notToBeReleased`, but classify() derives release_state from
+ * the ORACLE LEVEL (cloudification.js `RELEASE_STATE_FOR_LEVEL`: A→released, B/C→deprecated, D→removed) and
+ * can never return `notToBeReleased`. Matching that raw word therefore matched nothing at all, and it was
+ * exactly the class P1 was built to find: every one of the 81 zero-successor level-D objects — CL_HTTP_CLIENT
+ * among them — carries `raw=notToBeReleased` and classifies as `removed`. Counted over the bundled registry:
+ * deprecated 550 (458 with no successor), removed 675 (81 with no successor), released 33,450.
+ */
+const NO_FORWARD_PATH = new Set(["deprecated", "removed"]);
 
 /**
  * @param {{findings?: Array<{object: string, family?: string, atc_priority?: string}>, modernization_plan?: {objects?: Array<{object: string}>}}} doc analyser-findings.json
@@ -34,7 +44,7 @@ export function groundCandidates(doc) {
     const fs = byObject.get(o.object) ?? [];
     const analysed = fs.length > 0;
     const p1Blockers = fs.filter((f) => f.atc_priority === "P1" && BLOCKER_FAMILIES.has(f.family));
-    const ev = registry.get(o.object) ?? { no_successor_refs: [], deprecated_refs: [], standard_domains: [] };
+    const ev = registry.get(o.object) ?? { no_successor_refs: [], standard_domains: [] };
     cache[o.object] = {
       released_clean: analysed && p1Blockers.length === 0,
       // The registry answers "is this SAP API released, and what replaces it?" — it CANNOT answer "does a
@@ -65,28 +75,36 @@ export function groundCandidates(doc) {
 function groundRegistryRefs(doc) {
   const byObject = new Map();
   const ensure = (owner) => {
-    if (!byObject.has(owner)) byObject.set(owner, { noSucc: new Set(), deprecated: new Set(), domains: new Set() });
+    if (!byObject.has(owner)) byObject.set(owner, { noSucc: new Set(), domains: new Set() });
     return byObject.get(owner);
   };
   for (const e of doc?.graph?.edges ?? []) {
     const owner = String(e.source ?? "").split(".")[0];
-    const ref = String(e.target ?? "").toUpperCase();
+    // The OWNING object, on both sides. A CPG edge names members qualified: `ZCL_FOO.METHOD`. The source was
+    // already split; the target was not, so `CL_GUI_FRONTEND_SERVICES.GUI_UPLOAD` — a `call-method` edge, and
+    // call-method is how ABAP references SAP classes at all — never matched the registry. The whole channel
+    // was silent, including the golden fixture's one deprecated reference. Splitting is a no-op for the
+    // already-bare `call-function` and `uses-table` targets.
+    const ref = String(e.target ?? "").split(".")[0].toUpperCase();
     if (!owner || !ref) continue;
     const bucket = ensure(owner);
 
-    const domain = STANDARD_DOMAINS[ref];
-    if (domain) bucket.domains.add(domain);
+    // Table READS only, matching fit-to-standard.js's sibling filter exactly (they answer the same question
+    // and must not diverge): a symbol that merely shares a standard table's name is not a read of it.
+    if (e.kind === "uses-table") {
+      const domain = STANDARD_DOMAINS[ref];
+      if (domain) bucket.domains.add(domain);
+    }
 
     const info = classify(ref);
     if (!NO_FORWARD_PATH.has(info?.release_state)) continue;
-    bucket.deprecated.add(ref);
+    // A named successor means there IS a forward path — that is a re-architect basis, not a retire one.
     if ((info.successors ?? []).length === 0) bucket.noSucc.add(ref);
   }
   const out = new Map();
   for (const [owner, b] of byObject) {
     out.set(owner, {
       no_successor_refs: [...b.noSucc].sort(),
-      deprecated_refs: [...b.deprecated].sort(),
       standard_domains: [...b.domains].sort(),
     });
   }

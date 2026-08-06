@@ -42,11 +42,23 @@ export function classifyDisposition(node, cache = {}) {
     // operator what a choice would rest on. It deliberately does NOT change the recommendation above:
     // "no forward path as built" still admits re-architecting rather than dropping, and whether a capability
     // is still wanted is a business call no registry can make.
+    // Unioned across EVERY member (R6): a super-node is a condensed SCC that ships as one unit, and its id
+    // is only the smallest member's sig — so reading the representative alone hid a dead API that any other
+    // member reached. The decision inputs above stay representative-keyed; this is the EVIDENCE the human
+    // reads, and it must describe the whole node.
     disposition_evidence: {
-      no_successor_refs: [...(g.no_successor_refs ?? [])],
-      standard_domains: [...(g.standard_domains ?? [])],
+      no_successor_refs: unionEvidence(node, cache, "no_successor_refs"),
+      standard_domains: unionEvidence(node, cache, "standard_domains"),
     },
   };
+}
+
+/** Union a grounding-cache evidence field over the node's in-plan members (sorted, deduped). */
+function unionEvidence(node, cache, field) {
+  const members = node.members?.length ? node.members : [node.object];
+  const s = new Set();
+  for (const m of members) for (const v of cache[m]?.[field] ?? []) s.add(v);
+  return [...s].sort();
 }
 
 /**
