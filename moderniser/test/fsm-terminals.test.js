@@ -142,6 +142,41 @@ test("P3 a non-completing terminal still blocks: a BLOCKed dependency leaves the
   assert.equal(applyOutcome(plan, state, "N1", { status: "BLOCK", reason: "r" }).indegree.N2, 1);
 });
 
+// R3 (adversarial pass, CONFIRMED): the operator override is the only way a node can be BOTH dynamic-sealed
+// and `retire` — the classifier sends a sealed node to `seal`. That combination froze an unexecutable plan:
+// driveDecision offers the retire route (it partitions above the frontier), `outcome RETIRED` is only legal
+// from GROUNDED, and `dispatch` — the only way to reach GROUNDED — hard-refused the sealed node. The driver
+// emitted `retire` forever and no verb could execute it.
+//
+// The veto's own rationale is why the narrow exception is right: it exists so "a sealed node must never
+// reach a node driver — signature-changing modernisation waits for the human caller-set confirmation". A
+// retire reaches no generator at all, and its terminal already demands a named human plus a justification.
+
+const sealed = (disposition) => ({
+  plan_hash: "h",
+  nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [], disposition, dynamic_seal: "NEEDS_MANUAL_SEAM" }],
+});
+
+test("R3 a dynamic-sealed node the operator chose to RETIRE can reach its terminal", () => {
+  const plan = sealed("retire");
+  const state = initRun(plan);
+  assert.equal(driveDecision(plan, state).action, "retire", "the driver offers it");
+  const s = applyOutcome(plan, dispatch(plan, state, ["N1"]), "N1", { status: "RETIRED", ...signoff });
+  assert.equal(s.status.N1, "RETIRED");
+  assert.equal(runComplete(plan, s), true, "and the run can actually complete");
+});
+
+test("R3 the seal veto still refuses a sealed node that could become BUILD work", () => {
+  for (const d of ["refactor", "replace"]) {
+    assert.throws(() => dispatch(sealed(d), initRun(sealed(d)), ["N1"]), /dynamic-sealed/, d);
+  }
+});
+
+test("R3 a sealed node with NO disposition is still refused (fail-closed on an absent classification)", () => {
+  const plan = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [], dynamic_seal: "NEEDS_MANUAL_SEAM" }] };
+  assert.throws(() => dispatch(plan, initRun(plan), ["N1"]), /dynamic-sealed/);
+});
+
 test("H2 a node with NO disposition can reach neither terminal (fail-closed on an absent classification)", () => {
   const bare = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [] }] };
   for (const status of ["RETIRED", "REBUILT_HANDOFF"]) {

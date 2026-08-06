@@ -97,7 +97,11 @@ export function dispatch(plan, state, sigs) {
     }
     // Re-check the frontier's third veto too (F11): a sealed node must never reach a node
     // driver — signature-changing modernisation waits for the human caller-set confirmation.
-    if (plan.nodes.find((n) => n.id === sig)?.dynamic_seal === "NEEDS_MANUAL_SEAM") {
+    // EXCEPT a `retire` (R3), which reaches no generator at all and whose terminal already demands a named
+    // human + justification; without the exception, an operator-overridden sealed node froze an
+    // UNEXECUTABLE plan (drive offered `retire` forever, RETIRED needs GROUNDED, this line refused it).
+    const node = plan.nodes.find((n) => n.id === sig);
+    if (node?.dynamic_seal === "NEEDS_MANUAL_SEAM" && node.disposition !== "retire") {
       throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
     }
     // The arch veto belongs HERE, not only in driveDecision's frontier filter (M1): `dispatch` and
