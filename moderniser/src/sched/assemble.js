@@ -35,22 +35,7 @@ import { groundCandidates } from "../plan/ground-candidates.js";
 export function assemblePlan(doc, opts = {}) {
   const og = buildObjectGraph(doc);
   const scoped = scopeNodes(doc, og);
-  // Stage 1 seam: augmented dynamic edges join the graph BEFORE condensation (§3.1 —
-  // a synthetic back-edge that closes a cycle must reach Tarjan); seals arrive per object
-  // (the graph/adapt.js `augmentFromCpg` collapse — D5). FAIL CLOSED on shape drift: a seal
-  // key or edge endpoint the object graph does not know would otherwise silently no-op
-  // through condense — under-approximation, the direction L5 forbids (F12).
-  const knownIds = new Set(og.nodes.map((n) => n.id));
-  for (const k of Object.keys(opts.augment?.seals ?? {})) {
-    if (!knownIds.has(k)) {
-      throw new Error(`assemble: augment seal key '${k}' is not an object-graph node — emit OBJECT ids (graph/adapt.js), never CPG node ids`);
-    }
-  }
-  for (const e of opts.augment?.edges ?? []) {
-    if (!knownIds.has(e.source) || !knownIds.has(e.target)) {
-      throw new Error(`assemble: augment edge '${e.source}' → '${e.target}' has an endpoint unknown to the object graph — a dropped edge is exactly the cycle Tarjan exists to catch`);
-    }
-  }
+  assertAugmentFits(og, opts.augment);
   const edges = [...og.edges, ...(opts.augment?.edges ?? [])];
   const seals = opts.augment?.seals ?? {};
   const cond = tarjanCondense(og.nodes.map((n) => n.id), precedenceEdges(edges));
@@ -70,31 +55,7 @@ export function assemblePlan(doc, opts = {}) {
   const conflictKeys = superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper, opts.transportOf);
   const predecessors = predecessorMap(cond.edges);
 
-  const nodes = [...inPlanSupers.entries()].map(([superId, members]) => {
-    const superNode = cond.superNodes.find((s) => s.id === superId);
-    const rep = scopedByObject.get(members[0]);
-    const sealed = superNode.members.some((m) => seals[m] === true); // any sealed member seals the super-node (L5)
-    return {
-      id: sigOfSuper.get(superId),
-      object: rep.object,
-      kind: members.length > 1 ? "super" : "object",
-      members: [...superNode.members].sort(),
-      break_gate: superNode.break_gate,
-      ...(sealed ? { dynamic_seal: "NEEDS_MANUAL_SEAM" } : {}),
-      wave: levels.levelOf[superId],
-      dependencies: inPlanAncestors(superId, predecessors, sigOfSuper),
-      conflict_keys: conflictKeys[sigOfSuper.get(superId)],
-      member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
-      finding_families: unionField(members, scopedByObject, "finding_families"),
-      driving_rule_ids: unionField(members, scopedByObject, "driving_rule_ids"),
-      disposition_hints: unionField(members, scopedByObject, "disposition_hints"),
-      object_kind: rep.kind ?? null, // the ABAP kind (class/interface/function/…) — distinct from `kind` (graph: object/super)
-      modernization_target: rep.modernization_target ?? null,
-      parity_required: members.some((m) => scopedByObject.get(m).parity_required),
-      artifacts: artifactSkeleton(members, scopedByObject),
-      transport_id: opts.transportOf?.[rep.object],
-    };
-  });
+  const nodes = buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, levels, predecessors, conflictKeys, transportOf: opts.transportOf });
 
   // Plan-time disposition (B2): the classifier is PURE over (node, grounding-cache); the grounding
   // pre-pass (S3) supplies the cache from the analyser doc. disposition_* ride the node → covered by
@@ -116,6 +77,55 @@ export function assemblePlan(doc, opts = {}) {
     for (const m of members) objectToSig[m] = sigOfSuper.get(superId);
   }
   return { plan, runtime: { objectToSig } };
+}
+
+/**
+ * Stage 1 seam: augmented dynamic edges join the graph BEFORE condensation (§3.1 — a synthetic back-edge
+ * that closes a cycle must reach Tarjan); seals arrive per object (the graph/adapt.js `augmentFromCpg`
+ * collapse — D5). FAIL CLOSED on shape drift: a seal key or edge endpoint the object graph does not know
+ * would otherwise silently no-op through condense — under-approximation, the direction L5 forbids (F12).
+ */
+function assertAugmentFits(og, augment) {
+  const knownIds = new Set(og.nodes.map((n) => n.id));
+  for (const k of Object.keys(augment?.seals ?? {})) {
+    if (!knownIds.has(k)) {
+      throw new Error(`assemble: augment seal key '${k}' is not an object-graph node — emit OBJECT ids (graph/adapt.js), never CPG node ids`);
+    }
+  }
+  for (const e of augment?.edges ?? []) {
+    if (!knownIds.has(e.source) || !knownIds.has(e.target)) {
+      throw new Error(`assemble: augment edge '${e.source}' → '${e.target}' has an endpoint unknown to the object graph — a dropped edge is exactly the cycle Tarjan exists to catch`);
+    }
+  }
+}
+
+/** One frozen plan node per in-plan super-node — everything load-bearing lives here (see the file header). */
+function buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, levels, predecessors, conflictKeys, transportOf }) {
+  return [...inPlanSupers.entries()].map(([superId, members]) => {
+    const superNode = cond.superNodes.find((s) => s.id === superId);
+    const rep = scopedByObject.get(members[0]);
+    const sealed = superNode.members.some((m) => seals[m] === true); // any sealed member seals the super-node (L5)
+    return {
+      id: sigOfSuper.get(superId),
+      object: rep.object,
+      kind: members.length > 1 ? "super" : "object",
+      members: [...superNode.members].sort(),
+      break_gate: superNode.break_gate,
+      ...(sealed ? { dynamic_seal: "NEEDS_MANUAL_SEAM" } : {}),
+      wave: levels.levelOf[superId],
+      dependencies: inPlanAncestors(superId, predecessors, sigOfSuper),
+      conflict_keys: conflictKeys[sigOfSuper.get(superId)],
+      member_meta: Object.fromEntries(members.map((m) => [m, scopedByObject.get(m).meta])),
+      finding_families: unionField(members, scopedByObject, "finding_families"),
+      driving_rule_ids: unionField(members, scopedByObject, "driving_rule_ids"),
+      disposition_hints: unionField(members, scopedByObject, "disposition_hints"),
+      object_kind: rep.kind ?? null, // the ABAP kind (class/interface/function/…) — distinct from `kind` (graph: object/super)
+      modernization_target: rep.modernization_target ?? null,
+      parity_required: members.some((m) => scopedByObject.get(m).parity_required),
+      artifacts: artifactSkeleton(members, scopedByObject),
+      transport_id: transportOf?.[rep.object],
+    };
+  });
 }
 
 /**

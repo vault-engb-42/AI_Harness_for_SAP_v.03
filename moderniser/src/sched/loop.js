@@ -163,11 +163,15 @@ export function applyProgress(plan, state, sig, nextStatus) {
 }
 
 /**
- * A terminal outcome from the node driver. GREEN frees dependents (counter decrement, L2);
- * BLOCK quarantines into deferral_track; PARK (reason-gated) lands in the park register.
- * RETIRED / REBUILT_HANDOFF (disposition-route terminals) fall through like NEEDS_MANUAL_SEAM — they do
- * NOT free dependents, because no successor artifact exists (a dependent of a dropped/off-stack node
- * becomes a starved sweep target, never silently proceeds). Any terminal outcome releases the mutex.
+ * A terminal outcome from the node driver. Every RUN-COMPLETING terminal frees dependents (the counter
+ * decrement, L2) — GREEN, and equally RETIRED / REBUILT_HANDOFF, because a dropped or handed-off dependency
+ * is RESOLVED: it is not coming, so nothing may keep waiting for it. NEEDS_MANUAL_SEAM, BLOCK (quarantine
+ * into deferral_track) and PARK (reason-gated, into the park register) deliberately keep blocking, because
+ * those dependencies are precisely not resolved. Any terminal outcome releases the mutex.
+ *
+ * NB this docblock previously asserted the opposite for the disposition terminals, describing a safety
+ * property 9a574e5 had removed in the lines below it — the dependents of a dropped node DO now proceed, and
+ * the consequence is surfaced at the plan gate instead (the §7.4 DROPPED_DEPENDENCY escalation).
  * @param {{status: "GREEN"|"BLOCK"|"PARK"|"NEEDS_MANUAL_SEAM"|"RETIRED"|"REBUILT_HANDOFF", reason?: string}} outcome
  */
 export function applyOutcome(plan, state, sig, outcome) {

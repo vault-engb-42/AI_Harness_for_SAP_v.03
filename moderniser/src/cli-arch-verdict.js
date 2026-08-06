@@ -31,7 +31,7 @@ import { readVerifiedDoc, defaultPromptHash } from "./cli-arch.js";
 export function cmdArchVerdict(io, pos, flags) {
   const [runId, docPath, sig] = pos;
   const { plan, state } = loadRun(io, runId);
-  const doc = readVerifiedDoc(docPath ?? flags.findings, state);
+  const doc = readVerifiedDoc(docPath ?? flags.findings, state, "arch-verdict");
   if (typeof flags.by !== "string" || !flags.by) throw new Error("arch-verdict: --by <judge> is required (the named judge whose selection this is)");
   if (typeof flags.shape !== "string" || !flags.shape) throw new Error("arch-verdict: --shape <target_shape> is required");
   const node = plan.nodes.find((n) => n.id === sig);

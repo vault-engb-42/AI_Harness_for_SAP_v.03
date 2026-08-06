@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
+const BUNDLE = join(HERE, "fixtures", "bundle");
 
 function mkCli() {
   const base = mkdtempSync(join(tmpdir(), "replan-cli-"));
@@ -168,6 +169,24 @@ test("fail closed: a run frozen under an older node schema is named as such, not
   const plan = cli.planOf(planned.run_id);
   cli.putPlan(planned.run_id, { ...plan, schema_version: "1.5.0" });
   assert.throws(() => cli("replan", planned.run_id, FIXTURE, "--by", "alice"), /schema 1\.5\.0/);
+});
+
+// R9 (adversarial pass, CONFIRMED): SKILL.md declares --bundle MANDATORY for `plan`, yet every replan test
+// ran the abnormal unsealed path — so the sealed path the operator actually uses had no coverage at all,
+// and the reproduction check is precisely where a bundle mismatch surfaces.
+test("R9 replan reproduces a run planned WITH --bundle, and refuses the same run without it", () => {
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE, "--bundle", BUNDLE);
+  cli("disposition", planned.run_id);
+  const esc = cli("escalations", planned.run_id, "--max", "50").surfaced[0];
+  cli("decide", planned.run_id, esc.id, "override:retire", "--by", "alice");
+
+  // omitting the bundle plans a DIFFERENT (unsealed) graph — the check must catch it, not absorb it
+  assert.throws(() => cli("replan", planned.run_id, FIXTURE, "--by", "alice"), /--bundle/);
+
+  const out = cli("replan", planned.run_id, FIXTURE, "--bundle", BUNDLE, "--by", "alice");
+  assert.equal(out.replanned, true);
+  assert.equal(cli.planOf(out.new_run_id).nodes.find((n) => n.id === esc.node_ids[0]).disposition, "retire");
 });
 
 test("fail closed: a replan needs a named human", () => {

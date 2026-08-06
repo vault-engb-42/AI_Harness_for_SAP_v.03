@@ -302,8 +302,12 @@ test("an override REPLACES the classified disposition and stamps the accountable
 test("the override rides plan_hash — a changed disposition is a NEW plan identity", () => {
   const base = assemblePlan(DOC).plan;
   const { plan } = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: OVERRIDE } });
-  assert.equal(plan.plan_hash, planHash(plan.nodes), "provenance + disposition are covered by the hash");
+  assert.equal(plan.plan_hash, planHash(plan.nodes), "the artifact's hash matches its own nodes");
   assert.notEqual(plan.plan_hash, base.plan_hash, "the same doc under a different human decision is a different plan");
+  // The self-consistency assertion above holds for ANY plan, so on its own it proves nothing about the
+  // provenance fields. Changing ONLY the accountable human must move the hash for that claim to be real.
+  const other = assemblePlan(DOC, { dispositionOverrides: { [SIG.GL]: { ...OVERRIDE, decided_by: "someone-else" } } }).plan;
+  assert.notEqual(other.plan_hash, plan.plan_hash, "who decided rides the hash — it is part of the plan's identity, not a note beside it");
 });
 
 test("deterministic: the same doc + the same overrides re-freeze byte-identically", () => {
