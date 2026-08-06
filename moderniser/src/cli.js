@@ -40,8 +40,9 @@ import { savePlan } from "./sched/plan.js";
 import { initRun, nextDispatch, dispatch, applyProgress, applyOutcome, runComplete } from "./sched/loop.js";
 import { renderVerdict, recordVerdict } from "./sched/verdict-ops.js";
 import { onPass } from "./state/ratchet.js";
-import { tryPark } from "./exception/park.js";
-import { statePath, saveState, writeBaselinePair, log, readBaselines, readParkRegister, saveParkRegister, parseArgs, loadRun, validRunId } from "./cli-io.js";
+
+import { statePath, saveState, writeBaselinePair, log, readBaselines, parkAudit, writeDroppedFeatures, parseArgs, loadRun, validRunId } from "./cli-io.js";
+import { DISPOSITION_TERMINALS } from "./sched/terminals.js";
 import { cmdEscalate, cmdEscalations, cmdPackets, cmdDecide, cmdDisposition } from "./cli-escalations.js";
 import { cmdArch } from "./cli-arch.js";
 import { cmdReplan } from "./cli-replan.js";
@@ -167,32 +168,13 @@ function cmdOutcome(io, pos, flags) {
   });
   if (status === "PARK") parkAudit(io, sig, flags); // audit register FIRST — a retry is idempotent on both
   saveState(io, runId, next);
+  // The B4 ledger for everything this run removed from the in-stack estate — recomputed from the frozen
+  // plan + the audited register, so the proof bundle always matches the state that was just committed.
+  if (DISPOSITION_TERMINALS.has(status)) writeDroppedFeatures(io, runId, plan, next);
   log(io, runId, "outcome", { sig, status, reason: flags.reason, signed_by: flags["signed-by"] });
   return { sig, status, complete: runComplete(plan, next) };
 }
 
-
-/**
- * The §3.4 #5/#6 audited park row. REPLACE-not-skip (F17/F26): every PARK is a FRESH
- * audited sign-off — a stale row from an earlier park episode must not shadow the new
- * signer/justification/probe (episode history lives in git + log.jsonl; the register
- * holds the CURRENT park). An exact crash-retry rewrites the same content — idempotent
- * in effect.
- */
-function parkAudit(io, sig, flags) {
-  const reg = readParkRegister(io);
-  const cleared = { ...reg, parked: reg.parked.filter((p) => p.node_id !== sig) };
-  saveParkRegister(
-    io,
-    tryPark(cleared, sig, {
-      reason: flags.reason,
-      signed_by: flags["signed-by"],
-      justification: flags.justification,
-      successor_probe: flags["successor-probe"],
-      ts: new Date().toISOString(),
-    }),
-  );
-}
 
 function cmdVerdict(io, pos, flags) {
   const [runId, sig] = pos;

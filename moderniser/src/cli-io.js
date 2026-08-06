@@ -13,6 +13,8 @@
 import { readFileSync, mkdirSync, renameSync, openSync, writeSync, fsyncSync, closeSync, appendFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { loadPlan } from "./sched/plan.js";
+import { buildDroppedFeatures } from "./plan/dropped-features.js";
+import { tryPark } from "./exception/park.js";
 
 export const statePath = (io, runId) => join(io.stateDir, "runs", `${runId}.state.json`);
 
@@ -102,6 +104,35 @@ export const saveSweepLedger = (io, runId, ledger) => writeDurable(sweepPath(io,
 export const dispositionManifestPath = (io, runId) => join(io.runsDir, runId, "disposition-manifest.json");
 export const readDispositionManifest = (io, runId) => readJson(dispositionManifestPath(io, runId), null);
 export const saveDispositionManifest = (io, runId, m) => writeDurable(dispositionManifestPath(io, runId), JSON.stringify(m, null, 2));
+
+/**
+ * The §3.4 #5/#6 audited park row. REPLACE-not-skip (F17/F26): every PARK is a FRESH audited sign-off — a
+ * stale row from an earlier park episode must not shadow the new signer/justification/probe (episode
+ * history lives in git + log.jsonl; the register holds the CURRENT park). An exact crash-retry rewrites the
+ * same content — idempotent in effect.
+ */
+export function parkAudit(io, sig, flags) {
+  const reg = readParkRegister(io);
+  const cleared = { ...reg, parked: reg.parked.filter((p) => p.node_id !== sig) };
+  saveParkRegister(io, tryPark(cleared, sig, {
+    reason: flags.reason,
+    signed_by: flags["signed-by"],
+    justification: flags.justification,
+    successor_probe: flags["successor-probe"],
+    ts: new Date().toISOString(),
+  }));
+}
+
+/**
+ * The dropped-features ledger (B4) at `specs/runs/<run_id>/dropped-features.json`. RECOMPUTED from the
+ * frozen plan + the audited disposition register on every disposition terminal, so it can never drift from
+ * either — the shell owns the write; the join itself is pure (plan/dropped-features.js).
+ */
+export const droppedFeaturesPath = (io, runId) => join(io.runsDir, runId, "dropped-features.json");
+export const readDroppedFeatures = (io, runId) => readJson(droppedFeaturesPath(io, runId), null);
+export function writeDroppedFeatures(io, runId, plan, state) {
+  writeDurable(droppedFeaturesPath(io, runId), JSON.stringify(buildDroppedFeatures(plan, state, { run_id: runId }), null, 2));
+}
 
 // architecture manifest + per-sig Architecture Contracts (B3.5a, S12/§6.13) — the arch-gate artifacts at
 // specs/runs/<run_id>/. The contract filename embeds the node sig, so guard it against path traversal (P8).

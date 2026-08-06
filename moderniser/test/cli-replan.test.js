@@ -241,6 +241,13 @@ test("END-TO-END: override:retire → replan → drive routes to retire → RETI
   assert.equal(row.decided_by, "alice");
   assert.equal(row.confidence, null, "no classifier confidence is reported for a decision the classifier did not make");
 
+  // B4: the run removed three objects from the in-stack estate with no verdict behind any of them, so the
+  // ledger is the only place the evidence pack records what went, on whose authority, and on what basis.
+  const ledger = JSON.parse(readFileSync(join(cli.runsDir, out.new_run_id, "dropped-features.json"), "utf8"));
+  assert.equal(ledger.rows.length, planned.nodes.length, "every drop is in the ledger");
+  assert.ok(ledger.rows.every((r) => r.signed_by === "alice" && r.justification), "each row carries its audited sign-off");
+  assert.ok(ledger.rows.every((r) => r.grounded_basis), "and the grounded basis the retire option rested on");
+
   const status = cli("status", out.new_run_id);
   assert.equal(status.complete, true, "a run of dropped objects completes with no verdict — and only with signed terminals");
   assert.equal(cli.stateOf(out.new_run_id).disposition_register.length, planned.nodes.length, "each drop is audited to a named human");
