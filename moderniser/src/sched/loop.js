@@ -22,7 +22,7 @@ import { assertTransition, NO_RELEASED_SUCCESSOR } from "../state/node-status.js
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { nextFrontier } from "./frontier.js";
 import { refEdges, metaByMember, transportOf } from "./plan-views.js";
-import { TERMINAL_OUTCOMES, RUN_COMPLETE_TERMINALS, DISPOSITION_TERMINALS, NON_BUILD_DISPOSITIONS, assertDispositionTerminal, releaseDependents } from "./terminals.js";
+import { TERMINAL_OUTCOMES, RUN_COMPLETE_TERMINALS, DISPOSITION_TERMINALS, NON_BUILD_DISPOSITIONS, assertDispositionTerminal, assertArchRatified, assertBuildable, releaseDependents } from "./terminals.js";
 
 /**
  * @param {object} plan a frozen `assemblePlan().plan`
@@ -95,11 +95,10 @@ export function dispatch(plan, state, sigs) {
     if (state.park_register.some((p) => p.sig === sig)) {
       throw new Error(`loop: ${sig} is parked — it re-enters only when its successor ships (L7)`);
     }
-    // Re-check the frontier's third veto too (F11): a sealed node must never reach a node
-    // driver — signature-changing modernisation waits for the human caller-set confirmation.
-    // EXCEPT a `retire` (R3), which reaches no generator at all and whose terminal already demands a named
-    // human + justification; without the exception, an operator-overridden sealed node froze an
-    // UNEXECUTABLE plan (drive offered `retire` forever, RETIRED needs GROUNDED, this line refused it).
+    // Re-check the frontier's third veto too (F11): a sealed node must never reach a node driver —
+    // signature-changing modernisation waits for the human caller-set confirmation. EXCEPT a `retire`,
+    // which has no generator to reach (assertBuildable now ENFORCES that, rather than assuming it) and
+    // whose terminal demands a named human: without the exception a sealed override froze the plan (R3).
     const node = plan.nodes.find((n) => n.id === sig);
     if (node?.dynamic_seal === "NEEDS_MANUAL_SEAM" && node.disposition !== "retire") {
       throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
@@ -107,10 +106,7 @@ export function dispatch(plan, state, sigs) {
     // The arch veto belongs HERE, not only in driveDecision's frontier filter (M1): `dispatch` and
     // `progress` are first-class CLI verbs that reach the reducer directly, so a driver-only guard is
     // bypassable — an unratified re_architect node could be walked to GENERATED through another verb.
-    // dispatch() is the single chokepoint into the build lifecycle, so the veto is fail-closed here.
-    if (ARCH_GATED_DISPOSITIONS.has(plan.nodes.find((n) => n.id === sig)?.disposition) && !isArchRatified(state, sig)) {
-      throw new Error(`loop: ${sig} is arch-gated — its Architecture Contract is not human-ratified (clear the ARCH_REVIEW gate first)`);
-    }
+    assertArchRatified(plan, state, sig, "clear the ARCH_REVIEW gate first");
     next = setStatus(plan, next, sig, "GROUNDED");
   }
   return next;
@@ -127,12 +123,14 @@ export function applyProgress(plan, state, sig, nextStatus) {
     // seal; PENDING→GROUNDED through this channel would bypass all three (F11 escape)
     throw new Error(`loop: GROUNDED is dispatch's move — dispatch re-checks readiness, park, and the L5 seal`);
   }
-  // The arch gate holds for the WHOLE lifecycle, not just the entry edge (A). Voiding a ratification —
-  // what `decide reject|refine` does — must stop a node that is already in flight, or the build continues
-  // and the run COMPLETES on architecture the human rejected. Re-entry to PENDING stays legal: that is how
-  // a node returns to be re-gated.
-  if (nextStatus !== "PENDING" && ARCH_GATED_DISPOSITIONS.has(plan.nodes.find((n) => n.id === sig)?.disposition) && !isArchRatified(state, sig)) {
-    throw new Error(`loop: ${sig} is arch-gated — its Architecture Contract is not human-ratified (a rejected or unratified architecture must not keep building)`);
+  // Both dispositional gates hold for the WHOLE lifecycle, not just the entry edge. Re-entry to PENDING
+  // stays legal either way: that is how a node returns to be re-gated or re-dispositioned.
+  //   V3 — a non-build disposition never becomes build work, whatever verb is driving (see terminals.js).
+  //   A  — voiding a ratification (`decide reject|refine`) must stop a node already in flight, or the build
+  //        continues and the run COMPLETES on architecture the human rejected.
+  if (nextStatus !== "PENDING") {
+    assertBuildable(plan, sig);
+    assertArchRatified(plan, state, sig, "a rejected or unratified architecture must not keep building");
   }
   const reentry = (state.status[sig] === "PARK" || state.status[sig] === "NEEDS_MANUAL_SEAM") && nextStatus === "PENDING";
   let next = setStatus(plan, state, sig, nextStatus);
@@ -167,11 +165,8 @@ export function applyProgress(plan, state, sig, nextStatus) {
  * decrement, L2) — GREEN, and equally RETIRED / REBUILT_HANDOFF, because a dropped or handed-off dependency
  * is RESOLVED: it is not coming, so nothing may keep waiting for it. NEEDS_MANUAL_SEAM, BLOCK (quarantine
  * into deferral_track) and PARK (reason-gated, into the park register) deliberately keep blocking, because
- * those dependencies are precisely not resolved. Any terminal outcome releases the mutex.
- *
- * NB this docblock previously asserted the opposite for the disposition terminals, describing a safety
- * property 9a574e5 had removed in the lines below it — the dependents of a dropped node DO now proceed, and
- * the consequence is surfaced at the plan gate instead (the §7.4 DROPPED_DEPENDENCY escalation).
+ * those dependencies are precisely not resolved. Any terminal outcome releases the mutex. The dependents of
+ * a dropped node DO proceed; the consequence is surfaced at the plan gate (§7.4 DROPPED_DEPENDENCY).
  * @param {{status: "GREEN"|"BLOCK"|"PARK"|"NEEDS_MANUAL_SEAM"|"RETIRED"|"REBUILT_HANDOFF", reason?: string}} outcome
  */
 export function applyOutcome(plan, state, sig, outcome) {

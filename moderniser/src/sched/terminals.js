@@ -7,6 +7,7 @@
  * against — including the readiness consequence a completing terminal has for its dependents, which lives
  * beside the terminal set it is keyed on so the two can never drift apart.
  */
+import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 
 /**
  * Dispositions that never become build work: `retire` has no generation at all (driveDecision routes it to
@@ -34,6 +35,39 @@ export const RUN_COMPLETE_TERMINALS = new Set(["GREEN", "RETIRED", "REBUILT_HAND
  * be talked out of a verdict entirely — so each is bound to its classification and to a named human.
  */
 export const DISPOSITION_TERMINALS = new Map([["RETIRED", "retire"], ["REBUILT_HANDOFF", "rebuild"]]);
+
+/**
+ * The arch gate, for BOTH edges that can move a node (M1 put it on `dispatch`, A extended it to the whole
+ * lifecycle via `applyProgress`). It lived inline in each with a differently-worded message, which is the
+ * divergence this file exists to prevent: one rule, one place, one wording.
+ *
+ * @param {string} why the caller's framing, appended so the operator learns which edge refused them
+ */
+export function assertArchRatified(plan, state, sig, why) {
+  if (ARCH_GATED_DISPOSITIONS.has(plan.nodes.find((n) => n.id === sig)?.disposition) && !isArchRatified(state, sig)) {
+    throw new Error(`loop: ${sig} is arch-gated — its Architecture Contract is not human-ratified (${why})`);
+  }
+}
+
+/**
+ * A non-build disposition never enters the BUILD lifecycle (V3). `retire` and `seal` are routed by
+ * driveDecision to their own action and to the human seam, and `dispatch` lets a `retire` node ground so it
+ * can reach RETIRED — but grounding was the only edge anyone guarded. `progress` and `drive --report` are
+ * first-class verbs that reach the reducer directly, and they walked a retire node GROUNDED → GENERATED and
+ * handed back a `generate` packet. The R3 comment asserted "a retire reaches no generator at all"; that was
+ * an assumption about the driver's routing, not a property anything enforced. This enforces it.
+ *
+ * `NON_BUILD_DISPOSITIONS` was referenced in exactly one place before this — the frontier's exclusion list,
+ * which is a scheduling hint, not a gate.
+ */
+export function assertBuildable(plan, sig) {
+  const disposition = plan.nodes.find((n) => n.id === sig)?.disposition;
+  if (NON_BUILD_DISPOSITIONS.has(disposition)) {
+    throw new Error(
+      `loop: ${sig} is '${disposition}' — it never enters the build lifecycle (a retire terminates at RETIRED from GROUNDED; a seal waits at the human seam until an override re-dispositions it)`,
+    );
+  }
+}
 
 /**
  * A RESOLVED dependency stops blocking its dependents: decrement the readiness counter of every node that

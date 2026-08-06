@@ -166,6 +166,35 @@ test("R3 a dynamic-sealed node the operator chose to RETIRE can reach its termin
   assert.equal(runComplete(plan, s), true, "and the run can actually complete");
 });
 
+// V3 (adversarial pass #3, CONFIRMED by probe): R3 let a sealed `retire` node ground, justified by the
+// claim that "a retire reaches no generator at all". That was an assumption about driveDecision's routing,
+// not a property anything enforced — `progress` and `drive --report` reach the reducer directly and walked
+// the node GROUNDED → GENERATED, handing back a `generate` packet for a dynamic-sealed object.
+//
+// The verifier's sharpest correction: an UNSEALED retire node behaved identically, so R3's marginal delta
+// was nil and the real hole is older — NON_BUILD_DISPOSITIONS was only ever a frontier hint, never a gate.
+test("V3 a non-build disposition cannot be walked into the build lifecycle by the granular verbs", () => {
+  for (const d of ["retire", "seal"]) {
+    const plan = { plan_hash: "h", nodes: [{ id: "N1", object: "ZOBJ", dependencies: [], members: ["ZOBJ"], wave: 0, conflict_keys: [], disposition: d }] };
+    const grounded = d === "retire" ? dispatch(plan, initRun(plan), ["N1"]) : initRun(plan);
+    assert.throws(() => applyProgress(plan, grounded, "N1", "GENERATED"), /never enters the build lifecycle/, d);
+  }
+});
+
+test("V3 the same guard holds for the SEALED retire node R3 admitted, and its terminal still works", () => {
+  const plan = sealed("retire");
+  const grounded = dispatch(plan, initRun(plan), ["N1"]);
+  assert.throws(() => applyProgress(plan, grounded, "N1", "GENERATED"), /never enters the build lifecycle/);
+  const s = applyOutcome(plan, grounded, "N1", { status: "RETIRED", ...signoff });
+  assert.equal(s.status.N1, "RETIRED", "the route R3 opened still reaches its terminal");
+});
+
+test("V3 re-entry to PENDING stays legal — that is how a sealed node returns to be re-dispositioned", () => {
+  const plan = sealed("seal");
+  const state = { ...initRun(plan), status: { N1: "NEEDS_MANUAL_SEAM" } };
+  assert.equal(applyProgress(plan, state, "N1", "PENDING").status.N1, "PENDING");
+});
+
 test("R3 the seal veto still refuses a sealed node that could become BUILD work", () => {
   for (const d of ["refactor", "replace"]) {
     assert.throws(() => dispatch(sealed(d), initRun(sealed(d)), ["N1"]), /dynamic-sealed/, d);
