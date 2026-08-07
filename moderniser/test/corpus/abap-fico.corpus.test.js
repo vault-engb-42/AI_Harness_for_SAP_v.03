@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { filesFromBundle } from "../../../analyser/src/modes.js";
 import { analyzePackage } from "../../../analyser/src/orchestrator.js";
 import { assembleBundle, invariantInput } from "../../src/extract/bundle.js";
@@ -28,19 +29,24 @@ import { initRun, dispatch, applyProgress } from "../../src/sched/loop.js";
  *   ABAP_FICO_CORPUS=~/abap_fico-corpus-local npm run test:corpus
  */
 
-const CORPUS = process.env.ABAP_FICO_CORPUS;
+// Defaults to the acceptance demo's own bundle, which is where the fetched corpus already lives
+// (git-ignored). Without this default the suite demanded an env var to reach a corpus sitting on disk two
+// directories away, so it read as "unrunnable, needs a fetch" and was silently never run — which is exactly
+// the failure mode the FAILS-LOUDLY design above was meant to prevent. Same shape as the equalize-idoc and
+// talv suites. The env var still wins, for a corpus fetched somewhere else.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_CORPUS = join(HERE, "..", "..", "..", "demos", "abap_fico-acceptance-2026-07-27");
+const CORPUS = process.env.ABAP_FICO_CORPUS || DEFAULT_CORPUS;
 
 function corpusOrFail() {
-  if (!CORPUS) {
-    throw new Error(
-      "test:corpus requires ABAP_FICO_CORPUS — the real abap_fico corpus is NOT vendored in this " +
-        "repository (third-party, unlicensed). See demos/FETCH.md to fetch it, then re-run:\n" +
-        "  ABAP_FICO_CORPUS=<path> npm run test:corpus",
-    );
-  }
   for (const p of ["before/source", "after/modernised-source"]) {
     if (!existsSync(join(CORPUS, p))) {
-      throw new Error(`ABAP_FICO_CORPUS=${CORPUS} is missing ${p}/ — see demos/FETCH.md for the expected layout`);
+      throw new Error(
+        `abap_fico corpus not found: ${join(CORPUS, p)} is missing. The corpus is NOT vendored in this ` +
+          "repository (third-party, unlicensed). Fetch it per demos/FETCH.md into " +
+          "demos/abap_fico-acceptance-2026-07-27/, or set ABAP_FICO_CORPUS=<path> to a bundle with " +
+          "before/source/ and after/modernised-source/.",
+      );
     }
   }
   return CORPUS;

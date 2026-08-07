@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { filesFromBundle } from "../../../analyser/src/modes.js";
 import { analyzePackage } from "../../../analyser/src/orchestrator.js";
 import { assembleBundle, invariantInput } from "../../src/extract/bundle.js";
@@ -32,19 +33,22 @@ import { initRun, dispatch, applyProgress } from "../../src/sched/loop.js";
  *   ZAPCOMMANDER_CORPUS=~/zapcommander-corpus-local npm run test:corpus
  */
 
-const CORPUS = process.env.ZAPCOMMANDER_CORPUS;
+// Defaults to the acceptance demo's own bundle, where the fetched corpus already lives (git-ignored).
+// See the note in abap-fico.corpus.test.js: requiring an env var to reach a corpus already on disk made the
+// suite look unrunnable, so it never ran. The env var still wins, for a corpus fetched elsewhere.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_CORPUS = join(HERE, "..", "..", "..", "demos", "zapcommander-acceptance-2026-07-28");
+const CORPUS = process.env.ZAPCOMMANDER_CORPUS || DEFAULT_CORPUS;
 
 function corpusOrFail() {
-  if (!CORPUS) {
-    throw new Error(
-      "test:corpus requires ZAPCOMMANDER_CORPUS — the real zapcommander corpus is NOT vendored in " +
-        "this repository (third-party, GPLv3 copyleft). See demos/FETCH.md to fetch it, then re-run:\n" +
-        "  ZAPCOMMANDER_CORPUS=<path> npm run test:corpus",
-    );
-  }
   for (const p of ["before/source", "after/modernised-source"]) {
     if (!existsSync(join(CORPUS, p))) {
-      throw new Error(`ZAPCOMMANDER_CORPUS=${CORPUS} is missing ${p}/ — see demos/FETCH.md for the expected layout`);
+      throw new Error(
+        `zapcommander corpus not found: ${join(CORPUS, p)} is missing. The corpus is NOT vendored in this ` +
+          "repository (third-party, GPLv3 copyleft). Fetch it per demos/FETCH.md into " +
+          "demos/zapcommander-acceptance-2026-07-28/, or set ZAPCOMMANDER_CORPUS=<path> to a bundle with " +
+          "before/source/ and after/modernised-source/.",
+      );
     }
   }
   return CORPUS;
