@@ -101,8 +101,7 @@ export function readVerifiedDoc(path, state, verb = "arch") {
 
 /** Reason a target_shape per re_architect/rebuild node; partition resolved (deterministic|cached) vs pending. */
 function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
-  const resolved = [];
-  const pending = [];
+  const entries = [];
   const known = new Set(plan.nodes.map((n) => n.id));
   for (const node of plan.nodes) {
     if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) continue;
@@ -123,11 +122,30 @@ function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
       // which is precisely a MISS — re-escalate to the judge by re-reasoning with an empty cache.
       if (!sharedFitsPlan(res.recommendation, known)) res = reasonArchitecture(node, fact, cands, {}, opts);
     }
-    if (res.status === "deterministic" || res.status === "cached") resolved.push({ node, recommendation: res.recommendation });
-    else if (res.status === "await_arch") pending.push(res.request); // the P8 request the fulfiller judges
+    entries.push({ node, fact, cands, res });
   }
-  return { resolved, pending };
+
+  // V1b: the plan-wide check above is only the CHEAP first filter. checkBlueprint grades `shared` against
+  // the RESOLVED subset (blueprint-conformance.js builds objectSigs from the `assignments` this function's
+  // caller derives from `resolved`), so a member that IS a plan node but is NOT resolved this run passed the
+  // first filter and still threw the whole verb — the same unrecoverable state V1 set out to close, reached
+  // by the ordinary incremental shape of one node judged while its siblings are still pending.
+  // Converge on the predicate the tier actually applies: each pass demotes one cached entry, and a demoted
+  // entry can never be `cached` again, so this terminates in at most one pass per arch-gated node.
+  for (;;) {
+    const resolvedSigs = new Set(entries.filter((e) => isResolved(e.res)).map((e) => e.node.id));
+    const stale = entries.find((e) => e.res.status === "cached" && !sharedFitsPlan(e.res.recommendation, resolvedSigs));
+    if (!stale) break;
+    stale.res = reasonArchitecture(stale.node, stale.fact, stale.cands, {}, opts);
+  }
+
+  return {
+    resolved: entries.filter((e) => isResolved(e.res)).map((e) => ({ node: e.node, recommendation: e.res.recommendation })),
+    pending: entries.filter((e) => e.res.status === "await_arch").map((e) => e.res.request), // the P8 requests the fulfiller judges
+  };
 }
+
+const isResolved = (res) => res.status === "deterministic" || res.status === "cached";
 
 /** Every sig in a recommendation's cross-object grouping must be a node of THIS plan (V1). */
 function sharedFitsPlan(recommendation, known) {

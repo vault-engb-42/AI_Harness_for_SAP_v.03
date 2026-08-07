@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { loadPlan } from "../src/sched/plan.js";
+import { loadPlan, planHash } from "../src/sched/plan.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
 import { factHash } from "../src/plan/arch-facts.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
@@ -294,6 +294,26 @@ test("V1 a cached grouping naming a FOREIGN run's sig is a cache miss, not a dea
   assert.ok(m.pending.some((p) => p.sig === target.id), "and the manifest records the outstanding request, so arch-verdict can serve it");
 });
 
+// V1b (closeout pass, CONFIRMED): the first V1 guard checked members against ALL plan nodes, but
+// checkBlueprint grades `shared` against the RESOLVED subset (blueprint-conformance.js builds objectSigs
+// from cli-arch.js's `assignments: resolved.map(...)`). A member that IS a plan node but is NOT resolved
+// this run therefore passed the guard and still threw the whole verb — the same unrecoverable state V1
+// claimed to close. This is the ORDINARY incremental-judging shape: one node judged, its siblings still
+// pending.
+test("V1b a cached grouping naming a plan node that is NOT RESOLVED this run is also a miss", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const nodes = loadPlan(planned.run_id, stateDir).nodes;
+  const [a, b] = nodes;
+  seedCacheWithForeignShared(stateDir, a, consOf(), b.id); // b is a real plan node — just not judged yet
+
+  const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  assert.ok(!out.rows.some((r) => r.sig === a.id), "a group naming an unresolved sibling is a miss, not a fatal error");
+  assert.equal(out.pending, nodes.length, "so every arch-gated node is awaiting the judge, and the verb survived");
+  const m = manifestOf(runsDir, planned.run_id);
+  assert.ok(m.pending.some((p) => p.sig === a.id), "and the manifest carries the request, so arch-verdict can serve it");
+});
+
 test("V1 a cached grouping naming THIS plan's sigs still resolves from cache (no false miss)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
@@ -435,10 +455,42 @@ test("M4 the blueprint tier REFUSES a shared group naming a plan node that is no
   // does not contain must block BEFORE any contract freezes.
   const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, pending[1].sig] }] });
   run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
+
+  // The grouping must NOT freeze — that is M4's property, and it still holds. But it must not take the verb
+  // down with it either (V1b): throwing here wrote no manifest, which left no pending request, which meant
+  // `arch-verdict` refused every correction and the run could never recover. Both properties together: the
+  // contract does not freeze, and the node returns to the judge with its request on the manifest.
+  const out = run("arch", planned.run_id, FIXTURE);
+  assert.ok(!out.rows.some((r) => r.sig === pending[0].sig), "the group referencing an unjudged node does NOT freeze a contract");
+  assert.ok(manifestOf(runsDir, planned.run_id).pending.some((p) => p.sig === pending[0].sig), "and it is re-offered to the judge, so the run stays recoverable");
+});
+
+// The write seam refuses what the reader is guaranteed to refuse: checkBlueprint grades a group against the
+// app's blueprint objects — the ARCH-GATED nodes — so a member with any other disposition can never become
+// one. Accepting it would freeze into the CROSS-RUN cache a grouping no run can ever satisfy.
+test("M4b the judge's grouping may not name a member that can never be a blueprint object", () => {
+  const { base, stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const pending = manifestOf(runsDir, planned.run_id).pending;
+  // Rewrite one node's frozen disposition to a non-arch-gated one, then re-point state at the edited plan:
+  // the fixture is all-re_architect, so this is the only way to obtain the shape under test.
+  const planPath = join(stateDir, "plan", `${planned.run_id}.plan.json`);
+  const plan = JSON.parse(readFileSync(planPath, "utf8"));
+  const victim = plan.nodes.find((n) => n.id === pending[1].sig);
+  victim.disposition = "refactor";
+  // Re-hash: the plan is content-addressed and loadPlan re-derives it, so an edited node must carry a
+  // matching plan_hash or the tamper check fires before the code under test is reached.
+  plan.plan_hash = planHash(plan.nodes);
+  writeFileSync(planPath, JSON.stringify(plan, null, 2));
+  const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
+  writeFileSync(statePath, JSON.stringify({ ...JSON.parse(readFileSync(statePath, "utf8")), plan_hash: plan.plan_hash }, null, 2));
+
+  const shared = writeShared(base, "shared-nongated.json", { services: [{ id: "SRV_Y", members: [pending[0].sig, victim.id] }] });
   assert.throws(
-    () => run("arch", planned.run_id, FIXTURE),
-    /blueprint|not a blueprint object/i,
-    "a cross-object reference to an unjudged node must block the freeze",
+    () => run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared),
+    /not an arch-gated plan node/,
+    "refused at the writer, before it can reach the cross-run cache",
   );
 });
 

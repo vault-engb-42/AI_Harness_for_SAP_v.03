@@ -71,7 +71,12 @@ function validateShared(shared, plan) {
   if (shared === null || typeof shared !== "object" || Array.isArray(shared)) {
     bad(`must be an object of {${SHARED_KINDS.join(" | ")}: [{id, members}]}`);
   }
-  const known = new Set(plan.nodes.map((n) => n.id));
+  // ARCH-GATED members only. checkBlueprint grades a group against the app's blueprint objects, which are
+  // the arch-gated nodes — so a member with any other disposition can NEVER become one, and accepting it
+  // here would freeze into the cross-run cache a grouping the reader is guaranteed to reject. The writer
+  // must refuse exactly what the reader refuses; an arch-gated member that is merely UNJUDGED is a
+  // different case and is legitimate — cli-arch.js re-escalates it rather than failing.
+  const known = new Set(plan.nodes.filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition)).map((n) => n.id));
   for (const [kind, groups] of Object.entries(shared)) {
     if (!SHARED_KINDS.includes(kind)) bad(`has unknown group kind '${kind}' (expected ${SHARED_KINDS.join(" | ")})`);
     if (!Array.isArray(groups)) bad(`'${kind}' must be an array of {id, members}`);
@@ -79,7 +84,7 @@ function validateShared(shared, plan) {
       if (!g || typeof g !== "object" || typeof g.id !== "string" || g.id === "") bad(`'${kind}' has a group with no non-empty string id`);
       if (!Array.isArray(g.members)) bad(`group '${g.id}' members must be an array of plan node sigs`);
       for (const m of g.members) {
-        if (typeof m !== "string" || !known.has(m)) bad(`group '${g.id}' names member '${m}' which is not a plan node of this run`);
+        if (typeof m !== "string" || !known.has(m)) bad(`group '${g.id}' names member '${m}' which is not an arch-gated plan node of this run`);
       }
     }
   }
