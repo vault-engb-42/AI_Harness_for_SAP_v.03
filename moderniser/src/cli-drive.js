@@ -17,6 +17,8 @@ import { renderOfflineNodeVerdict } from "./node/offline-checkpoint.js";
 import { assembleBundle } from "./extract/bundle.js";
 import { attestationsOf } from "./cli-attest.js";
 import { filesFromBundle } from "../../analyser/src/modes.js";
+import { analyzePackage } from "../../analyser/src/orchestrator.js";
+import { triageAll, applyFinalReview } from "./node/final-review.js";
 
 const OUTCOMES = new Set(["syntax_ok", "syntax_fail", "generator_error"]);
 
@@ -66,10 +68,25 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
       touched_files: afterFiles.map((f) => f.filename),
     },
   );
-  const { state: next, action } = driveOfflineVerdict(plan, state, sig, result);
+  // C1 — the final-output self-review. The analyser grades the artifacts we just generated (never the
+  // BEFORE side: `extract/bundle.js:18` forbids that rescan as O(N²)), C2 triages, and only the fixable
+  // defects reach the verdict. GAN-safe: the analyser grades, the generator regenerates.
+  const review = analyzePackage(afterFiles, { package: sig, source_system: `final-review:${sig}` });
+  const folded = applyFinalReview(result, triageAll(review.findings));
+
+  const { state: next, action } = driveOfflineVerdict(plan, state, sig, folded);
   saveState(io, runId, next);
-  log(io, runId, "drive-offline-verdict", { sig, provisional: result.provisional, action: action.action });
-  return { ...action, verdict: { provisional: result.provisional, reasons: result.reasons } };
+  log(io, runId, "drive-offline-verdict", {
+    sig,
+    provisional: folded.provisional,
+    action: action.action,
+    final_review: folded.final_review.counts,
+  });
+  return {
+    ...action,
+    verdict: { provisional: folded.provisional, reasons: folded.reasons },
+    final_review: folded.final_review,
+  };
 }
 
 /** `<sig>=<outcome>` — split on the LAST '=' (the outcome vocabulary carries none), validate both. */

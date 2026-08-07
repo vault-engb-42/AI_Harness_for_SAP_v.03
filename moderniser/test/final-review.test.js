@@ -5,10 +5,14 @@ import {
   triage,
   triageAll,
   artifactContext,
+  applyFinalReview,
   ACTIONS,
   ARTIFACT_CONTEXTS,
   TRIAGE_TABLE,
   RETIRED_RULE_IDS,
+  FIX_REASON_PREFIX,
+  ENGINE_ERROR_RULE_ID,
+  UNANALYSABLE_REASON_PREFIX,
 } from "../src/node/final-review.js";
 
 // Arc C / C2 — the final-output self-review triage table.
@@ -212,4 +216,155 @@ test("no retired rule is emittable — the exclusion list itself stays honest", 
   for (const rule_id of RETIRED_RULE_IDS) {
     assert.ok(!emittable.has(rule_id), `${rule_id} is emittable again — re-triage it instead of excluding it`);
   }
+});
+
+// ---------------------------------------------------------------------------------------------------
+// C1 fold — the triage of a node's own generated artifacts, folded into the offline verdict.
+//
+// The load-bearing rule: ONLY `fix` items may become verdict reasons. `driveOfflineVerdict` routes a node
+// whose reasons are ALL attestable to the human with its retry budget untouched (drive.js:187-188); a
+// `document` or `recommend` reason leaking into that list would defeat the test, send an owed attestation
+// through the regenerate loop, and land a false ceiling BLOCK on every classic→managed-RAP node. The
+// "an owed attestation still routes to the human" test below is the one that catches that.
+// ---------------------------------------------------------------------------------------------------
+
+const clean = { fix: [], document: [], recommend: [] };
+const withFix = (rule_id, file = "z.clas.abap", line = 7) =>
+  triageAll([{ rule_id, file, line }]);
+
+test("with nothing to fix, the verdict passes through untouched", () => {
+  for (const provisional of [true, false]) {
+    const out = applyFinalReview({ provisional, reasons: ["atc-p1-nonzero"] }, clean);
+    assert.equal(out.provisional, provisional);
+    assert.deepEqual(out.reasons, ["atc-p1-nonzero"]);
+  }
+});
+
+test("a fixable defect forces the verdict non-provisional and names itself in the reasons", () => {
+  const out = applyFinalReview({ provisional: true, reasons: [] }, withFix("talos-duplicate-block"));
+  assert.equal(out.provisional, false, "a defect in the generated artifact cannot pass provisionally");
+  assert.equal(out.reasons.length, 1);
+  assert.ok(out.reasons[0].startsWith(`${FIX_REASON_PREFIX}talos-duplicate-block`), out.reasons[0]);
+  assert.ok(out.reasons[0].includes("z.clas.abap:7"), "the reason carries repair context");
+});
+
+test("document and recommend findings NEVER become verdict reasons", () => {
+  // If they did, `onlyAttestable` at drive.js:187 goes false and an owed attestation is routed into the
+  // regenerate loop — burning the whole cycle budget on something no rewrite can resolve.
+  const triaged = triageAll([
+    { rule_id: "talos-perf-73-eml-local-mode", file: "zbp_x.clas.abap", line: 3 },   // document
+    { rule_id: "talos-cds-auth-not-required", file: "zi_x.ddls.asddls", line: 1 },   // document
+    { rule_id: "check_subrc", file: "z.clas.abap", line: 9 },                        // recommend
+  ]);
+  const out = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+  assert.deepEqual(out.reasons, [], "no reason may be contributed");
+  assert.equal(out.provisional, true, "and the verdict stays provisional");
+  assert.equal(out.final_review.document.length, 2, "but they ARE carried, not dropped");
+  assert.equal(out.final_review.recommend.length, 1);
+});
+
+test("an owed attestation still routes to the human when the artifact also has advisory findings", () => {
+  // The regression this whole split exists to prevent. `auth-delta-unattested` is the only reason; adding
+  // a document/recommend finding must not change that.
+  const triaged = triageAll([
+    { rule_id: "talos-perf-73-eml-local-mode", file: "zbp_x.clas.abap", line: 3 },
+    { rule_id: "7bit_ascii", file: "zbp_x.clas.abap", line: 4 },
+  ]);
+  const out = applyFinalReview({ provisional: false, reasons: ["auth-delta-unattested"] }, triaged);
+  assert.deepEqual(out.reasons, ["auth-delta-unattested"], "the reason list is unchanged — still all-attestable");
+});
+
+test("a real defect DOES outrank an owed attestation — fix first, attest the fixed thing", () => {
+  const out = applyFinalReview({ provisional: false, reasons: ["auth-delta-unattested"] }, withFix("talos-duplicate-block"));
+  assert.equal(out.reasons.length, 2);
+  assert.ok(out.reasons.includes("auth-delta-unattested"), "the owed attestation is not lost");
+  assert.ok(out.reasons.some((r) => r.startsWith(FIX_REASON_PREFIX)), "and the defect is added");
+});
+
+test("repeated hits of one rule collapse to a single reason carrying the hit count", () => {
+  const triaged = triageAll([
+    { rule_id: "talos-duplicate-block", file: "b.clas.abap", line: 20 },
+    { rule_id: "talos-duplicate-block", file: "a.clas.abap", line: 10 },
+    { rule_id: "talos-duplicate-block", file: "a.clas.abap", line: 5 },
+  ]);
+  const out = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+  assert.equal(out.reasons.length, 1, "one reason per rule, not per hit");
+  assert.ok(out.reasons[0].includes("3"), `hit count stated: ${out.reasons[0]}`);
+  assert.ok(out.reasons[0].includes("a.clas.abap:5"), `first hit is the lowest file/line: ${out.reasons[0]}`);
+});
+
+test("the folded reasons are deterministic regardless of finding order", () => {
+  const findings = [
+    { rule_id: "talos-duplicate-block", file: "b.clas.abap", line: 2 },
+    { rule_id: "talos-cc-001-obsolete-arithmetic", file: "a.clas.abap", line: 1 },
+    { rule_id: "talos-cloud-005-class-final-abstract", file: "c.clas.abap", line: 3 },
+  ];
+  const forward = applyFinalReview({ provisional: true, reasons: [] }, triageAll(findings));
+  const reversed = applyFinalReview({ provisional: true, reasons: [] }, triageAll([...findings].reverse()));
+  assert.deepEqual(forward.reasons, reversed.reasons);
+  assert.deepEqual([...forward.reasons].sort(), forward.reasons, "and sorted, so a diff of two runs is readable");
+});
+
+test("an existing reason is never duplicated by the fold", () => {
+  const already = `${FIX_REASON_PREFIX}talos-duplicate-block (1 hit, first z.clas.abap:7)`;
+  const out = applyFinalReview({ provisional: false, reasons: [already] }, withFix("talos-duplicate-block"));
+  assert.equal(out.reasons.length, 1, `duplicated: ${JSON.stringify(out.reasons)}`);
+});
+
+test("applyFinalReview tolerates an absent reason list and an absent triage", () => {
+  assert.deepEqual(applyFinalReview({ provisional: true }, clean).reasons, []);
+  const out = applyFinalReview({ provisional: true }, undefined);
+  assert.deepEqual([out.final_review.fix, out.final_review.document, out.final_review.recommend], [[], [], []]);
+  assert.equal(out.provisional, true);
+});
+
+test("the fold reports a count for every action, so a zero is visible rather than absent", () => {
+  const out = applyFinalReview({ provisional: true, reasons: [] }, withFix("talos-duplicate-block"));
+  assert.deepEqual(out.final_review.counts, { fix: 1, document: 0, recommend: 0 });
+});
+
+test("an object abaplint could not analyse blocks — a review that did not run is not a clean review", () => {
+  // `abaplint_engine_error` means the object was analysed NOT AT ALL (analyser/src/abaplint-rules.js:38-54).
+  // Reading the resulting empty finding list as a pass is the same fail-open the F5 `--findings` guard
+  // exists to prevent: absence of evidence read as evidence of absence.
+  const triaged = triageAll([
+    { rule_id: "abaplint_engine_error", object: "ZCL_X", file: "zcl_x.clas.abap", severity: "info" },
+  ]);
+  const out = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+  assert.equal(out.provisional, false, "an unanalysable artifact cannot pass provisionally");
+  assert.deepEqual(out.reasons, [`${UNANALYSABLE_REASON_PREFIX}ZCL_X`]);
+});
+
+test("the unanalysable guard reports each object once and stays deterministic", () => {
+  const triaged = triageAll([
+    { rule_id: "abaplint_engine_error", object: "ZCL_B", file: "b.clas.abap" },
+    { rule_id: "abaplint_engine_error", object: "ZCL_A", file: "a.clas.abap" },
+    { rule_id: "abaplint_engine_error", object: "ZCL_A", file: "a.clas.abap" },
+  ]);
+  const out = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+  assert.deepEqual(out.reasons, [
+    `${UNANALYSABLE_REASON_PREFIX}ZCL_A`,
+    `${UNANALYSABLE_REASON_PREFIX}ZCL_B`,
+  ]);
+});
+
+test("the unanalysable guard survives the diagnostic being given a triage entry later", () => {
+  // It scans every bucket, not just `recommend`, so a future table entry for the diagnostic cannot silently
+  // disarm the guard by moving it out of the bucket the guard happened to look in.
+  const asFix = { fix: [{ rule_id: ENGINE_ERROR_RULE_ID, finding: { object: "ZCL_X" } }], document: [], recommend: [] };
+  const asDoc = { fix: [], document: [{ rule_id: ENGINE_ERROR_RULE_ID, finding: { object: "ZCL_X" } }], recommend: [] };
+  for (const triaged of [asFix, asDoc]) {
+    const out = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+    assert.ok(out.reasons.includes(`${UNANALYSABLE_REASON_PREFIX}ZCL_X`), JSON.stringify(out.reasons));
+    assert.equal(out.provisional, false);
+  }
+});
+
+test("a replayed verdict already carrying the review's reason still blocks", () => {
+  // The block decision turns on whether the review found something, not on whether the reason string is new.
+  // Deciding on novelty would let a replay pass provisionally with the defect still present.
+  const already = `${FIX_REASON_PREFIX}talos-duplicate-block (1 hit, first z.clas.abap:7)`;
+  const out = applyFinalReview({ provisional: true, reasons: [already] }, withFix("talos-duplicate-block"));
+  assert.equal(out.provisional, false, "the defect is still there — a replay does not launder it");
+  assert.deepEqual(out.reasons, [already], "and the reason is still not duplicated");
 });

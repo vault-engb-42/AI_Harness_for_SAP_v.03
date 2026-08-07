@@ -319,6 +319,25 @@ test("the /modernise skill wires both plan-time gates (disposition + arch) and t
   assert.match(skill, /abap-arch-reviewer/, "the skill must spawn the independent arch reviewer (GAN counter-party)");
 });
 
+// Arc C: the OFFLINE VERDICT arc (gap-2b B4+B5+B6, its CLI entry point at F12, and C1's final review) was
+// fully built, fully tested, and reachable from NO LANE PATH — the skill said offline rests at SYNTAX_OK and
+// explicitly forbade walking a node past it, so `drive --verdict` was never called outside the test suite.
+// Built-but-unreachable is the defect class this arc hit three times; this is the guard that ends it for the
+// offline arc specifically.
+test("the /modernise skill runs the offline verdict, so the offline arc is reachable from the lane", () => {
+  const skill = readFileSync(join(CLAUDE, "skills", "modernise", "SKILL.md"), "utf8");
+  assert.ok(skill.includes("--verdict <sig>"), "the skill must invoke `drive <R> --verdict <sig>` — the offline arc's only entry point");
+  for (const flag of ["--before", "--after", "--findings"]) {
+    assert.ok(skill.includes(flag), `the offline verdict step must pass ${flag}`);
+  }
+  // The rest state moved: a lane that still names SYNTAX_OK as the offline terminal never runs the verdict.
+  assert.match(skill, /PROVISIONAL_GATED/, "the skill must name the offline rest state the verdict advances to");
+  assert.doesNotMatch(skill, /do not walk a node past `SYNTAX_OK`/, "that instruction forbids the offline verdict step outright");
+  // C1: a review whose output the lane never reads is a review nobody acts on.
+  assert.match(skill, /final_review/, "the skill must read the final review's result off the verdict return");
+  assert.match(skill, /final-review-fix:/, "the skill must feed the review's fixable defects back as repair context");
+});
+
 // Skills-review remediation (L2): /abap-brd never existed — abap-spec pointed the human at it; the
 // real upstream BRD producer is /fit-to-standard (writes specs/brd/brd.md). A dangling slash-command
 // leaves the human at a non-command; its reappearance is a regression (mirrors RETIRED_ARTIFACTS).

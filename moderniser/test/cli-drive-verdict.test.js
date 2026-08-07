@@ -19,10 +19,23 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
 
-const clazz = (body) => `CLASS zcl_x DEFINITION PUBLIC. PUBLIC SECTION. METHODS m. ENDCLASS.
-CLASS zcl_x IMPLEMENTATION. METHOD m.
+// Reshaped by Arc C / C1: these files stand in for GENERATED artifacts, and the verdict step now runs the
+// analyser over them, so the fixture has to be something the analyser can actually read.
+//   - FINAL, because a class that is neither FINAL nor ABSTRACT trips talos-cloud-005-class-final-abstract,
+//     which C2 triages `fix` — correctly, since P1 requires a generated artifact to be Level A.
+//   - multi-line, because abaplint CRASHES on statement-packed one-liners (`abaplint_engine_error`), and a
+//     fixture that crashes the analyser silently tests nothing but the harness rule packs.
+// Neither was wrong before; nothing was looking at these files.
+const clazz = (body) => `CLASS zcl_x DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS m.
+ENDCLASS.
+
+CLASS zcl_x IMPLEMENTATION.
+  METHOD m.
 ${body}
-ENDMETHOD. ENDCLASS.`;
+  ENDMETHOD.
+ENDCLASS.`;
 
 function mkCli() {
   const base = mkdtempSync(join(tmpdir(), "drive-verdict-"));

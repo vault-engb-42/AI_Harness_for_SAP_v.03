@@ -174,3 +174,100 @@ export function triageAll(findings) {
   }
   return out;
 }
+
+/** Marks a verdict reason contributed by the final review, so it can never collide with a gate reason. */
+export const FIX_REASON_PREFIX = "final-review-fix:";
+
+/**
+ * The analyser's own degraded-mode diagnostic (`analyser/src/abaplint-rules.js:45`): abaplint crashed on
+ * this object and analysed NONE of it. A clean review of an object that was never analysed is not evidence
+ * of cleanliness, so it blocks rather than passing quietly — the same fail-closed rule as an absent
+ * `--findings` doc (F5). It is not a `fix`: no rewrite addresses an engine crash, and routing it through the
+ * retry loop would burn the cycle budget before quarantining anyway.
+ *
+ * Fires on none of the 4,059 findings across the three real corpora (probed 2026-08-07) — this is a guard
+ * for a failure the analyser explicitly builds a fallback path for, not a routine outcome.
+ */
+export const ENGINE_ERROR_RULE_ID = "abaplint_engine_error";
+export const UNANALYSABLE_REASON_PREFIX = "final-review-unanalysable:";
+
+/**
+ * C1 — fold the triage of a node's OWN generated artifacts into its offline verdict.
+ *
+ * ONLY `fix` items become verdict reasons, and that asymmetry is the whole point. `driveOfflineVerdict`
+ * routes a node whose reasons are ALL attestable straight to the human with its retry budget untouched
+ * (`sched/drive.js:187-188`). A `document` or `recommend` reason leaking into that list would flip
+ * `onlyAttestable` false, push an owed attestation into the cycle-capped regenerate loop, and land a false
+ * ceiling BLOCK on every classic→managed-RAP node — because relocating authorization to DCL always sets
+ * auth_delta on the first pass. So advisory findings ride on `final_review` instead, where the gate and the
+ * run log surface them without touching the retry budget.
+ *
+ * A `fix` finding DOES force the verdict non-provisional: a defect the analyser can see in the artifact we
+ * just generated is exactly what regeneration exists for, and it outranks an owed attestation (attesting a
+ * defective artifact is meaningless — `drive.js:169-170`).
+ *
+ * Pure: the caller runs `analyzePackage` and owns the I/O; this only folds the result.
+ *
+ * @param {{provisional?: boolean, reasons?: string[]}} result from `renderOfflineNodeVerdict`
+ * @param {{fix?: object[], document?: object[], recommend?: object[]}} [triaged] from `triageAll`
+ * @returns {{provisional: boolean, reasons: string[], final_review: object}}
+ */
+export function applyFinalReview(result, triaged) {
+  const fix = triaged?.fix ?? [];
+  const documented = triaged?.document ?? [];
+  const recommended = triaged?.recommend ?? [];
+  const final_review = {
+    fix,
+    document: documented,
+    recommend: recommended,
+    counts: { fix: fix.length, document: documented.length, recommend: recommended.length },
+  };
+  const reasons = [...(result?.reasons ?? [])];
+  const contributed = [...fixReasons(fix), ...unanalysableReasons(fix, documented, recommended)];
+  // The block turns on whether the review CONTRIBUTED anything, not on whether the reason is new. Deciding
+  // on novelty would let a replayed verdict — one already carrying the reason — fall back to provisional.
+  if (contributed.length === 0) return { provisional: result?.provisional === true, reasons, final_review };
+  const added = contributed.filter((r) => !reasons.includes(r));
+  return { provisional: false, reasons: [...reasons, ...added], final_review };
+}
+
+/**
+ * One reason per object abaplint could not analyse. Drawn from EVERY bucket, not just `recommend`, so that
+ * adding a triage entry for the diagnostic later cannot quietly disarm the guard.
+ */
+function unanalysableReasons(...buckets) {
+  const objects = new Set();
+  for (const bucket of buckets) {
+    for (const item of bucket) {
+      if (item?.rule_id !== ENGINE_ERROR_RULE_ID) continue;
+      objects.add(item.finding?.object || item.finding?.file || "(unnamed object)");
+    }
+  }
+  return [...objects].sort().map((o) => `${UNANALYSABLE_REASON_PREFIX}${o}`);
+}
+
+/** file then line, with a total order over absent values so the "first hit" is stable across runs. */
+function byLocation(a, b) {
+  const fa = String(a?.file ?? "");
+  const fb = String(b?.file ?? "");
+  if (fa !== fb) return fa < fb ? -1 : 1;
+  return (a?.line ?? 0) - (b?.line ?? 0);
+}
+
+/**
+ * One reason per DISTINCT rule — not per hit, or a single duplicated block would flood the retry packet
+ * and crowd out the other defects. Carries the hit count and the first location as repair context.
+ */
+function fixReasons(fix) {
+  const byRule = new Map();
+  for (const item of fix) {
+    const rule_id = item?.rule_id ?? "(unknown)";
+    if (!byRule.has(rule_id)) byRule.set(rule_id, []);
+    byRule.get(rule_id).push(item?.finding ?? {});
+  }
+  return [...byRule.keys()].sort().map((rule_id) => {
+    const hits = [...byRule.get(rule_id)].sort(byLocation);
+    const first = `${hits[0].file ?? "?"}:${hits[0].line ?? "?"}`;
+    return `${FIX_REASON_PREFIX}${rule_id} (${hits.length} hit${hits.length === 1 ? "" : "s"}, first ${first})`;
+  });
+}
