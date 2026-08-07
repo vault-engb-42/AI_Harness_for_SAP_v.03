@@ -314,6 +314,43 @@ test("V1b a cached grouping naming a plan node that is NOT RESOLVED this run is 
   assert.ok(m.pending.some((p) => p.sig === a.id), "and the manifest carries the request, so arch-verdict can serve it");
 });
 
+// INV (Arc B closeout): the property C1 actually violated, stated once instead of case by case.
+// reasonArchNodes must never hand the blueprint tier a grouping the tier will reject — whatever shape the
+// cached grouping has. V1 checked members against ALL plan nodes while the tier checks the RESOLVED subset,
+// so the two disagreed and `arch` threw before writing the manifest, leaving no recovery. Enumerating the
+// shapes means the NEXT grouping shape someone adds is covered without anyone remembering to test it.
+test("INV `arch` never throws a blueprint violation for a cached grouping, whatever it names", () => {
+  const FOREIGN = "deadbeef".repeat(8);
+  const shapes = (n) => [
+    ["its own sig", [n[0].id]],
+    ["an unresolved sibling", [n[1].id]],
+    ["both siblings", [n[1].id, n[2].id]],
+    ["a foreign run's sig", [FOREIGN]],
+    ["own + foreign", [n[0].id, FOREIGN]],
+    ["an empty member list", []],
+  ];
+
+  const probe = mk();
+  const nodes = loadPlan(probe.run("plan", FIXTURE).run_id, probe.stateDir).nodes;
+  for (const [label, members] of shapes(nodes)) {
+    const ctx = mk(); // a fresh state dir per shape — the verdict cache is CROSS-RUN by design
+    const p = ctx.run("plan", FIXTURE);
+    const target = loadPlan(p.run_id, ctx.stateDir).nodes[0];
+    const rec = {
+      sig: target.id, target_shape: "rap_bo_headless", components: [], invariants: [],
+      candidates: [{ id: "rap_bo_headless", score: 1 }], source: "judge",
+      shared: { services: [{ id: "SRV", members }], projections: [], fiori_apps: [] },
+    };
+    writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(target, consOf()), "opus", "ph1", rec), null, 2));
+
+    ctx.run("arch", p.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1"); // must not throw
+    assert.ok(
+      existsSync(join(ctx.runsDir, p.run_id, "architecture-manifest.json")),
+      `'${label}': the manifest is written, so the run is always recoverable in-band`,
+    );
+  }
+});
+
 test("V1 a cached grouping naming THIS plan's sigs still resolves from cache (no false miss)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);

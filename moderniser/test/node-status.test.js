@@ -14,11 +14,16 @@ import {
 // Only the enumerated transitions are legal; an illegal transition fails closed. This
 // prevents a resume from mis-routing on an ad-hoc status string.
 
-const FORWARD = ["PENDING", "GROUNDED", "GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED", "GREEN"];
+// The HAPPY PATH — a hand-written walk, deliberately NOT the source's edge set and NOT exhaustive. It was
+// previously called FORWARD, shadowing the source map of the same name, which invited the reading that this
+// file covers every edge: it does not, and a new edge added to the real map is invisible here. Whole-edge-set
+// properties (a widened edge must not weaken a terminal's guard) live in lifecycle-invariants.test.js, which
+// enumerates what `canTransition` actually admits.
+const HAPPY_PATH = ["PENDING", "GROUNDED", "GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED", "GREEN"];
 
 test("the full forward path is legal step by step", () => {
-  for (let i = 0; i < FORWARD.length - 1; i += 1) {
-    assert.equal(canTransition(FORWARD[i], FORWARD[i + 1]), true, `${FORWARD[i]}→${FORWARD[i + 1]}`);
+  for (let i = 0; i < HAPPY_PATH.length - 1; i += 1) {
+    assert.equal(canTransition(HAPPY_PATH[i], HAPPY_PATH[i + 1]), true, `${HAPPY_PATH[i]}→${HAPPY_PATH[i + 1]}`);
   }
 });
 
