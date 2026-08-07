@@ -97,7 +97,18 @@ export function releaseDependents(plan, state, sig) {
  * and a NAMED human must sign off with a justification (mirroring PARK, L7). The disposition comes from the
  * hashed plan, so an agent cannot talk its way past it — P4's agent-proof requirement.
  */
-export function assertDispositionTerminal(plan, sig, outcome) {
+export function assertDispositionTerminal(plan, state, sig, outcome) {
+  // The guard below rests on "these terminals complete a run with NO verdict" — true by construction while
+  // REBUILT_HANDOFF was reachable only from GROUNDED, i.e. before any gate could run. V2 widened the edge to
+  // the GATED states, where a verdict may already have RUN AND FAILED, and made the premise false. A named
+  // signature must not carry a node past its own failed gate: quality only tightens, and a failed gate is a
+  // FAIL, never a pass (P6). An ABSENT verdict is still fine — that is the route V2 exists to serve; only an
+  // explicit false blocks.
+  for (const [book, channel] of [[state?.verdict_green, "verdict"], [state?.verdict_provisional, "provisional verdict"]]) {
+    if (book?.[sig] === false) {
+      throw new Error(`loop: ${outcome.status} for ${sig} refused — its ${channel} was recorded and FAILED; a sign-off cannot carry a node past its own gate`);
+    }
+  }
   const required = DISPOSITION_TERMINALS.get(outcome.status);
   const disposition = plan.nodes.find((n) => n.id === sig)?.disposition;
   if (disposition !== required) {

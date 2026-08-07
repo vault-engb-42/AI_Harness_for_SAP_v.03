@@ -18,6 +18,7 @@
  *
  * Pure + deterministic (rows sorted by sig).
  */
+import { DISPOSITION_TERMINALS } from "../sched/terminals.js";
 
 /**
  * @param {{plan_hash: string, nodes: Array<object>}} plan the frozen plan
@@ -30,9 +31,21 @@ export function buildDroppedFeatures(plan, state, { run_id }) {
   const rows = [...(state.disposition_register ?? [])]
     .map((entry) => {
       const node = bySig.get(entry.sig);
-      // Fail closed: a register row matching no frozen node would put an object into the proof bundle that
-      // this plan never dropped. The register is durable run state, so this is checked on READ.
+      // Fail closed on the WHOLE row, not just its sig. The register is durable run state and this builds
+      // the evidence a human reads, so every field the reader will trust is re-checked here — a row is
+      // written only by applyOutcome behind assertDispositionTerminal, so anything failing these checks did
+      // not come from that path.
       if (!node) throw new Error(`dropped-features: '${entry.sig}' is in the disposition register but is not a plan node of this run`);
+      const required = DISPOSITION_TERMINALS.get(entry.status);
+      if (!required) throw new Error(`dropped-features: '${entry.sig}' has status '${entry.status}', which is not a disposition terminal`);
+      if (node.disposition !== required) {
+        throw new Error(`dropped-features: '${entry.sig}' is recorded ${entry.status} but its frozen disposition is '${node.disposition}' — only a '${required}' node reaches that terminal`);
+      }
+      for (const field of ["signed_by", "justification"]) {
+        if (typeof entry[field] !== "string" || entry[field] === "") {
+          throw new Error(`dropped-features: '${entry.sig}' has no ${field} — these terminals complete a run with no verdict, so the ledger must never report one unsigned`);
+        }
+      }
       return {
         sig: entry.sig,
         object: node.object,

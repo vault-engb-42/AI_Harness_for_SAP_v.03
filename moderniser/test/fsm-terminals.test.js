@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { initRun, dispatch, applyProgress, applyOutcome, runComplete } from "../src/sched/loop.js";
+import { recordVerdict, recordProvisionalVerdict } from "../src/sched/verdict-ops.js";
 import { driveDecision } from "../src/sched/drive.js";
 import { bindArchContract } from "../src/plan/arch-contract.js";
 
@@ -67,6 +68,37 @@ test("V2 the live path lands it too (GATED), and the gate still binds", () => {
   assert.equal(applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF", ...signoff }).status.N1, "REBUILT_HANDOFF");
   assert.throws(() => applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF" }), /sign-off|signed_by/i, "the named-human gate is unchanged");
   assert.throws(() => applyOutcome(RETIRE_PLAN, grounded(RETIRE_PLAN), "N1", { status: "REBUILT_HANDOFF", ...signoff }), /only legal for a 'rebuild' node/);
+});
+
+// C2 (closeout pass, CONFIRMED): assertDispositionTerminal's guard rests on the premise that these
+// terminals "complete a run with NO verdict" — true by construction while REBUILT_HANDOFF was reachable
+// only from GROUNDED, i.e. before any gate could have run. V2 widened the edge to the GATED states, where a
+// verdict may already have RUN AND FAILED. A signature must not be able to carry a node past its own failed
+// gate: "quality only tightens; a failed gate is a FAIL, never a pass".
+test("C2 a node whose live verdict RAN AND FAILED cannot complete the run through REBUILT_HANDOFF", () => {
+  const plan = REBUILD_PLAN;
+  let s = grounded(plan);
+  for (const st of ["GENERATED", "SYNTAX_OK", "PUSHED", "ACTIVATED", "GATED"]) s = applyProgress(plan, s, "N1", st);
+  s = recordVerdict(plan, s, "N1", { green: false });
+  assert.throws(() => applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF", ...signoff }), /verdict/i);
+});
+
+test("C2 the OFFLINE sibling is gated the same way (a failed provisional verdict blocks the handoff)", () => {
+  const plan = REBUILD_PLAN;
+  let s = grounded(plan);
+  for (const st of ["GENERATED", "SYNTAX_OK", "PROVISIONAL_GATED"]) s = applyProgress(plan, s, "N1", st);
+  s = recordProvisionalVerdict(plan, s, "N1", { provisional: false });
+  assert.throws(() => applyOutcome(plan, s, "N1", { status: "REBUILT_HANDOFF", ...signoff }), /verdict/i);
+});
+
+test("C2 a PASSING verdict, and the no-verdict route V2 was built for, both still complete", () => {
+  const plan = REBUILD_PLAN;
+  let passed = grounded(plan);
+  for (const st of ["GENERATED", "SYNTAX_OK", "PROVISIONAL_GATED"]) passed = applyProgress(plan, passed, "N1", st);
+  passed = recordProvisionalVerdict(plan, passed, "N1", { provisional: true });
+  assert.equal(applyOutcome(plan, passed, "N1", { status: "REBUILT_HANDOFF", ...signoff }).status.N1, "REBUILT_HANDOFF");
+  // and the pre-generation route, where no gate has run at all, is untouched
+  assert.equal(applyOutcome(plan, grounded(plan), "N1", { status: "REBUILT_HANDOFF", ...signoff }).status.N1, "REBUILT_HANDOFF");
 });
 
 test("applyProgress REFUSES the disposition terminals (they route through applyOutcome, not phase moves)", () => {

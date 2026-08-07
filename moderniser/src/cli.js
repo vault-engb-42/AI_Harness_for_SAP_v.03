@@ -167,10 +167,13 @@ function cmdOutcome(io, pos, flags) {
     justification: flags.justification,
   });
   if (status === "PARK") parkAudit(io, sig, flags); // audit register FIRST — a retry is idempotent on both
-  saveState(io, runId, next);
-  // The B4 ledger for everything this run removed from the in-stack estate — recomputed from the frozen
-  // plan + the audited register, so the proof bundle always matches the state that was just committed.
+  // The B4 ledger, written BEFORE the state commit for the same reason the park row is: the early-return
+  // above short-circuits an exact repeat, so a crash between the two writes could never be healed by the
+  // retry and the run's only record of a dropped object would be lost. Written first, the residue is a
+  // ledger with no state move — over-reporting, which the next terminal recomputes away (cli-io.js's
+  // "a residual tear is fail-SAFE by monotonicity" doctrine).
   if (DISPOSITION_TERMINALS.has(status)) writeDroppedFeatures(io, runId, plan, next);
+  saveState(io, runId, next);
   log(io, runId, "outcome", { sig, status, reason: flags.reason, signed_by: flags["signed-by"] });
   return { sig, status, complete: runComplete(plan, next) };
 }

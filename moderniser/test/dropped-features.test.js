@@ -73,6 +73,24 @@ test("an empty register yields an empty ledger, not a missing one", () => {
   assert.deepEqual(buildDroppedFeatures({ plan_hash: "h", nodes: [] }, state([]), { run_id: "r" }).rows, []);
 });
 
+// C6 (closeout pass): the docblock declares the register untrusted, but only the sig was checked — a row
+// with no signer, a non-terminal status, or a status that contradicts the node's frozen disposition could
+// reach the proof bundle. These terminals complete a run with NO verdict, so an unsigned row in this ledger
+// is the evidence pack asserting an authorisation nobody gave.
+test("C6 fail closed: a row with no signer or no justification never reaches the proof bundle", () => {
+  const plan = { plan_hash: "h", nodes: [node("N1")] };
+  for (const bad of [{ justification: "j" }, { signed_by: "x" }, { signed_by: "", justification: "j" }]) {
+    assert.throws(() => buildDroppedFeatures(plan, state([{ sig: "N1", status: "RETIRED", ...bad }]), { run_id: "r" }), /signed_by|justification/);
+  }
+});
+
+test("C6 fail closed: a status that is not a disposition terminal, or contradicts the frozen disposition", () => {
+  const plan = { plan_hash: "h", nodes: [node("N1")] };
+  const row = (o) => state([{ sig: "N1", signed_by: "x", justification: "j", ...o }]);
+  assert.throws(() => buildDroppedFeatures(plan, row({ status: "GREEN" }), { run_id: "r" }), /not a disposition terminal/);
+  assert.throws(() => buildDroppedFeatures(plan, row({ status: "REBUILT_HANDOFF" }), { run_id: "r" }), /frozen disposition is 'retire'/);
+});
+
 test("fail closed: a register row naming a node the plan does not contain is refused", () => {
   // The register is durable run state; a row that matches no frozen node would put an object in the proof
   // bundle that this plan never dropped.

@@ -95,13 +95,15 @@ export function dispatch(plan, state, sigs) {
     if (state.park_register.some((p) => p.sig === sig)) {
       throw new Error(`loop: ${sig} is parked — it re-enters only when its successor ships (L7)`);
     }
-    // Re-check the frontier's third veto too (F11): a sealed node must never reach a node driver —
-    // signature-changing modernisation waits for the human caller-set confirmation. EXCEPT a `retire`,
-    // which has no generator to reach (assertBuildable now ENFORCES that, rather than assuming it) and
-    // whose terminal demands a named human: without the exception a sealed override froze the plan (R3).
+    // Two vetoes sharing one exception. A sealed node must never reach a node driver (F11 —
+    // signature-changing modernisation waits for the human caller-set confirmation), and a non-build
+    // disposition never enters the lifecycle at all (V3, enforced on the phase channel too). Both except
+    // `retire`: it has no generator to reach and MUST ground to reach RETIRED — without that exception an
+    // operator-overridden sealed node froze an unexecutable plan (R3).
     const node = plan.nodes.find((n) => n.id === sig);
-    if (node?.dynamic_seal === "NEEDS_MANUAL_SEAM" && node.disposition !== "retire") {
-      throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
+    if (node?.disposition !== "retire") {
+      if (node?.dynamic_seal === "NEEDS_MANUAL_SEAM") throw new Error(`loop: ${sig} is dynamic-sealed — a human must confirm the caller set before dispatch (L5)`);
+      assertBuildable(plan, sig);
     }
     // The arch veto belongs HERE, not only in driveDecision's frontier filter (M1): `dispatch` and
     // `progress` are first-class CLI verbs that reach the reducer directly, so a driver-only guard is
@@ -179,7 +181,7 @@ export function applyOutcome(plan, state, sig, outcome) {
   if (outcome.status === "GREEN" && state.verdict_green?.[sig] !== true) {
     throw new Error(`loop: GREEN for ${sig} refused — no recorded green verdict (record one at GATED first)`);
   }
-  if (DISPOSITION_TERMINALS.has(outcome.status)) assertDispositionTerminal(plan, sig, outcome);
+  if (DISPOSITION_TERMINALS.has(outcome.status)) assertDispositionTerminal(plan, state, sig, outcome);
   let next = setStatus(plan, state, sig, outcome.status, { reason: outcome.reason });
 
   // Every RESOLVED dependency releases its dependents, not just GREEN (P3 — see terminals.js for why the
