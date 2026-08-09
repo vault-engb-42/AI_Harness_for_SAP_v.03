@@ -1,0 +1,1719 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "unknown",
+  "source_system": "bundle:demos/talv-2026-07-29/before/source",
+  "source_hash": "2962de9cb2cc3324817365e7185e644dbc67cfb0f8308277e2ea866f5e8ca84a",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "8fbafdaf29e245db45d40dcca59beccdc3983a314ceaee38089b03a5be035ca2",
+  "object_count": 60,
+  "objects_included": 60,
+  "finding_count": 2766,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZIF_TALV_GENERATE_IMP",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZIF_TALV_EVENT_HANDLE_IMP",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALV_SERVICE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_PARENT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFM_TALV_DISPLAY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFM_TALV_MULTIPLE_ADD",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZIF_SINGLETON",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFM_TALV_MULTIPLE_DISPLAY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFM_TALV_MULTIPLE_FREE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFM_EDIT_LONG_TEXT_FIELD",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALV_FIELDS_SET",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALV_LAYOUT_SET",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZIF_TALV_JSON_HANDLER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZIF_TR_TOOL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_03",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_04",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_05",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_06",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_07",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_08",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_09",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZAESOP_TALV_INITIALIZE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_DYNAMIC_TOOL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_GUI_ALV_GRID",
+      "grade": "B",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_LOG",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_EVENT_HANDLER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_FACTORY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_JSON_HANDLER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_SERVICE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_SERVICE_CUSTOMER",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TALV_SERVICE_POPUP",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_TR_TABLE_ENTRY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALVTAB001",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALVTAB002",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZTALVTAB003",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EKPO",
+      "grade": "D",
+      "successor": "I_PURCHASEORDERITEMAPI01",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "CL_GUI_ALV_GRID",
+      "grade": "B",
+      "effort_tier": "re-platform"
+    },
+    {
+      "object": "DD03L",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "NUMERIC_CHECK",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "LVC_FIELDCATALOG_MERGE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CONVERSION_EXIT_ALPHA_OUTPUT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "K_KKB_FIELDCAT_COMPLETE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "LVC_TRANSFER_TO_KKBLO",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "TRINT_ORDER_CHOICE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "TR_APPEND_TO_COMM_OBJS_KEYS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EKKO",
+      "grade": "D",
+      "successor": "I_PURCHASEORDERAPI01",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "BAL_DSP_LOG_DISPLAY",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAL_DSP_PROFILE_SINGLE_LOG_GET",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAL_LOG_CREATE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAL_LOG_MSG_ADD",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAL_LOG_REFRESH",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SEOCLASSTX",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "DD03M",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZAESOP_TALV_DEMO_03",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKPO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERITEMAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_04",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKPO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERITEMAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_07",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKPO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERITEMAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_07",
+      "rule_id": "talos-cloud-011-break-point",
+      "severity": "priority-1",
+      "family": "anti-pattern",
+      "message": "BREAK-POINT is a debugging artefact — forbidden in shipped ABAP Cloud code (CLOUD-011)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKKO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKPO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERITEMAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_10",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EKPO (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASEORDERITEMAPI01"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_11",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZCL_DYNAMIC_TOOL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_DYNAMIC_TOOL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_DYNAMIC_TOOL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_DYNAMIC_TOOL",
+      "rule_id": "talos-sec-003-code-injection",
+      "severity": "priority-1",
+      "family": "security",
+      "message": "Dynamic ABAP source generation via INSERT REPORT / GENERATE SUBROUTINE POOL — RCE risk (SEC-003)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-011-break-point",
+      "severity": "priority-1",
+      "family": "anti-pattern",
+      "message": "BREAK-POINT is a debugging artefact — forbidden in shipped ABAP Cloud code (CLOUD-011)."
+    },
+    {
+      "object": "ZCL_LOG",
+      "rule_id": "talos-cloud-015-salv-table-factory",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015)."
+    },
+    {
+      "object": "ZCL_TALV",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV_JSON_HANDLER",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV_JSON_HANDLER",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV_PARENT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV_PARENT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TALV_SERVICE_CUSTOMER",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TR_TABLE_ENTRY",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_TR_TABLE_ENTRY",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-cloud-014-classic-dynpro",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Classic Dynpro statement (CALL/SET/LEAVE SCREEN, LEAVE PROGRAM) has no runtime in ABAP Cloud (CLOUD-014)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZFUNG_TALV",
+      "rule_id": "talos-s4-004-screen-flow",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "Screen-flow statement (SET SCREEN / CALL SCREEN) — migrate to Fiori Elements (S4-004)."
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method parameter type not compatible"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "commented_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Commented code"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "keep_single_parameter_on_one_line",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Keep single parameter on one line"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 124"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "line_length",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce line length to max 120, currently 125"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "line_only_punc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "A line should not contain only \".\" or \").\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: return"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: return2"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "pragma_style",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Place pragma at end of statement"
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZAESOP_LOG_DEMO",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "dangerous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Potential dangerous statement Dynamic SQL"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: key"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "select_add_order_by",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Add ORDER BY"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "talos-cloud-005-class-final-abstract",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "talos-limit-without-filter",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "UP TO n ROWS without a selective WHERE applies the limit after a full scan; filter first (ABAP-PERF-96)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "unknown_types",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Variable \"KEY\" contains unknown: ZSTALV_KEY not found, lookup"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_01",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "7bit_ascii",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Contains non 7 bit ascii character"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 33"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "avoid_use",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid use of DEFAULT KEY"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "\"icon_select_all\" not found, findTop"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Method \"set_drop_down_table\" not found, methodCallChain"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"FN1\" not found"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "check_text_elements",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Text element \"FN1\" not found"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "dangerous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Potential dangerous statement Dynamic SQL"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "dangerous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Potential dangerous statement Dynamic SQL"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "definitions_top",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reorder definitions to top of routine"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "exit_or_check",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "CHECK is not allowed outside of loops"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <alv_table>"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: cell"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: drals"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: drops"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: fieldcat"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: key"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: layout"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: layout"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "select_add_order_by",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Add ORDER BY"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "select_add_order_by",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Add ORDER BY"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_DDIC\""
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "selection_screen_texts_missing",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Selection text missing for \"P_FIELDS\""
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "sql_escape_host_variables",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Escape SQL host variables"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-004-message-type",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "MESSAGE ... TYPE relies on the classic message handler — use CX_* exception classes in ABAP Cloud (CLOUD-004)."
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-cloud-005-class-final-abstract",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-data-in-block",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-limit-without-filter",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "UP TO n ROWS without a selective WHERE applies the limit after a full scan; filter first (ABAP-PERF-96)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "talos-limit-without-filter",
+      "severity": "priority-2",
+      "family": "performance",
+      "message": "UP TO n ROWS without a selective WHERE applies the limit after a full scan; filter first (ABAP-PERF-96)"
+    },
+    {
+      "object": "ZAESOP_TALV_DEMO_02",
+      "rule_id": "types_naming",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Bad TYPES naming, expected \"^TY_.+$\", got \"tty_ekko\""
+    }
+  ]
+}

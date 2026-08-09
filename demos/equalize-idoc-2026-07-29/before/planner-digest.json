@@ -1,0 +1,1691 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "unknown",
+  "source_system": "bundle:demos/equalize-idoc-2026-07-29/before/source",
+  "source_hash": "088c9c57abdd35bf804643a1eb71c83a7213a353176d91da41c2e33f49a7517b",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "ccf416e143adc9400b9c093a54b1bff09fa2b36952925ead55109c9b62608b1e",
+  "object_count": 53,
+  "objects_included": 53,
+  "finding_count": 1879,
+  "findings_included": 200,
+  "objects": [
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_BASE",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBC_IDOC_OPTIONS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_GM",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_GMCANCEL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "grade": "D",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT_INV",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_POSTPROCESS_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CX_STATIC_CHECK",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    },
+    {
+      "object": "IDOC_INPUT_MBGMCA",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IDOC_INPUT_MBGMCR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IDOC_OUTPUT_INVOIC",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_TRANSACTION_COMMIT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_BATCH_CREATE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_OBJCL_CHANGE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_TRANSACTION_ROLLBACK",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ITOB_SERIALNO_CREATE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CONVERSION_EXIT_CUNIT_INPUT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SO_NEW_DOCUMENT_SEND_API1",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "T006",
+      "grade": "D",
+      "successor": "I_UNITOFMEASURE",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "EDIPOA",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EDI_DOCUMENT_CLOSE_PROCESS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EDI_DOCUMENT_OPEN_FOR_PROCESS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EDI_DOCUMENT_STATUS_SET",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "EDI_SEGMENTS_GET_ALL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IDOC_ERROR_WORKFLOW_START",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IDOC_INBOUND_ASYNCHRONOUS",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "BAPI_ADDRESSORG_GETDETAIL",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "IDOC_INPUT_SALESORDER_CREATEFR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SERIAL_LISTE_POST_AU",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "SERNR_ADD_TO_AU",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "VBAK",
+      "grade": "D",
+      "successor": "I_SALESDOCUMENT",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "EINA",
+      "grade": "D",
+      "successor": "I_PURCHASINGINFORECORDAPI01",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "EQUI",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "KNA1",
+      "grade": "D",
+      "successor": "I_CUSTOMER",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "KNB1",
+      "grade": "D",
+      "successor": "I_CUSTOMERCOMPANY",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "KNVV",
+      "grade": "D",
+      "successor": "I_CUSTOMERSALESAREA",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "MARA",
+      "grade": "D",
+      "successor": "I_PRODUCT",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "MARC",
+      "grade": "D",
+      "successor": "I_PRODUCTPLANTBASIC",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "MCHA",
+      "grade": "D",
+      "successor": "I_BATCH",
+      "effort_tier": "retire"
+    },
+    {
+      "object": "MVKE",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "VIEWPROC_ZBC_V_IDOC_OPT",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "talos-select-in-loop",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT inside LOOP causes N+1 database round-trips; batch-read before the loop (ABAP-N1)"
+    },
+    {
+      "object": "ZCL_IDOC_BASE",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses T006 (notToBeReleased) — not released for ABAP Cloud; released successor I_UNITOFMEASURE"
+    },
+    {
+      "object": "ZCL_IDOC_BASE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_BASE",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_BASE",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses EINA (notToBeReleased) — not released for ABAP Cloud; released successor I_PURCHASINGINFORECORDAPI01"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses KNA1 (notToBeReleased) — not released for ABAP Cloud; released successor I_CUSTOMER"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses KNB1 (notToBeReleased) — not released for ABAP Cloud; released successor I_CUSTOMERCOMPANY"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses KNVV (notToBeReleased) — not released for ABAP Cloud; released successor I_CUSTOMERSALESAREA"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses MARA (notToBeReleased) — not released for ABAP Cloud; released successor I_PRODUCT"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses MARC (notToBeReleased) — not released for ABAP Cloud; released successor I_PRODUCTPLANTBASIC"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses MCHA (notToBeReleased) — not released for ABAP Cloud; released successor I_BATCH"
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_DB_BUFFER",
+      "rule_id": "talos-perf01-select-star-projection",
+      "severity": "priority-1",
+      "family": "performance",
+      "message": "SELECT * (incl. SELECT SINGLE *) fetches all columns; use an explicit field list or a projecting CDS view."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_GM",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_GMCANCEL",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "released-api",
+      "severity": "priority-1",
+      "family": "released-api",
+      "message": "uses VBAK (notToBeReleased) — not released for ABAP Cloud; released successor I_SALESDOCUMENT"
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_INPUT_SO",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT",
+      "rule_id": "talos-cloud-009-get-reference-of",
+      "severity": "priority-1",
+      "family": "deprecation",
+      "message": "GET REFERENCE OF is obsolete in ABAP Cloud — use REF #( ) (CLOUD-009)."
+    },
+    {
+      "object": "ZCL_IDOC_OUTPUT_INV",
+      "rule_id": "talos-cloud-001-call-function",
+      "severity": "priority-1",
+      "family": "clean-core",
+      "message": "CALL FUNCTION is forbidden in generated ABAP Cloud code — use a released API method call (CLOUD-001)."
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 66"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 67"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 69"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LZBC_FG_IDOC_FWTOP not found"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "check_subrc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Check sy-subrc"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 2 spaces"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 2 spaces"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_FG_IDOC_FWTOP\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_FG_IDOC_FWUXX\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"ZBC_FG_IDOC_FW\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"Z_IDOC_INPUT_FW\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"Z_IDOC_OUTPUT_FW\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"Z_IDOC_OUTPUT_FW_PORT\""
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "reduce_procedural_code",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Reduce procedural code, max 10 statements"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "sequential_blank",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove sequential blank lines"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "sequential_blank",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove sequential blank lines"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "sequential_blank",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove sequential blank lines"
+    },
+    {
+      "object": "ZBC_FG_IDOC_FW",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "begin_single_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "DATA BEGIN with single INCLUDE"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LSVIMDAT not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LSVIMFTX not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LSVIMITX not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LSVIMTDT not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LZBC_IDOC_CFGF00 not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LZBC_IDOC_CFGI00 not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LZBC_IDOC_CFGT00 not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "check_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Include LZBC_IDOC_CFGTOP not found"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "double_space",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove double space"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "indentation",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Indentation problem, expected 0 spaces"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"*ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMDAT\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMFTX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMFXX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMITX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMIXX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMOXX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LSVIMTDT\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_IDOC_CFGF00\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_IDOC_CFGI00\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_IDOC_CFGT00\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_IDOC_CFGTOP\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"LZBC_IDOC_CFGUXX\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"STATUS_ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"STATUS_ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"TABLEFRAME\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"TABLEFRAME_ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"TABLEPROC\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"TABLEPROC_ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"TCTRL_ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"VIMSTATUS\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "keyword_case",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Identifiers should be lower case: \"ZBC_IDOC_CFG\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "space_before_dot",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Remove space before \",\" or \".\""
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "start_at_tab",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Start statement at tab position"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZBC_IDOC_CFG",
+      "rule_id": "unnecessary_chaining",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Unnecessary chaining"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 41"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 45"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 45"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 49"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "align_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Align parameters to column 51"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "ambiguous_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Ambiguous statement. Use explicit syntax."
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "begin_single_include",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "DATA BEGIN with single INCLUDE"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "chain_mainly_declarations",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Chain mainly declarations"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    },
+    {
+      "object": "ZBC_V_IDOC_OPT",
+      "rule_id": "check_comments",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use end of line comments - move comment to previous row instead"
+    }
+  ]
+}
