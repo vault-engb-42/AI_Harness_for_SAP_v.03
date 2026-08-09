@@ -95,27 +95,42 @@ test("a fixable defect in the generated artifact blocks the verdict and drives a
   );
 });
 
+// R1: passing provisionally now requires a genuinely clean artifact — zero priority-1 AND priority-2 (P6),
+// counted off the artifact itself rather than off a supplied document. A CDS view entity with its auth
+// annotation and label is clean; a hand-written class is not (description_empty + talos-missing-test-class,
+// both priority-2, both real). Using the class here would have tested nothing but its own residuals.
+const CLEAN_CDS = {
+  "zi_x.ddls.asddls": `@AccessControl.authorizationCheck: #CHECK
+@EndUserText.label: 'Guarded posting item'
+define view entity ZI_X as select from sflight
+{
+  key carrid as Carrid,
+  key connid as Connid,
+      fldate as Fldate
+}`,
+};
+
 test("a clean generated artifact passes — the review does not manufacture a block", () => {
-  const { cli, writeDir, writeJson } = mkCli();
+  const { cli, writeDir } = mkCli();
   const { runId, sig } = atSyntaxOk(cli);
-  const src = { "zcl_x.clas.abap": cleanClass(GUARDED) };
-  const dir = writeDir("src", src);
-  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir, "--findings", writeJson("f.json", { findings: [] }));
+  const dir = writeDir("src", CLEAN_CDS);
+  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir);
   assert.equal(out.verdict.provisional, true, `reasons: ${JSON.stringify(out.verdict.reasons)}`);
   assert.equal(out.final_review.counts.fix, 0);
 });
 
 test("the review reports every action bucket, so an advisory finding is visible rather than absent", () => {
-  const { cli, writeDir, writeJson } = mkCli();
+  const { cli, writeDir } = mkCli();
   const { runId, sig } = atSyntaxOk(cli);
-  const dir = writeDir("src", { "zcl_x.clas.abap": cleanClass(GUARDED) });
-  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir, "--findings", writeJson("f.json", { findings: [] }));
+  const dir = writeDir("src", CLEAN_CDS);
+  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir);
   assert.deepEqual(Object.keys(out.final_review).sort(), ["counts", "document", "fix", "recommend"]);
   for (const k of ["fix", "document", "recommend"]) {
     assert.equal(typeof out.final_review.counts[k], "number", k);
     assert.ok(Array.isArray(out.final_review[k]), k);
   }
-  // A generated artifact with no test class is advisory, not a defect: it must surface without blocking.
+  // The advisory findings this CDS does carry are priority-3/info — real analyser output, not a defect.
+  // They must surface in `recommend` AND leave the verdict provisional: that is the whole fix/advisory split.
   assert.ok(out.final_review.counts.recommend > 0, "the recommend bucket is reachable from real analyser output");
   assert.equal(out.verdict.provisional, true, "and an advisory never blocks");
 });
@@ -157,4 +172,49 @@ test("the review's counts are recorded in the run log, not only returned", () =>
   assert.ok(entry, "the verdict step logs");
   assert.ok(entry.final_review, "with the review counts attached — the durable record of what was surfaced");
   for (const k of ["fix", "document", "recommend"]) assert.equal(typeof entry.final_review[k], "number", k);
+});
+
+// R1 (adversarial pass 2026-08-07, CONFIRMED with an end-to-end reproduction): the verdict step was handed
+// the BROWNFIELD findings doc as the after-side findings, so atc_p1/atc_p2 counted the PRE-modernisation
+// source's defects. Every node — however clean its generated output — blocked on atc-p1-nonzero /
+// atc-p2-nonzero, regenerated three times against repair context describing code it had already replaced,
+// and quarantined at OFFLINE_VERDICT_CEILING.
+//
+// offline-checkpoint.js:22-26 states the contract outright: "The caller passes the AFTER-side findings —
+// the generated artifact is what is being judged." The verdict step now computes that document itself, from
+// the same analyzePackage run C1 already performs, so the caller cannot get it wrong.
+test("the verdict judges the GENERATED artifact, never the brownfield source it replaced", () => {
+  const { cli, writeDir, writeJson } = mkCli();
+  const { runId, sig } = atSyntaxOk(cli);
+  const dir = writeDir("src", { "zcl_x.clas.abap": cleanClass(GUARDED) });
+  // A brownfield doc dense with defects — exactly what specs/brownfield/analyser-findings.json looks like.
+  const brownfield = writeJson("brownfield.json", {
+    findings: [
+      ...Array.from({ length: 23 }, (_, i) => ({ severity: "priority-1", rule_id: "talos-select-in-loop", file: `legacy_${i}.prog.abap`, line: i + 1 })),
+      ...Array.from({ length: 202 }, (_, i) => ({ severity: "priority-2", rule_id: "7bit_ascii", file: `legacy_${i}.prog.abap`, line: i + 1 })),
+    ],
+  });
+
+  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir, "--findings", brownfield);
+  assert.ok(
+    !out.verdict.reasons.includes("atc-p1-nonzero"),
+    `the brownfield source's 23 priority-1 findings must not condemn the generated artifact: ${JSON.stringify(out.verdict.reasons)}`,
+  );
+});
+
+test("a priority-1 defect in the GENERATED artifact does block — the counts are real, not disabled", () => {
+  // The mirror of the test above: proving the fix did not simply stop counting. A generated artifact
+  // carrying its own priority-1 finding must still fail (P6 — priority-1 and priority-2 zero before done).
+  const { cli, writeDir, writeJson } = mkCli();
+  const { runId, sig } = atSyntaxOk(cli);
+  // SELECT inside a LOOP → talos-select-in-loop, priority-1, in the artifact itself.
+  const after = writeDir("after", {
+    "zcl_x.clas.abap": cleanClass(`    LOOP AT lt_keys INTO DATA(ls_key).
+      SELECT SINGLE carrid FROM sflight INTO @DATA(lv_c) WHERE carrid = @ls_key-carrid.
+    ENDLOOP.`),
+  });
+  const before = writeDir("before", { "zcl_x.clas.abap": cleanClass(GUARDED) });
+  const out = cli("drive", runId, "--verdict", sig, "--before", before, "--after", after, "--findings", writeJson("f.json", { findings: [] }));
+  assert.equal(out.verdict.provisional, false, `reasons: ${JSON.stringify(out.verdict.reasons)}`);
+  assert.ok(out.verdict.reasons.includes("atc-p1-nonzero"), `reasons: ${JSON.stringify(out.verdict.reasons)}`);
 });

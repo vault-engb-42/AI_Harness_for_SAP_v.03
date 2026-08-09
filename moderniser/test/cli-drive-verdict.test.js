@@ -67,32 +67,50 @@ function atSyntaxOk(cli) {
   return { runId: planned.run_id, sig };
 }
 
-test("drive --verdict runs the whole offline arc and rests the node PROVISIONAL_GATED", () => {
-  const { cli, writeDir, writeJson } = mkCli();
-  const { runId, sig } = atSyntaxOk(cli);
-  const src = { "zcl_x.clas.abap": clazz(`  AUTHORITY-CHECK OBJECT 'S_CARRID' ID 'ACTVT' FIELD '03'.
-  IF sy-subrc <> 0. RETURN. ENDIF.
-  COMMIT WORK.`) };
-  const before = writeDir("before", src);
-  const after = writeDir("after", src);
-  const findings = writeJson("findings.json", { findings: [] });
+// R1: the ATC evidence is now COMPUTED from the after-side artifacts, not supplied via `--findings`. So a
+// fixture that passes provisionally must be genuinely clean — zero priority-1 AND priority-2 (P6). A CDS
+// view entity with its auth annotation and label is: probed 2026-08-09 at 5 findings, all priority-3/info.
+// A hand-written class cannot be: it carries `description_empty` (abapGit metadata) and, without a test
+// class, `talos-missing-test-class` — both priority-2, both legitimate.
+const CLEAN_CDS = {
+  "zi_x.ddls.asddls": `@AccessControl.authorizationCheck: #CHECK
+@EndUserText.label: 'Guarded posting item'
+define view entity ZI_X as select from sflight
+{
+  key carrid as Carrid,
+  key connid as Connid,
+      fldate as Fldate
+}`,
+};
 
-  const out = cli("drive", runId, "--verdict", sig, "--before", before, "--after", after, "--findings", findings);
-  assert.equal(out.verdict.provisional, true, `reasons: ${out.verdict.reasons}`);
+test("drive --verdict runs the whole offline arc and rests the node PROVISIONAL_GATED", () => {
+  const { cli, writeDir } = mkCli();
+  const { runId, sig } = atSyntaxOk(cli);
+  const before = writeDir("before", CLEAN_CDS);
+  const after = writeDir("after", CLEAN_CDS);
+
+  const out = cli("drive", runId, "--verdict", sig, "--before", before, "--after", after);
+  assert.equal(out.verdict.provisional, true, `reasons: ${JSON.stringify(out.verdict.reasons)}`);
   assert.equal(cli("status", runId).counts.PROVISIONAL_GATED, 1);
   assert.equal(out.action, "generate", "the frontier moves on to the next node");
 });
 
-test("drive --verdict BLOCKS and regenerates when the artifact carries a priority-1 finding", () => {
-  const { cli, writeDir, writeJson } = mkCli();
+test("drive --verdict BLOCKS and regenerates when the ARTIFACT carries a priority-1 finding", () => {
+  const { cli, writeDir } = mkCli();
   const { runId, sig } = atSyntaxOk(cli);
-  const src = { "zcl_x.clas.abap": clazz("  COMMIT WORK.") };
-  const dir = writeDir("src", src);
-  const findings = writeJson("f.json", { findings: [{ severity: "priority-1", file: "zcl_x.clas.abap", line: 3 }] });
+  // The priority-1 now has to be IN the generated artifact — it used to be injected through a `--findings`
+  // document, which is exactly the hole R1 closed: that document described the brownfield source, not this.
+  // SELECT inside a LOOP → talos-select-in-loop, priority-1.
+  const after = writeDir("after", {
+    "zcl_x.clas.abap": clazz(`  LOOP AT lt_keys INTO DATA(ls_key).
+    SELECT SINGLE carrid FROM sflight INTO @DATA(lv_c) WHERE carrid = @ls_key-carrid.
+  ENDLOOP.`),
+  });
+  const before = writeDir("before", { "zcl_x.clas.abap": clazz("  COMMIT WORK.") });
 
-  const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir, "--findings", findings);
+  const out = cli("drive", runId, "--verdict", sig, "--before", before, "--after", after);
   assert.equal(out.verdict.provisional, false);
-  assert.ok(out.verdict.reasons.includes("atc-p1-nonzero"), `reasons: ${out.verdict.reasons}`);
+  assert.ok(out.verdict.reasons.includes("atc-p1-nonzero"), `reasons: ${JSON.stringify(out.verdict.reasons)}`);
   assert.equal(out.action, "generate");
   assert.equal(out.packets[0].retry, true, "regenerate-with-findings, not a fresh dispatch");
 });
@@ -118,13 +136,26 @@ test("drive --verdict escalates an owed attestation to the human instead of burn
   assert.equal(cli("status", runId).counts.PROVISIONAL_GATED, 1, "it rests awaiting the human, budget untouched");
 });
 
-test("drive --verdict fails CLOSED when the findings document is omitted (F5)", () => {
-  const { cli, writeDir } = mkCli();
+test("the ATC evidence cannot be supplied, only earned — no argument can fabricate a clean pass (was F5)", () => {
+  // F5 guarded the case where a caller OMITTED `--findings`, leaving the ATC counts undefined: absence had
+  // to reach the judges as absence so they failed closed instead of reading it as zero. R1 removed the
+  // argument entirely — the evidence is computed from the artifact on every call — so the omission case no
+  // longer exists. The property it protected does, and is stronger now: a defective artifact blocks with no
+  // findings argument in play, and no argument exists that could talk it out of blocking.
+  const { cli, writeDir, writeJson } = mkCli();
   const { runId, sig } = atSyntaxOk(cli);
   const dir = writeDir("src", { "zcl_x.clas.abap": clazz("  COMMIT WORK.") });
   const out = cli("drive", runId, "--verdict", sig, "--before", dir, "--after", dir);
   assert.equal(out.verdict.provisional, false);
-  assert.ok(out.verdict.reasons.includes("atc-p1-nonzero"), `reasons: ${out.verdict.reasons}`);
+  assert.ok(out.verdict.reasons.includes("atc-p2-nonzero"), `reasons: ${JSON.stringify(out.verdict.reasons)}`);
+
+  // And an all-clear document handed in on the side changes nothing.
+  const { cli: cli2, writeDir: wd2 } = mkCli();
+  const r2 = atSyntaxOk(cli2);
+  const d2 = wd2("src", { "zcl_x.clas.abap": clazz("  COMMIT WORK.") });
+  const lying = writeJson("all-clear.json", { findings: [] });
+  const out2 = cli2("drive", r2.runId, "--verdict", r2.sig, "--before", d2, "--after", d2, "--findings", lying);
+  assert.equal(out2.verdict.provisional, false, "a supplied clean bill of health must not launder the artifact");
 });
 
 test("drive --verdict requires --before and --after, and rejects an unknown node", () => {
