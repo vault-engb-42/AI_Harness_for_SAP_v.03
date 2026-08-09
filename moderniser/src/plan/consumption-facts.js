@@ -72,7 +72,7 @@ export function consumptionFacts(doc) {
  * `ZCL_IDOC_INPUT --inherits--> ZCL_IDOC_BASE` both registered as consumption. On the equalize-idoc corpus
  * that was 19 of the 107 spurious matches; the intra-object call below accounted for most of the rest.
  */
-const STRUCTURAL_EDGE_KINDS = new Set(["includes", "inherits", "implements", "contains"]);
+const STRUCTURAL_EDGE_KINDS = new Set(["includes", "contains"]);
 
 /**
  * Does this edge describe something the object CONSUMES? Structural edges never do, and neither does a call

@@ -11,9 +11,10 @@ import { consumptionFacts } from "../src/plan/consumption-facts.js";
 //   "single candidate, nothing to judge" row. 7 of 9 equalize-idoc shapes were manufactured this way.
 //
 // Defect 1 — STRUCTURAL. classifyConstruct ran on EVERY graph edge with no kind filter, so a function
-// group's own INCLUDEs and a class's superclass edge counted as things the object CONSUMES. On the real
-// corpus 107 of 150 edges matched remote_idoc: 12 `includes`, 7 `inherits`, 73 `call-method`, 4
-// `uses-table` — and only 11 `call-function` edges were genuine ALE calls.
+// group's own INCLUDEs and an object's calls to its own private methods counted as things it CONSUMES. On
+// the real corpus 107 of 150 edges matched remote_idoc: 73 `call-method`, 12 `includes`, 7 `inherits`, 4
+// `uses-table` — and only 11 `call-function` edges were genuine ALE calls. NOTE: `inherits` is deliberately
+// NOT excluded — see the SAP-framework test below, where excluding it cost real signal.
 //
 // Defect 2 — NAMING. `remote_idoc` matched /(^|_)IDOC(_|$)/ against the target NAME, so any object called
 // Z*_IDOC_* matched itself. The corpus is an IDoc framework: every object is named that way, so the
@@ -29,11 +30,11 @@ test("a function group's own INCLUDEs are structure, not something it consumes",
   assert.deepEqual(out.ZBC_FG_IDOC_FW ?? [], [], `an INCLUDE is not a consumption surface: ${JSON.stringify(out)}`);
 });
 
-test("a superclass is structure, not something the subclass consumes", () => {
+test("a CUSTOMER superclass is internal decomposition, not a consumed surface", () => {
   const out = consumptionFacts(graph([
     { source: "ZCL_IDOC_INPUT", target: "ZCL_IDOC_BASE", kind: "inherits" },
   ]));
-  assert.deepEqual(out.ZCL_IDOC_INPUT ?? [], [], `inheritance is not consumption: ${JSON.stringify(out)}`);
+  assert.deepEqual(out.ZCL_IDOC_INPUT ?? [], [], `a Z-named superclass is not a surface: ${JSON.stringify(out)}`);
 });
 
 test("an object calling its OWN method consumes nothing external", () => {
@@ -99,19 +100,19 @@ test("a node kind that IS a consumption surface still registers without any edge
 // would pass on the anchoring alone — so they do not exercise the structural guard. These two isolate it:
 // the target genuinely matches a consumption pattern, and only the edge's nature makes it not consumption.
 
-test("inheriting FROM an ALV class is structure — the subclass does not thereby consume a grid", () => {
-  // Real ABAP: a wrapper class extending CL_SALV_TABLE. The target matches ui_salv on any pattern basis;
-  // only the `inherits` kind distinguishes "I am one" from "I call one".
-  const out = consumptionFacts(graph([
-    { source: "ZCL_MY_GRID", target: "CL_SALV_TABLE", kind: "inherits" },
-  ]));
-  assert.deepEqual(out.ZCL_MY_GRID ?? [], [], `inheritance is not consumption: ${JSON.stringify(out)}`);
-
-  // ...and the same target on a CALL edge still registers, or the guard would have blinded the detector.
-  const called = consumptionFacts(graph([
-    { source: "ZCL_MY_GRID", target: "CL_SALV_TABLE", kind: "call-method" },
-  ]));
-  assert.deepEqual(called.ZCL_MY_GRID, ["ui_salv"]);
+test("inheriting from an SAP FRAMEWORK class adopts its surface — a subclass of an ALV grid IS classic UI", () => {
+  // Corrected after the first version of this fix over-reached. Excluding `inherits` wholesale suppressed a
+  // real signal: the TALV corpus contains `ZCL_GUI_ALV_GRID --inherits--> CL_GUI_ALV_GRID`, a customer class
+  // extending SAP's ALV control. That object has no ABAP Cloud form and must re-architect to Fiori; calling
+  // it headless would be wrong. Dropping the edge cost the corpus its only rap_bo_fiori node.
+  //
+  // The exclusion is unnecessary for name collisions anyway, because the patterns are anchored to SAP
+  // constructs — a Z-named superclass cannot match one. So `inherits` stays IN, and only a function group's
+  // own INCLUDEs (its literal body, whose own edges are attributed separately) stay out.
+  for (const kind of ["inherits", "call-method"]) {
+    const out = consumptionFacts(graph([{ source: "ZCL_MY_GRID", target: "CL_GUI_ALV_GRID", kind }]));
+    assert.deepEqual(out.ZCL_MY_GRID, ["ui_salv"], `extending or calling an SAP ALV control is a UI surface (${kind})`);
+  }
 });
 
 test("a method of my own class is not an external surface, whatever it is named", () => {
