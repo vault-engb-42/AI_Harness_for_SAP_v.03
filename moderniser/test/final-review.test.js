@@ -92,6 +92,11 @@ test("findings needing a human judgement triage to `document`, never `fix`", () 
   // intent or fabricate a justification.
   const cases = [
     ["talos-perf-73-eml-local-mode", "zbp_x.clas.abap"],
+    // R6: the analyser has TWO rules for the same EML-IN-LOCAL-MODE auth bypass and the real generated
+    // corpus fires both 9x each (demos/zapcommander-rearchitected-2026-07-29). Seeding one and not the
+    // other triaged identical facts two different ways — `document` for one, the `recommend` default for
+    // the other — purely by which rule pack noticed first.
+    ["talos-eml-local-mode-outside-test", "zbp_x.clas.abap"],
     ["talos-dynamic-where-subquery", "zi_x.dcls.asdcls"],
     ["talos-cds-auth-not-required", "zi_x.ddls.asddls"],
   ];
@@ -367,4 +372,33 @@ test("a replayed verdict already carrying the review's reason still blocks", () 
   const out = applyFinalReview({ provisional: true, reasons: [already] }, withFix("talos-duplicate-block"));
   assert.equal(out.provisional, false, "the defect is still there — a replay does not launder it");
   assert.deepEqual(out.reasons, [already], "and the reason is still not duplicated");
+});
+
+
+test("both of the analyser's EML-local-mode rules triage identically — one fact, one verdict", () => {
+  // R6. They describe the same bypass; a caller must not get a different answer depending on which rule
+  // pack reported it. Pinning the pair, not just their membership, so a future divergence fails here.
+  const a = triage({ rule_id: "talos-perf-73-eml-local-mode", file: "zbp_x.clas.abap" });
+  const b = triage({ rule_id: "talos-eml-local-mode-outside-test", file: "zbp_x.clas.abap" });
+  assert.equal(a.action, b.action, "same fact, same action");
+  assert.equal(a.action, "document", "and the action is a human judgement, never an automatic rewrite");
+});
+
+test("the suffixes the analyser's loader actually admits are pinned, so the review's blind spots are visible", () => {
+  // Adversarial pass, confirmed by probe 2026-08-09: `filesFromBundle` admits only .asddls / .asdcls /
+  // .asbdef / .clas.abap / .clas.testclasses.abap. The real generated corpus ALSO contains .asddlx (metadata
+  // extension), .asdbtab (DB table), .srvd (service definition) and .srvb (service binding) — the analyser
+  // never reads them, so the final review never grades them. That is an analyser coverage gap, not a triage
+  // gap, and this test exists so it cannot stay invisible: when the loader learns those suffixes, this fails
+  // and whoever fixes it sees that the mappings below were waiting for them.
+  const ADMITTED = ["cds", "dcls", "bdef", "class", "test_class"];
+  const NOT_YET_LOADED = ["ddlx", "dbtab", "srvd", "srvb"];
+  for (const c of [...ADMITTED, ...NOT_YET_LOADED]) {
+    assert.ok(ARTIFACT_CONTEXTS.includes(c), `${c} must stay in the declared vocabulary`);
+  }
+  // The mapping is a pure lookup, so keeping the not-yet-loaded entries costs nothing and is correct the
+  // moment the loader admits them. What must not happen is anyone reading a passing suite as proof that
+  // every RAP artifact is being reviewed.
+  assert.equal(artifactContext("z.srvd"), "srvd");
+  assert.equal(artifactContext("zc_x.ddlx.asddlx"), "ddlx");
 });

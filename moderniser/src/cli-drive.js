@@ -10,6 +10,8 @@
  *     syntax attempts, decides retry-vs-BLOCK, persists the state, and returns the next action.
  *     <outcome> ∈ {syntax_ok | syntax_fail | generator_error}.
  */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { driveDecision, driveReport, driveOfflineVerdict } from "./sched/drive.js";
 import { loadRun, saveState, log, readBaselines } from "./cli-io.js";
 import { renderOfflineNodeVerdict } from "./node/offline-checkpoint.js";
@@ -55,8 +57,19 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
   if (!flags.before) throw new Error("drive --verdict: --before <dir> is required (the pre-modernisation source)");
   if (!flags.after) throw new Error("drive --verdict: --after <dir> is required (the node's generated artifacts)");
 
-  const beforeFiles = filesFromBundle(flags.before);
-  const afterFiles = filesFromBundle(flags.after);
+  // R2/R3 — scope the evidence to THIS node. The verdict is recorded per node, so grading it on the whole
+  // generated tree lets a sibling's defects condemn a clean node, and the lane had no way to hand over a
+  // per-node before-directory at all. Both sides are narrowed here rather than by argument, because a
+  // caller cannot get wrong what it cannot supply (the same rule as R1's computed evidence).
+  const node = plan.nodes.find((n) => n.id === sig);
+  const afterDir = nodeScopedDir(flags.after, sig);
+  const afterFiles = filesFromBundle(afterDir);
+  const allBefore = filesFromBundle(flags.before);
+  const beforeFiles = scopeToMembers(allBefore, node);
+  const scope = {
+    after: afterDir === flags.after ? "tree" : "node",
+    before: beforeFiles.length === allBefore.length ? "tree" : "node",
+  };
 
   // C1 — the final-output self-review. The analyser grades the artifacts we just generated (never the
   // BEFORE side: `extract/bundle.js:18` forbids that rescan as O(N²)). This ONE run feeds two consumers:
@@ -95,12 +108,54 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
     provisional: folded.provisional,
     action: action.action,
     final_review: folded.final_review.counts,
+    scope,
+    // R4: counts alone are not a record — they say three things were surfaced without saying what, so
+    // nothing downstream can name them. BUILD_PLAN C1 calls the `document` case "a recorded suppression",
+    // and the run log is the durable channel already in use. `document` is recorded in full because each
+    // row is a question a human must answer; `recommend` is advisory and can run to dozens per node, so it
+    // is recorded as its distinct rule set — enough to audit what was surfaced without copying the corpus
+    // into the log. The full lists still reach the fulfiller on stdout.
+    documented: folded.final_review.document.map((v) => ({ rule_id: v.rule_id, file: v.finding?.file, line: v.finding?.line })),
+    recommended_rules: [...new Set(folded.final_review.recommend.map((v) => v.rule_id))].sort(),
   });
   return {
     ...action,
     verdict: { provisional: folded.provisional, reasons: folded.reasons },
     final_review: folded.final_review,
+    scope,
   };
+}
+
+/**
+ * `<after>/<sig>/` when the generator wrote per node, else `<after>` unchanged.
+ *
+ * Conditional on purpose: the lane keeps ONE instruction (`--after specs/abap/`) and it becomes node-scoped
+ * the moment TRANSFORM adopts the per-node layout, so a run mid-migration degrades to the old, WIDER
+ * evidence rather than failing. Wider is the safe direction — it can only over-report defects.
+ */
+function nodeScopedDir(after, sig) {
+  const candidate = join(after, sig);
+  return existsSync(candidate) ? candidate : after;
+}
+
+/**
+ * The brownfield files belonging to this node's own objects. abapGit names every file for its object
+ * (`zbc_fg_idoc_fw.fugr.*`), so the frozen node's `members` select them without needing a new extractor
+ * verb — which is what made the per-node `--before` unbuildable.
+ *
+ * A node whose members match NOTHING keeps the whole bundle. That is deliberate: a corpus not following the
+ * naming convention would otherwise be scoped down to zero before-files, and an empty before side reads as
+ * "authorization vanished" — a fabricated block. A too-wide before side only makes the auth-coverage and
+ * parity conjuncts stricter, so the fallback errs closed.
+ */
+function scopeToMembers(files, node) {
+  const members = (node?.members ?? [node?.object]).filter(Boolean).map((m) => String(m).toLowerCase());
+  if (members.length === 0) return files;
+  const mine = files.filter((f) => {
+    const base = String(f.filename).split(/[\\/]/).pop().toLowerCase();
+    return members.some((m) => base === m || base.startsWith(`${m}.`));
+  });
+  return mine.length > 0 ? mine : files;
 }
 
 /** `<sig>=<outcome>` — split on the LAST '=' (the outcome vocabulary carries none), validate both. */

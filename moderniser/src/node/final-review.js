@@ -82,6 +82,10 @@ const SUFFIX_CONTEXTS = Object.freeze([
  */
 export const RETIRED_RULE_IDS = Object.freeze(["talos-rap-draft-lock-no-timeout"]);
 
+const EML_LOCAL_MODE_REASON =
+  "EML IN LOCAL MODE bypasses the authorization check. Outside test code this is a security bypass — " +
+  "a human must confirm the bypass is intended; regenerating cannot answer that.";
+
 /**
  * rule_id → {action, reason}. `reason` is carried into the verdict, so it is written for the human who
  * reads the gate, not for this file.
@@ -106,11 +110,17 @@ export const TRIAGE_TABLE = Object.freeze({
   },
 
   // --- document: the answer is a judgement, not a rewrite ----------------------------------------------
+  // R6: the analyser carries TWO rules for this one construct, and the real generated corpus fires both
+  // (9 hits each, demos/zapcommander-rearchitected-2026-07-29). Seeding one and not the other made the
+  // same auth bypass land in `document` or in the `recommend` default depending only on which pack
+  // reported it. They share a reason because they describe the same fact.
   "talos-perf-73-eml-local-mode": {
     action: "document",
-    reason:
-      "EML IN LOCAL MODE bypasses the authorization check. Outside test code this is a security bypass — " +
-      "a human must confirm the bypass is intended; regenerating cannot answer that.",
+    reason: EML_LOCAL_MODE_REASON,
+  },
+  "talos-eml-local-mode-outside-test": {
+    action: "document",
+    reason: EML_LOCAL_MODE_REASON,
   },
   "talos-dynamic-where-subquery": {
     action: "document",

@@ -336,6 +336,19 @@ test("the /modernise skill runs the offline verdict, so the offline arc is reach
   // C1: a review whose output the lane never reads is a review nobody acts on.
   assert.match(skill, /final_review/, "the skill must read the final review's result off the verdict return");
   assert.match(skill, /final-review-fix:/, "the skill must feed the review's fixable defects back as repair context");
+
+  // R1: the offline verdict judges the GENERATED artifact. The lane used to hand it
+  // specs/brownfield/analyser-findings.json — the BEFORE side — so every node blocked on the source's
+  // defects and quarantined at the retry ceiling. The verb computes its own evidence now; the lane must not
+  // reintroduce a findings document into that step.
+  assert.doesNotMatch(
+    skill,
+    /--verdict[^\n`]*--findings/,
+    "the offline verdict must not be handed a findings document — it computes the after-side evidence itself",
+  );
+  // R2/R3: per-node evidence. A flat specs/abap/ grades every node on every node's artifacts.
+  assert.match(skill, /specs\/abap\/<sig>\//, "TRANSFORM and the gates must use the per-node artifact directory");
+  assert.match(skill, /\.scope\.\{before,after\}|scope\.\{before,after\}/, "the lane must read back which scope was applied");
 });
 
 // Skills-review remediation (L2): /abap-brd never existed — abap-spec pointed the human at it; the

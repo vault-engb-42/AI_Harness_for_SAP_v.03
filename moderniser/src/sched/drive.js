@@ -19,6 +19,7 @@ import { nextDispatch, runComplete, dispatch, applyProgress, applyOutcome } from
 import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES, isActive } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
+import { UNANALYSABLE_REASON_PREFIX } from "../node/final-review.js";
 
 // The states a `retire` node passes through on its way to RETIRED. The FSM requires GROUNDED before the
 // terminal, so both the ready-to-route state and that transit state must keep returning the retire action.
@@ -183,8 +184,10 @@ export function driveOfflineVerdict(plan, state, sig, result) {
   if (result.provisional === true) return { state: next, action: driveDecision(plan, next) };
 
   const reasons = result.reasons ?? [];
-  const escalations = ESCALATABLE.filter(([reason]) => reasons.includes(reason)).map(([, kind]) => ({ kind, node_ids: [sig] }));
-  const onlyAttestable = escalations.length > 0 && reasons.every((r) => ATTESTABLE.has(r));
+  const escalations = ESCALATABLE
+    .filter(([key, , byPrefix]) => reasons.some((r) => (byPrefix ? String(r).startsWith(key) : r === key)))
+    .map(([, kind]) => ({ kind, node_ids: [sig] }));
+  const onlyAttestable = escalations.length > 0 && reasons.every(isAttestable);
   if (onlyAttestable) return { state: next, action: { action: "await_human", nodes: [sig], escalations } };
 
   if ((next.cycle[sig] ?? 0) >= MAX_PHASE_RETRY_CYCLES) {
@@ -195,14 +198,23 @@ export function driveOfflineVerdict(plan, state, sig, result) {
   return { state: next, action: { action: "generate", packets: [{ ...packetOf(plan, sig), retry: true, findings: reasons }] } };
 }
 
-// The only two offline BLOCK reasons a human — not a regeneration — can clear. Sorted by kind so
-// the escalation list is deterministic. Every OTHER reason, vetoes and scope_reduced included, is a
-// defect: parity vetoes are NEVER attestable (§7.5).
+// The offline BLOCK reasons a human — not a regeneration — can clear. Sorted by kind so the escalation
+// list is deterministic. Every OTHER reason, vetoes and scope_reduced included, is a defect: parity vetoes
+// are NEVER attestable (§7.5).
+//
+// The third entry matches by PREFIX because it names the object it could not analyse. R5 (Arc C adversarial
+// pass): C1 blocks when abaplint analysed none of an artifact, which is right — a clean review of an
+// unanalysed object is not evidence of anything. But no rewrite fixes an engine crash, so routing it down
+// the retry edge spent the whole cycle budget before quarantining. It belongs in exactly this category.
 const ESCALATABLE = Object.freeze([
-  ["auth-delta-unattested", "AUTH_EQUIVALENCE"],
-  ["parity-not-equivalent:needs_review", "PARITY_REVIEW"],
+  ["auth-delta-unattested", "AUTH_EQUIVALENCE", false],
+  ["parity-not-equivalent:needs_review", "PARITY_REVIEW", false],
+  [UNANALYSABLE_REASON_PREFIX, "UNANALYSABLE_ARTIFACT", true],
 ]);
-const ATTESTABLE = new Set(ESCALATABLE.map(([reason]) => reason));
+
+/** A reason is clearable-by-human when it matches an ESCALATABLE key exactly, or carries its prefix. */
+const isAttestable = (reason) =>
+  ESCALATABLE.some(([key, , byPrefix]) => (byPrefix ? String(reason).startsWith(key) : reason === key));
 
 /** Advance `sig` to SYNTAX_OK from wherever it rests (idempotent if a report is replayed). */
 function advanceToSyntaxOk(plan, state, sig) {
