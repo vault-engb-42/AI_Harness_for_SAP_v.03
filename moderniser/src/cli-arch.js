@@ -205,6 +205,13 @@ function freezeContracts(io, runId, resolved, std, corpus, state) {
       arch_contract_ref: archContractRef(runId, node.id),
       arch_contract_hash: contract.contract_hash,
       reviewer_verdict: null, // the abap-arch-reviewer verdict is attached by the skill fulfiller (offline: null)
+      // F-2: WHO selected this shape. `freezeJudgeSelection` stamps source:"judge" on every recorded
+      // verdict, so `options[].rationale` says "judge" whether a judge reasoned about the node or a caller
+      // recorded the only candidate the matcher left standing. The `--by` identity was already stored on
+      // the cache entry and in the run log; it was simply absent from the manifest — the one artifact the
+      // human reads at the ratification gate. Absent means `deterministic` (the matcher decided alone,
+      // no verdict was ever recorded).
+      judged_by: recommendation.judged_by ?? null,
       fit_to_standard: fitToStandardAdvisory(node, std),
       options: archOptions(recommendation),
     });

@@ -31,8 +31,9 @@ function mk() {
 
 // Seed the CROSS-RUN verdict cache so a named node resolves as 'cached' — the real fulfiller flow (the judge
 // writes the cache, cmdArch re-run hits it). A real cache file + the real fact hash; no mocks.
-function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates } = {}) {
-  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge" };
+function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates, judgedBy } = {}) {
+  // `judged_by` is what cli-arch-verdict.js:52 really stores alongside the recommendation (F-2).
+  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge", ...(judgedBy ? { judged_by: judgedBy } : {}) };
   const cache = putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec);
   writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
   return rec;
@@ -722,4 +723,24 @@ test("decide refine on an ARCH_REVIEW captures notes and ratifies NO contract", 
   assert.equal(row.decision.verb, "refine");
   assert.equal(row.decision.notes, "use analytical_cds");
   assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null, "a refine ratifies nothing");
+});
+
+// F-2 (ARCH_REVIEW independent reviewer, equalize-idoc demo 2026-08-09): the manifest reported
+// `rationale: "judge"` for every resolved row, because freezeJudgeSelection stamps source:"judge" on ANY
+// recorded verdict. The `--by` identity — WHO actually selected the shape — reached the run log and the
+// verdict cache, but never the manifest a human reads at the ratification gate. A row a judge reasoned
+// about and a row recorded by a matcher default were therefore indistinguishable to the person being asked
+// to ratify them. On the equalize-idoc run that mattered: 7 of 9 rows were recorded as
+// `deterministic-single-candidate` and every one of them presented as "judge".
+test("a resolved arch row names WHO selected its shape, not merely that it came through the judge seam", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const cons = consOf();
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, cons, { model: "opus", promptHash: "ph1", shape: "rap_bo_headless", judgedBy: "test-judge" });
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
+  assert.ok(row, "the node resolves from the seeded cache");
+  assert.equal(row.judged_by, "test-judge", `the manifest must name the selector: ${JSON.stringify(row).slice(0, 240)}`);
 });
