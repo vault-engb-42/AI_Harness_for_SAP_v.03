@@ -22,7 +22,15 @@ import { callAdtTool } from "../../mcp-adt-bridge/adt-client.js";
 // then reads as before=N/after=0, i.e. total auth loss, a false BLOCK on every modernise-to-RAP
 // node. @abaplint/core recognises the object and parses no statements from it (B1 probe), so it is
 // inert for the analyser's own ABAP rules.
-const BUNDLE_EXTENSIONS = [".abap", ".asddls", ".asbdef", ".asdcls", ".acds"];
+// `.asddlx` (metadata extensions), `.asdbtab` (DDIC tables), `.srvd` (service definitions) and `.srvb`
+// (service bindings) joined in the Arc C R7 remediation, for the same class of reason as `.asdcls` above:
+// the moderniser GENERATES all four on the re_architect path — the zapcommander re-architected demo emits
+// exactly these — and the loader dropped every one, so the offline final review rendered a Clean-Core
+// verdict over a partially-read surface while appearing to read all of it. The service binding is the
+// OData exposure surface P2's "Use as Remote API" contract exists to grade; it cannot grade a file it never
+// receives. The analyser was always capable of reading them (probed: a real set yields check_ddic +
+// tabl_enhancement_category and no engine error) — the gap was this array, not a missing capability.
+const BUNDLE_EXTENSIONS = [".abap", ".asddls", ".asbdef", ".asdcls", ".acds", ".asddlx", ".asdbtab", ".srvd", ".srvb"];
 
 /**
  * Canonicalize a source-file list for deterministic analysis (arch spec §3.A/A1):
