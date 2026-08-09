@@ -23,7 +23,13 @@ const CONSTRUCT_PATTERNS = [
   ["ui_salv", /(^|\.)CL_GUI_ALV_GRID\b|(^|\.)CL_SALV|(^|\b)REUSE_ALV|ALV_GRID_DISPLAY/],
   ["ui_frontend", /(^|\.)CL_GUI_FRONTEND(_SERVICES)?\b|(^|\b)GUI_(UPLOAD|DOWNLOAD)\b|(^|\b)WS_(UPLOAD|DOWNLOAD)\b/],
   ["ui_dynpro", /(^|\.)CL_GUI_DYNP|(^|\.)CL_GUI_CONTAINER\b|CALL_SCREEN/],
-  ["remote_idoc", /(^|_)IDOC(_|$)|MASTER_IDOC|(^|_)EDI_|INBOUND_IDOC|IDOC_INPUT|IDOC_INBOUND/],
+  // F-1: anchored at the START of the callee name, so it matches SAP's ALE API surface and not a customer
+  // object that merely CONTAINS "IDOC". The old form was /(^|_)IDOC(_|$)/, which matched ZBC_FG_IDOC_FW,
+  // ZCL_IDOC_BASE and LZBC_IDOC_CFGF00 — i.e. it fired on the corpus's own naming convention. In an IDoc
+  // framework, where every object is named Z*_IDOC_*, the detector triggered on itself. Anchoring keeps all
+  // ten real calls in the corpus (IDOC_INPUT_*, IDOC_INBOUND_*, IDOC_OUTPUT_*, IDOC_ERROR_*, EDI_*) and
+  // drops VIEWPROC_ZBC_V_IDOC_OPT, which is SAP's generated SM30 view maintenance, not ALE.
+  ["remote_idoc", /^(?:MASTER_)?IDOC_|^EDI_|^INBOUND_IDOC/],
   ["remote_bapi", /(^|\.)BAPI_/],
   ["remote_rfc", /(^|_)RFC(_|$)|^RFC_|_RFC$/],
 ];
@@ -48,12 +54,34 @@ export function consumptionFacts(doc) {
     if (fact) add(ownerOfNode(n), fact);
   }
   for (const e of doc?.graph?.edges ?? []) {
-    add(ownerOf(e.source), classifyConstruct(e.target, e));
+    const owner = ownerOf(e.source);
+    if (!isConsumptionEdge(e, owner)) continue;
+    add(owner, classifyConstruct(e.target, e));
   }
 
   const out = {};
   for (const [owner, facts] of byObject) out[owner] = [...facts].sort();
   return out;
+}
+
+/**
+ * Edge kinds that describe an object's own STRUCTURE rather than anything it consumes. A function group's
+ * INCLUDEs and a class's superclass are parts of the object, not an external surface it talks to.
+ *
+ * F-1: without this, `ZBC_FG_IDOC_FW --includes--> LZBC_FG_IDOC_FWTOP` and
+ * `ZCL_IDOC_INPUT --inherits--> ZCL_IDOC_BASE` both registered as consumption. On the equalize-idoc corpus
+ * that was 19 of the 107 spurious matches; the intra-object call below accounted for most of the rest.
+ */
+const STRUCTURAL_EDGE_KINDS = new Set(["includes", "inherits", "implements", "contains"]);
+
+/**
+ * Does this edge describe something the object CONSUMES? Structural edges never do, and neither does a call
+ * an object makes to itself — `ZCL_IDOC_DB_BUFFER.LOOKUP_KNA1 → ZCL_IDOC_DB_BUFFER.RETURN_FIELDVALUE_…` is
+ * a private helper call, not a consumption surface, however the callee happens to be named.
+ */
+function isConsumptionEdge(edge, owner) {
+  if (STRUCTURAL_EDGE_KINDS.has(String(edge?.kind ?? "").toLowerCase())) return false;
+  return ownerOf(edge?.target) !== owner;
 }
 
 /** The owning object of a construct: the id segment before the first dot (`OWNER.form`/`OWNER.method` → OWNER). */
