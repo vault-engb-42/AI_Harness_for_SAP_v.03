@@ -53,7 +53,8 @@ test("the real SAP ALE APIs are still detected — the fix must not blind the de
     "EDI_SEGMENTS_GET_ALL",
   ]) {
     const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
-    assert.deepEqual(out.ZCL_X, ["remote_idoc"], `${target} is a real ALE API and must still register`);
+    // `remote_idoc` plus, where the API name carries one, its direction (see the DIRECTION block below).
+    assert.ok(out.ZCL_X.includes("remote_idoc"), `${target} is a real ALE API and must still register`);
   }
 });
 
@@ -263,4 +264,44 @@ test("the specific patterns keep precedence over the oracle net", () => {
 test("a customer object is not a classic API — the net does not fire on Z-code", () => {
   const out = consumptionFacts(graph([{ source: "ZCL_X", target: "ZCL_GUI_ALV_GRID.FREE", kind: "call-method" }]));
   assert.ok(!out.ZCL_X.includes("classic_api_surface"), `Z-code is not SAP's API: ${JSON.stringify(out)}`);
+});
+
+// ---------------------------------------------------------------------------------------------------
+// DIRECTION. The independent review found PRJ_ALE_INBOUND_MESSAGE — a projection group the judge labelled
+// INBOUND — containing two objects that are outbound. The judge was not careless: `remote_idoc` collapses
+// IDOC_INPUT_* and IDOC_OUTPUT_* into one token, so nothing in the fact stream could tell an inbound flow
+// from an outbound one. The direction is the difference between a RAP business event the system CONSUMES
+// and one it RAISES, and it decides which objects belong in the same integration.
+//
+// The direction facts are ADDITIVE: `remote_idoc` still fires, so `rap_bo_events` keeps matching exactly as
+// before. Direction-neutral ALE helpers (EDI_*, IDOC_ERROR_*) claim no direction rather than guessing one.
+// ---------------------------------------------------------------------------------------------------
+
+test("an inbound ALE call states its direction", () => {
+  for (const target of ["IDOC_INPUT_MBGMCR", "IDOC_INPUT_SALESORDER_CREATEFR", "IDOC_INBOUND_ASYNCHRONOUS"]) {
+    const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
+    assert.deepEqual(out.ZCL_X, ["remote_idoc", "remote_idoc_inbound"], `${target} is inbound`);
+  }
+});
+
+test("an outbound ALE call states its direction", () => {
+  for (const target of ["IDOC_OUTPUT_INVOIC", "MASTER_IDOC_DISTRIBUTE"]) {
+    const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
+    assert.deepEqual(out.ZCL_X, ["remote_idoc", "remote_idoc_outbound"], `${target} is outbound`);
+  }
+});
+
+test("a direction-neutral ALE helper claims no direction", () => {
+  for (const target of ["EDI_DOCUMENT_OPEN_FOR_PROCESS", "EDI_SEGMENTS_GET_ALL", "IDOC_ERROR_WORKFLOW_START"]) {
+    const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
+    assert.deepEqual(out.ZCL_X, ["remote_idoc"], `${target} is not evidence of a direction`);
+  }
+});
+
+test("an object that does both says both — a bridge is not one-directional", () => {
+  const out = consumptionFacts(graph([
+    { source: "ZCL_BRIDGE", target: "IDOC_INPUT_MBGMCR", kind: "call-function" },
+    { source: "ZCL_BRIDGE", target: "IDOC_OUTPUT_INVOIC", kind: "call-function" },
+  ]));
+  assert.deepEqual(out.ZCL_BRIDGE, ["remote_idoc", "remote_idoc_inbound", "remote_idoc_outbound"]);
 });

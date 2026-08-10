@@ -21,7 +21,23 @@ import { classifyName } from "../../../oracle/src/oracle.js";
  */
 export const CONSUMPTION_FACTS = [
   "batch_report", "classic_api_surface", "no_surface_evidence", "remote_bapi", "remote_idoc",
-  "remote_rfc", "ui_dynpro", "ui_frontend", "ui_salv",
+  "remote_idoc_inbound", "remote_idoc_outbound", "remote_rfc", "ui_dynpro", "ui_frontend", "ui_salv",
+];
+
+/**
+ * ALE DIRECTION, emitted ALONGSIDE `remote_idoc` (never instead of it, so every existing pattern keeps
+ * matching unchanged). `remote_idoc` collapsed IDOC_INPUT_* and IDOC_OUTPUT_* into one token, and the
+ * independent review found the consequence in the blueprint: a projection group the judge had labelled
+ * PRJ_ALE_INBOUND_MESSAGE contained two outbound objects. Nothing in the fact stream could have told it
+ * otherwise. The direction is the difference between an event the system CONSUMES and one it RAISES, and
+ * it decides which objects belong to the same integration.
+ *
+ * Direction-NEUTRAL ALE helpers (EDI_* document processing, IDOC_ERROR_*) match neither: they are used on
+ * both sides, and guessing a direction from them would be the same fabricated confidence in a new place.
+ */
+const IDOC_DIRECTIONS = [
+  ["remote_idoc_inbound", /^IDOC_INPUT_|^IDOC_INBOUND/],
+  ["remote_idoc_outbound", /^IDOC_OUTPUT_|^MASTER_IDOC_/],
 ];
 
 // Construct-name → consumption fact, ordered by specificity (IDoc before BAPI before RFC so a
@@ -69,7 +85,7 @@ function directFacts(doc) {
   for (const e of doc?.graph?.edges ?? []) {
     const owner = ownerOf(e.source);
     if (!isConsumptionEdge(e, owner)) continue;
-    add(owner, classifyConstruct(e.target, e));
+    for (const fact of classifyConstruct(e.target, e)) add(owner, fact);
   }
   return byObject;
 }
@@ -218,9 +234,17 @@ function ownerOfNode(n) {
  */
 function classifyConstruct(target, edge) {
   const T = String(target ?? "").toUpperCase();
-  for (const [fact, re] of CONSTRUCT_PATTERNS) if (re.test(T)) return fact;
-  if (edge && edge.destination) return "remote_rfc"; // a DESTINATION on any CALL FUNCTION is a remote call
-  return classicApiSurface(T);
+  for (const [fact, re] of CONSTRUCT_PATTERNS) {
+    if (!re.test(T)) continue;
+    // An ALE call additionally states its DIRECTION where the API name carries one. Both facts are emitted:
+    // the direction refines `remote_idoc`, it never replaces it.
+    if (fact !== "remote_idoc") return [fact];
+    const direction = IDOC_DIRECTIONS.find(([, re2]) => re2.test(T));
+    return direction ? [fact, direction[0]] : [fact];
+  }
+  if (edge && edge.destination) return ["remote_rfc"]; // a DESTINATION on any CALL FUNCTION is a remote call
+  const classic = classicApiSurface(T);
+  return classic ? [classic] : [];
 }
 
 /**
