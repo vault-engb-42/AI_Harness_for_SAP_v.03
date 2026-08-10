@@ -199,3 +199,29 @@ test("a node WITH candidates still escalates to the judge as before", () => {
   const res = reasonArchitecture(node, fact, [{ id: "rap_bo_fiori", score: 3 }], {}, {});
   assert.notEqual(res.status, "no_shape", "a placeable node must not be diverted");
 });
+
+// APP-LEVEL GROUPING. `mergeShared` builds the app blueprint from `recommendation.shared`, but only
+// `freezeJudgeSelection` ever attaches that field — the deterministic path's `recommend()` emits none. So a
+// grouping could only ever come from a JUDGED row, and every matcher-resolved row was locked out of the
+// app-level question entirely. On TALV that was 24 of 34 rows, which is why every blueprint so far came back
+// {services:[],projections:[],fiori_apps:[]} — not because the answer was empty, but because most objects
+// were never able to answer.
+//
+// A shape that implies cross-object structure now escalates even when the matcher settled it. The shape is
+// NOT reopened: with a single candidate, validateSelection admits only that same id, so the judge can add
+// the grouping and nothing else.
+test("a shape implying cross-object structure escalates for the grouping, even when the matcher settled it", () => {
+  for (const shape of ["rap_bo_fiori", "rap_bo_odata", "analytical_cds"]) {
+    const node = { id: `sig-${shape}`, disposition: "re_architect", disposition_confidence: 0.99 };
+    const res = reasonArchitecture(node, { object_kind: "class" }, [{ id: shape, score: 5 }], {}, {});
+    assert.equal(res.status, "await_arch", `${shape} must reach the judge for its app-level grouping`);
+    assert.deepEqual(res.request.candidates.map((c) => c.id), [shape],
+      "and it is offered exactly one shape, so the judge cannot re-pick it");
+  }
+});
+
+test("a self-contained shape is still settled by the matcher — no needless judge round-trip", () => {
+  const node = { id: "sig-headless", disposition: "re_architect", disposition_confidence: 0.99 };
+  const res = reasonArchitecture(node, { object_kind: "class" }, [{ id: "rap_bo_headless", score: 5 }], {}, {});
+  assert.equal(res.status, "deterministic", "a headless BO shares nothing — asking would be waste");
+});

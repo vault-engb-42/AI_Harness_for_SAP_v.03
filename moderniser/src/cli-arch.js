@@ -52,7 +52,7 @@ export function cmdArch(io, pos, flags) {
 
   const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
   const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
-  const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state);
+  const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state, blueprint);
 
   const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
@@ -199,7 +199,7 @@ function mergeShared(resolved) {
 }
 
 /** Freeze one coarse contract per resolved node, bind it (preserving an unchanged ratification), build rows. */
-function freezeContracts(io, runId, resolved, std, corpus, state) {
+function freezeContracts(io, runId, resolved, std, corpus, state, blueprint) {
   let nextState = state;
   const rows = [];
   for (const { node, recommendation } of resolved) {
@@ -219,6 +219,14 @@ function freezeContracts(io, runId, resolved, std, corpus, state) {
       // human reads at the ratification gate. Absent means `deterministic` (the matcher decided alone,
       // no verdict was ever recorded).
       judged_by: recommendation.judged_by ?? null,
+      // The APP-LEVEL decision, offered rather than assumed. "These objects become ONE Fiori app" is the
+      // largest architectural call a run makes, and it used to reach the manifest unreviewed: checkBlueprint
+      // proves the blueprint is internally CONSISTENT, never that a human agreed to it. The human ratified
+      // each object's shape without being shown what it was grouped WITH. Now it rides the row they are
+      // already ratifying, in the same recommended + alternatives + freeform shape the target-shape decision
+      // uses, so it can be validated or overridden. `null` when the object joins nothing — a headless BO
+      // shares nothing by definition, and manufacturing a question there would be noise.
+      grouping: groupingDecision(node.id, blueprint),
       fit_to_standard: fitToStandardAdvisory(node, std),
       options: archOptions(recommendation),
     });
@@ -236,6 +244,35 @@ function rebind(state, sig, ref, hash) {
     ? { ratified_by: prior.ratified_by ?? null, reviewer_verdict: prior.reviewer_verdict ?? null }
     : { ratified_by: null, reviewer_verdict: null };
   return bindArchContract(state, sig, { ref, hash, ...keep });
+}
+
+/**
+ * The grouping decision for one object: which cross-object group the judge put it in, with the honest
+ * alternatives. `null` when it belongs to none — there is no decision to take, and inventing one would train
+ * the human to click through empty gates.
+ *
+ * Shaped like every other operator prompt in the harness: one recommendation, a real alternative, and an
+ * operator-specified escape. Standing alone is always a genuine alternative — grouping is a judgement about
+ * application intent, and co-membership is the judge's claim, not a proven fact.
+ */
+export function groupingDecision(sig, blueprint) {
+  for (const [kind, groups] of Object.entries(blueprint?.shared ?? {})) {
+    for (const g of groups ?? []) {
+      if (!(g.members ?? []).includes(sig)) continue;
+      const others = (g.members ?? []).filter((m) => m !== sig).length;
+      return {
+        kind,
+        id: g.id,
+        members: g.members,
+        options: buildPromptOptions(
+          { group: `${kind}:${g.id}`, rationale: `judge grouped this with ${others} other object(s) as one ${kind.replace(/s$/, "")}` },
+          [{ group: "standalone", rationale: "keep this object on its own — the grouping is a claim about application intent, not a fact" }],
+          { labelField: "group", isValid: (v) => typeof v === "string" && v.length > 0 },
+        ),
+      };
+    }
+  }
+  return null;
 }
 
 /** The prompt-options for a row: buildPromptOptions when a competing shape exists, else an honest 2-option set. */

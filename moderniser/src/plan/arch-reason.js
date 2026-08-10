@@ -34,8 +34,23 @@ export function needsReasoning(node, candidates, opts = {}) {
   const ceiling = opts.ceiling ?? ARCH_REASON_CONFIDENCE_CEILING;
   const bound = opts.blastBound ?? ARCH_REASON_BLAST_BOUND;
   const confidence = Number(node.disposition_confidence ?? 0);
-  return confidence < ceiling || nodeBlast(node) > bound || (candidates?.length ?? 0) > 1;
+  if (confidence < ceiling || nodeBlast(node) > bound || (candidates?.length ?? 0) > 1) return true;
+  // A settled shape can still owe an APP-LEVEL answer. `mergeShared` builds the blueprint from
+  // `recommendation.shared`, and only `freezeJudgeSelection` attaches that field — the deterministic
+  // `recommend()` emits none. So a matcher-resolved row could never join a Fiori app or a service group,
+  // and on TALV that locked out 24 of 34 rows: every blueprint came back empty not because the answer was
+  // empty but because most objects were never asked. A shape that implies cross-object structure therefore
+  // escalates even when the matcher settled it. The shape is not reopened — with a single candidate,
+  // `validateSelection` admits only that same id, so the judge can add the grouping and nothing else.
+  return GROUPING_SHAPES.has(candidates?.[0]?.id);
 }
+
+/**
+ * Shapes whose value depends on how objects group: one OData service fronting several BOs, one Fiori app
+ * over several screens, one analytical model over several reads. A `rap_bo_headless` shares nothing by
+ * definition, so asking about it would be a judge round-trip that can only answer "none".
+ */
+const GROUPING_SHAPES = new Set(["rap_bo_fiori", "rap_bo_odata", "analytical_cds"]);
 
 /** The verdict-cache key: idempotent per (facts, pinned judge model, committed prompt). */
 export function entryKey(factHashValue, modelId, promptHash) {

@@ -9,6 +9,7 @@ import { loadPlan, planHash } from "../src/sched/plan.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
 import { factHash } from "../src/plan/arch-facts.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
+import { groupingDecision } from "../src/cli-arch.js";
 
 // B3.5a wiring seam 2 (§4c "cmdArch verb"): the plan-time ARCHITECTURE gate, end-to-end (real subprocess,
 // real fs, real modules — no mocks). cmdArch re-reads the findings doc (augment-safe source_hash/config_hash
@@ -31,9 +32,9 @@ function mk() {
 
 // Seed the CROSS-RUN verdict cache so a named node resolves as 'cached' — the real fulfiller flow (the judge
 // writes the cache, cmdArch re-run hits it). A real cache file + the real fact hash; no mocks.
-function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates, judgedBy } = {}) {
+function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates, judgedBy, shared } = {}) {
   // `judged_by` is what cli-arch-verdict.js:52 really stores alongside the recommendation (F-2).
-  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge", ...(judgedBy ? { judged_by: judgedBy } : {}) };
+  const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge", ...(judgedBy ? { judged_by: judgedBy } : {}), ...(shared ? { shared } : {}) };
   const cache = putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec);
   writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
   return rec;
@@ -743,4 +744,32 @@ test("a resolved arch row names WHO selected its shape, not merely that it came 
   const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.ok(row, "the node resolves from the seeded cache");
   assert.equal(row.judged_by, "test-judge", `the manifest must name the selector: ${JSON.stringify(row).slice(0, 240)}`);
+});
+
+// APP-LEVEL GROUPING AT THE GATE. "These 14 programs become ONE Fiori app" is the largest architectural
+// call a run makes, and it used to ride onto the manifest unreviewed: `checkBlueprint` proves the blueprint
+// is internally CONSISTENT, never that a human agreed to it. The human ratified each object's shape and was
+// never shown what it was being grouped WITH.
+//
+// The grouping now appears on the row the human is already ratifying, in the same recommended + alternatives
+// + freeform shape the target-shape decision uses — so it can be validated or overridden, not merely
+// observed. An object in no group has no grouping decision to make and carries none.
+test("a grouped object shows its grouping as a decidable option, not as a fait accompli", () => {
+  const blueprint = { shared: { fiori_apps: [{ id: "APP_MAINT", members: ["sigA", "sigB", "sigC"] }] } };
+  const d = groupingDecision("sigA", blueprint);
+  assert.ok(d, "a grouped object carries its grouping decision");
+  assert.equal(d.kind, "fiori_apps");
+  assert.equal(d.id, "APP_MAINT");
+  const rec = d.options.find((o) => o.recommended);
+  assert.ok(rec && /APP_MAINT/.test(rec.group), `the judge's grouping is the recommendation: ${JSON.stringify(rec)}`);
+  assert.match(rec.rationale, /2 other/, "it says how many objects it is being joined to");
+  assert.ok(d.options.some((o) => /standalone/i.test(o.group)), "standing alone must be offerable");
+  assert.ok(d.options.some((o) => o.freeform), "and an operator-specified escape");
+});
+
+test("an ungrouped object carries no grouping decision — nothing to validate", () => {
+  const blueprint = { shared: { fiori_apps: [{ id: "APP_MAINT", members: ["sigB"] }], services: [], projections: [] } };
+  assert.equal(groupingDecision("sigA", blueprint), null, "do not manufacture a question for an object that joins nothing");
+  assert.equal(groupingDecision("sigA", { shared: {} }), null);
+  assert.equal(groupingDecision("sigA", {}), null, "an absent blueprint is not a decision either");
 });
