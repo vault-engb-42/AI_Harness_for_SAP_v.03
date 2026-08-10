@@ -125,7 +125,16 @@ export function consumptionEvidence(doc) {
     return all;
   };
 
-  const owners = new Set([...direct.keys(), ...callees.keys()]);
+  // Every object the CPG contains is an object the detector READ, and a read object owes an answer. Building
+  // this set from the fact and callee maps alone left out precisely the objects with nothing to say: a
+  // function group whose only edges are its own INCLUDEs entered neither map, so it had no entry, so
+  // `consumptionFacts` never marked it `no_surface_evidence` — and `rap_bo_headless`'s `none` guard passed
+  // vacuously on the empty list. That is the silent headless BO the marker was added to stop, one level
+  // further down. TALV's ZFUNG_TALV and ZTALVTAB003 escaped through it. Presence in `graph.nodes` is the
+  // evidence of a read; absence from the output now means only "not in the graph".
+  const owners = new Set((doc?.graph?.nodes ?? []).map(ownerOfNode).filter(Boolean));
+  for (const key of direct.keys()) owners.add(key);
+  for (const key of callees.keys()) owners.add(key);
   for (const set of callees.values()) for (const c of set) owners.add(c);
 
   const out = {};

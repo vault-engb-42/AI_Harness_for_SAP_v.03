@@ -204,6 +204,28 @@ test("an object with no surface evidence at all says so, rather than reading as 
   );
 });
 
+// H-1 — the SECOND kind of silence, in the fix for the first. `owners` was assembled from the fact map and
+// the callee map alone, so an object whose every edge is STRUCTURAL and whose kind is not a surface kind
+// entered neither: no entry at all, so `no_surface_evidence` was never emitted for it, `factStream` carried
+// an empty consumption list, and `rap_bo_headless`'s `none: [no_surface_evidence]` guard passed VACUOUSLY —
+// the silent headless BO this marker exists to stop, reached one level further down. On the TALV corpus
+// ZFUNG_TALV (the framework's own function group) and ZTALVTAB003 escaped exactly this way.
+//
+// Presence in the CPG is the evidence that the object was READ. A read object with no surface answers
+// `no_surface_evidence`; only an object that is not in the graph at all is absent.
+test("an object the detector READ but found no surface on is present and says so", () => {
+  const out = consumptionFacts(graph(
+    [{ source: "ZFUNG_X", target: "LZFUNG_XTOP", kind: "includes" }],
+    [{ id: "ZFUNG_X", kind: "function", object: "ZFUNG_X" }],
+  ));
+  assert.deepEqual(out.ZFUNG_X, [NO_EVIDENCE], `read-but-silent is an answer, not an absence: ${JSON.stringify(out)}`);
+});
+
+test("an object with no edges whatsoever is still read, and still answers", () => {
+  const out = consumptionFacts(graph([], [{ id: "ZTALVTAB003", kind: "table", object: "ZTALVTAB003" }]));
+  assert.deepEqual(out.ZTALVTAB003, [NO_EVIDENCE], `a node with no edges was still read: ${JSON.stringify(out)}`);
+});
+
 test("no_surface_evidence is never emitted alongside a real fact", () => {
   const out = consumptionFacts(graph([{ source: "ZCL_X", target: "CL_SALV_TABLE", kind: "call-method" }]));
   assert.ok(out.ZCL_X.includes("ui_salv"));
