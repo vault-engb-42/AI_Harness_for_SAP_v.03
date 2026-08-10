@@ -70,6 +70,11 @@ function signalHolds(signal, fact) {
   switch (type) {
     case "consumption": return (fact.consumption ?? []).includes(value);
     case "hint": return (fact.disposition_hints ?? []).includes(value);
+    // The analyser's own rule verdict. `driving_rule_ids` has been in the fact stream since S14 with no
+    // signal type able to read it, and it is the ONLY evidence for a surface that leaves no CPG edge: a
+    // dynpro is a screen, not a call, so `talos-cloud-014-classic-dynpro` is what sees it at all. It is
+    // preferred over `hint:ui_rearch` because that hint collapses a screen and a WRITE list into one token.
+    case "rule": return (fact.driving_rule_ids ?? []).includes(value);
     case "family": return (fact.finding_families ?? []).includes(value);
     case "disposition": return fact.disposition === value;
     case "target": return fact.modernization_target === value;

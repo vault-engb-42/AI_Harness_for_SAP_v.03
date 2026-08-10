@@ -1,6 +1,6 @@
 {
   "schema": "moderniser/target-patterns@1",
-  "note": "The extensible target-shape patterns corpus (MODERNISER_DESIGN §6.13 / BUILD_PLAN S11). Grow the corpus, not the code. `when_signals` is a predicate over the STRUCTURAL fact stream (consumption booleans + families + disposition + object_kind), so a coarse analyser `modernization_target` never dictates the shape — the structural evidence does. CAP / side-by-side BTP is OUT OF SCOPE (§6.14) and is deliberately absent. Signal grammar: 'consumption:<fact>' | 'hint:<hint>' | 'family:<family>' | 'disposition:<d>' | 'target:<t>' | 'object_kind:<k>', combined via all/any/none.",
+  "note": "The extensible target-shape patterns corpus (MODERNISER_DESIGN §6.13 / BUILD_PLAN S11). Grow the corpus, not the code. `when_signals` is a predicate over the STRUCTURAL fact stream (consumption booleans + families + disposition + object_kind), so a coarse analyser `modernization_target` never dictates the shape — the structural evidence does. CAP / side-by-side BTP is OUT OF SCOPE (§6.14) and is deliberately absent. Signal grammar: 'consumption:<fact>' | 'hint:<hint>' | 'rule:<analyser_rule_id>' | 'family:<family>' | 'disposition:<d>' | 'target:<t>' | 'object_kind:<k>', combined via all/any/none.",
   "patterns": [
     {
       "id": "rap_bo_headless",
@@ -18,7 +18,9 @@
           "consumption:remote_bapi",
           "consumption:remote_idoc",
           "consumption:no_surface_evidence",
-          "consumption:classic_api_surface"
+          "consumption:classic_api_surface",
+          "rule:talos-cloud-014-classic-dynpro",
+          "rule:talos-s4-004-screen-flow"
         ]
       },
       "components": [
@@ -69,7 +71,9 @@
       "when_signals": {
         "any": [
           "consumption:ui_salv",
-          "consumption:ui_dynpro"
+          "consumption:ui_dynpro",
+          "rule:talos-cloud-014-classic-dynpro",
+          "rule:talos-s4-004-screen-flow"
         ]
       },
       "components": [
@@ -89,7 +93,7 @@
         "commit_entities_only",
         "draft_enabled"
       ],
-      "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page."
+      "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page. The UI evidence arrives from a CPG edge (ui_salv/ui_dynpro) OR from the analyser's screen RULES: a dynpro is a screen, not a call, so it leaves no edge for the consumption detector to see. The rules are used rather than the coarser `ui_rearch` hint because that hint also fires on a WRITE list, which is batch output and stays headless."
     },
     {
       "id": "rap_bo_events",
@@ -123,6 +127,9 @@
           "family:analytics",
           "target:CDS View",
           "target:CDS View Entity"
+        ],
+        "none": [
+          "consumption:no_surface_evidence"
         ]
       },
       "components": [
@@ -131,9 +138,10 @@
       ],
       "grounding_refs": [],
       "invariants": [
-        "analytics_annotations"
+        "analytics_annotations",
+        "dcl_authorization"
       ],
-      "example": "a reporting / aggregation program — an analytical CDS cube + query (@Analytics.dataCategory)."
+      "example": "a reporting / aggregation program — an analytical CDS cube + query (@Analytics.dataCategory). The `none` guard is why a config/DDIC table is not handed an analytical model on the strength of the analyser's coarse `CDS View Entity` target alone: a shape is never justified on silence. The query publishes data, so it carries an authorization contract like every other exposing shape."
     },
     {
       "id": "value_help_cds",
