@@ -12,9 +12,14 @@
  * an unrecognised construct emits NOTHING (no free-form string ever escapes this module).
  */
 
-/** The closed, sorted consumption-fact enum. */
+/**
+ * The closed, sorted consumption-fact enum. `no_surface_evidence` is a MEMBER, not an escape hatch: it is
+ * the explicit statement that the detector found nothing, and it must satisfy the same P8 injection-closure
+ * as every other fact because it reaches the judge's prompt exactly like they do.
+ */
 export const CONSUMPTION_FACTS = [
-  "batch_report", "remote_bapi", "remote_idoc", "remote_rfc", "ui_dynpro", "ui_frontend", "ui_salv",
+  "batch_report", "no_surface_evidence", "remote_bapi", "remote_idoc", "remote_rfc",
+  "ui_dynpro", "ui_frontend", "ui_salv",
 ];
 
 // Construct-name → consumption fact, ordered by specificity (IDoc before BAPI before RFC so a
@@ -41,14 +46,20 @@ const NODE_KIND_FACT = { report: "batch_report", program: "batch_report", execut
  * @param {{graph?: {nodes?: Array<{id?: string, object?: string, kind?: string}>, edges?: Array<{source?: string, target?: string, kind?: string, destination?: string}>}}} doc analyser-findings.json (read-only, P8)
  * @returns {Record<string, string[]>} object id → its sorted, distinct consumption-fact subset
  */
-export function consumptionFacts(doc) {
+/** The absence marker, named once. Must stay a member of CONSUMPTION_FACTS (P8 closure). */
+export const NO_EVIDENCE = "no_surface_evidence";
+
+/**
+ * Every object's OWN facts — the surfaces it touches directly, with no propagation.
+ * @returns {Map<string, Set<string>>}
+ */
+function directFacts(doc) {
   const byObject = new Map();
   const add = (owner, fact) => {
     if (!owner || !fact) return;
     if (!byObject.has(owner)) byObject.set(owner, new Set());
     byObject.get(owner).add(fact);
   };
-
   for (const n of doc?.graph?.nodes ?? []) {
     const fact = NODE_KIND_FACT[String(n.kind ?? "").toLowerCase()];
     if (fact) add(ownerOfNode(n), fact);
@@ -58,9 +69,94 @@ export function consumptionFacts(doc) {
     if (!isConsumptionEdge(e, owner)) continue;
     add(owner, classifyConstruct(e.target, e));
   }
+  return byObject;
+}
+
+/** owner → the distinct owners it CALLS (structural edges and self-calls excluded, as above). */
+function calleeMap(doc) {
+  const out = new Map();
+  for (const e of doc?.graph?.edges ?? []) {
+    const owner = ownerOf(e.source);
+    if (!isConsumptionEdge(e, owner)) continue;
+    const callee = ownerOf(e.target);
+    if (!owner || !callee) continue;
+    if (!out.has(owner)) out.set(owner, new Set());
+    out.get(owner).add(callee);
+  }
+  return out;
+}
+
+/**
+ * Surface facts with PROVENANCE: what each object touches itself, and what it reaches through the corpus's
+ * own wrappers.
+ *
+ * A corpus that wraps its UI was previously invisible: TALV holds 493 ALV/SALV references and exactly three
+ * objects touch an SAP GUI class directly — the other fourteen reach the grid through `ZCL_GUI_ALV_GRID` /
+ * `ZCL_TALV_PARENT`, whose names no anchored SAP pattern can match. So `ui_*` measured "objects one hop from
+ * SAP", a property of the detector rather than of the corpus, and because `rap_bo_headless` fires on the
+ * ABSENCE of ui_* or remote_*, every blind spot became a confident shape.
+ *
+ * `direct` and `reached` stay separate because they are different claims that imply different dispositions:
+ * the wrapper that IS the grid retires, while the callers that USE it re-architect to Fiori. `via` names the
+ * immediate callee a reached fact came through, so the path is auditable rather than asserted.
+ *
+ * Memoised depth-first with an in-progress guard, so mutually recursive wrappers terminate and the walk is
+ * O(V+E) amortised rather than a BFS per object — the 100K+ LOC NFR makes the quadratic form untenable.
+ *
+ * @param {object} doc analyser-findings.json (read-only, P8)
+ * @returns {Record<string, {direct: string[], reached: Array<{fact: string, via: string}>}>}
+ */
+export function consumptionEvidence(doc) {
+  const direct = directFacts(doc);
+  const callees = calleeMap(doc);
+  const memo = new Map();
+  const walking = new Set();
+
+  const factsOf = (owner) => {
+    if (memo.has(owner)) return memo.get(owner);
+    if (walking.has(owner)) return new Set(); // cycle: this object's own facts are added by its caller
+    walking.add(owner);
+    const all = new Set(direct.get(owner) ?? []);
+    for (const callee of callees.get(owner) ?? []) for (const f of factsOf(callee)) all.add(f);
+    walking.delete(owner);
+    memo.set(owner, all);
+    return all;
+  };
+
+  const owners = new Set([...direct.keys(), ...callees.keys()]);
+  for (const set of callees.values()) for (const c of set) owners.add(c);
 
   const out = {};
-  for (const [owner, facts] of byObject) out[owner] = [...facts].sort();
+  for (const owner of [...owners].sort()) {
+    const own = direct.get(owner) ?? new Set();
+    const reached = [];
+    for (const callee of [...(callees.get(owner) ?? [])].sort()) {
+      for (const fact of [...factsOf(callee)].sort()) {
+        if (own.has(fact) || reached.some((r) => r.fact === fact)) continue;
+        reached.push({ fact, via: callee });
+      }
+    }
+    out[owner] = { direct: [...own].sort(), reached };
+  }
+  return out;
+}
+
+/**
+ * The flat per-object fact set the shape matcher keys on: direct and reached facts merged, because an
+ * object that reaches a grid is not headless however many hops away the grid is.
+ *
+ * An object with NO surface evidence at all is marked `no_surface_evidence` rather than left empty. That
+ * distinction is the point: `rap_bo_headless` matches on the ABSENCE of ui_* or remote_*, so an object the
+ * detector merely could not read used to score identically to one proven to have no surface. On TALV that
+ * silence produced 23 headless nodes for an interactive table-maintenance framework, 20 of them never
+ * judged at all. Silence now says so out loud, and a shape rule can require evidence instead of quiet.
+ */
+export function consumptionFacts(doc) {
+  const out = {};
+  for (const [owner, ev] of Object.entries(consumptionEvidence(doc))) {
+    const facts = [...new Set([...ev.direct, ...ev.reached.map((r) => r.fact)])].sort();
+    out[owner] = facts.length > 0 ? facts : [NO_EVIDENCE];
+  }
   return out;
 }
 

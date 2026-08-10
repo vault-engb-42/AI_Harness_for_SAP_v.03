@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consumptionFacts } from "../src/plan/consumption-facts.js";
+import { consumptionFacts, consumptionEvidence, NO_EVIDENCE } from "../src/plan/consumption-facts.js";
 
 // F-1 (ARCH_REVIEW independent reviewer, equalize-idoc demo 2026-08-09; CONFIRMED against source and the
 // real corpus). Two independent defects made the moderniser fabricate a consumption surface, and the
@@ -34,7 +34,7 @@ test("a CUSTOMER superclass is internal decomposition, not a consumed surface", 
   const out = consumptionFacts(graph([
     { source: "ZCL_IDOC_INPUT", target: "ZCL_IDOC_BASE", kind: "inherits" },
   ]));
-  assert.deepEqual(out.ZCL_IDOC_INPUT ?? [], [], `a Z-named superclass is not a surface: ${JSON.stringify(out)}`);
+  assert.deepEqual(out.ZCL_IDOC_INPUT, [NO_EVIDENCE], `a Z-named superclass is not a surface: ${JSON.stringify(out)}`);
 });
 
 test("an object calling its OWN method consumes nothing external", () => {
@@ -61,7 +61,7 @@ test("a customer object whose NAME contains IDOC is not an ALE call", () => {
   // The corpus is called Z*_IDOC_*, so a name-derived rule triggers on the naming convention itself.
   for (const target of ["ZBC_FG_IDOC_FW", "ZCL_IDOC_BASE", "ZBC_IDOC_CFG", "LZBC_IDOC_CFGF00"]) {
     const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
-    assert.deepEqual(out.ZCL_X ?? [], [], `${target} is a customer object, not SAP's ALE API`);
+    assert.deepEqual(out.ZCL_X, [NO_EVIDENCE], `${target} is a customer object, not SAP's ALE API`);
   }
 });
 
@@ -69,7 +69,7 @@ test("the SM30 view processor is not an ALE call, though its name carries the vi
   // VIEWPROC_ZBC_V_IDOC_OPT is a genuine call-function edge — so an edge-kind filter alone does not save
   // us. It is SAP's generated view-maintenance FM for a customer view that happens to be named *_IDOC_*.
   const out = consumptionFacts(graph([{ source: "ZBC_IDOC_CFG", target: "VIEWPROC_ZBC_V_IDOC_OPT", kind: "call-function" }]));
-  assert.deepEqual(out.ZBC_IDOC_CFG ?? [], [], "SM30 maintenance is not ALE consumption");
+  assert.deepEqual(out.ZBC_IDOC_CFG, [NO_EVIDENCE], "SM30 maintenance is not ALE consumption");
 });
 
 test("the other consumption surfaces still register from real call edges", () => {
@@ -128,4 +128,84 @@ test("a method of my own class is not an external surface, whatever it is named"
     { source: "ZCL_X.RUN", target: "ZCL_OTHER.CL_SALV_WRAP", kind: "call-method" },
   ]));
   assert.deepEqual(other.ZCL_X, ["ui_salv"]);
+});
+
+// ---------------------------------------------------------------------------------------------------
+// REACHABILITY (arch-review, TALV corpus 2026-08-10, CONFIRMED by probe). Detection was direct-edge only,
+// so a corpus that wraps its UI was invisible: TALV's graph holds 493 ALV/SALV references, and exactly
+// THREE objects touch an SAP GUI class directly. The other fourteen reach the grid through the corpus's own
+// `ZCL_GUI_ALV_GRID` / `ZCL_TALV_PARENT` wrappers, and the anchored pattern cannot match `ZCL_…` — so
+// `ui_*` measured "objects one hop from SAP", a property of the DETECTOR, not of the corpus.
+//
+// It mattered because `rap_bo_headless` fires on the ABSENCE of ui_*/remote_* (target-patterns.json), so
+// every blind spot silently became a confident shape: 23 of 24 TALV nodes came out headless for an
+// interactive table-maintenance framework, and 20 of them were never judged at all.
+//
+// Facts now propagate over intra-corpus call edges. Provenance is kept — `direct` (I touch SAP myself) is
+// not the same claim as `reached` (I use something that does), and the two lead to different dispositions:
+// the wrapper retires, its callers re-architect.
+
+test("a caller that reaches SAP UI through the corpus's own wrapper is not blind to it", () => {
+  // The TALV shape exactly: ZAESOP_TALV_DEMO_01 -> ZCL_GUI_ALV_GRID -> CL_GUI_ALV_GRID.
+  const out = consumptionFacts(graph([
+    { source: "ZCL_GUI_ALV_GRID", target: "CL_GUI_ALV_GRID", kind: "inherits" },
+    { source: "ZAESOP_TALV_DEMO_01.MAIN", target: "ZCL_GUI_ALV_GRID.FREE", kind: "call-method" },
+  ]));
+  assert.ok(out.ZCL_GUI_ALV_GRID.includes("ui_salv"), "the wrapper touches SAP directly");
+  assert.ok(
+    out.ZAESOP_TALV_DEMO_01?.includes("ui_salv"),
+    `its caller reaches the same grid: ${JSON.stringify(out)}`,
+  );
+});
+
+test("provenance is kept — reaching a surface is a different claim from being one", () => {
+  const ev = consumptionEvidence(graph([
+    { source: "ZCL_GUI_ALV_GRID", target: "CL_GUI_ALV_GRID", kind: "inherits" },
+    { source: "ZAESOP_TALV_DEMO_01.MAIN", target: "ZCL_GUI_ALV_GRID.FREE", kind: "call-method" },
+  ]));
+  assert.deepEqual(ev.ZCL_GUI_ALV_GRID.direct, ["ui_salv"], "the wrapper's fact is first-hand");
+  assert.deepEqual(ev.ZCL_GUI_ALV_GRID.reached, [], "and it reaches nothing further");
+  assert.deepEqual(ev.ZAESOP_TALV_DEMO_01.direct, [], "the caller touches no SAP class itself");
+  assert.deepEqual(
+    ev.ZAESOP_TALV_DEMO_01.reached.map((r) => [r.fact, r.via]),
+    [["ui_salv", "ZCL_GUI_ALV_GRID"]],
+    "it reaches ui_salv, and the wrapper it went through is named",
+  );
+});
+
+test("propagation is cycle-safe — mutually recursive wrappers terminate", () => {
+  const out = consumptionFacts(graph([
+    { source: "ZCL_A", target: "CL_SALV_TABLE", kind: "call-method" },
+    { source: "ZCL_A.X", target: "ZCL_B.Y", kind: "call-method" },
+    { source: "ZCL_B.Y", target: "ZCL_A.X", kind: "call-method" },
+  ]));
+  assert.ok(out.ZCL_B.includes("ui_salv"), "B reaches the grid through A");
+  assert.ok(out.ZCL_A.includes("ui_salv"));
+});
+
+test("structural edges do not propagate either — an INCLUDE is still not a consumption path", () => {
+  const out = consumptionFacts(graph([
+    { source: "ZCL_W", target: "CL_SALV_TABLE", kind: "call-method" },
+    { source: "ZFUGR_X", target: "ZCL_W", kind: "includes" },
+  ]));
+  assert.deepEqual(out.ZFUGR_X ?? [], [], "an INCLUDE is the object's own body, not a call");
+});
+
+// ---------------------------------------------------------------------------------------------------
+// ABSENCE IS NOT EVIDENCE. `rap_bo_headless` matches on `none: [ui_*, remote_*]`, so an object the detector
+// simply could not read scored identically to one proven to have no surface. Silence now says so out loud.
+// ---------------------------------------------------------------------------------------------------
+
+test("an object with no surface evidence at all says so, rather than reading as proven-headless", () => {
+  const out = consumptionFacts(graph([{ source: "ZCL_LONELY.M", target: "ZCL_OTHER.N", kind: "call-method" }]));
+  assert.ok(
+    out.ZCL_LONELY.includes("no_surface_evidence"),
+    `silence must be explicit: ${JSON.stringify(out)}`,
+  );
+});
+
+test("no_surface_evidence is never emitted alongside a real fact", () => {
+  const out = consumptionFacts(graph([{ source: "ZCL_X", target: "CL_SALV_TABLE", kind: "call-method" }]));
+  assert.ok(out.ZCL_X.includes("ui_salv"));
+  assert.ok(!out.ZCL_X.includes("no_surface_evidence"), "evidence and its absence are mutually exclusive");
 });
