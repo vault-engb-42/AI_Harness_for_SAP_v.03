@@ -510,3 +510,17 @@ test("the enforcement hooks are still wired to blocking events (no accidental do
     assert.ok(events.every((e) => ["PreToolUse", "UserPromptSubmit"].includes(e)), `${name} must stay on a blocking event, found ${events.join(", ")}`);
   }
 });
+
+// The arch gate can now return `unplaceable`: objects whose evidence justifies NO target shape. They are
+// neither resolved nor pending, and they are NOT a judge question — the judge would be handed an empty
+// candidate list and its only possible answer is refused downstream. If the lane has no fulfiller for them,
+// they are surfaced by the engine and acted on by nobody: exactly the built-but-unreachable defect this
+// project has now hit four times. On TALV, 11 of 24 arch-gated nodes land here.
+test("the /modernise skill fulfils the arch gate's `unplaceable` rows", () => {
+  const skill = readFileSync(join(CLAUDE, "skills", "modernise", "SKILL.md"), "utf8");
+  assert.match(skill, /unplaceable/, "the lane must read the arch gate's unplaceable rows");
+  // The resolution is a re-disposition, not a shape — the existing override + replan machinery.
+  assert.match(skill, /override:<disposition>/, "the lane must route them through the disposition override");
+  assert.match(skill, /no_surface_evidence|no target shape fits/,
+    "the lane must explain WHY an object is unplaceable, or the human cannot decide");
+});
