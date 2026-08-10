@@ -24,14 +24,15 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { consumptionFacts } from "./plan/consumption-facts.js";
 import { factStream } from "./plan/arch-facts.js";
-import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "./plan/patterns/match.js";
+import { matchTargetShapes, loadPatternCorpus } from "./plan/patterns/match.js";
 import { reasonArchitecture, validateSelection } from "./plan/arch-reason.js";
 import { toLookup } from "./state/arch-verdict-cache.js";
 import { buildArchContract, bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { buildAppBlueprint } from "./plan/app-blueprint.js";
+import { groupingDecision, archOptions } from "./plan/arch-row.js";
+import { buildAdjacency } from "./plan/group-evidence.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
 import { standardTablesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
-import { buildPromptOptions } from "./plan/prompt-options.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
@@ -52,7 +53,8 @@ export function cmdArch(io, pos, flags) {
 
   const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
   const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
-  const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state, blueprint);
+  const groupCtx = { plan, adjacency: buildAdjacency(plan) };
+  const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state, blueprint, groupCtx);
 
   const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
@@ -199,7 +201,7 @@ function mergeShared(resolved) {
 }
 
 /** Freeze one coarse contract per resolved node, bind it (preserving an unchanged ratification), build rows. */
-function freezeContracts(io, runId, resolved, std, corpus, state, blueprint) {
+function freezeContracts(io, runId, resolved, std, corpus, state, blueprint, groupCtx) {
   let nextState = state;
   const rows = [];
   for (const { node, recommendation } of resolved) {
@@ -232,7 +234,7 @@ function freezeContracts(io, runId, resolved, std, corpus, state, blueprint) {
       // they are already ratifying, in the same recommended + alternatives + freeform shape the target-shape
       // decision uses, so each can be validated or overridden. Empty when the object joins nothing — a
       // headless BO shares nothing by definition, and manufacturing a question there would be noise.
-      groupings: groupingDecision(node.id, blueprint),
+      groupings: groupingDecision(node.id, blueprint, groupCtx),
       fit_to_standard: fitToStandardAdvisory(node, std),
       options: archOptions(recommendation),
     });
@@ -250,75 +252,6 @@ function rebind(state, sig, ref, hash) {
     ? { ratified_by: prior.ratified_by ?? null, reviewer_verdict: prior.reviewer_verdict ?? null }
     : { ratified_by: null, reviewer_verdict: null };
   return bindArchContract(state, sig, { ref, hash, ...keep });
-}
-
-/**
- * EVERY cross-object group one object was put in, each as its own decidable option. Empty when it belongs to
- * none — there is no decision to take, and inventing one would train the human to click through empty gates.
- *
- * Returning only the FIRST match hid the decision this row exists to surface. `mergeShared` builds `shared`
- * in the order services → projections → fiori_apps, and on TALV every member of the Fiori app is also a
- * member of its OData service — so "these objects become ONE Fiori app", the largest architectural call the
- * run makes, appeared on zero rows while the service membership stood in for it. The memberships are
- * independent claims and each is separately ratifiable, so the object carries all of them.
- *
- * Each is shaped like every other operator prompt in the harness: one recommendation, a real alternative, and
- * an operator-specified escape. Standing alone is always a genuine alternative — grouping is a judgement
- * about application intent, and co-membership is the judge's claim, not a proven fact.
- */
-export function groupingDecision(sig, blueprint) {
-  const decisions = [];
-  for (const [kind, groups] of Object.entries(blueprint?.shared ?? {})) {
-    for (const g of groups ?? []) {
-      if (!(g.members ?? []).includes(sig)) continue;
-      const others = (g.members ?? []).filter((m) => m !== sig).length;
-      decisions.push({
-        kind,
-        id: g.id,
-        members: g.members,
-        options: buildPromptOptions(
-          { group: `${kind}:${g.id}`, rationale: `judge grouped this with ${others} other object(s) as one ${kind.replace(/s$/, "")}` },
-          [{ group: "standalone", rationale: "keep this object on its own — the grouping is a claim about application intent, not a fact" }],
-          { labelField: "group", isValid: (v) => typeof v === "string" && v.length > 0 },
-        ),
-      });
-    }
-  }
-  return decisions;
-}
-
-/** The prompt-options for a row: buildPromptOptions when a competing shape exists, else an honest 2-option set. */
-function archOptions(recommendation) {
-  const alts = (recommendation.candidates ?? [])
-    .filter((c) => c.id !== recommendation.target_shape)
-    .map((c) => ({ target_shape: c.id, rationale: `alternative shape (match score ${c.score})` }));
-  const why = recommendedRationale(recommendation);
-  if (alts.length === 0) {
-    // A single-candidate node has no competing shape — the operator's choice is approve | refine | reject,
-    // so surface the sole shape + the freeform 'other' (refine) escape without the >= 3 buildPromptOptions rule.
-    return [
-      { target_shape: recommendation.target_shape, recommended: true, rationale: why },
-      { target_shape: "other", recommended: false, rationale: "operator-specified — refine or reject", freeform: true },
-    ];
-  }
-  return buildPromptOptions(
-    { target_shape: recommendation.target_shape, rationale: why },
-    alts,
-    { labelField: "target_shape", isValid: (s) => PATTERN_IDS.includes(s) },
-  );
-}
-
-/**
- * The reason shown beside the recommended shape. It used to be `recommendation.source` — the literal string
- * "judge" or "deterministic", which names the DECIDER in the field reserved for the decision's reason. The
- * judge's own words are used when a judge reasoned about the node; a matcher-resolved row says plainly that
- * no judge did.
- */
-function recommendedRationale(recommendation) {
-  if (recommendation.rationale) return recommendation.rationale;
-  return recommendation.source === "judge"
-    ? "judge-selected (no rationale recorded — pre-dates the required --rationale seam)"
-    : "the deterministic matcher left exactly one grounded shape; no judge was asked";
 }
 
 /** The committed judge prompt's content hash — the default prompt_hash when the skill does not pin one. */

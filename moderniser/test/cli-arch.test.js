@@ -9,7 +9,7 @@ import { loadPlan, planHash } from "../src/sched/plan.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
 import { factHash } from "../src/plan/arch-facts.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
-import { groupingDecision } from "../src/cli-arch.js";
+import { groupingDecision } from "../src/plan/arch-row.js";
 
 // B3.5a wiring seam 2 (§4c "cmdArch verb"): the plan-time ARCHITECTURE gate, end-to-end (real subprocess,
 // real fs, real modules — no mocks). cmdArch re-reads the findings doc (augment-safe source_hash/config_hash
@@ -881,4 +881,36 @@ test("a matcher-resolved row says so plainly — no rationale is invented for a 
   const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.equal(row.judged_rationale, null, "a cached entry with no recorded reason must not fabricate one");
   assert.equal(row.judged_confidence, null);
+});
+
+// The blueprint-membership findings (independent ARCH_REVIEW, TALV 2026-08-10): APP_TABLE_MAINTENANCE
+// enrolled ZAESOP_LOG_DEMO, a logging demo with zero edges to any other member. Nothing on the row said so,
+// so the human ratified "these eight objects are one app" with no way to see that one of them touches none
+// of the others. The cohesion evidence now rides the decision it qualifies.
+test("a grouping decision carries the structural evidence it rests on", () => {
+  const ctx = mk();
+  const planned = ctx.run("plan", FIXTURE);
+  const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+  const nodes = loadPlan(planned.run_id, ctx.stateDir).nodes;
+  const gl = nodes.find((n) => (n.dependencies ?? []).length > 0);   // ZFICO_BTC_CSV_GL depends on the other two
+  const linked = nodes.find((n) => (gl.dependencies ?? []).includes(n.id));
+
+  const members = nodes.map((n) => n.id);
+  const shared = { services: [{ id: "SRV_X", members }] };
+  let cache = { entries: {} };
+  for (const n of nodes) {
+    const rec = { sig: n.id, target_shape: "rap_bo_headless", components: [], invariants: [], candidates: [{ id: "rap_bo_headless", score: 1 }], source: "judge", shared };
+    cache = putEntry(cache, factHash(n, cons), "opus", "ph1", rec);
+  }
+  writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
+  ctx.run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  const rows = manifestOf(ctx.runsDir, planned.run_id).rows;
+  const glGroup = rows.find((r) => r.sig === gl.id).groupings[0];
+  assert.equal(glGroup.evidence.linked_members, 2, `the hub of the group reaches both others: ${JSON.stringify(glGroup.evidence)}`);
+  assert.equal(glGroup.evidence.isolated, false);
+
+  const linkedGroup = rows.find((r) => r.sig === linked.id).groupings[0];
+  assert.equal(linkedGroup.evidence.linked_members, 1);
+  assert.match(linkedGroup.options.find((o) => o.recommended).rationale, /structurally connected to 1/);
 });
