@@ -90,3 +90,41 @@ test("checkBlueprint FAILS when an object's shared_ref points to no declared sha
   assert.equal(res.ok, false);
   assert.ok(res.violations.some((v) => /svc_phantom/.test(v)));
 });
+
+// H-3b (independent ARCH_REVIEW, TALV 2026-08-10; CONFIRMED). The real TALV manifest enrolled ZFUNG_TALV in
+// APP_TABLE_MAINTENANCE — a Fiori app — while freezing it as `rap_bo_headless`. A headless BO has no
+// service binding and no metadata extension, so the app it is a member of cannot render it: the blueprint
+// asserted an application that could not be built. checkBlueprint passed it, because tiers 1-4 grade
+// referential integrity only — every ref resolved, so an internally CONTRADICTORY blueprint read as
+// consistent.
+//
+// UI-capability is read from the corpus (a shape whose components include `metadata_ext`), not from a
+// hardcoded id list, so a new UI pattern is covered the day it is added.
+test("checkBlueprint FAILS when a Fiori app enrols a member whose shape has no UI", () => {
+  const bp = buildAppBlueprint(verdict({
+    assignments: [{ sig: "sigA", target_shape: "rap_bo_fiori" }, { sig: "sigB", target_shape: "rap_bo_headless" }],
+    shared: { services: [], projections: [], fiori_apps: [{ id: "app_maint", members: ["sigA", "sigB"] }] },
+  }));
+  const res = checkBlueprint(bp);
+  assert.equal(res.ok, false);
+  assert.ok(
+    res.violations.some((v) => /sigB/.test(v) && /rap_bo_headless/.test(v) && /fiori|ui/i.test(v)),
+    `the incoherent membership must be named: ${JSON.stringify(res.violations)}`,
+  );
+});
+
+test("checkBlueprint passes a Fiori app whose members all have a UI-capable shape", () => {
+  const bp = buildAppBlueprint(verdict({
+    assignments: [{ sig: "sigA", target_shape: "rap_bo_fiori" }, { sig: "sigB", target_shape: "rap_bo_fiori" }],
+    shared: { services: [], projections: [], fiori_apps: [{ id: "app_maint", members: ["sigA", "sigB"] }] },
+  }));
+  assert.deepEqual(checkBlueprint(bp).violations, []);
+});
+
+test("a service or projection group does NOT require a UI shape — only a Fiori app does", () => {
+  const bp = buildAppBlueprint(verdict({
+    assignments: [{ sig: "sigA", target_shape: "rap_bo_odata" }, { sig: "sigB", target_shape: "rap_bo_headless" }],
+    shared: { services: [{ id: "svc_orders", members: ["sigA", "sigB"] }], projections: [], fiori_apps: [] },
+  }));
+  assert.deepEqual(checkBlueprint(bp).violations, [], "a headless BO behind a shared service is coherent");
+});

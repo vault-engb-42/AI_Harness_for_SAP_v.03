@@ -4,7 +4,8 @@
  *   1. every blueprint object appears in the object→pattern map, and the map references only real objects;
  *   2. every mapped shape (and every object.target_shape) is a corpus pattern, and the two agree;
  *   3. every cross-object shared-group member resolves to a blueprint object (no dangling ref);
- *   4. every object.shared_ref resolves to a declared shared group.
+ *   4. every object.shared_ref resolves to a declared shared group;
+ *   5. every member of a Fiori app has a UI-capable shape (one the app can actually render).
  * Returns all violations (not just the first), fail-closed by construction. Grades only — never mutates.
  */
 import { loadPatternCorpus } from "./patterns/match.js";
@@ -58,5 +59,29 @@ export function checkBlueprint(blueprint, corpus = loadPatternCorpus()) {
     }
   }
 
+  // 5. a Fiori app's members must have a shape that can BE a Fiori app. Tiers 1-4 grade referential
+  // integrity: every ref resolved, so a blueprint that enrolled a headless BO — no service binding, no
+  // metadata extension, nothing to render — in a Fiori app read as consistent while describing an
+  // application that could not be built. TALV's APP_TABLE_MAINTENANCE shipped exactly that.
+  for (const g of blueprint.shared?.fiori_apps ?? []) {
+    for (const member of g.members ?? []) {
+      const shape = map[member];
+      if (shape === undefined || !patternIds.has(shape)) continue; // already reported by tier 1/2
+      if (!uiCapable(shape, corpus)) {
+        violations.push(`fiori app '${g.id}' enrols '${member}' whose shape '${shape}' has no UI — it cannot be rendered by the app it is a member of`);
+      }
+    }
+  }
+
   return { ok: violations.length === 0, violations };
+}
+
+/**
+ * Can this shape BE part of a Fiori app? Read from the corpus rather than a hardcoded id list, so a UI
+ * pattern added tomorrow is covered the day it lands: a Fiori Elements UI is exactly what a `metadata_ext`
+ * component is for (the annotations the app renders from).
+ */
+function uiCapable(shape, corpus) {
+  const pattern = corpus.patterns.find((p) => p.id === shape);
+  return (pattern?.components ?? []).includes("metadata_ext");
 }
