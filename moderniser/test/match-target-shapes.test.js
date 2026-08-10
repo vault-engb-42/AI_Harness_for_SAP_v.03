@@ -104,3 +104,37 @@ test("INTEGRATION abap_fico: the real node's fact stream → exactly [rap_bo_hea
     assert.ok(!out.some((c) => c.id === "rap_bo_fiori" || c.id === "rap_bo_odata"), "a batch/file BO stays headless — no service/metadata shape");
   }
 });
+
+// The failure mode the reachability + absence work exists to close: `rap_bo_headless` matched on
+// `none: [ui_*, remote_*]`, so an object the detector could not read scored identically to one proven to
+// have no surface. On TALV that produced 23 headless nodes for an interactive ALV table-maintenance
+// framework, 20 of them recorded by the matcher with no judge involved. Now that silence is expressible,
+// the pattern can refuse it: headless is a claim about evidence, not about quiet.
+test("headless is NOT offered for an object the detector could not read", () => {
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: [], driving_rule_ids: [],
+    disposition_hints: [], disposition: "re_architect", consumption: ["no_surface_evidence"],
+    modernization_target: "RAP Business Object",
+    member_summary: { members: 1, worst_grade: "unknown", max_complexity: 0, total_blast: 0 },
+    dependency_count: 0,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(
+    !ids.includes("rap_bo_headless"),
+    `silence must not select a shape: ${JSON.stringify(ids)}`,
+  );
+});
+
+test("headless IS still offered when the evidence positively shows no surface", () => {
+  // A batch report with a real, read consumption surface and no UI/remote facts is genuinely headless —
+  // the guard must reject silence, not reject headless.
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: ["performance"], driving_rule_ids: [],
+    disposition_hints: [], disposition: "re_architect", consumption: ["batch_report"],
+    modernization_target: "RAP Business Object",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 },
+    dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(ids.includes("rap_bo_headless"), `evidenced headless must still match: ${JSON.stringify(ids)}`);
+});

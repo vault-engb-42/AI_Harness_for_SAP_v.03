@@ -56,11 +56,26 @@ export function reasonArchitecture(node, fact, candidates, cache = {}, opts = {}
   }
   const fact_hash = hashFactStream(fact);
 
+  // No candidate at all is NOT a judge question. The request would carry an empty `candidates` list, the
+  // judge is bound to select from it, and the only remaining answer — `other` — is refused by
+  // `freezeJudgeSelection` ("add it to the patterns corpus first"). So the node used to rest at
+  // await_human/arch_ratification offering the human no shape to ratify: a gate nobody could clear.
+  //
+  // It became reachable the moment `rap_bo_headless` stopped matching on silence. That is the honest
+  // outcome, not a regression: 11 of TALV's 24 arch-gated nodes have no consumption evidence at all, and
+  // the harness cannot justify a target shape for them. Saying so is the point — the alternative is the
+  // silent headless BO this whole arc removed. The human resolves it by re-DISPOSITIONING the node
+  // (`decide … override:<disposition>` → `replan`), not by inventing a shape.
+  if ((candidates ?? []).length === 0) {
+    return {
+      status: "no_shape",
+      fact_hash,
+      reason: "no target shape fits this object's evidence — re-disposition it (seal/retire/refactor) rather than inventing a shape",
+    };
+  }
+
   if (!needsReasoning(node, candidates, opts)) {
-    const top = candidates?.[0];
-    // No candidate at all is not a deterministic answer — the judge must make a bespoke / other call.
-    if (!top) return { status: "await_arch", fact_hash, request: buildRequest(node, fact, candidates, fact_hash, opts) };
-    return { status: "deterministic", fact_hash, recommendation: recommend(node, top, candidates, "deterministic") };
+    return { status: "deterministic", fact_hash, recommendation: recommend(node, candidates[0], candidates, "deterministic") };
   }
 
   const key = entryKey(fact_hash, opts.model_id, opts.prompt_hash);

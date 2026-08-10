@@ -125,12 +125,18 @@ test("reasonArchitecture: a cache entry under a DIFFERENT model_id/prompt_hash i
   assert.equal(reasonArchitecture(n, f, [cand("rap_bo_headless")], cache, { model_id: "sonnet", prompt_hash: "ph1" }).status, "await_arch", "model drift → miss");
 });
 
-test("reasonArchitecture: escalated with NO candidate → 'await_arch' (a bespoke/other decision the judge must make)", () => {
-  const n = node({ disposition_confidence: 0.7 });
-  const res = reasonArchitecture(n, factStream(n, {}), [], {}, { model_id: "m", prompt_hash: "p" });
-  assert.equal(res.status, "await_arch");
+test("reasonArchitecture: NO candidate → 'no_shape', because the judge route is a dead end", () => {
+  // This test used to assert `await_arch` — "a bespoke/other decision the judge must make". That route
+  // cannot complete: the request carries an empty `candidates` list, the judge is bound to select from it,
+  // and its only remaining answer `other` passes validateSelection but then throws in freezeJudgeSelection
+  // ("cannot be frozen — add it to the patterns corpus first"). So the node rested at
+  // await_human/arch_ratification with no shape any human could ratify. The intent was sound; the mechanism
+  // to deliver it was never built. `no_shape` says the true thing instead, and routes the human to
+  // re-disposition the object rather than to invent a shape.
+  const res = reasonArchitecture({ id: "s1", disposition: "re_architect" }, { object_kind: "class" }, [], {}, {});
+  assert.equal(res.status, "no_shape");
+  assert.ok(!res.request, "no judge request — there is nothing to choose from");
 });
-
 test("the await_arch request never carries the node sig into the fact (P8: the prompt is built from request.fact only)", () => {
   const n = node({ id: "sig-CUSTOMER-DERIVED", disposition_confidence: 0.7 });
   const res = reasonArchitecture(n, factStream(n, {}), [cand("rap_bo_headless")], {}, { model_id: "m", prompt_hash: "p" });
@@ -164,4 +170,32 @@ test("INTEGRATION abap_fico: each re_architect node escalates to the judge (conf
     assert.equal(res.status, "await_arch", "a 0.7–0.85-confidence coarse classification is escalated, not rubber-stamped");
     assert.equal(res.request.candidates[0].id, "rap_bo_headless", "the judge is offered the structural headless candidate");
   }
+});
+
+// An object whose facts justify NO shape is not a judge question — the judge would be handed an empty
+// candidate list, could only answer "other", and `freezeJudgeSelection` refuses that ("add it to the
+// patterns corpus first"). Before this, such a node sat at await_human/arch_ratification with no shape any
+// human could pick: a gate nobody can clear. It surfaced the moment `rap_bo_headless` stopped accepting
+// silence — 11 of TALV's 24 arch-gated nodes land here, which is the honest count of objects the harness
+// cannot place, and it must READ as that rather than as a pending judgment.
+test("a node no shape fits is reported as unplaceable, not sent to the judge with nothing to choose", () => {
+  const node = { id: "sig-unplaceable", disposition: "re_architect" };
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: [], driving_rule_ids: [],
+    disposition_hints: [], disposition: "re_architect", consumption: ["no_surface_evidence"],
+    modernization_target: "RAP Business Object",
+    member_summary: { members: 1, worst_grade: "unknown", max_complexity: 0, total_blast: 0 },
+    dependency_count: 0,
+  };
+  const res = reasonArchitecture(node, fact, [], {}, {});
+  assert.equal(res.status, "no_shape", `got ${res.status}`);
+  assert.ok(res.reason && /shape|evidence|place/i.test(res.reason), `it must say why: ${res.reason}`);
+  assert.ok(!res.request, "no judge request is issued — there is nothing to select from");
+});
+
+test("a node WITH candidates still escalates to the judge as before", () => {
+  const node = { id: "sig-normal", disposition: "re_architect" };
+  const fact = { object_kind: "class", consumption: ["ui_salv"], disposition: "re_architect" };
+  const res = reasonArchitecture(node, fact, [{ id: "rap_bo_fiori", score: 3 }], {}, {});
+  assert.notEqual(res.status, "no_shape", "a placeable node must not be diverted");
 });

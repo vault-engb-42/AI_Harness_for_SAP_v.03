@@ -50,11 +50,11 @@ export function cmdArch(io, pos, flags) {
   const opts = { model_id: flags.model ?? null, prompt_hash: flags["prompt-hash"] ?? defaultPromptHash() };
   const cacheLookup = toLookup(readArchVerdictCache(io));
 
-  const { resolved, pending } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
+  const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
   const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
   const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state);
 
-  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, shared: blueprint.shared };
+  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
   saveState(io, runId, nextState); // state BEFORE escalations: a crash residue leaves a bound-but-unraised node, healed on re-run
   // Raise ONLY for contracts that still need a human (G). A re-run preserves the ratification of an
@@ -64,12 +64,15 @@ export function cmdArch(io, pos, flags) {
   // promise the lane makes: re-ratify exactly what changed.
   const unratified = { rows: rows.filter((r) => !isArchRatified(nextState, r.sig)) };
   saveEscalations(io, raiseArchReviews(readEscalations(io), unratified, { ts: new Date().toISOString() }));
-  log(io, runId, "arch", { resolved: rows.length, pending: pending.length });
+  log(io, runId, "arch", { resolved: rows.length, pending: pending.length, unplaceable: unplaceable.length });
   return {
     run_id: runId,
     resolved: rows.length,
     pending: pending.length,
     rows: rows.map((r) => ({ sig: r.sig, target_shape: r.target_shape, contract_hash: r.arch_contract_hash })),
+    // Objects no target shape fits. Neither resolved nor pending, so they must be named here or they leave
+    // no trace at all — the silent disappearance this whole arc exists to stop.
+    unplaceable,
   };
 }
 
@@ -142,6 +145,10 @@ function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
   return {
     resolved: entries.filter((e) => isResolved(e.res)).map((e) => ({ node: e.node, recommendation: e.res.recommendation })),
     pending: entries.filter((e) => e.res.status === "await_arch").map((e) => e.res.request), // the P8 requests the fulfiller judges
+    // Nodes no target shape fits. They are neither resolved nor pending, so without this they would vanish
+    // from the manifest entirely — the same silent-disappearance this arc exists to stop. The human
+    // re-dispositions them (`decide … override:<disposition>` → `replan`); they are not a judge question.
+    unplaceable: entries.filter((e) => e.res.status === "no_shape").map((e) => ({ sig: e.node.id, reason: e.res.reason })),
   };
 }
 
