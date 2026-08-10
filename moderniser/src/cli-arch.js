@@ -219,14 +219,14 @@ function freezeContracts(io, runId, resolved, std, corpus, state, blueprint) {
       // human reads at the ratification gate. Absent means `deterministic` (the matcher decided alone,
       // no verdict was ever recorded).
       judged_by: recommendation.judged_by ?? null,
-      // The APP-LEVEL decision, offered rather than assumed. "These objects become ONE Fiori app" is the
+      // The APP-LEVEL decisions, offered rather than assumed. "These objects become ONE Fiori app" is the
       // largest architectural call a run makes, and it used to reach the manifest unreviewed: checkBlueprint
       // proves the blueprint is internally CONSISTENT, never that a human agreed to it. The human ratified
-      // each object's shape without being shown what it was grouped WITH. Now it rides the row they are
-      // already ratifying, in the same recommended + alternatives + freeform shape the target-shape decision
-      // uses, so it can be validated or overridden. `null` when the object joins nothing — a headless BO
-      // shares nothing by definition, and manufacturing a question there would be noise.
-      grouping: groupingDecision(node.id, blueprint),
+      // each object's shape without being shown what it was grouped WITH. Now every membership rides the row
+      // they are already ratifying, in the same recommended + alternatives + freeform shape the target-shape
+      // decision uses, so each can be validated or overridden. Empty when the object joins nothing — a
+      // headless BO shares nothing by definition, and manufacturing a question there would be noise.
+      groupings: groupingDecision(node.id, blueprint),
       fit_to_standard: fitToStandardAdvisory(node, std),
       options: archOptions(recommendation),
     });
@@ -247,20 +247,26 @@ function rebind(state, sig, ref, hash) {
 }
 
 /**
- * The grouping decision for one object: which cross-object group the judge put it in, with the honest
- * alternatives. `null` when it belongs to none — there is no decision to take, and inventing one would train
- * the human to click through empty gates.
+ * EVERY cross-object group one object was put in, each as its own decidable option. Empty when it belongs to
+ * none — there is no decision to take, and inventing one would train the human to click through empty gates.
  *
- * Shaped like every other operator prompt in the harness: one recommendation, a real alternative, and an
- * operator-specified escape. Standing alone is always a genuine alternative — grouping is a judgement about
- * application intent, and co-membership is the judge's claim, not a proven fact.
+ * Returning only the FIRST match hid the decision this row exists to surface. `mergeShared` builds `shared`
+ * in the order services → projections → fiori_apps, and on TALV every member of the Fiori app is also a
+ * member of its OData service — so "these objects become ONE Fiori app", the largest architectural call the
+ * run makes, appeared on zero rows while the service membership stood in for it. The memberships are
+ * independent claims and each is separately ratifiable, so the object carries all of them.
+ *
+ * Each is shaped like every other operator prompt in the harness: one recommendation, a real alternative, and
+ * an operator-specified escape. Standing alone is always a genuine alternative — grouping is a judgement
+ * about application intent, and co-membership is the judge's claim, not a proven fact.
  */
 export function groupingDecision(sig, blueprint) {
+  const decisions = [];
   for (const [kind, groups] of Object.entries(blueprint?.shared ?? {})) {
     for (const g of groups ?? []) {
       if (!(g.members ?? []).includes(sig)) continue;
       const others = (g.members ?? []).filter((m) => m !== sig).length;
-      return {
+      decisions.push({
         kind,
         id: g.id,
         members: g.members,
@@ -269,10 +275,10 @@ export function groupingDecision(sig, blueprint) {
           [{ group: "standalone", rationale: "keep this object on its own — the grouping is a claim about application intent, not a fact" }],
           { labelField: "group", isValid: (v) => typeof v === "string" && v.length > 0 },
         ),
-      };
+      });
     }
   }
-  return null;
+  return decisions;
 }
 
 /** The prompt-options for a row: buildPromptOptions when a competing shape exists, else an honest 2-option set. */

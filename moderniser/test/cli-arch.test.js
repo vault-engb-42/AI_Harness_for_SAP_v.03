@@ -756,8 +756,9 @@ test("a resolved arch row names WHO selected its shape, not merely that it came 
 // observed. An object in no group has no grouping decision to make and carries none.
 test("a grouped object shows its grouping as a decidable option, not as a fait accompli", () => {
   const blueprint = { shared: { fiori_apps: [{ id: "APP_MAINT", members: ["sigA", "sigB", "sigC"] }] } };
-  const d = groupingDecision("sigA", blueprint);
-  assert.ok(d, "a grouped object carries its grouping decision");
+  const decisions = groupingDecision("sigA", blueprint);
+  assert.equal(decisions.length, 1, "a grouped object carries its grouping decision");
+  const d = decisions[0];
   assert.equal(d.kind, "fiori_apps");
   assert.equal(d.id, "APP_MAINT");
   const rec = d.options.find((o) => o.recommended);
@@ -769,7 +770,52 @@ test("a grouped object shows its grouping as a decidable option, not as a fait a
 
 test("an ungrouped object carries no grouping decision — nothing to validate", () => {
   const blueprint = { shared: { fiori_apps: [{ id: "APP_MAINT", members: ["sigB"] }], services: [], projections: [] } };
-  assert.equal(groupingDecision("sigA", blueprint), null, "do not manufacture a question for an object that joins nothing");
-  assert.equal(groupingDecision("sigA", { shared: {} }), null);
-  assert.equal(groupingDecision("sigA", {}), null, "an absent blueprint is not a decision either");
+  assert.deepEqual(groupingDecision("sigA", blueprint), [], "do not manufacture a question for an object that joins nothing");
+  assert.deepEqual(groupingDecision("sigA", { shared: {} }), []);
+  assert.deepEqual(groupingDecision("sigA", {}), [], "an absent blueprint is not a decision either");
+});
+
+// H-2 — the decision the grouping work exists to surface was the one it hid. `groupingDecision` returned on
+// the FIRST group it matched, and `mergeShared`/`normalizeShared` order `services` before `fiori_apps`, so an
+// object fronted by an OData service AND enrolled in a Fiori app showed only the service. On TALV every
+// APP_TABLE_MAINTENANCE member is also a service member, so "these objects become ONE Fiori app" — the
+// largest architectural call the run makes, and the entire point of the row — appeared on zero rows.
+//
+// Memberships are independent claims: being in a service says nothing about being in an app, and each is
+// separately ratifiable. So every group the object belongs to is a decision, and the object carries all of
+// them.
+test("an object in two groups shows BOTH decisions — a service must not swallow the Fiori app", () => {
+  const blueprint = { shared: {
+    services: [{ id: "SRV_X", members: ["sigA", "sigB"] }],
+    fiori_apps: [{ id: "APP_MAINT", members: ["sigA", "sigC"] }],
+  } };
+  const decisions = groupingDecision("sigA", blueprint);
+  assert.deepEqual(
+    decisions.map((d) => `${d.kind}:${d.id}`).sort(),
+    ["fiori_apps:APP_MAINT", "services:SRV_X"],
+    `every membership is separately ratifiable: ${JSON.stringify(decisions)}`,
+  );
+  for (const d of decisions) {
+    assert.ok(d.options.some((o) => o.recommended), `${d.id} owes a recommendation`);
+    assert.ok(d.options.some((o) => /standalone/i.test(o.group)), `${d.id} owes a standalone alternative`);
+  }
+});
+
+test("the manifest row carries every grouping the object joins", () => {
+  const ctx = mk();
+  const planned = ctx.run("plan", FIXTURE, "--package", "ZFICO");
+  const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+  const target = loadPlan(planned.run_id, ctx.stateDir).nodes[0];
+  seedCache(ctx.stateDir, target, cons, {
+    model: "opus", promptHash: "ph1",
+    shared: { services: [{ id: "SRV_X", members: [target.id] }], fiori_apps: [{ id: "APP_X", members: [target.id] }] },
+  });
+  ctx.run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  const row = manifestOf(ctx.runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
+  assert.deepEqual(
+    (row.groupings ?? []).map((g) => `${g.kind}:${g.id}`).sort(),
+    ["fiori_apps:APP_X", "services:SRV_X"],
+    `both memberships reach the row the human ratifies: ${JSON.stringify(row.groupings)}`,
+  );
 });
