@@ -17,7 +17,8 @@
           "consumption:remote_rfc",
           "consumption:remote_bapi",
           "consumption:remote_idoc",
-          "consumption:no_surface_evidence"
+          "consumption:no_surface_evidence",
+          "consumption:classic_api_surface"
         ]
       },
       "components": [

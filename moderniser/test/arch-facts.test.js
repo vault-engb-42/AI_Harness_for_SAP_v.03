@@ -13,13 +13,13 @@ import { factStream, factHash } from "../src/plan/arch-facts.js";
 // consumptionFacts — the CPG consumption detector (S11)
 // ---------------------------------------------------------------------------
 
-test("CONSUMPTION_FACTS is the closed, sorted 8-value enum", () => {
+test("CONSUMPTION_FACTS is the closed, sorted 9-value enum", () => {
   // `no_surface_evidence` joined the enum rather than sitting outside it. It reaches the judge's prompt
   // exactly like every other fact, so it must satisfy the same P8 injection-closure; an absence marker that
   // bypassed the closed vocabulary would be the one free-form string able to escape this module.
   assert.deepEqual(CONSUMPTION_FACTS, [
-    "batch_report", "no_surface_evidence", "remote_bapi", "remote_idoc", "remote_rfc",
-    "ui_dynpro", "ui_frontend", "ui_salv",
+    "batch_report", "classic_api_surface", "no_surface_evidence", "remote_bapi", "remote_idoc",
+    "remote_rfc", "ui_dynpro", "ui_frontend", "ui_salv",
   ]);
   assert.deepEqual([...CONSUMPTION_FACTS].sort(), CONSUMPTION_FACTS, "the enum stays sorted");
 });

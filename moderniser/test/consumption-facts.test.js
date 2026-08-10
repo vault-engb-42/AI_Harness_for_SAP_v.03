@@ -209,3 +209,36 @@ test("no_surface_evidence is never emitted alongside a real fact", () => {
   assert.ok(out.ZCL_X.includes("ui_salv"));
   assert.ok(!out.ZCL_X.includes("no_surface_evidence"), "evidence and its absence are mutually exclusive");
 });
+
+// ---------------------------------------------------------------------------------------------------
+// ORACLE SAFETY NET (TALV arch-review, MEDIUM). The construct vocabulary is six hand-written regexes, so it
+// misses classic SAP GUI classes nobody thought to list: CL_DD_DOCUMENT, CL_GUI_SPLITTER_CONTAINER,
+// CL_DEMO_OUTPUT, CL_GUI_CFW, CL_GUI_TIMER all appear in TALV and match nothing. A hand-maintained list
+// will always lag; the harness already ships a SHA-pinned registry that answers "is this a classic SAP API
+// with no Cloud successor?" — so an unrecognised callee is checked against it rather than dropped.
+//
+// It is a NET, not a replacement. The oracle returns `classicAPI` for CL_GUI_ALV_GRID and
+// CL_GUI_FRONTEND_SERVICES alike, so it cannot tell ui_salv from ui_frontend — and that distinction drives
+// shape selection. The specific patterns keep their precedence; the oracle only catches what falls through,
+// turning silence into a stated, if coarser, fact.
+// Measured: 5 recoveries on TALV, 0 on equalize-idoc — precise, not a flood.
+
+test("a classic SAP API the patterns never listed is still recorded as a surface", () => {
+  for (const target of ["CL_DD_DOCUMENT", "CL_GUI_SPLITTER_CONTAINER", "CL_DEMO_OUTPUT", "CL_GUI_CFW"]) {
+    const out = consumptionFacts(graph([{ source: "ZCL_X", target: `${target}.RUN`, kind: "call-method" }]));
+    assert.deepEqual(out.ZCL_X, ["classic_api_surface"], `${target} is a classic API, not silence`);
+  }
+});
+
+test("the specific patterns keep precedence over the oracle net", () => {
+  // Both are classicAPI to the registry; only the pattern knows one is a grid and the other a file dialog.
+  const salv = consumptionFacts(graph([{ source: "ZCL_A", target: "CL_GUI_ALV_GRID.SET_TABLE", kind: "call-method" }]));
+  assert.deepEqual(salv.ZCL_A, ["ui_salv"], "a grid stays ui_salv, not the coarse fallback");
+  const front = consumptionFacts(graph([{ source: "ZCL_B", target: "CL_GUI_FRONTEND_SERVICES.FILE_OPEN", kind: "call-method" }]));
+  assert.deepEqual(front.ZCL_B, ["ui_frontend"], "a frontend service stays ui_frontend");
+});
+
+test("a customer object is not a classic API — the net does not fire on Z-code", () => {
+  const out = consumptionFacts(graph([{ source: "ZCL_X", target: "ZCL_GUI_ALV_GRID.FREE", kind: "call-method" }]));
+  assert.ok(!out.ZCL_X.includes("classic_api_surface"), `Z-code is not SAP's API: ${JSON.stringify(out)}`);
+});

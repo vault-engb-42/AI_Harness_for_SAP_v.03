@@ -12,14 +12,16 @@
  * an unrecognised construct emits NOTHING (no free-form string ever escapes this module).
  */
 
+import { classifyName } from "../../../oracle/src/oracle.js";
+
 /**
  * The closed, sorted consumption-fact enum. `no_surface_evidence` is a MEMBER, not an escape hatch: it is
  * the explicit statement that the detector found nothing, and it must satisfy the same P8 injection-closure
  * as every other fact because it reaches the judge's prompt exactly like they do.
  */
 export const CONSUMPTION_FACTS = [
-  "batch_report", "no_surface_evidence", "remote_bapi", "remote_idoc", "remote_rfc",
-  "ui_dynpro", "ui_frontend", "ui_salv",
+  "batch_report", "classic_api_surface", "no_surface_evidence", "remote_bapi", "remote_idoc",
+  "remote_rfc", "ui_dynpro", "ui_frontend", "ui_salv",
 ];
 
 // Construct-name → consumption fact, ordered by specificity (IDoc before BAPI before RFC so a
@@ -190,10 +192,39 @@ function ownerOfNode(n) {
   return n.object || ownerOf(n.id);
 }
 
-/** Map a CPG construct target → a closed consumption fact, or null. An explicit CALL-FUNCTION DESTINATION is a remote RFC. */
+/**
+ * Map a CPG construct target → a closed consumption fact, or null. An explicit CALL-FUNCTION DESTINATION is
+ * a remote RFC.
+ *
+ * The ORACLE NET runs last. Six hand-written patterns cannot keep up with SAP's classic surface —
+ * CL_DD_DOCUMENT, CL_GUI_SPLITTER_CONTAINER, CL_DEMO_OUTPUT, CL_GUI_CFW and CL_GUI_TIMER all appear in the
+ * TALV corpus and match none of them — and a list that lags is a detector that reports silence. The harness
+ * already ships a SHA-pinned registry that answers "is this a classic SAP API with no Cloud successor?", so
+ * an unrecognised callee is asked rather than dropped.
+ *
+ * It is deliberately a NET and not a replacement: the registry returns `classicAPI` for CL_GUI_ALV_GRID and
+ * CL_GUI_FRONTEND_SERVICES alike, so it cannot tell a grid from a file dialog, and that distinction is what
+ * selects rap_bo_fiori. The specific patterns therefore keep precedence, and the net contributes only the
+ * coarser `classic_api_surface` for what falls through. Measured: 5 recoveries on TALV, 0 on equalize-idoc.
+ */
 function classifyConstruct(target, edge) {
   const T = String(target ?? "").toUpperCase();
   for (const [fact, re] of CONSTRUCT_PATTERNS) if (re.test(T)) return fact;
   if (edge && edge.destination) return "remote_rfc"; // a DESTINATION on any CALL FUNCTION is a remote call
-  return null;
+  return classicApiSurface(T);
+}
+
+/**
+ * The oracle net: an SAP-owned classic API that no pattern named. Customer code (Z- or Y-named) is absent from the
+ * registry and returns nothing, so this never fires on the corpus's own objects.
+ *
+ * The registry lookup is deterministic and offline (engine-direct per docs/OFFLINE_PIPELINE.md), so this
+ * module stays reproducible from the frozen doc — but it is no longer free of module state, and the fact
+ * hash covers its output, so a registry bump is a fact-stream change by design.
+ */
+function classicApiSurface(upperTarget) {
+  const bare = upperTarget.split(".")[0];
+  if (!bare) return null;
+  const verdict = classifyName(bare);
+  return verdict && verdict.state === "classicAPI" ? "classic_api_surface" : null;
 }
