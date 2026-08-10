@@ -129,6 +129,11 @@ export function freezeJudgeSelection(node, selection, candidates) {
     throw new Error(`arch-reason: '${selection.target_shape}' cannot be frozen — add it to the patterns corpus first (grow the corpus, not the code)`);
   }
   const rec = recommend(node, chosen, candidates, "judge");
+  // WHY, carried with WHAT. The prompt has always required a rationale and the seam dropped it, so the human
+  // ratifying by exception was shown `judged_by` and nothing else — who decided, never why. The reason and
+  // the judge's own confidence grade are the triage signal that makes ratify-by-exception possible.
+  if (selection.rationale) rec.rationale = selection.rationale;
+  if (selection.confidence) rec.confidence = selection.confidence;
   // The judge reasons at the APP level first (§6.13 two-level): its optional cross-object grouping — one
   // OData service fronting several BOs, a shared projection, screens collapsed into one Fiori app — rides
   // the recommendation so cmdArch can assemble the app verdict the blueprint conformance tier checks.

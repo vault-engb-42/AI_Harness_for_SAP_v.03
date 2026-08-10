@@ -34,6 +34,8 @@ export function cmdArchVerdict(io, pos, flags) {
   const doc = readVerifiedDoc(docPath ?? flags.findings, state, "arch-verdict");
   if (typeof flags.by !== "string" || !flags.by) throw new Error("arch-verdict: --by <judge> is required (the named judge whose selection this is)");
   if (typeof flags.shape !== "string" || !flags.shape) throw new Error("arch-verdict: --shape <target_shape> is required");
+  const rationale = validateRationale(flags.rationale);
+  const confidence = validateConfidence(flags.confidence);
   const node = plan.nodes.find((n) => n.id === sig);
   if (!node) throw new Error(`arch-verdict: unknown node ${sig}`);
   if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) {
@@ -45,7 +47,7 @@ export function cmdArchVerdict(io, pos, flags) {
   // — the cross-object half of the two-level judgment, which the blueprint conformance tier checks. It is
   // UNTRUSTED fulfiller input that gets frozen into the cross-run cache, so it is validated here (F).
   const shared = flags["shared-json"] ? validateShared(JSON.parse(readFileSync(flags["shared-json"], "utf8")), plan) : undefined;
-  const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape, shared }, matchTargetShapes(fact, corpus));
+  const recommendation = freezeJudgeSelection(node, { target_shape: flags.shape, shared, rationale, confidence }, matchTargetShapes(fact, corpus));
   const model_id = flags.model ?? null;
   const prompt_hash = flags["prompt-hash"] ?? defaultPromptHash();
   const fact_hash = hashFactStream(fact);
@@ -56,6 +58,40 @@ export function cmdArchVerdict(io, pos, flags) {
 }
 
 const SHARED_KINDS = ["services", "projections", "fiori_apps"];
+
+/** The closed confidence vocabulary. A grade outside it is a fulfiller error, not a new grade. */
+const CONFIDENCE_GRADES = new Set(["high", "medium", "low"]);
+/** Enough for the 1–3 sentences the prompt asks for; a wall of text in a gate row is not a reason. */
+const RATIONALE_MAX = 600;
+
+/**
+ * The judge's REASON, required (H-5). The prompt has always demanded "1-3 sentences grounded in the FACTS"
+ * and the seam discarded it, so the ratification row named who decided and never why — and `options[]`
+ * showed the literal string "judge" where a rationale belonged. A verdict nobody will justify is not an
+ * audit trail, which is the same reason `--by` is required.
+ *
+ * It is untrusted fulfiller output that gets frozen into the CROSS-RUN cache and rendered into a gate the
+ * operator reads, so it is bounded and stripped of control characters here — at the boundary, once. It
+ * never re-enters a prompt: the fact stream remains the only model input (P8).
+ */
+function validateRationale(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error("arch-verdict: --rationale <why> is required — the human ratifies the REASON, not the fact that someone decided");
+  }
+  const clean = value.replace(/[\u0000-\u001F\u007F]/g, " ").trim();
+  if (clean.length > RATIONALE_MAX) {
+    throw new Error(`arch-verdict: --rationale is ${clean.length} chars, over the ${RATIONALE_MAX} limit — the prompt asks for 1-3 sentences`);
+  }
+  return clean;
+}
+
+/** The judge's own confidence, required and closed — the triage signal for ratify-by-exception. */
+function validateConfidence(value) {
+  if (!CONFIDENCE_GRADES.has(value)) {
+    throw new Error(`arch-verdict: --confidence must be one of ${[...CONFIDENCE_GRADES].join(" | ")} (got '${value ?? "∅"}')`);
+  }
+  return value;
+}
 
 /**
  * Validate the judge's cross-object grouping AT THE BOUNDARY, before anything is frozen (F).

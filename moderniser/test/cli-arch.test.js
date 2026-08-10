@@ -243,7 +243,7 @@ test("M2 arch fails CLOSED when the findings doc carries no source_hash/config_h
   // verifies against a run planned from ANY other. Identity must be positively established, not merely
   // "not mismatched".
   assert.throws(() => run("arch", planned.run_id, p, "--model", "opus", "--prompt-hash", "ph1"));
-  assert.throws(() => run("arch-verdict", planned.run_id, p, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j"));
+  assert.throws(() => run("arch-verdict", planned.run_id, p, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"));
 });
 
 test("arch requires a findings doc (positional or --findings)", () => {
@@ -262,7 +262,7 @@ test("H3 arch-verdict ingests a judge selection, and a following `arch` RESOLVES
   const pending = manifestOf(runsDir, planned.run_id).pending;
 
   // the fulfiller judged the FIRST pending request (P8: it only ever saw request.fact) and records it
-  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "judge-agent");
+  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "judge-agent", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium");
   assert.equal(ing.target_shape, "rap_bo_headless");
   assert.ok(ing.fact_hash, "the verdict is keyed on the P8 fact hash");
 
@@ -368,9 +368,9 @@ test("H3/M3 arch-verdict REFUSES a shape outside the offered candidates (validat
   run("arch", planned.run_id, FIXTURE);
   const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
   // rap_bo_fiori is a real corpus shape but is NOT among this node's structural candidates
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_fiori", "--by", "j"));
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_fiori", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"));
   // a shape outside the corpus entirely is refused too (a hallucinated/injected shape can never widen the vocabulary)
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "cap_side_by_side", "--by", "j"));
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "cap_side_by_side", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"));
 });
 
 test("H3 arch-verdict refuses the 'other' sentinel (a bespoke shape needs a corpus entry first) and an unknown sig", () => {
@@ -378,9 +378,9 @@ test("H3 arch-verdict refuses the 'other' sentinel (a bespoke shape needs a corp
   const planned = run("plan", FIXTURE);
   run("arch", planned.run_id, FIXTURE);
   const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "other", "--by", "j"), /corpus/i);
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j"));
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--by", "j"), /shape/i);
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "other", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"), /corpus/i);
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, "0".repeat(64), "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"));
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"), /shape/i);
 });
 
 // B (adversarial pass #2, CONFIRMED by probe): the verdict cache is keyed on (fact_hash, model_id,
@@ -395,11 +395,11 @@ test("B arch-verdict REFUSES a key that diverges from the outstanding request (s
   run("arch", planned.run_id, FIXTURE); // requests issued with model_id null + the committed prompt hash
   const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
   assert.throws(
-    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--model", "some-other-model"),
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--model", "some-other-model"),
     "a verdict judged under a different model than the request must not be silently frozen",
   );
   assert.throws(
-    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--prompt-hash", "not-the-committed-prompt"),
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--prompt-hash", "not-the-committed-prompt"),
     "a verdict judged under a different prompt must not be silently frozen",
   );
 });
@@ -409,7 +409,7 @@ test("B arch-verdict REFUSES a sig with no outstanding request (nothing asked fo
   const planned = run("plan", FIXTURE);
   const sig = loadPlan(planned.run_id, stateDir).nodes[0].id;
   // `arch` has never run, so no request exists for this node
-  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j"), /outstanding|request|arch/i);
+  assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"), /outstanding|request|arch/i);
 });
 
 test("B the matching key still records, and the recorded key equals the request's (the loop provably closes)", () => {
@@ -417,7 +417,7 @@ test("B the matching key still records, and the recorded key equals the request'
   const planned = run("plan", FIXTURE);
   run("arch", planned.run_id, FIXTURE, "--model", "opus-x", "--prompt-hash", "ph-x");
   const pending = manifestOf(runsDir, planned.run_id).pending[0];
-  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending.sig, "--shape", "rap_bo_headless", "--by", "j", "--model", "opus-x", "--prompt-hash", "ph-x");
+  const ing = run("arch-verdict", planned.run_id, FIXTURE, pending.sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--model", "opus-x", "--prompt-hash", "ph-x");
   assert.equal(ing.model_id, pending.model_id, "the verdict is recorded under the request's model");
   assert.equal(ing.prompt_hash, pending.prompt_hash, "…and the request's prompt hash");
   assert.equal(ing.fact_hash, pending.fact_hash, "…and the request's fact hash");
@@ -434,7 +434,7 @@ test("H3 arch-verdict requires a named judge and verifies the findings doc like 
   drifted.source_hash = "0".repeat(64);
   const p = join(base, "drift.json");
   writeFileSync(p, JSON.stringify(drifted));
-  assert.throws(() => run("arch-verdict", planned.run_id, p, sig, "--shape", "rap_bo_headless", "--by", "j"));
+  assert.throws(() => run("arch-verdict", planned.run_id, p, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"));
 });
 
 test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide approve → drive DISPATCHES (no deadlock)", () => {
@@ -444,7 +444,7 @@ test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide appr
 
   run("arch", planned.run_id, FIXTURE);
   for (const p of manifestOf(runsDir, planned.run_id).pending) {
-    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "judge-agent");
+    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "judge-agent", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium");
   }
   const resolved = run("arch", planned.run_id, FIXTURE);
   assert.equal(resolved.pending, 0, "every node is judged");
@@ -493,7 +493,7 @@ test("M4 the blueprint tier REFUSES a shared group naming a plan node that is no
   // That is the live path for checkBlueprint's cross-object checks: a group referencing an object the app
   // does not contain must block BEFORE any contract freezes.
   const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, pending[1].sig] }] });
-  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
+  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared);
 
   // The grouping must NOT freeze — that is M4's property, and it still holds. But it must not take the verb
   // down with it either (V1b): throwing here wrote no manifest, which left no pending request, which meant
@@ -527,7 +527,7 @@ test("M4b the judge's grouping may not name a member that can never be a bluepri
 
   const shared = writeShared(base, "shared-nongated.json", { services: [{ id: "SRV_Y", members: [pending[0].sig, victim.id] }] });
   assert.throws(
-    () => run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared),
+    () => run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared),
     /not an arch-gated plan node/,
     "refused at the writer, before it can reach the cross-run cache",
   );
@@ -546,7 +546,7 @@ test("F arch-verdict REFUSES a malformed shared grouping at the boundary (never 
   const bad = (name, doc) => {
     const p = join(base, name);
     writeFileSync(p, JSON.stringify(doc));
-    return () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", p);
+    return () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", p);
   };
   assert.throws(bad("s1.json", { services: 5 }), /shared/i, "a non-array group kind");
   assert.throws(bad("s2.json", { services: [{ members: ["x"] }] }), /shared/i, "a group with no id");
@@ -554,7 +554,7 @@ test("F arch-verdict REFUSES a malformed shared grouping at the boundary (never 
   assert.throws(bad("s4.json", { bogus_kind: [{ id: "S", members: [] }] }), /shared/i, "an unknown group kind");
   assert.throws(bad("s5.json", [1, 2, 3]), /shared/i, "the grouping must be an object");
   // and nothing was frozen: the gate still works for a well-formed verdict afterwards
-  const ok = run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j");
+  const ok = run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium");
   assert.equal(ok.target_shape, "rap_bo_headless", "the cache is uncorrupted — a valid verdict still records");
   assert.equal(run("arch", planned.run_id, FIXTURE).resolved, 1, "and `arch` is not wedged");
 });
@@ -567,7 +567,7 @@ test("F a shared group naming a member that is not a PLAN node is refused at the
   const p = join(base, "ghost.json");
   writeFileSync(p, JSON.stringify({ services: [{ id: "SRV", members: [sig, "f".repeat(64)] }] }));
   assert.throws(
-    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", p),
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", p),
     /not a plan node|member/i,
     "caught at the boundary against the PLAN, not later against the resolved subset",
   );
@@ -588,7 +588,7 @@ test("E per-node memberships UNION by label into one app-level group (the lane's
   // the judge put both objects under the same service label; the fulfiller passes each node's OWN sig only
   for (const p of pending.slice(0, 2)) {
     const f = writeShared(base, `grp-${p.sig.slice(0, 8)}.json`, { services: [{ id: "SRV_ORDER_MGMT", members: [p.sig] }] });
-    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", f);
+    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", f);
   }
   const out = run("arch", planned.run_id, FIXTURE);
   assert.equal(out.resolved, 2);
@@ -611,7 +611,7 @@ test("M4 a CONSISTENT shared group passes the tier and reaches the blueprint", (
   run("arch", planned.run_id, FIXTURE);
   const pending = manifestOf(runsDir, planned.run_id).pending;
   const shared = writeShared(base, "shared-ok.json", { services: [{ id: "SRV_OK", members: [pending[0].sig] }] });
-  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--shared-json", shared);
+  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared);
   const out = run("arch", planned.run_id, FIXTURE);
   assert.equal(out.resolved, 1, "a consistent grouping freezes normally");
   assert.deepEqual(manifestOf(runsDir, planned.run_id).shared.services, [{ id: "SRV_OK", members: [pending[0].sig] }], "the app-level grouping is carried into the manifest");
@@ -806,16 +806,79 @@ test("the manifest row carries every grouping the object joins", () => {
   const planned = ctx.run("plan", FIXTURE, "--package", "ZFICO");
   const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
   const target = loadPlan(planned.run_id, ctx.stateDir).nodes[0];
+  // A headless BO fronted by a shared service AND reusing a shared projection — two coherent memberships.
+  // (Not a fiori_app: conformance tier 5 correctly refuses to enrol a shape with no UI in one.)
   seedCache(ctx.stateDir, target, cons, {
     model: "opus", promptHash: "ph1",
-    shared: { services: [{ id: "SRV_X", members: [target.id] }], fiori_apps: [{ id: "APP_X", members: [target.id] }] },
+    shared: { services: [{ id: "SRV_X", members: [target.id] }], projections: [{ id: "PRJ_X", members: [target.id] }] },
   });
   ctx.run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
 
   const row = manifestOf(ctx.runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.deepEqual(
     (row.groupings ?? []).map((g) => `${g.kind}:${g.id}`).sort(),
-    ["fiori_apps:APP_X", "services:SRV_X"],
+    ["projections:PRJ_X", "services:SRV_X"],
     `both memberships reach the row the human ratifies: ${JSON.stringify(row.groupings)}`,
   );
+});
+
+// H-5 (independent ARCH_REVIEW, TALV 2026-08-10). The judge prompt has always REQUIRED a rationale
+// ("1-3 sentences grounded in the FACTS") and the write seam dropped it on the floor. The manifest recorded
+// `judged_by` and nothing else, so the human ratifying by exception saw WHO decided and never WHY — and the
+// row's own `options[].rationale` read literally "judge", which is the source, not a reason.
+//
+// The rationale and a confidence grade are what make ratify-by-exception possible: they are the triage
+// signal that says which of two dozen rows deserves the hard look. Both are now required at the seam, for
+// the same reason `--by` is: a verdict nobody will justify is not an audit trail.
+test("arch-verdict REFUSES a selection with no stated reason", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j"),
+    /rationale/i,
+    "a verdict with no reason is not an audit trail",
+  );
+});
+
+test("arch-verdict REFUSES a confidence outside the closed grade set", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "no surface", "--confidence", "pretty-sure"),
+    /confidence/i,
+  );
+});
+
+test("the judge's reason and confidence reach the row the human ratifies", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  const why = "the consumption facts are batch_report only, with no interactive or remote surface";
+  run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "judge-agent", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium",
+      "--rationale", why, "--confidence", "high");
+  run("arch", planned.run_id, FIXTURE);
+
+  const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === sig);
+  assert.equal(row.judged_by, "judge-agent");
+  assert.equal(row.judged_rationale, why, "the human must see WHY, not only who");
+  assert.equal(row.judged_confidence, "high");
+  const rec = row.options.find((o) => o.recommended);
+  assert.equal(rec.rationale, why, `the prompt option carries the reason, not the word 'judge': ${JSON.stringify(rec)}`);
+});
+
+test("a matcher-resolved row says so plainly — no rationale is invented for a decision no judge made", () => {
+  const { stateDir, runsDir, run } = mk();
+  const planned = run("plan", FIXTURE, "--package", "ZFICO");
+  const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  seedCache(stateDir, target, cons, { model: "opus", promptHash: "ph1" });
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
+  assert.equal(row.judged_rationale, null, "a cached entry with no recorded reason must not fabricate one");
+  assert.equal(row.judged_confidence, null);
 });

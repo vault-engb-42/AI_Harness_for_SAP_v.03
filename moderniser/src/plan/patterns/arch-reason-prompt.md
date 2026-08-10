@@ -48,12 +48,18 @@ CANDIDATES: <the ranked match.js candidates: id, name, components>
 {
   "target_shape": "<a candidate id, or 'other'>",
   "rationale": "<1–3 sentences grounded in the FACTS>",
+  "confidence": "high | medium | low",
   "grounded_apis": ["<released CDS/API names to be oracle-verified, or empty>"],
   "shared_groups": [
     { "kind": "services | projections | fiori_apps", "id": "<a stable label for the shared thing>" }
   ]
 }
 ```
+
+`rationale` and `confidence` are not decoration: a human ratifies these rows BY EXCEPTION, and they are the
+only thing that tells them which row to look at hardest. Both are recorded on the ratification row verbatim.
+Grade `low` when the FACTS are thin — an object with `no_surface_evidence` and nothing else is not a shape
+you can be confident about, and saying so is more useful than a confident guess.
 
 `shared_groups` is THIS object's membership in app-level shared structure — one OData service fronting
 several BOs, a projection reused across them, dynpro screens collapsing into one Fiori app. Name the group

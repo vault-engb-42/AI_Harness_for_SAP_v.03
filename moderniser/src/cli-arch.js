@@ -219,6 +219,12 @@ function freezeContracts(io, runId, resolved, std, corpus, state, blueprint) {
       // human reads at the ratification gate. Absent means `deterministic` (the matcher decided alone,
       // no verdict was ever recorded).
       judged_by: recommendation.judged_by ?? null,
+      // WHY, beside WHO. `judged_by` alone asked the human to ratify by exception against a field that
+      // names the decider and never the decision's reason — and the prompt has always required that reason.
+      // `null` on a matcher-resolved row: no judge reasoned about it, so inventing a rationale would be a
+      // fabricated confidence exactly like the ones this arc keeps finding.
+      judged_rationale: recommendation.rationale ?? null,
+      judged_confidence: recommendation.confidence ?? null,
       // The APP-LEVEL decisions, offered rather than assumed. "These objects become ONE Fiori app" is the
       // largest architectural call a run makes, and it used to reach the manifest unreviewed: checkBlueprint
       // proves the blueprint is internally CONSISTENT, never that a human agreed to it. The human ratified
@@ -286,19 +292,33 @@ function archOptions(recommendation) {
   const alts = (recommendation.candidates ?? [])
     .filter((c) => c.id !== recommendation.target_shape)
     .map((c) => ({ target_shape: c.id, rationale: `alternative shape (match score ${c.score})` }));
+  const why = recommendedRationale(recommendation);
   if (alts.length === 0) {
     // A single-candidate node has no competing shape — the operator's choice is approve | refine | reject,
     // so surface the sole shape + the freeform 'other' (refine) escape without the >= 3 buildPromptOptions rule.
     return [
-      { target_shape: recommendation.target_shape, recommended: true, rationale: recommendation.source ?? "sole grounded shape" },
+      { target_shape: recommendation.target_shape, recommended: true, rationale: why },
       { target_shape: "other", recommended: false, rationale: "operator-specified — refine or reject", freeform: true },
     ];
   }
   return buildPromptOptions(
-    { target_shape: recommendation.target_shape, rationale: recommendation.source ?? "recommended shape" },
+    { target_shape: recommendation.target_shape, rationale: why },
     alts,
     { labelField: "target_shape", isValid: (s) => PATTERN_IDS.includes(s) },
   );
+}
+
+/**
+ * The reason shown beside the recommended shape. It used to be `recommendation.source` — the literal string
+ * "judge" or "deterministic", which names the DECIDER in the field reserved for the decision's reason. The
+ * judge's own words are used when a judge reasoned about the node; a matcher-resolved row says plainly that
+ * no judge did.
+ */
+function recommendedRationale(recommendation) {
+  if (recommendation.rationale) return recommendation.rationale;
+  return recommendation.source === "judge"
+    ? "judge-selected (no rationale recorded — pre-dates the required --rationale seam)"
+    : "the deterministic matcher left exactly one grounded shape; no judge was asked";
 }
 
 /** The committed judge prompt's content hash — the default prompt_hash when the skill does not pin one. */
