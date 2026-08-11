@@ -162,6 +162,18 @@ function registryDomain(table) {
 /** The ABAP language runtime and its exception hierarchy — SAP-released, never an adoptable capability. */
 const LANGUAGE_RUNTIME = /^CL_ABAP_|^CX_/;
 
+/**
+ * SAP-delivered BUSINESS APIs recognised by naming convention rather than by registry lookup, because the
+ * registry does not carry them: BAPI_FIXEDASSET_CREATE1, BAPI_SALESORDER_CREATEFROMDAT2, BAPI_BATCH_CREATE
+ * and BAPI_OBJCL_CHANGE all return null from it. `BAPI_*` is SAP's delivered business-API surface and
+ * `IDOC_INPUT_*` / `IDOC_OUTPUT_*` its delivered ALE handlers, across the whole product — so an object
+ * whose substance is "call BAPI_FIXEDASSET_CREATE1 in a loop" or "wrap IDOC_INPUT_MBGMCR" is already
+ * delegating to a standard capability, which is exactly the fit-to-standard question. The customer
+ * namespace is excluded first, so a Z_BAPI_* lookalike never qualifies.
+ */
+const SAP_BUSINESS_API = /^(BAPI_|IDOC_INPUT_|IDOC_OUTPUT_|MASTER_IDOC_)/;
+const CUSTOMER_NAME = /^[ZY]|^\/[A-Z0-9_]+\//;
+
 export function standardCapabilitiesByObject(doc) {
   const byObject = new Map();
   for (const e of doc?.graph?.edges ?? []) {
@@ -169,8 +181,9 @@ export function standardCapabilitiesByObject(doc) {
     const owner = String(e.source ?? "").split(".")[0];
     const callee = String(e.target ?? "").toUpperCase().split(".")[0];
     if (!owner || !callee || callee === owner.toUpperCase()) continue;
-    if (LANGUAGE_RUNTIME.test(callee)) continue;
-    if (classifyName(callee)?.state !== "released") continue;
+    if (LANGUAGE_RUNTIME.test(callee) || CUSTOMER_NAME.test(callee)) continue;
+    const delivered = SAP_BUSINESS_API.test(callee) || classifyName(callee)?.state === "released";
+    if (!delivered) continue;
     if (!byObject.has(owner)) byObject.set(owner, new Set());
     byObject.get(owner).add(callee);
   }

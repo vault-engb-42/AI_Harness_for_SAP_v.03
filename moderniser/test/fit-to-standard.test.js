@@ -168,3 +168,43 @@ test("RC-3 a real released BUSINESS capability still registers", () => {
   const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCL_X", target: "CL_BALI_LOG.ADD_ITEM", kind: "call-method" }] } });
   assert.deepEqual(caps.ZCL_X, ["CL_BALI_LOG"], "the Application Log is exactly what fit-to-standard means");
 });
+
+// R5 (independent ARCH_REVIEW, 2026-08-11). Two flags across the corpora said the same thing: "the only
+// bespoke content is status re-labelling around SAP's delivered inbound FM; replace/adopt-standard was never
+// weighed", and for ZCREATE_ASSET "I_FixedAsset, I_CostCenter, I_CompanyCode all ground released, so the
+// replace fork was never honestly evaluated".
+//
+// The registry cannot make that link: BAPI_FIXEDASSET_CREATE1, BAPI_SALESORDER_CREATEFROMDAT2,
+// BAPI_BATCH_CREATE and BAPI_OBJCL_CHANGE all return null from it. But SAP's NAMING CONVENTION does — BAPI_*
+// is the delivered business-API surface and IDOC_INPUT_*/IDOC_OUTPUT_* the delivered ALE handlers. An object
+// whose substance is "call BAPI_FIXEDASSET_CREATE1 in a loop" is already delegating to a standard capability,
+// and that is precisely the fit-to-standard question, whether or not the registry carries the name.
+test("R5 a BAPI call is delegation to an SAP business capability", () => {
+  const caps = standardCapabilitiesByObject({ graph: { edges: [
+    { source: "ZCREATE_ASSET", target: "BAPI_FIXEDASSET_CREATE1", kind: "call-function" },
+  ] } });
+  assert.deepEqual(caps.ZCREATE_ASSET, ["BAPI_FIXEDASSET_CREATE1"], `the registry does not know it; the convention does: ${JSON.stringify(caps)}`);
+});
+
+test("R5 an SAP-delivered ALE handler is delegation too", () => {
+  for (const fm of ["IDOC_INPUT_MBGMCR", "IDOC_INPUT_SALESORDER_CREATEFR", "IDOC_OUTPUT_INVOIC"]) {
+    const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCL_X", target: fm, kind: "call-function" }] } });
+    assert.deepEqual(caps.ZCL_X, [fm], `${fm} is SAP's delivered inbound/outbound handler`);
+  }
+});
+
+test("R5 the advisory names the capability so the human can weigh replace", () => {
+  const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCREATE_ASSET", target: "BAPI_FIXEDASSET_CREATE1", kind: "call-function" }] } });
+  const adv = fitToStandardAdvisory({ object: "ZCREATE_ASSET", members: ["ZCREATE_ASSET"] }, {}, caps);
+  assert.equal(adv.advisory, true);
+  assert.equal(adv.action, "verify_live");
+  assert.match(adv.note, /BAPI_FIXEDASSET_CREATE1/);
+});
+
+test("R5 a CUSTOMER function is not an SAP capability, whatever it is named", () => {
+  const caps = standardCapabilitiesByObject({ graph: { edges: [
+    { source: "ZCL_X", target: "Z_BAPI_LOOKALIKE", kind: "call-function" },
+    { source: "ZCL_X", target: "ZFM_TALV_DISPLAY", kind: "call-function" },
+  ] } });
+  assert.deepEqual(caps.ZCL_X ?? [], [], "customer code is not a standard to fit to");
+});
