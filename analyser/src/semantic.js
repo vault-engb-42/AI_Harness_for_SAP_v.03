@@ -92,7 +92,13 @@ function addDescribedEdge(objName, e, graph) {
       namespace: classifyNamespace(e.target),
     });
   }
-  graph.addEdge({ source: objName, target: e.target, kind: e.kind, evidence: e.evidence });
+  // `access` rides through when the descriptor carries one (R3a table read/write). This projection used to
+  // be a fixed field set, which silently dropped it: the unit test on collectStatementEdges passed while
+  // every emitted document carried table edges with no access at all.
+  graph.addEdge({
+    source: objName, target: e.target, kind: e.kind, evidence: e.evidence,
+    ...(e.access ? { access: e.access } : {}),
+  });
 }
 
 /**

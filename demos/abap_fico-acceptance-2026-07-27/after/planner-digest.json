@@ -6,11 +6,16 @@
   "source_hash": "c8d5dcd0eb28060195bf5cd978ee91cc77b1b237f1bfe92d0e31423119a7903d",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
   "run_id": "f79a87aa90d653c75cdd62a0590b6978dc9b52dd47a249a717cbc7bdcf6b11f5",
-  "object_count": 20,
-  "objects_included": 20,
-  "finding_count": 676,
+  "object_count": 21,
+  "objects_included": 21,
+  "finding_count": 660,
   "findings_included": 200,
   "objects": [
+    {
+      "object": "ZASSET_CREATE_STAG",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
     {
       "object": "ZC_FICOSUBSTITUTION001",
       "grade": "unknown",
@@ -394,62 +399,6 @@
       "message": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)"
     },
     {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
-      "object": "ZBP_IASSETCREATE",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
       "object": "ZBP_IFICOSUBSTITUTION001",
       "rule_id": "7bit_ascii",
       "severity": "priority-2",
@@ -584,20 +533,6 @@
     },
     {
       "object": "ZBP_IFICOSUBSTITUTION001",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION001",
       "rule_id": "talos-perf-08-loop-into-copy-on-assign",
       "severity": "priority-2",
       "family": "performance",
@@ -609,20 +544,6 @@
       "severity": "priority-2",
       "family": "performance",
       "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
     },
     {
       "object": "ZBP_IFICOSUBSTITUTION002",
@@ -759,20 +680,6 @@
     },
     {
       "object": "ZBP_IFICOSUBSTITUTION002",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION002",
       "rule_id": "talos-perf-08-loop-into-copy-on-assign",
       "severity": "priority-2",
       "family": "performance",
@@ -784,20 +691,6 @@
       "severity": "priority-2",
       "family": "performance",
       "message": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
-    },
-    {
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "family": "rap-odata",
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001)."
     },
     {
       "object": "ZCL_FICOFUNCTIONS",
@@ -1512,6 +1405,118 @@
       "severity": "priority-2",
       "family": "abaplint",
       "message": "Local variable name does not match pattern ^<L._.+>$: <fd>"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^<L._.+>$: <row>"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: ls"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: ls"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "local_variable_names",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Local variable name does not match pattern ^L._.+$: ls"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "max_one_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Only one statement is allowed per line"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "max_one_statement",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Only one statement is allowed per line"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_inline_in_optional_branches",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Don't declare inline in optional branches"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
+    },
+    {
+      "object": "ZCL_FICO_BTC_CSV_GL",
+      "rule_id": "no_prefixes",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Avoid hungarian notation"
     }
   ]
 }

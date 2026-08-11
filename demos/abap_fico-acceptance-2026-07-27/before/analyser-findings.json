@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "source_system": "bundle:demos/abap_fico-acceptance-2026-07-27/before/source",
   "package": "abap_fico",
-  "generated_at": "2026-07-27T19:32:00.905Z",
+  "generated_at": "2026-08-11T18:33:17.011Z",
   "source_hash": "3f615aea7e991102f5c719f4ac9ab38c89c06fe4a278ef3c488802bb4e76d334",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
   "run_id": "48d54dd28da97fcee66f14ed6da9f897f41ab7d11ee283a70f6df06d25ce26d9",
@@ -628,6 +628,7 @@
       "file": "zcreate_asset.prog.abap",
       "line": 93,
       "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "ZCREATE_ASSET",
       "normalized_snippet": "CL_SALV_TABLE=>FACTORY( IMPORTING R_SALV_TABLE = DATA(LR_OUT)",
       "finding_id": "d36acdead37f5db946936cc4051373722a12e2c9d7ef947666c2ea0b49eb262f",
@@ -7496,6 +7497,7 @@
       "file": "zfi_fieldstatus_analyze.prog.abap",
       "line": 70,
       "message": "CL_SALV_TABLE=>factory is the classic ALV stack — not released in ABAP Cloud; use Fiori Elements (CLOUD-015).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "ZFI_FIELDSTATUS_ANALYZE",
       "normalized_snippet": "CL_SALV_TABLE=>FACTORY( IMPORTING R_SALV_TABLE = DATA(MR_OUT)",
       "finding_id": "3535068774572ba10b6ca52f64b7ed1e5a5f3b4c1b949efc86dcd46cec5004cb",
@@ -10386,6 +10388,7 @@
       "file": "zfi_rggbs000.prog.abap",
       "line": 289,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:xref_to_rmvct",
       "normalized_snippet": "WRITE I_XREF_FIELD TO L_MSGV LEFT-JUSTIFIED.",
       "finding_id": "d7f069bc1c60482c167cf1bd7681763806da23ba0232d57cd8f97a12c3b68f2d",
@@ -10471,6 +10474,7 @@
       "file": "zfi_rggbs000.prog.abap",
       "line": 301,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:xref_to_rmvct",
       "normalized_snippet": "WRITE I_XREF_FIELD TO L_MSGV LEFT-JUSTIFIED.",
       "finding_id": "d7f069bc1c60482c167cf1bd7681763806da23ba0232d57cd8f97a12c3b68f2d",
@@ -11389,6 +11393,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 170,
       "message": "Classic list output (WRITE:/FORMAT COLOR) — migrate to ALV Grid or Fiori List Report (S4-003).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:upd_protocoll",
       "normalized_snippet": "FORMAT COLOR 3 ON.",
       "finding_id": "5a4cfb485ba38259ea20df96c3259b787079837466004a81d0a6a6d0dd8423e3",
@@ -11423,6 +11428,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 171,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:upd_protocoll",
       "normalized_snippet": "WRITE: / 'Währung' ##NO_TEXT,",
       "finding_id": "ad04ea64a180184101b023c256f0b6f199b4d44fb3946065071e66585ce5b62b",
@@ -11457,6 +11463,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 178,
       "message": "Classic list output (WRITE:/FORMAT COLOR) — migrate to ALV Grid or Fiori List Report (S4-003).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:upd_protocoll",
       "normalized_snippet": "FORMAT COLOR 3 OFF.",
       "finding_id": "069c98ccbe8c3146438bb0a5978ecb4fe01a0323f341895c66eb8b59c45c747f",
@@ -11474,6 +11481,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 180,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:upd_protocoll",
       "normalized_snippet": "WRITE: / GS_UPDDAT-WAERS,",
       "finding_id": "0ca8db97fdf2b1fb9ef9b094802094ccabd720e20aa9160568790e3b406f8d2f",
@@ -12086,6 +12094,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 243,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:btci_mappe",
       "normalized_snippet": "WRITE &2 TO LS_FTPOST-FVAL.",
       "finding_id": "c4ca02a118b5e75bb554e517df018386ceb142395dd17e405f93c69217971f8a",
@@ -12171,6 +12180,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 252,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:btci_mappe",
       "normalized_snippet": "WRITE &2 TO LS_FTPOST-FVAL.",
       "finding_id": "c4ca02a118b5e75bb554e517df018386ceb142395dd17e405f93c69217971f8a",
@@ -12970,6 +12980,7 @@
       "file": "zfico_btc_csv_gl.prog.abap",
       "line": 398,
       "message": "WRITE requires the classic list processor — forbidden in ABAP Cloud; use RAP/Fiori for output (CLOUD-006).",
+      "disposition_hint": "ui_rearch",
       "enclosing_unit": "form:btci_mappe",
       "normalized_snippet": "WRITE / MESSAGE.",
       "finding_id": "898878ac101077cfefd08019910ae936c3bc46977167e93dbf69228e9c38a61b",
@@ -16213,7 +16224,8 @@
         "source": "ZCREATE_ASSET",
         "target": "ANLA",
         "kind": "uses-table",
-        "evidence": "zcreate_asset.prog.abap:49"
+        "evidence": "zcreate_asset.prog.abap:49",
+        "access": "read"
       },
       {
         "source": "ZCREATE_ASSET",
@@ -16321,13 +16333,15 @@
         "source": "ZFICO_BTC_CSV_GL",
         "target": "SKA1",
         "kind": "uses-table",
-        "evidence": "zfico_btc_csv_gl.prog.abap:299"
+        "evidence": "zfico_btc_csv_gl.prog.abap:299",
+        "access": "read"
       },
       {
         "source": "ZFICO_BTC_CSV_GL",
         "target": "SKB1",
         "kind": "uses-table",
-        "evidence": "zfico_btc_csv_gl.prog.abap:150"
+        "evidence": "zfico_btc_csv_gl.prog.abap:150",
+        "access": "read"
       },
       {
         "source": "ZFICO_BTC_CSV_GL",
@@ -16411,25 +16425,29 @@
         "source": "ZFI_BTE",
         "target": "KNA1",
         "kind": "uses-table",
-        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:61"
+        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:61",
+        "access": "read"
       },
       {
         "source": "ZFI_BTE",
         "target": "KNB1",
         "kind": "uses-table",
-        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:67"
+        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:67",
+        "access": "read"
       },
       {
         "source": "ZFI_BTE",
         "target": "LFA1",
         "kind": "uses-table",
-        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:79"
+        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:79",
+        "access": "read"
       },
       {
         "source": "ZFI_BTE",
         "target": "LFB1",
         "kind": "uses-table",
-        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:85"
+        "evidence": "zfi_bte.fugr.zfi_process_00002040.abap:85",
+        "access": "read"
       },
       {
         "source": "ZFI_BTE",
@@ -16639,31 +16657,36 @@
         "source": "ZFI_FIELDSTATUS_ANALYZE",
         "target": "SKB1",
         "kind": "uses-table",
-        "evidence": "zfi_fieldstatus_analyze.prog.abap:99"
+        "evidence": "zfi_fieldstatus_analyze.prog.abap:99",
+        "access": "read"
       },
       {
         "source": "ZFI_FIELDSTATUS_ANALYZE",
         "target": "T001",
         "kind": "uses-table",
-        "evidence": "zfi_fieldstatus_analyze.prog.abap:94"
+        "evidence": "zfi_fieldstatus_analyze.prog.abap:94",
+        "access": "read"
       },
       {
         "source": "ZFI_FIELDSTATUS_ANALYZE",
         "target": "T004F",
         "kind": "uses-table",
-        "evidence": "zfi_fieldstatus_analyze.prog.abap:120"
+        "evidence": "zfi_fieldstatus_analyze.prog.abap:120",
+        "access": "read"
       },
       {
         "source": "ZFI_FIELDSTATUS_ANALYZE",
         "target": "TBSL",
         "kind": "uses-table",
-        "evidence": "zfi_fieldstatus_analyze.prog.abap:138"
+        "evidence": "zfi_fieldstatus_analyze.prog.abap:138",
+        "access": "read"
       },
       {
         "source": "ZFI_FIELDSTATUS_ANALYZE",
         "target": "TMODF",
         "kind": "uses-table",
-        "evidence": "zfi_fieldstatus_analyze.prog.abap:75"
+        "evidence": "zfi_fieldstatus_analyze.prog.abap:75",
+        "access": "read"
       },
       {
         "source": "ZFI_FIELDSTATUS_ANALYZE",
@@ -16735,7 +16758,8 @@
         "source": "ZFI_RGGBS000",
         "target": "LFB1",
         "kind": "uses-table",
-        "evidence": "zfi_rggbs000.prog.abap:237"
+        "evidence": "zfi_rggbs000.prog.abap:237",
+        "access": "read"
       },
       {
         "source": "ZFI_RGGBS000",
@@ -16747,7 +16771,8 @@
         "source": "ZFI_RGGBS000",
         "target": "T856",
         "kind": "uses-table",
-        "evidence": "zfi_rggbs000.prog.abap:281"
+        "evidence": "zfi_rggbs000.prog.abap:281",
+        "access": "read"
       },
       {
         "source": "ZFI_RGGBS000.U200",

@@ -1,8 +1,8 @@
 {
   "schema_version": "1.1.0",
   "source_system": "bundle:demos/equalize-idoc-2026-07-29/before/source",
-  "package": "unknown",
-  "generated_at": "2026-08-07T16:24:23.194Z",
+  "package": "equalize-idoc",
+  "generated_at": "2026-08-11T18:33:42.541Z",
   "source_hash": "088c9c57abdd35bf804643a1eb71c83a7213a353176d91da41c2e33f49a7517b",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
   "run_id": "ccf416e143adc9400b9c093a54b1bff09fa2b36952925ead55109c9b62608b1e",
@@ -33711,7 +33711,7 @@
         "namespace": "sap",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1152
+        "rank": 0.1146
       },
       {
         "id": "ZBC_FG_IDOC_FW",
@@ -33729,7 +33729,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1413
+        "rank": 0.1407
       },
       {
         "id": "ZBC_IDOC_OPTIONS",
@@ -33738,7 +33738,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1413
+        "rank": 0.1478
       },
       {
         "id": "ZBC_V_IDOC_OPT",
@@ -34709,13 +34709,22 @@
         "source": "ZBC_V_IDOC_OPT",
         "target": "ZBC_IDOC_CFG",
         "kind": "uses-table",
-        "evidence": "zbc_v_idoc_opt.fugr.lzbc_v_idoc_optf00.abap:37"
+        "evidence": "zbc_v_idoc_opt.fugr.lzbc_v_idoc_optf00.abap:37",
+        "access": "read"
       },
       {
         "source": "ZBC_V_IDOC_OPT",
         "target": "ZBC_IDOC_OPTIONS",
         "kind": "uses-table",
-        "evidence": "zbc_v_idoc_opt.fugr.lzbc_v_idoc_optf00.abap:12"
+        "evidence": "zbc_v_idoc_opt.fugr.lzbc_v_idoc_optf00.abap:12",
+        "access": "read"
+      },
+      {
+        "source": "ZBC_V_IDOC_OPT",
+        "target": "ZBC_IDOC_OPTIONS",
+        "kind": "uses-table",
+        "evidence": "zbc_v_idoc_opt.fugr.lzbc_v_idoc_optf00.abap:136",
+        "access": "write"
       },
       {
         "source": "ZCL_IDOC_BASE",
@@ -34733,19 +34742,22 @@
         "source": "ZCL_IDOC_BASE",
         "target": "T006",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_base.clas.abap:228"
+        "evidence": "zcl_idoc_base.clas.abap:228",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_BASE",
         "target": "ZBC_IDOC_CFG",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_base.clas.abap:283"
+        "evidence": "zcl_idoc_base.clas.abap:283",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_BASE",
         "target": "ZBC_IDOC_OPTIONS",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_base.clas.abap:295"
+        "evidence": "zcl_idoc_base.clas.abap:295",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_BASE.CONVERT_BATCH_WITH_MCHA",
@@ -34835,55 +34847,64 @@
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "EINA",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:326"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:326",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "EQUI",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:384"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:384",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "KNA1",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:681"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:681",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "KNB1",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:712"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:712",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "KNVV",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:746"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:746",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "MARA",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:355"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:355",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "MARC",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:810"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:810",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "MCHA",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:263"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:263",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER",
         "target": "MVKE",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_db_buffer.clas.abap:843"
+        "evidence": "zcl_idoc_db_buffer.clas.abap:843",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_DB_BUFFER.LOOKUP_KNA1",
@@ -35177,7 +35198,8 @@
         "source": "ZCL_IDOC_INPUT_SO",
         "target": "VBAK",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_input_so.clas.abap:97"
+        "evidence": "zcl_idoc_input_so.clas.abap:97",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_INPUT_SO",
@@ -35291,7 +35313,8 @@
         "source": "ZCL_IDOC_OUTPUT",
         "target": "EDIPOA",
         "kind": "uses-table",
-        "evidence": "zcl_idoc_output.clas.abap:327"
+        "evidence": "zcl_idoc_output.clas.abap:327",
+        "access": "read"
       },
       {
         "source": "ZCL_IDOC_OUTPUT",

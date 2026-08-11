@@ -1,8 +1,8 @@
 {
   "schema_version": "1.1.0",
   "source_system": "bundle:demos/talv-2026-07-29/before/source",
-  "package": "unknown",
-  "generated_at": "2026-08-07T16:24:27.476Z",
+  "package": "talv",
+  "generated_at": "2026-08-11T18:33:47.572Z",
   "source_hash": "2962de9cb2cc3324817365e7185e644dbc67cfb0f8308277e2ea866f5e8ca84a",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
   "run_id": "8fbafdaf29e245db45d40dcca59beccdc3983a314ceaee38089b03a5be035ca2",
@@ -48145,6 +48145,22 @@
         }
       },
       {
+        "symbol": "ZAESOP_TALV_INITIALIZE",
+        "score": 0.128,
+        "signals": {
+          "size_ratio": 0.08333333333333333,
+          "function_density": 1,
+          "avg_function_length": 0,
+          "coupling": 0.057692307692307696,
+          "complexity": 0,
+          "duplication": 0,
+          "interface_presence": 0,
+          "test_double_ready": 0,
+          "lcom_score": 0,
+          "structural_quality": 0.599
+        }
+      },
+      {
         "symbol": "ZIF_TALV_JSON_HANDLER",
         "score": 0.128,
         "signals": {
@@ -48190,22 +48206,6 @@
           "test_double_ready": 0,
           "lcom_score": 0,
           "structural_quality": 0.799
-        }
-      },
-      {
-        "symbol": "ZAESOP_TALV_INITIALIZE",
-        "score": 0.124,
-        "signals": {
-          "size_ratio": 0.08333333333333333,
-          "function_density": 1,
-          "avg_function_length": 0,
-          "coupling": 0.038461538461538464,
-          "complexity": 0,
-          "duplication": 0,
-          "interface_presence": 0,
-          "test_double_ready": 0,
-          "lcom_score": 0,
-          "structural_quality": 0.599
         }
       },
       {
@@ -51337,7 +51337,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1378
+        "rank": 0.133
       },
       {
         "id": "ZCL_TR_TABLE_ENTRY.ZIF_TR_TOOL~ASSOCIATE",
@@ -51661,7 +51661,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1378
+        "rank": 0.133
       },
       {
         "id": "ZIF_TR_TOOL.COMMIT",
@@ -51670,7 +51670,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1378
+        "rank": 0.133
       },
       {
         "id": "ZIF_TR_TOOL.ENTRY",
@@ -51688,7 +51688,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.1378
+        "rank": 0.133
       },
       {
         "id": "ZTALVTAB001",
@@ -51742,7 +51742,7 @@
         "namespace": "Z",
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
-        "rank": 0.2103
+        "rank": 0.2297
       }
     ],
     "edges": [
@@ -52002,7 +52002,8 @@
         "source": "ZAESOP_TALV_DEMO_03",
         "target": "EKPO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_03.prog.abap:102"
+        "evidence": "zaesop_talv_demo_03.prog.abap:102",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_03",
@@ -52074,7 +52075,8 @@
         "source": "ZAESOP_TALV_DEMO_04",
         "target": "EKPO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_04.prog.abap:108"
+        "evidence": "zaesop_talv_demo_04.prog.abap:108",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_04",
@@ -52272,7 +52274,8 @@
         "source": "ZAESOP_TALV_DEMO_07",
         "target": "EKPO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_07.prog.abap:59"
+        "evidence": "zaesop_talv_demo_07.prog.abap:59",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_07",
@@ -52458,13 +52461,15 @@
         "source": "ZAESOP_TALV_DEMO_10",
         "target": "EKKO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_10.prog.abap:65"
+        "evidence": "zaesop_talv_demo_10.prog.abap:65",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_10",
         "target": "EKPO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_10.prog.abap:87"
+        "evidence": "zaesop_talv_demo_10.prog.abap:87",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_10",
@@ -52584,7 +52589,8 @@
         "source": "ZAESOP_TALV_DEMO_11",
         "target": "EKPO",
         "kind": "uses-table",
-        "evidence": "zaesop_talv_demo_11.prog.abap:199"
+        "evidence": "zaesop_talv_demo_11.prog.abap:199",
+        "access": "read"
       },
       {
         "source": "ZAESOP_TALV_DEMO_11",
@@ -52737,10 +52743,18 @@
         "evidence": "zaesop_talv_initialize.prog.abap:24"
       },
       {
+        "source": "ZAESOP_TALV_INITIALIZE",
+        "target": "ZTALV_SERVICE",
+        "kind": "uses-table",
+        "evidence": "zaesop_talv_initialize.prog.abap:17",
+        "access": "write"
+      },
+      {
         "source": "ZCL_DYNAMIC_TOOL",
         "target": "DD03L",
         "kind": "uses-table",
-        "evidence": "zcl_dynamic_tool.clas.abap:480"
+        "evidence": "zcl_dynamic_tool.clas.abap:480",
+        "access": "read"
       },
       {
         "source": "ZCL_DYNAMIC_TOOL",
@@ -53304,7 +53318,8 @@
         "source": "ZCL_TALV_FACTORY",
         "target": "ZTALV_SERVICE",
         "kind": "uses-table",
-        "evidence": "zcl_talv_factory.clas.abap:27"
+        "evidence": "zcl_talv_factory.clas.abap:27",
+        "access": "read"
       },
       {
         "source": "ZCL_TALV_FACTORY.GET_TALV",
@@ -53430,13 +53445,15 @@
         "source": "ZCL_TALV_PARENT",
         "target": "ZTALV_FIELDS_SET",
         "kind": "uses-table",
-        "evidence": "zcl_talv_parent.clas.abap:1294"
+        "evidence": "zcl_talv_parent.clas.abap:1294",
+        "access": "read"
       },
       {
         "source": "ZCL_TALV_PARENT",
         "target": "ZTALV_LAYOUT_SET",
         "kind": "uses-table",
-        "evidence": "zcl_talv_parent.clas.abap:1311"
+        "evidence": "zcl_talv_parent.clas.abap:1311",
+        "access": "read"
       },
       {
         "source": "ZCL_TALV_PARENT.CONSTRUCTOR",
@@ -53976,7 +53993,8 @@
         "source": "ZCL_TR_TABLE_ENTRY",
         "target": "DD03L",
         "kind": "uses-table",
-        "evidence": "zcl_tr_table_entry.clas.abap:238"
+        "evidence": "zcl_tr_table_entry.clas.abap:238",
+        "access": "read"
       },
       {
         "source": "ZCL_TR_TABLE_ENTRY",
@@ -54144,19 +54162,22 @@
         "source": "ZTALVTAB001",
         "target": "SEOCLASSTX",
         "kind": "uses-table",
-        "evidence": "ztalvtab001.fugr.lztalvtab001i01.abap:13"
+        "evidence": "ztalvtab001.fugr.lztalvtab001i01.abap:13",
+        "access": "read"
       },
       {
         "source": "ZTALVTAB002",
         "target": "DD03L",
         "kind": "uses-table",
-        "evidence": "ztalvtab002.fugr.lztalvtab002i01.abap:66"
+        "evidence": "ztalvtab002.fugr.lztalvtab002i01.abap:66",
+        "access": "read"
       },
       {
         "source": "ZTALVTAB002",
         "target": "DD03M",
         "kind": "uses-table",
-        "evidence": "ztalvtab002.fugr.lztalvtab002i01.abap:85"
+        "evidence": "ztalvtab002.fugr.lztalvtab002i01.abap:85",
+        "access": "read"
       },
       {
         "source": "ZTALVTAB002",
@@ -56369,7 +56390,8 @@
         "wave": 3,
         "dependencies": [
           "ZCL_TR_TABLE_ENTRY",
-          "ZIF_TR_TOOL"
+          "ZIF_TR_TOOL",
+          "ZTALV_SERVICE"
         ],
         "transformation_count": 0,
         "transformations": []

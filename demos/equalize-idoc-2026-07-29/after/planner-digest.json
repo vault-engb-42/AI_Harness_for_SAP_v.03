@@ -1,0 +1,451 @@
+{
+  "digest_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "package": "equalize-idoc",
+  "source_system": "bundle:demos/equalize-idoc-2026-07-29/after/modernised-source",
+  "source_hash": "8be0bdfe74925a04093a55925e81ce6c62104b6e23aba347c3c7de1c4bd35655",
+  "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
+  "run_id": "7303b3250cf8538fbdb7e59f1a4c9b088b5302620649aac8d6f104cf104a1456",
+  "object_count": 7,
+  "objects_included": 7,
+  "finding_count": 57,
+  "findings_included": 57,
+  "objects": [
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "grade": "unknown",
+      "effort_tier": "unknown"
+    },
+    {
+      "object": "CX_STATIC_CHECK",
+      "grade": "A",
+      "effort_tier": "keep-and-clean"
+    }
+  ],
+  "findings": [
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_IDOC_DATA_NOT_FOR_SEND, class XML file not found"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_IDOC_DATA_NOT_FOR_SEND",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_IDOC_FM_ERROR, class XML file not found"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "pragma_style",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Upper case pragmas"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_IDOC_FM_ERROR",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_IDOC_GENERIC_PROCESS_ERROR, class XML file not found"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "pragma_style",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Upper case pragmas"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "talos-cloud-005-class-final-abstract",
+      "severity": "priority-2",
+      "family": "clean-core",
+      "message": "CLASS definition must be FINAL or ABSTRACT in ABAP Cloud (CLOUD-005)"
+    },
+    {
+      "object": "ZCX_IDOC_GENERIC_PROCESS_ERROR",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_IDOC_PREPROCESS_ERROR, class XML file not found"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "pragma_style",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Upper case pragmas"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_IDOC_PREPROCESS_ERROR",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_IDOC_VALIDATION_ERROR, class XML file not found"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "line_break_multiple_parameters",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Line break multiple parameters"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_IDOC_VALIDATION_ERROR",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "abapdoc",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Missing ABAP Doc for method constructor"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "check_syntax",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found or contains errors"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "description_empty",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Description empty in ZCX_WRONG_FUNCTION_CALLED, class XML file not found"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "no_exclamation_escape",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Do not use exclamation mark to escape identifiers"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "superclass_final",
+      "severity": "priority-2",
+      "family": "abaplint",
+      "message": "Super class \"cx_static_check\" not found"
+    },
+    {
+      "object": "ZCX_WRONG_FUNCTION_CALLED",
+      "rule_id": "talos-missing-test-class",
+      "severity": "priority-2",
+      "family": "anti-pattern",
+      "message": "class has no ABAP Unit test class (no testclasses include, no FOR TESTING local class); pin behavior before changing it (HARDY-10)"
+    }
+  ]
+}

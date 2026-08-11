@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "source_system": "bundle:demos/abap_fico-acceptance-2026-07-27/after/modernised-source",
   "package": "abap_fico",
-  "generated_at": "2026-07-28T09:10:02.098Z",
+  "generated_at": "2026-08-11T18:33:20.222Z",
   "source_hash": "c8d5dcd0eb28060195bf5cd978ee91cc77b1b237f1bfe92d0e31423119a7903d",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
   "run_id": "f79a87aa90d653c75cdd62a0590b6978dc9b52dd47a249a717cbc7bdcf6b11f5",
@@ -178,40 +178,6 @@
       "atcCheckId": "SYCM_USAGE_OF_APIS"
     },
     {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 85,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:set_initial_status",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "2d57ff598de8263b65cb2cfdd06b69d36ac3fcb5e32b1a20e63d150124161df8",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 85,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:set_initial_status",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "8888140056d1962489b2b250d61319d2a8dd4f6a0b7a06f0c2611acc64c57565",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
       "rule_id": "double_space",
       "severity": "priority-2",
       "object": "ZBP_IASSETCREATE",
@@ -246,40 +212,6 @@
       "atcCheckId": "SYCM_USAGE_OF_APIS"
     },
     {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 102,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:update_timestamps",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "c6c38a254e84f4097a14ae6da9b7612229572bcb96955add83f5fd6acf50f63c",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 102,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:update_timestamps",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "ae7a2e5d1cb1fe232e75c8515e3b98411e34cb3be30c440a9402c964145cca76",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
       "rule_id": "double_space",
       "severity": "priority-2",
       "object": "ZBP_IASSETCREATE",
@@ -309,40 +241,6 @@
       "normalized_snippet": "\"SINGLE READ BEFORE THE LOOP — NO SELECT INSIDE LOOP (NO N+1).",
       "finding_id": "0bea1358fc1c027a6d5864abc8bf00e79421d368de86f2c5056909c5deb675b5",
       "source_category": "abaplint",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 115,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:trigger_asset_copy",
-      "normalized_snippet": "READ ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "1425150408523ccf473ffcbc1bfb003ef1c0cc587380d814eb5ff793d2e0582b",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 115,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:trigger_asset_copy",
-      "normalized_snippet": "READ ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "c8d8df3971f0267d4f4f617e149aabe0bc3393d92b7c51eefefc43371d129e88",
-      "source_category": "rap-odata",
       "grade": "warning",
       "atc_priority": "P2",
       "atcCheckId": "SYCM_USAGE_OF_APIS"
@@ -428,40 +326,6 @@
       "normalized_snippet": "\"SINGLE BATCH EML MODIFY AFTER THE LOOP — NOT INSIDE LOOP (ABAP-PERF-11).",
       "finding_id": "281a7a92269bf3e7ec081468f37792c45a9266d22cb99bea5f5e8b385229bc16",
       "source_category": "abaplint",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 154,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:trigger_asset_copy",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "17a0b8be9a93fbfc804e58c648fc7f2744c10bb319d3ae1afa6bcaf03458247a",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IASSETCREATE",
-      "object_type": "CLAS",
-      "file": "ZBP_IAssetCreate.clas.abap",
-      "line": 154,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:trigger_asset_copy",
-      "normalized_snippet": "MODIFY ENTITIES OF ZI_ASSETCREATE IN LOCAL MODE",
-      "finding_id": "2b6b625872179e14ceb8c93129f14ced9f0b4cc0f49f87dcd87c212ff729f815",
-      "source_category": "rap-odata",
       "grade": "warning",
       "atc_priority": "P2",
       "atcCheckId": "SYCM_USAGE_OF_APIS"
@@ -875,40 +739,6 @@
       "atcCheckId": "SYCM_USAGE_OF_APIS"
     },
     {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution001.clas.abap",
-      "line": 61,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:get_instance_authorizations",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION001 IN LOCAL MODE",
-      "finding_id": "9b7ff9759e29713a33694a174730727d1442077bf2faad20c5abebf4c8f5242c",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution001.clas.abap",
-      "line": 61,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:get_instance_authorizations",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION001 IN LOCAL MODE",
-      "finding_id": "a14b0469a2f16583f55c4f8a7d5db1fc9d5444e9bba5412a98e0711cdbd6d086",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
       "family": "performance",
       "rule_id": "talos-perf-08-loop-into-copy-on-assign",
       "severity": "priority-2",
@@ -938,40 +768,6 @@
       "normalized_snippet": "\" BATCH READ BEFORE THE LOOP — CLEAN OF ABAP-N1 / ABAP-PERF-11.",
       "finding_id": "f243e29b0e8595396069132de8fc3245c755e58c5764eeed3f2ead1a3a15aa9a",
       "source_category": "abaplint",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution001.clas.abap",
-      "line": 90,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:validate_sub_option",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION001 IN LOCAL MODE",
-      "finding_id": "aa37e4202d4bc64e7dd47bc12dd509e059cfafd9178f6144d38053512fd03ffe",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION001",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution001.clas.abap",
-      "line": 90,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:validate_sub_option",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION001 IN LOCAL MODE",
-      "finding_id": "a3bf81ca0b60cec691c9db48884951151496f101e8fa2c39b74bc4bf88d2bc3a",
-      "source_category": "rap-odata",
       "grade": "warning",
       "atc_priority": "P2",
       "atcCheckId": "SYCM_USAGE_OF_APIS"
@@ -1300,40 +1096,6 @@
       "atcCheckId": "SYCM_USAGE_OF_APIS"
     },
     {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution002.clas.abap",
-      "line": 61,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:get_instance_authorizations",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION002 IN LOCAL MODE",
-      "finding_id": "3cd90631da5836c6a13d02769fe1b9c0c14fed1b568f6ebd550eb8830f3d58ff",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution002.clas.abap",
-      "line": 61,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:get_instance_authorizations",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION002 IN LOCAL MODE",
-      "finding_id": "3965db53dd7e4692b1a4e2bae2b9cd29ca3c115c2f6f8bbf14ae6f8c75dd9fb9",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
       "family": "performance",
       "rule_id": "talos-perf-08-loop-into-copy-on-assign",
       "severity": "priority-2",
@@ -1363,40 +1125,6 @@
       "normalized_snippet": "\" BATCH READ BEFORE THE LOOP — CLEAN OF ABAP-N1 / ABAP-PERF-11.",
       "finding_id": "7b67b089e5f7bff6f7e979b2d7602347eadc4c63a8ce7198248addf4ad068164",
       "source_category": "abaplint",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-eml-local-mode-outside-test",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution002.clas.abap",
-      "line": 90,
-      "message": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-      "enclosing_unit": "method:validate_sub_option",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION002 IN LOCAL MODE",
-      "finding_id": "4e6cd24b360395f4568bcbcee7ea0042648df85446aed27ac87d908f4014cd10",
-      "source_category": "rap-odata",
-      "grade": "warning",
-      "atc_priority": "P2",
-      "atcCheckId": "SYCM_USAGE_OF_APIS"
-    },
-    {
-      "family": "rap-odata",
-      "rule_id": "talos-perf-73-eml-local-mode",
-      "severity": "priority-2",
-      "object": "ZBP_IFICOSUBSTITUTION002",
-      "object_type": "CLAS",
-      "file": "ZBP_IFicoSubstitution002.clas.abap",
-      "line": 90,
-      "message": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-      "enclosing_unit": "method:validate_sub_option",
-      "normalized_snippet": "READ ENTITIES OF ZI_FICOSUBSTITUTION002 IN LOCAL MODE",
-      "finding_id": "1fa296682c64eefc6201987c9e0c62e5859fa22e2e0dfed917d623ec3d3f4e98",
-      "source_category": "rap-odata",
       "grade": "warning",
       "atc_priority": "P2",
       "atcCheckId": "SYCM_USAGE_OF_APIS"
@@ -11537,8 +11265,8 @@
       "distinct_rules": 0
     },
     "warnings": {
-      "findings": 659,
-      "distinct_rules": 46
+      "findings": 643,
+      "distinct_rules": 44
     },
     "advisories": {
       "findings": 17,
@@ -11776,18 +11504,18 @@
       },
       {
         "symbol": "ZBP_IASSETCREATE",
-        "score": 0.258,
+        "score": 0.276,
         "signals": {
           "size_ratio": 0.79,
           "function_density": 1,
           "avg_function_length": 0,
-          "coupling": 0,
+          "coupling": 0.09090909090909091,
           "complexity": 0,
           "duplication": 0,
           "interface_presence": 0,
           "test_double_ready": 1,
           "lcom_score": 0,
-          "structural_quality": 0.8
+          "structural_quality": 0.799
         }
       },
       {
@@ -11871,7 +11599,7 @@
         }
       }
     ],
-    "avg_score": 0.288,
+    "avg_score": 0.289,
     "max_score": 0.511,
     "hotspot_count": 1
   },
@@ -12018,6 +11746,7 @@
       "I_POSTINGKEY",
       "I_SUPPLIER",
       "I_SUPPLIERCOMPANY",
+      "ZASSET_CREATE_STAG",
       "ZC_FICOSUBSTITUTION001",
       "ZC_FICOSUBSTITUTION002"
     ]
@@ -12267,6 +11996,15 @@
         "clean_core_grade": "unknown",
         "clean_core_posture": "unknown",
         "rank": 0.1228
+      },
+      {
+        "id": "ZASSET_CREATE_STAG",
+        "kind": "table",
+        "object": "ZASSET_CREATE_STAG",
+        "namespace": "Z",
+        "clean_core_grade": "unknown",
+        "clean_core_posture": "unknown",
+        "rank": 0.105
       },
       {
         "id": "ZBP_IASSETCREATE",
@@ -13303,6 +13041,13 @@
         "evidence": "ZBP_IAssetCreate.clas.abap:69"
       },
       {
+        "source": "ZBP_IASSETCREATE",
+        "target": "ZASSET_CREATE_STAG",
+        "kind": "uses-table",
+        "evidence": "ZBP_IAssetCreate.clas.abap:225",
+        "access": "write"
+      },
+      {
         "source": "ZBP_IFICOSUBSTITUTION001",
         "target": "S_TABU_NAM",
         "kind": "authority-check",
@@ -13318,13 +13063,15 @@
         "source": "ZCL_FICOFUNCTIONS",
         "target": "ZC_FICOSUBSTITUTION001",
         "kind": "uses-table",
-        "evidence": "zcl_ficofunctions.clas.abap:59"
+        "evidence": "zcl_ficofunctions.clas.abap:59",
+        "access": "read"
       },
       {
         "source": "ZCL_FICOFUNCTIONS",
         "target": "ZC_FICOSUBSTITUTION002",
         "kind": "uses-table",
-        "evidence": "zcl_ficofunctions.clas.abap:66"
+        "evidence": "zcl_ficofunctions.clas.abap:66",
+        "access": "read"
       },
       {
         "source": "ZCL_FICOFUNCTIONS.IS_SUB_FUNCTION_ACTIVE",
@@ -13414,7 +13161,8 @@
         "source": "ZCL_FICO_BTC_CSV_GL",
         "target": "I_GLACCOUNTINCOMPANYCODE",
         "kind": "uses-table",
-        "evidence": "zcl_fico_btc_csv_gl.clas.abap:154"
+        "evidence": "zcl_fico_btc_csv_gl.clas.abap:154",
+        "access": "read"
       },
       {
         "source": "ZCL_FICO_BTC_CSV_GL.MAKE_INPUT",
@@ -13954,19 +13702,22 @@
         "source": "ZCL_FIELDSTATUSANALYSIS",
         "target": "I_COMPANYCODE",
         "kind": "uses-table",
-        "evidence": "zcl_fieldstatusanalysis.clas.abap:90"
+        "evidence": "zcl_fieldstatusanalysis.clas.abap:90",
+        "access": "read"
       },
       {
         "source": "ZCL_FIELDSTATUSANALYSIS",
         "target": "I_GLACCOUNTINCOMPANYCODE",
         "kind": "uses-table",
-        "evidence": "zcl_fieldstatusanalysis.clas.abap:102"
+        "evidence": "zcl_fieldstatusanalysis.clas.abap:102",
+        "access": "read"
       },
       {
         "source": "ZCL_FIELDSTATUSANALYSIS",
         "target": "I_POSTINGKEY",
         "kind": "uses-table",
-        "evidence": "zcl_fieldstatusanalysis.clas.abap:133"
+        "evidence": "zcl_fieldstatusanalysis.clas.abap:133",
+        "access": "read"
       },
       {
         "source": "ZCL_FIELDSTATUSANALYSIS.GET_FIELD_STATUS_BY_COMPANY_CODE",
@@ -14080,25 +13831,29 @@
         "source": "ZCL_FI_BTE_PROCESSOR",
         "target": "I_CUSTOMER",
         "kind": "uses-table",
-        "evidence": "zcl_fi_bte_processor.clas.abap:261"
+        "evidence": "zcl_fi_bte_processor.clas.abap:261",
+        "access": "read"
       },
       {
         "source": "ZCL_FI_BTE_PROCESSOR",
         "target": "I_CUSTOMERCOMPANY",
         "kind": "uses-table",
-        "evidence": "zcl_fi_bte_processor.clas.abap:272"
+        "evidence": "zcl_fi_bte_processor.clas.abap:272",
+        "access": "read"
       },
       {
         "source": "ZCL_FI_BTE_PROCESSOR",
         "target": "I_SUPPLIER",
         "kind": "uses-table",
-        "evidence": "zcl_fi_bte_processor.clas.abap:293"
+        "evidence": "zcl_fi_bte_processor.clas.abap:293",
+        "access": "read"
       },
       {
         "source": "ZCL_FI_BTE_PROCESSOR",
         "target": "I_SUPPLIERCOMPANY",
         "kind": "uses-table",
-        "evidence": "zcl_fi_bte_processor.clas.abap:304"
+        "evidence": "zcl_fi_bte_processor.clas.abap:304",
+        "access": "read"
       },
       {
         "source": "ZCL_FI_BTE_PROCESSOR.CONVERT_DATE_TO_EXT",
@@ -14400,53 +14155,13 @@
         "effort_tier": "L",
         "priority_rank": "P3",
         "migration_complexity": 0,
-        "wave": 0,
-        "dependencies": [],
-        "transformation_count": 11,
+        "wave": 1,
+        "dependencies": [
+          "ZASSET_CREATE_STAG"
+        ],
+        "transformation_count": 3,
         "transformations": [
           {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
             "kind": "anti-pattern",
             "rule_id": "talos-data-in-block",
             "why": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)",
@@ -14457,20 +14172,6 @@
             "kind": "anti-pattern",
             "rule_id": "talos-data-in-block",
             "why": "DATA declared inside an IF/LOOP/CASE block is misleading — ABAP scopes it to the whole method; declare at the top (HARDY-3)",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
             "fix": null,
             "released_successor": null
           },
@@ -14492,40 +14193,12 @@
         "migration_complexity": 0,
         "wave": 0,
         "dependencies": [],
-        "transformation_count": 6,
+        "transformation_count": 2,
         "transformations": [
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-            "fix": null,
-            "released_successor": null
-          },
           {
             "kind": "performance",
             "rule_id": "talos-perf-08-loop-into-copy-on-assign",
             "why": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
             "fix": null,
             "released_successor": null
           },
@@ -14547,40 +14220,12 @@
         "migration_complexity": 0,
         "wave": 0,
         "dependencies": [],
-        "transformation_count": 6,
+        "transformation_count": 2,
         "transformations": [
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
-            "fix": null,
-            "released_successor": null
-          },
           {
             "kind": "performance",
             "rule_id": "talos-perf-08-loop-into-copy-on-assign",
             "why": "LOOP AT ... INTO ls_row copies each row by value; use ASSIGNING FIELD-SYMBOL(<fs>) or REFERENCE INTO to skip the copy (ABAP-PERF-08).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-eml-local-mode-outside-test",
-            "why": "EML MODIFY/READ ENTITIES ... IN LOCAL MODE bypasses authorization — outside a FOR TESTING class this is a perf-via-bypass anti-pattern; drop LOCAL MODE (ABAP-PERF-73).",
-            "fix": null,
-            "released_successor": null
-          },
-          {
-            "kind": "rap-odata",
-            "rule_id": "talos-perf-73-eml-local-mode",
-            "why": "EML IN LOCAL MODE bypasses authorization — outside test code it is a perf-via-security-bypass antipattern (ABAP-PERF-73 / RAP-SEC-001).",
             "fix": null,
             "released_successor": null
           },
@@ -14865,6 +14510,18 @@
         ]
       },
       {
+        "object": "ZASSET_CREATE_STAG",
+        "kind": "table",
+        "modernization_target": "CDS View Entity",
+        "effort_tier": "S",
+        "priority_rank": "P3",
+        "migration_complexity": 0,
+        "wave": 0,
+        "dependencies": [],
+        "transformation_count": 0,
+        "transformations": []
+      },
+      {
         "object": "ZC_FICOSUBSTITUTION001",
         "kind": "table",
         "modernization_target": "CDS View Entity",
@@ -14890,9 +14547,9 @@
       }
     ],
     "summary": {
-      "total_objects": 13,
+      "total_objects": 14,
       "by_effort": {
-        "S": 3,
+        "S": 4,
         "M": 5,
         "L": 4,
         "XL": 1
@@ -14900,7 +14557,7 @@
       "by_priority": {
         "P1": 0,
         "P2": 0,
-        "P3": 13
+        "P3": 14
       },
       "transport_order": [
         "ZBP_IASSETCREATE",
@@ -14914,6 +14571,7 @@
         "ZCL_FI_BTE_PROCESSOR",
         "ZCL_FI_SUBSTITUTION_EXIT",
         "ZCL_FI_VALIDATION_EXIT",
+        "ZASSET_CREATE_STAG",
         "ZC_FICOSUBSTITUTION001",
         "ZC_FICOSUBSTITUTION002"
       ],
@@ -14921,11 +14579,11 @@
     }
   },
   "namespace_summary": {
-    "Z": 13,
+    "Z": 14,
     "Y": 0,
     "registered": 0,
     "sap": 7,
-    "customer_total": 13,
+    "customer_total": 14,
     "sap_total": 7
   }
 }

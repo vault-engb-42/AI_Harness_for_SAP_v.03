@@ -1,7 +1,7 @@
 {
   "digest_version": "1.0.0",
   "schema_version": "1.1.0",
-  "package": "unknown",
+  "package": "equalize-idoc",
   "source_system": "bundle:demos/equalize-idoc-2026-07-29/before/source",
   "source_hash": "088c9c57abdd35bf804643a1eb71c83a7213a353176d91da41c2e33f49a7517b",
   "config_hash": "b1005522ed1354d57f1872127514cf349ea35aa604e5fd3e742fa5b9c28bf7d9",
@@ -32,12 +32,12 @@
       "effort_tier": "unknown"
     },
     {
-      "object": "ZBC_IDOC_CFG",
+      "object": "ZBC_IDOC_OPTIONS",
       "grade": "unknown",
       "effort_tier": "unknown"
     },
     {
-      "object": "ZBC_IDOC_OPTIONS",
+      "object": "ZBC_IDOC_CFG",
       "grade": "unknown",
       "effort_tier": "unknown"
     },

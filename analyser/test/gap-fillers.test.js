@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Registry, MemoryFile } from "@abaplint/core";
 import { collectStatementEdges } from "../src/statement-edges.js";
+import { analyzeObjects } from "../src/semantic.js";
 import { collectInheritEdges, collectCdsEdges } from "../src/metadata-edges.js";
 
 function load(files) {
@@ -168,4 +169,22 @@ START-OF-SELECTION.
   SELECT * FROM ekpo INTO TABLE @DATA(lt).` }]);
   const edges = collectStatementEdges(obj).filter((e) => e.kind === "uses-table");
   assert.ok(edges.every((e) => e.access === "read"), `a read-only report must show no write: ${JSON.stringify(edges)}`);
+});
+
+// R3a end-to-end. `collectStatementEdges` stamped `access` and it never reached the emitted document,
+// because `addDescribedEdge` projected a fixed field set {source, target, kind, evidence} — so a regenerated
+// abap_fico doc carried 14 uses-table edges and ZERO access. Caught by regenerating a real corpus and
+// measuring, not by the unit test above, which stops one layer short.
+//
+// The dedup key gains `access` for the same reason: an object that both reads and writes one table has two
+// distinct facts, and keying on source|target|kind alone let the read silently suppress the write.
+test("R3a the access mode survives into the emitted graph", () => {
+  const g = analyzeObjects([{ filename: "zr_rw.prog.abap", source: `REPORT zr_rw.
+START-OF-SELECTION.
+  SELECT * FROM zorders INTO TABLE @DATA(lt).
+  UPDATE zorders SET status = 'X' WHERE id = '1'.` }]).toGraphJSON();
+  const edges = g.edges.filter((e) => e.kind === "uses-table" && e.target === "ZORDERS");
+  assert.ok(edges.every((e) => e.access), `every table edge must carry its access: ${JSON.stringify(edges)}`);
+  assert.ok(edges.some((e) => e.access === "read"), "the SELECT survives");
+  assert.ok(edges.some((e) => e.access === "write"), `the UPDATE must not be suppressed by the read: ${JSON.stringify(edges)}`);
 });
