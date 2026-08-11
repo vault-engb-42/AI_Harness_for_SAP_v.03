@@ -19,9 +19,10 @@
           "consumption:remote_idoc",
           "consumption:no_surface_evidence",
           "consumption:classic_api_surface",
+          "persistence:no_persistence_evidence",
           "rule:talos-cloud-014-classic-dynpro",
           "rule:talos-s4-004-screen-flow",
-          "persistence:no_persistence_evidence"
+          "rule:talos-s4-005-web-dynpro"
         ]
       },
       "components": [
@@ -77,7 +78,8 @@
           "consumption:ui_salv",
           "consumption:ui_dynpro",
           "rule:talos-cloud-014-classic-dynpro",
-          "rule:talos-s4-004-screen-flow"
+          "rule:talos-s4-004-screen-flow",
+          "rule:talos-s4-005-web-dynpro"
         ],
         "none": [
           "persistence:no_persistence_evidence"
@@ -100,7 +102,7 @@
         "commit_entities_only",
         "draft_enabled"
       ],
-      "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page. The UI evidence arrives from a CPG edge (ui_salv/ui_dynpro) OR from the analyser's screen RULES: a dynpro is a screen, not a call, so it leaves no edge for the consumption detector to see. The rules are used rather than the coarser `ui_rearch` hint because that hint also fires on a WRITE list, which is batch output and stays headless."
+      "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page. The UI evidence arrives from a CPG edge (ui_salv/ui_dynpro) OR from the analyser's screen RULES: a dynpro is a screen, not a call, so it leaves no edge for the consumption detector to see. The rules are used rather than the coarser `ui_rearch` hint because that hint also fires on a WRITE list, which is batch output and stays headless. The rule list is the analyser's IMPLEMENTED classic-UI detectors (CLOUD-014 dynpro, S4-004 screen flow, S4-005 Web Dynpro) rather than the two the demo corpora happen to emit; CLOUD-028 (legacy-UI rollup) is catalogued but has no detector yet, and ABAP-PERF-77 is about a CALL SCREEN inside a NEW RAP handler, so it is deliberately not evidence about the legacy object."
     },
     {
       "id": "rap_bo_events",

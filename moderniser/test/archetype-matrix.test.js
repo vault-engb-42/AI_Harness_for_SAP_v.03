@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { assemblePlan } from "../src/sched/assemble.js";
 import { dispositionHint } from "../src/node/disposition-hints.js";
+import { matchTargetShapes } from "../src/plan/patterns/match.js";
 
 // B2-generalisation step 2 — the per-archetype FIXTURE MATRIX (operator directive 2026-07-29). The
 // calibration/regression harness (role B of the three-input model): one small, licence-clean synthetic
@@ -94,5 +95,51 @@ test("GUARANTEE: every archetype gets a true-modernisation disposition — none 
     const n = plan.nodes.find((x) => x.object === OBJ);
     assert.notEqual(n.disposition, "seal", `${row.name} must not degrade to seal`);
     assert.notEqual(n.disposition, "rebuild", `${row.name}: rebuild is a B3.5 app-level promotion, never a per-object B2 output`);
+  }
+});
+
+// ---------------------------------------------------------------------------------------------------
+// SHAPE generalisation (operator, 2026-08-11: "as long as you do not overfit it to these two demos, it must
+// generalise well"). The matrix above proves the DISPOSITION generalises across archetypes. Nothing proved
+// the same of the target SHAPE — and that is precisely where overfitting happened: the `rule:` signals added
+// on 2026-08-10 were chosen from the rule ids TALV and equalize-idoc happen to emit, so a Web Dynpro
+// application, which neither corpus contains, would have produced no UI evidence at all.
+//
+// A UI archetype that owns data must reach a UI-capable shape whatever detector found its screen. Each row
+// below is given an owned customer table so the RC-1 persistence gate is satisfied and the assertion is about
+// the UI evidence alone. A miss here is a CALIBRATION signal — widen the corpus signals, never the fixture.
+// ---------------------------------------------------------------------------------------------------
+
+const uiFact = (rule_ids, hint = "ui_rearch") => ({
+  object_kind: "report", graph_kind: "object", finding_families: ["deprecation"],
+  driving_rule_ids: rule_ids, disposition_hints: [hint], disposition: "re_architect",
+  consumption: ["no_surface_evidence"], persistence: ["owns_customer_table"],
+  modernization_target: "Fiori Elements App",
+  member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 }, dependency_count: 1,
+});
+
+// Every classic-UI detector the ANALYSER actually implements (grep of analyser/src + analyser/rules).
+// CLOUD-028 is catalogued with no detector yet, so it is absent by evidence rather than by oversight.
+const IMPLEMENTED_UI_RULES = [
+  ["classic dynpro (CLOUD-014)", "talos-cloud-014-classic-dynpro"],
+  ["screen flow (S4-004)", "talos-s4-004-screen-flow"],
+  ["Web Dynpro (S4-005)", "talos-s4-005-web-dynpro"],
+];
+
+for (const [name, rule] of IMPLEMENTED_UI_RULES) {
+  test(`shape · ${name} → a UI-capable shape, whichever detector found the screen`, () => {
+    const ids = matchTargetShapes(uiFact([rule])).map((c) => c.id);
+    assert.ok(ids.includes("rap_bo_fiori"), `${name} is an interactive UI: ${JSON.stringify(ids)}`);
+    assert.ok(!ids.includes("rap_bo_headless"), `${name} contradicts headless`);
+  });
+}
+
+test("GUARANTEE: no implemented classic-UI detector is invisible to the shape matcher", () => {
+  // The whole point of the row above, stated once over the set: if the analyser can detect a screen, the
+  // matcher must be able to see it. Adding a detector to the analyser without adding it here is the failure
+  // this asserts against.
+  for (const [name, rule] of IMPLEMENTED_UI_RULES) {
+    const ids = matchTargetShapes(uiFact([rule])).map((c) => c.id);
+    assert.ok(ids.length > 0 && ids.includes("rap_bo_fiori"), `${name} (${rule}) is not read by any pattern`);
   }
 });

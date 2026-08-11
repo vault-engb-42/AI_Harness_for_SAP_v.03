@@ -240,3 +240,24 @@ test("every shape that exposes data to a consumer requires dcl_authorization", (
     );
   }
 });
+
+// GENERALISATION (operator, 2026-08-11: "as long as you do not overfit it to these two demos, it must
+// generalise well"). The screen rules were chosen from what TALV and equalize-idoc happen to EMIT, which is a
+// property of those two corpora rather than of ABAP. The catalogue carries five rules that evidence a classic
+// UI surface: CLOUD-014 (classic dynpro), S4-004 (screen flow), S4-005 (Web Dynpro), CLOUD-028 (legacy-UI
+// rollup, catalogued but with no detector yet — an analyser gap, logged) and ABAP-PERF-77 (CALL SCREEN inside
+// a RAP handler, which is about the NEW code's quality and is deliberately not UI evidence about the legacy
+// object). A Web Dynpro application is a UI surface by any reading, and neither demo contains one.
+test("a Web Dynpro application is UI evidence too — not just the two rules these corpora emit", () => {
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: ["deprecation"],
+    driving_rule_ids: ["talos-s4-005-web-dynpro"], disposition_hints: ["ui_rearch"],
+    disposition: "re_architect", consumption: ["no_surface_evidence"], persistence: ["owns_customer_table"],
+    modernization_target: "Fiori Elements App",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 },
+    dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(ids.includes("rap_bo_fiori"), `Web Dynpro is an interactive UI: ${JSON.stringify(ids)}`);
+  assert.ok(!ids.includes("rap_bo_headless"), "and it contradicts headless exactly as a dynpro does");
+});

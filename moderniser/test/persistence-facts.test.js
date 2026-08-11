@@ -76,3 +76,20 @@ test("a structural edge is not a persistence path — an INCLUDE is the object's
   ], [{ id: "ZFUGR_X", kind: "function", object: "ZFUGR_X" }]));
   assert.deepEqual(out.ZFUGR_X, [NO_PERSISTENCE], "an INCLUDE does not inherit the included unit's tables");
 });
+
+// GENERALISATION (operator, 2026-08-11). `/^[ZY]/` is only PART of the customer namespace. SAP also issues
+// REGISTERED namespaces of the form `/VENDOR/OBJECT`, and a partner or large customer ships its whole product
+// in one — `/ACME/TORDER` is that customer's own table every bit as much as `ZTORDER` is. Reading it as SAP's
+// data would tell the harness the object owns nothing, which is the exact silence RC-1 exists to remove, in a
+// corpus neither demo represents.
+test("a REGISTERED customer namespace is customer persistence too", () => {
+  const out = persistenceFacts(graph([{ source: "/ACME/CL_ORDER", target: "/ACME/TORDER", kind: "uses-table" }]));
+  assert.deepEqual(out["/ACME/CL_ORDER"], ["owns_customer_table"], "/VENDOR/ is a customer namespace");
+});
+
+test("an SAP table is still SAP's, whatever else is in the corpus", () => {
+  for (const t of ["MARA", "EKPO", "T001", "BSEG"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: t, kind: "uses-table" }]));
+    assert.deepEqual(out.ZCL_X, ["reads_sap_table"], t);
+  }
+});

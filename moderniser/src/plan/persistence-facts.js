@@ -48,8 +48,13 @@ const PERSISTENCE_EDGE_KINDS = new Set(["uses-table"]);
 /**
  * A customer namespace table is the object's OWN data — the only kind a RAP root can be. An SAP table is
  * someone else's: reading MARA or EKPO is consumption of standard data, and a managed BO cannot own it.
+ *
+ * `Z*`/`Y*` is only PART of the customer namespace. SAP also issues REGISTERED namespaces of the form
+ * `/VENDOR/OBJECT`, and a partner or large customer ships an entire product inside one — `/ACME/TORDER` is
+ * that customer's own table exactly as `ZTORDER` is. Reading it as SAP's data would report that the object
+ * owns nothing, which is the very silence this module exists to remove, in a corpus neither demo represents.
  */
-const CUSTOMER_NAMESPACE = /^[ZY]/;
+const CUSTOMER_NAMESPACE = /^[ZY]|^\/[A-Z0-9_]+\//;
 
 /**
  * @param {object} doc analyser-findings.json (read-only, P8)
