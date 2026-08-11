@@ -119,3 +119,53 @@ test("CDS sources and associations yield edge-only consumes-cds edges", () => {
   assert.ok(has(edges, "consumes-cds", "VBAK", null), "source VBAK");
   assert.ok(has(edges, "consumes-cds", "ZI_CUSTOMER", null), "association ZI_Customer");
 });
+
+// R3a (independent ARCH_REVIEW across three corpora, 2026-08-11). Four of seven failed re-architecture
+// recommendations were `bdef_managed` + `draft_enabled` on objects that never write — "the contract mandates
+// transactional save and draft for a read-only display". The moderniser could not tell a reader from a
+// writer because the CPG never showed it one: `uses-table` was emitted for SELECT / SELECT-LOOP ONLY, so
+// INSERT, UPDATE, MODIFY and DELETE against a database table produced NO EDGE AT ALL. Every object read;
+// none could ever be seen to write.
+//
+// The access mode rides the edge, so a consumer can ask "does this object own and mutate data" — which is
+// what a managed RAP Business Object actually requires — instead of inferring ownership from a read.
+
+const WRITER = `REPORT zr_write.
+START-OF-SELECTION.
+  SELECT * FROM zorders INTO TABLE @DATA(lt).
+  INSERT zorders FROM TABLE @lt.
+  UPDATE zorders SET status = 'X' WHERE id = '1'.
+  MODIFY zorders FROM TABLE @lt.
+  DELETE FROM zorders WHERE id = '2'.`;
+
+test("R3a a SELECT is a read access on the table edge", () => {
+  const [obj] = load([{ filename: "zr_write.prog.abap", source: WRITER }]);
+  const reads = collectStatementEdges(obj).filter((e) => e.kind === "uses-table" && e.access === "read");
+  assert.ok(reads.some((e) => e.target === "ZORDERS"), `the SELECT must be a read: ${JSON.stringify(reads)}`);
+});
+
+test("R3a INSERT / UPDATE / MODIFY / DELETE each yield a WRITE table edge", () => {
+  const [obj] = load([{ filename: "zr_write.prog.abap", source: WRITER }]);
+  const writes = collectStatementEdges(obj).filter((e) => e.kind === "uses-table" && e.access === "write");
+  assert.ok(writes.length >= 4, `all four write statements must be seen: ${JSON.stringify(writes)}`);
+  for (const e of writes) assert.equal(e.target, "ZORDERS");
+});
+
+test("R3a an internal-table operation is NOT a database write", () => {
+  // INSERT/DELETE/MODIFY on an internal table are the same keywords and must not be mistaken for persistence.
+  const [obj] = load([{ filename: "zr_itab.prog.abap", source: `REPORT zr_itab.
+DATA lt TYPE TABLE OF string.
+START-OF-SELECTION.
+  INSERT \`a\` INTO TABLE lt.
+  DELETE lt INDEX 1.` }]);
+  const writes = collectStatementEdges(obj).filter((e) => e.kind === "uses-table" && e.access === "write");
+  assert.deepEqual(writes, [], `an internal table is not persistence: ${JSON.stringify(writes)}`);
+});
+
+test("R3a a read-only report yields reads and NO writes", () => {
+  const [obj] = load([{ filename: "zr_ro.prog.abap", source: `REPORT zr_ro.
+START-OF-SELECTION.
+  SELECT * FROM ekpo INTO TABLE @DATA(lt).` }]);
+  const edges = collectStatementEdges(obj).filter((e) => e.kind === "uses-table");
+  assert.ok(edges.every((e) => e.access === "read"), `a read-only report must show no write: ${JSON.stringify(edges)}`);
+});

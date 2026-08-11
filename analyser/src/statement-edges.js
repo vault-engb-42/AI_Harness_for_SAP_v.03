@@ -53,6 +53,28 @@ export function collectStatementEdges(obj) {
 }
 
 /**
+ * The DATABASE table a write statement targets, or null. Each ABAP write names its table in a different
+ * position, so the token is taken per statement shape rather than guessed:
+ *   INSERT <tab> FROM ...   /  UPDATE <tab> SET ...  /  MODIFY <tab> FROM ...  — the table follows the keyword
+ *   DELETE FROM <tab> ...   — and also the bare `DELETE <tab>` form
+ * A dynamic target ( `(lv_tab)` ) or a host variable ( `@lt` ) is skipped exactly as the read path skips them:
+ * an unresolvable name is not evidence.
+ */
+function writtenTable(grammar, tokens) {
+  const isWrite = grammar instanceof Statements.InsertDatabase
+    || grammar instanceof Statements.UpdateDatabase
+    || grammar instanceof Statements.ModifyDatabase
+    || grammar instanceof Statements.DeleteDatabase;
+  if (!isWrite) return null;
+  const first = tokens[0]?.getStr()?.toUpperCase();
+  // DELETE FROM <tab>; every other form names the table immediately after the keyword.
+  const t = first === "DELETE" ? (tokenAfter(tokens, "FROM") ?? tokens[1]) : tokens[1];
+  const name = t?.getStr();
+  if (!name || name.startsWith("@") || name.startsWith("(")) return null;
+  return name.toUpperCase();
+}
+
+/**
  * @param {object} grammar st.get() grammar instance
  * @param {import("@abaplint/core").Token[]} tokens
  * @returns {Omit<EdgeDescriptor, "evidence">|null}
@@ -64,8 +86,15 @@ function descriptorFor(grammar, tokens) {
     const name = t.getStr();
     // Skip dynamic ( FROM (lv_tab) ) and internal-table ( FROM @lt ) sources.
     if (name.startsWith("@") || name.startsWith("(")) return null;
-    return { kind: "uses-table", target: name.toUpperCase(), targetKind: "table" };
+    return { kind: "uses-table", target: name.toUpperCase(), targetKind: "table", access: "read" };
   }
+  // WRITES. Until R3a the CPG saw reads only, so no consumer could distinguish a reader from a writer — and
+  // an independent review failed four re-architecture recommendations that put a managed, draft-enabled RAP
+  // Business Object on objects which never write. A managed BO exists to own and mutate data; that claim now
+  // has an evidence channel. abaplint types the DATABASE variants separately from the internal-table ones
+  // (InsertDatabase vs InsertInternal), so an itab operation is never mistaken for persistence.
+  const written = writtenTable(grammar, tokens);
+  if (written) return { kind: "uses-table", target: written, targetKind: "table", access: "write" };
   if (grammar instanceof Statements.CallFunction) {
     const lit = tokens.find((t) => t.getStr().startsWith("'"));
     if (!lit) return null; // dynamic CALL FUNCTION <var> — no static target
