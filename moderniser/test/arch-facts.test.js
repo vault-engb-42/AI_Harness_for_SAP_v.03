@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { consumptionFacts, CONSUMPTION_FACTS } from "../src/plan/consumption-facts.js";
+import { persistenceFacts } from "../src/plan/persistence-facts.js";
 import { factStream, factHash } from "../src/plan/arch-facts.js";
 
 // B3.5 seam 1 (BUILD_PLAN S14/S11): the CPG consumption detector + the bounded-LLM JUDGMENT I/O
@@ -123,7 +124,7 @@ test("factStream emits ONLY declared closed fields — never the object name or 
   assert.ok(!json.includes("sig-abc"), "the node id (a customer-derived sig) does not enter the stream");
   const allowed = new Set([
     "object_kind", "graph_kind", "finding_families", "driving_rule_ids", "disposition_hints",
-    "disposition", "consumption", "modernization_target", "member_summary", "dependency_count",
+    "disposition", "consumption", "persistence", "modernization_target", "member_summary", "dependency_count",
   ]);
   for (const k of Object.keys(s)) assert.ok(allowed.has(k), `field ${k} is declared`);
 });
@@ -224,4 +225,36 @@ test("GRADE worst_grade ranks the analyser's real A–D vocabulary, and `unknown
   assert.equal(worst(["unknown", "C"]), "C", "a graded member outranks an ungraded one");
   assert.equal(worst(["unknown"]), "unknown", "…but an all-ungraded node reports unknown, not a fabricated grade");
   assert.equal(worst(["D", "unknown"]), "D", "absence of a grade is never evidence of a worse one");
+});
+
+// RC-1: persistence rides the fact stream as its OWN field, not as more entries in `consumption`. The judge
+// and the matcher must be able to ask "what does this object own" separately from "what surface does it
+// present" — 13 of 15 recommendations were failed by the independent reviewer because only the second
+// question could be asked, so a display utility and a business object were handed the same managed RAP BO.
+test("the fact stream carries persistence as a separate dimension", () => {
+  const doc = {
+    graph: {
+      nodes: [{ id: "ZCL_X", kind: "class", object: "ZCL_X" }],
+      edges: [
+        { source: "ZCL_X", target: "CL_SALV_TABLE", kind: "call-method" },
+        { source: "ZCL_X", target: "ZTAB_MINE", kind: "uses-table" },
+      ],
+    },
+  };
+  const fact = factStream({ id: "s", object: "ZCL_X", members: ["ZCL_X"] }, consumptionFacts(doc), persistenceFacts(doc));
+  assert.deepEqual(fact.consumption, ["ui_salv"], "surface stays surface");
+  assert.deepEqual(fact.persistence, ["owns_customer_table"], "ownership is its own answer");
+});
+
+test("an object that owns nothing says so in the persistence field, whatever its surface", () => {
+  const doc = { graph: { nodes: [{ id: "ZCL_Y", kind: "class", object: "ZCL_Y" }], edges: [{ source: "ZCL_Y", target: "CL_SALV_TABLE", kind: "call-method" }] } };
+  const fact = factStream({ id: "s", object: "ZCL_Y", members: ["ZCL_Y"] }, consumptionFacts(doc), persistenceFacts(doc));
+  assert.deepEqual(fact.persistence, ["no_persistence_evidence"]);
+});
+
+test("persistence changes the fact hash — new evidence is a new question", () => {
+  const node = { id: "s", object: "ZCL_X", members: ["ZCL_X"] };
+  const owns = { ZCL_X: ["owns_customer_table"] };
+  const none = { ZCL_X: ["no_persistence_evidence"] };
+  assert.notEqual(factHash(node, {}, owns), factHash(node, {}, none), "two different objects must not share a cached verdict");
 });

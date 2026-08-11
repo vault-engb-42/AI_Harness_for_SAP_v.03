@@ -23,6 +23,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { consumptionFacts } from "./plan/consumption-facts.js";
+import { persistenceFacts } from "./plan/persistence-facts.js";
 import { factStream } from "./plan/arch-facts.js";
 import { matchTargetShapes, loadPatternCorpus } from "./plan/patterns/match.js";
 import { reasonArchitecture, validateSelection } from "./plan/arch-reason.js";
@@ -46,12 +47,13 @@ export function cmdArch(io, pos, flags) {
   const { plan, state } = loadRun(io, runId);
   const doc = readVerifiedDoc(pos[1] ?? flags.findings, state);
   const cons = consumptionFacts(doc);
+  const pers = persistenceFacts(doc);
   const std = standardTablesByObject(doc);
   const corpus = loadPatternCorpus();
   const opts = { model_id: flags.model ?? null, prompt_hash: flags["prompt-hash"] ?? defaultPromptHash() };
   const cacheLookup = toLookup(readArchVerdictCache(io));
 
-  const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, corpus, cacheLookup, opts);
+  const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, pers, corpus, cacheLookup, opts);
   const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
   const groupCtx = { plan, adjacency: buildAdjacency(plan) };
   const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state, blueprint, groupCtx);
@@ -105,12 +107,12 @@ export function readVerifiedDoc(path, state, verb = "arch") {
 }
 
 /** Reason a target_shape per re_architect/rebuild node; partition resolved (deterministic|cached) vs pending. */
-function reasonArchNodes(plan, cons, corpus, cacheLookup, opts) {
+function reasonArchNodes(plan, cons, pers, corpus, cacheLookup, opts) {
   const entries = [];
   const known = new Set(plan.nodes.map((n) => n.id));
   for (const node of plan.nodes) {
     if (!ARCH_GATED_DISPOSITIONS.has(node.disposition)) continue;
-    const fact = factStream(node, cons);
+    const fact = factStream(node, cons, pers);
     const cands = matchTargetShapes(fact, corpus);
     let res = reasonArchitecture(node, fact, cands, cacheLookup, opts);
     // M3: re-validate a CACHED judge verdict against THIS run's candidates before trusting it. entry_hash

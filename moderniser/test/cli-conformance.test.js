@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadPlan } from "../src/sched/plan.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
+import { persistenceFacts } from "../src/plan/persistence-facts.js";
 import { factHash } from "../src/plan/arch-facts.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
 
@@ -32,6 +33,10 @@ function mk() {
 }
 
 const consOf = () => consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+const persOf = () => persistenceFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+// Since RC-1 a shape requires table evidence, and two of the fixture's three nodes touch none — they are
+// correctly `unplaceable`, so a run that must reach ratification has to name the node that resolves.
+const archNode = (plan) => plan.nodes.find((n) => n.object === "ZFICO_BTC_CSV_GL");
 const statePath = (stateDir, runId) => join(stateDir, "runs", `${runId}.state.json`);
 const stateOf = (stateDir, runId) => JSON.parse(readFileSync(statePath(stateDir, runId), "utf8"));
 
@@ -39,9 +44,9 @@ const stateOf = (stateDir, runId) => JSON.parse(readFileSync(statePath(stateDir,
 function ratifiedRun() {
   const ctx = mk();
   const planned = ctx.run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, ctx.stateDir).nodes[0];
+  const target = archNode(loadPlan(planned.run_id, ctx.stateDir));
   const rec = { sig: target.id, target_shape: "rap_bo_headless", components: [], invariants: [], candidates: [{ id: "rap_bo_headless", score: 1 }], source: "judge" };
-  writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(target, consOf()), "opus", "ph1", rec), null, 2));
+  writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(target, consOf(), persOf()), "opus", "ph1", rec), null, 2));
   ctx.run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
 
   const verdictFile = join(ctx.base, "review.json");

@@ -75,6 +75,11 @@ function signalHolds(signal, fact) {
     // dynpro is a screen, not a call, so `talos-cloud-014-classic-dynpro` is what sees it at all. It is
     // preferred over `hint:ui_rearch` because that hint collapses a screen and a WRITE list into one token.
     case "rule": return (fact.driving_rule_ids ?? []).includes(value);
+    // WHAT THE OBJECT OWNS. A managed RAP Business Object is by definition an object with a persistent root,
+    // and until RC-1 no signal could ask whether one existed — so every arch-gated node, display utility or
+    // not, matched a shape carrying bdef_managed + behavior_pool + dcl. The independent reviewer failed 13
+    // of 15 recommendations on precisely that.
+    case "persistence": return (fact.persistence ?? []).includes(value);
     case "family": return (fact.finding_families ?? []).includes(value);
     case "disposition": return fact.disposition === value;
     case "target": return fact.modernization_target === value;

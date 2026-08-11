@@ -12,6 +12,7 @@ import { freezeJudgeSelection } from "./plan/arch-reason.js";
 import { putEntry } from "./state/arch-verdict-cache.js";
 import { ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { consumptionFacts } from "./plan/consumption-facts.js";
+import { persistenceFacts } from "./plan/persistence-facts.js";
 import { loadRun, log, readArchVerdictCache, saveArchVerdictCache, readArchManifest } from "./cli-io.js";
 import { readVerifiedDoc, defaultPromptHash } from "./cli-arch.js";
 
@@ -42,7 +43,7 @@ export function cmdArchVerdict(io, pos, flags) {
     throw new Error(`arch-verdict: node ${sig} has disposition '${node.disposition}' — only re_architect/rebuild nodes are judged`);
   }
   const corpus = loadPatternCorpus();
-  const fact = factStream(node, consumptionFacts(doc));
+  const fact = factStream(node, consumptionFacts(doc), persistenceFacts(doc));
   // --shared-json carries the judge's APP-LEVEL grouping ({services|projections|fiori_apps}: [{id, members}])
   // — the cross-object half of the two-level judgment, which the blueprint conformance tier checks. It is
   // UNTRUSTED fulfiller input that gets frozen into the cross-run cache, so it is validated here (F).

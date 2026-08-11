@@ -20,7 +20,8 @@
           "consumption:no_surface_evidence",
           "consumption:classic_api_surface",
           "rule:talos-cloud-014-classic-dynpro",
-          "rule:talos-s4-004-screen-flow"
+          "rule:talos-s4-004-screen-flow",
+          "persistence:no_persistence_evidence"
         ]
       },
       "components": [
@@ -46,6 +47,9 @@
         "any": [
           "consumption:remote_rfc",
           "consumption:remote_bapi"
+        ],
+        "none": [
+          "persistence:no_persistence_evidence"
         ]
       },
       "components": [
@@ -74,6 +78,9 @@
           "consumption:ui_dynpro",
           "rule:talos-cloud-014-classic-dynpro",
           "rule:talos-s4-004-screen-flow"
+        ],
+        "none": [
+          "persistence:no_persistence_evidence"
         ]
       },
       "components": [
@@ -101,6 +108,9 @@
       "when_signals": {
         "any": [
           "consumption:remote_idoc"
+        ],
+        "none": [
+          "persistence:no_persistence_evidence"
         ]
       },
       "components": [
@@ -165,13 +175,12 @@
       "id": "custom_entity_query",
       "name": "Custom entity + query provider",
       "when_signals": {
-        "all": [
-          "object_kind:function"
-        ],
         "any": [
           "hint:os_exec",
-          "hint:db_refactor",
           "consumption:remote_rfc"
+        ],
+        "none": [
+          "persistence:owns_customer_table"
         ]
       },
       "components": [
@@ -183,7 +192,7 @@
         "readonly_query",
         "dcl_authorization"
       ],
-      "example": "a function reading external / non-persisted data — a custom entity backed by a query-provider class."
+      "example": "an object reading data it does NOT own — external, file, or remote — as a custom entity backed by a query-provider class. Previously gated behind object_kind:function so no class or report could ever reach it, which is half of why the independent review failed 13 of 15 recommendations: every one was handed a managed BO instead. It refuses an object that owns a customer table (that one is a real BO). Reading an SAP table is deliberately NOT a signal here: that is what released CDS views are for, and routing it to a bespoke custom entity would build what SAP already ships."
     },
     {
       "id": "released_replace",

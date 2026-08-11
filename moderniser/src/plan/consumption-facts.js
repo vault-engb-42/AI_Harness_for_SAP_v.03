@@ -13,6 +13,7 @@
  */
 
 import { classifyName } from "../../../oracle/src/oracle.js";
+import { reachableEvidence, reachableFacts } from "./reach.js";
 
 /**
  * The closed, sorted consumption-fact enum. `no_surface_evidence` is a MEMBER, not an escape hatch: it is
@@ -76,45 +77,9 @@ const NODE_KIND_FACT = { report: "batch_report", program: "batch_report", execut
 export const NO_EVIDENCE = "no_surface_evidence";
 
 /**
- * Every object's OWN facts — the surfaces it touches directly, with no propagation.
- * @returns {Map<string, Set<string>>}
- */
-function directFacts(doc) {
-  const byObject = new Map();
-  const add = (owner, fact) => {
-    if (!owner || !fact) return;
-    if (!byObject.has(owner)) byObject.set(owner, new Set());
-    byObject.get(owner).add(fact);
-  };
-  for (const n of doc?.graph?.nodes ?? []) {
-    const fact = NODE_KIND_FACT[String(n.kind ?? "").toLowerCase()];
-    if (fact) add(ownerOfNode(n), fact);
-  }
-  for (const e of doc?.graph?.edges ?? []) {
-    const owner = ownerOf(e.source);
-    if (!isConsumptionEdge(e, owner)) continue;
-    for (const fact of classifyConstruct(e.target, e)) add(owner, fact);
-  }
-  return byObject;
-}
-
-/** owner → the distinct owners it CALLS (structural edges and self-calls excluded, as above). */
-function calleeMap(doc) {
-  const out = new Map();
-  for (const e of doc?.graph?.edges ?? []) {
-    const owner = ownerOf(e.source);
-    if (!isConsumptionEdge(e, owner)) continue;
-    const callee = ownerOf(e.target);
-    if (!owner || !callee) continue;
-    if (!out.has(owner)) out.set(owner, new Set());
-    out.get(owner).add(callee);
-  }
-  return out;
-}
-
-/**
  * Surface facts with PROVENANCE: what each object touches itself, and what it reaches through the corpus's
- * own wrappers.
+ * own wrappers. The walk, the wrapper propagation and the owner seeding live in `reach.js`, shared with the
+ * PERSISTENCE dimension; this module supplies only the classifier.
  *
  * A corpus that wraps its UI was previously invisible: TALV holds 493 ALV/SALV references and exactly three
  * objects touch an SAP GUI class directly — the other fourteen reach the grid through `ZCL_GUI_ALV_GRID` /
@@ -122,59 +87,17 @@ function calleeMap(doc) {
  * SAP", a property of the detector rather than of the corpus, and because `rap_bo_headless` fires on the
  * ABSENCE of ui_* or remote_*, every blind spot became a confident shape.
  *
- * `direct` and `reached` stay separate because they are different claims that imply different dispositions:
- * the wrapper that IS the grid retires, while the callers that USE it re-architect to Fiori. `via` names the
- * immediate callee a reached fact came through, so the path is auditable rather than asserted.
- *
- * Memoised depth-first with an in-progress guard, so mutually recursive wrappers terminate and the walk is
- * O(V+E) amortised rather than a BFS per object — the 100K+ LOC NFR makes the quadratic form untenable.
- *
  * @param {object} doc analyser-findings.json (read-only, P8)
  * @returns {Record<string, {direct: string[], reached: Array<{fact: string, via: string}>}>}
  */
 export function consumptionEvidence(doc) {
-  const direct = directFacts(doc);
-  const callees = calleeMap(doc);
-  const memo = new Map();
-  const walking = new Set();
-
-  const factsOf = (owner) => {
-    if (memo.has(owner)) return memo.get(owner);
-    if (walking.has(owner)) return new Set(); // cycle: this object's own facts are added by its caller
-    walking.add(owner);
-    const all = new Set(direct.get(owner) ?? []);
-    for (const callee of callees.get(owner) ?? []) for (const f of factsOf(callee)) all.add(f);
-    walking.delete(owner);
-    memo.set(owner, all);
-    return all;
-  };
-
-  // Every object the CPG contains is an object the detector READ, and a read object owes an answer. Building
-  // this set from the fact and callee maps alone left out precisely the objects with nothing to say: a
-  // function group whose only edges are its own INCLUDEs entered neither map, so it had no entry, so
-  // `consumptionFacts` never marked it `no_surface_evidence` — and `rap_bo_headless`'s `none` guard passed
-  // vacuously on the empty list. That is the silent headless BO the marker was added to stop, one level
-  // further down. TALV's ZFUNG_TALV and ZTALVTAB003 escaped through it. Presence in `graph.nodes` is the
-  // evidence of a read; absence from the output now means only "not in the graph".
-  const owners = new Set((doc?.graph?.nodes ?? []).map(ownerOfNode).filter(Boolean));
-  for (const key of direct.keys()) owners.add(key);
-  for (const key of callees.keys()) owners.add(key);
-  for (const set of callees.values()) for (const c of set) owners.add(c);
-
-  const out = {};
-  for (const owner of [...owners].sort()) {
-    const own = direct.get(owner) ?? new Set();
-    const reached = [];
-    for (const callee of [...(callees.get(owner) ?? [])].sort()) {
-      for (const fact of [...factsOf(callee)].sort()) {
-        if (own.has(fact) || reached.some((r) => r.fact === fact)) continue;
-        reached.push({ fact, via: callee });
-      }
-    }
-    out[owner] = { direct: [...own].sort(), reached };
-  }
-  return out;
+  return reachableEvidence(doc, CLASSIFIER);
 }
+
+const CLASSIFIER = {
+  factsOfEdge: (edge) => classifyConstruct(edge.target, edge),
+  factsOfNode: (n) => [NODE_KIND_FACT[String(n.kind ?? "").toLowerCase()]].filter(Boolean),
+};
 
 /**
  * The flat per-object fact set the shape matcher keys on: direct and reached facts merged, because an
@@ -187,42 +110,7 @@ export function consumptionEvidence(doc) {
  * judged at all. Silence now says so out loud, and a shape rule can require evidence instead of quiet.
  */
 export function consumptionFacts(doc) {
-  const out = {};
-  for (const [owner, ev] of Object.entries(consumptionEvidence(doc))) {
-    const facts = [...new Set([...ev.direct, ...ev.reached.map((r) => r.fact)])].sort();
-    out[owner] = facts.length > 0 ? facts : [NO_EVIDENCE];
-  }
-  return out;
-}
-
-/**
- * Edge kinds that describe an object's own STRUCTURE rather than anything it consumes. A function group's
- * INCLUDEs and a class's superclass are parts of the object, not an external surface it talks to.
- *
- * F-1: without this, `ZBC_FG_IDOC_FW --includes--> LZBC_FG_IDOC_FWTOP` and
- * `ZCL_IDOC_INPUT --inherits--> ZCL_IDOC_BASE` both registered as consumption. On the equalize-idoc corpus
- * that was 19 of the 107 spurious matches; the intra-object call below accounted for most of the rest.
- */
-const STRUCTURAL_EDGE_KINDS = new Set(["includes", "contains"]);
-
-/**
- * Does this edge describe something the object CONSUMES? Structural edges never do, and neither does a call
- * an object makes to itself — `ZCL_IDOC_DB_BUFFER.LOOKUP_KNA1 → ZCL_IDOC_DB_BUFFER.RETURN_FIELDVALUE_…` is
- * a private helper call, not a consumption surface, however the callee happens to be named.
- */
-function isConsumptionEdge(edge, owner) {
-  if (STRUCTURAL_EDGE_KINDS.has(String(edge?.kind ?? "").toLowerCase())) return false;
-  return ownerOf(edge?.target) !== owner;
-}
-
-/** The owning object of a construct: the id segment before the first dot (`OWNER.form`/`OWNER.method` → OWNER). */
-function ownerOf(id) {
-  return String(id ?? "").split(".")[0];
-}
-
-/** A CPG node's owner: its explicit `object`, else the id's owner segment. */
-function ownerOfNode(n) {
-  return n.object || ownerOf(n.id);
+  return reachableFacts(doc, { ...CLASSIFIER, absence: NO_EVIDENCE });
 }
 
 /**

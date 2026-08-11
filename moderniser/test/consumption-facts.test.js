@@ -317,3 +317,4 @@ test("an object that does both says both — a bridge is not one-directional", (
   ]));
   assert.deepEqual(out.ZCL_BRIDGE, ["remote_idoc", "remote_idoc_inbound", "remote_idoc_outbound"]);
 });
+

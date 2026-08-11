@@ -31,7 +31,7 @@ const GRADE_RANK = { A: 1, B: 2, C: 3, D: 4 };
  * @param {Record<string, string[]>} [consumptionByObject] the consumption-facts cache (consumption-facts.js)
  * @returns {{object_kind: string|null, graph_kind: string|null, finding_families: string[], driving_rule_ids: string[], disposition_hints: string[], disposition: string|null, consumption: string[], modernization_target: string|null, member_summary: {members: number, worst_grade: string, max_complexity: number, total_blast: number}, dependency_count: number}}
  */
-export function factStream(node, consumptionByObject = {}) {
+export function factStream(node, consumptionByObject = {}, persistenceByObject = {}) {
   return {
     object_kind: node.object_kind ?? null,
     graph_kind: node.kind ?? null,
@@ -39,7 +39,13 @@ export function factStream(node, consumptionByObject = {}) {
     driving_rule_ids: [...(node.driving_rule_ids ?? [])].sort(),
     disposition_hints: [...(node.disposition_hints ?? [])].sort(),
     disposition: node.disposition ?? null,
-    consumption: consumptionUnion(node, consumptionByObject),
+    consumption: memberUnion(node, consumptionByObject),
+    // WHAT THE OBJECT OWNS — a separate question from what surface it presents, and the one the harness
+    // could not ask at all until RC-1. A managed RAP Business Object IS an object that owns a persistent
+    // root; without this field the matcher could not tell a display utility from a business object, and the
+    // independent reviewer failed 13 of 15 recommendations on exactly that (`no entity to manage, so
+    // bdef_managed / draft_enabled / commit_entities_only have no referent`).
+    persistence: memberUnion(node, persistenceByObject),
     modernization_target: safeTarget(node.modernization_target ?? null),
     member_summary: reduceMemberMeta(node.member_meta),
     // cardinality only: the raw dependency sigs are opaque to the judge and are a customer-derived string,
@@ -49,8 +55,8 @@ export function factStream(node, consumptionByObject = {}) {
 }
 
 /** The content hash of the fact stream (S14 verdict-cache key preimage). */
-export function factHash(node, consumptionByObject = {}) {
-  return hashFactStream(factStream(node, consumptionByObject));
+export function factHash(node, consumptionByObject = {}, persistenceByObject = {}) {
+  return hashFactStream(factStream(node, consumptionByObject, persistenceByObject));
 }
 
 /** The content hash of an already-built fact stream (same sha256(canonicalJSON) as plan_hash). */
@@ -75,9 +81,9 @@ function upperIndex(map) {
   return out;
 }
 
-/** Sorted union of the consumption facts of every member (case-insensitive on the member id). */
-function consumptionUnion(node, consumptionByObject) {
-  const byUpper = upperIndex(consumptionByObject);
+/** Sorted union of one dimension's facts over every member (case-insensitive on the member id). */
+function memberUnion(node, byObject) {
+  const byUpper = upperIndex(byObject);
   const members = node.members?.length ? node.members : [node.object];
   const set = new Set();
   for (const m of members) for (const f of byUpper[String(m).toUpperCase()] ?? []) set.add(f);

@@ -7,7 +7,9 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadPlan, planHash } from "../src/sched/plan.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
-import { factHash } from "../src/plan/arch-facts.js";
+import { persistenceFacts } from "../src/plan/persistence-facts.js";
+import { factHash, factStream } from "../src/plan/arch-facts.js";
+import { matchTargetShapes } from "../src/plan/patterns/match.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
 import { groupingDecision } from "../src/plan/arch-row.js";
 
@@ -21,6 +23,12 @@ import { groupingDecision } from "../src/plan/arch-row.js";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
+// Cross-object grouping needs at least TWO nodes that resolve to a shape, and since RC-1 a shape requires
+// table evidence — the real abap_fico fixture has exactly one such node. This fixture is that same real
+// analyser output plus two customer objects that each own a customer table (ZORD_ORDER/ZTORDER,
+// ZORD_ITEM/ZTORDERITEM) and call CL_SALV_TABLE, so both resolve to rap_bo_fiori and can legitimately be
+// grouped into one app. Same schema and same hashes, so plan/arch verify it exactly as they do the original.
+const GROUPING_FIXTURE = join(HERE, "fixtures", "analyser-findings-grouping.json");
 
 function mk() {
   const base = mkdtempSync(join(tmpdir(), "arch-cli-"));
@@ -32,27 +40,44 @@ function mk() {
 
 // Seed the CROSS-RUN verdict cache so a named node resolves as 'cached' — the real fulfiller flow (the judge
 // writes the cache, cmdArch re-run hits it). A real cache file + the real fact hash; no mocks.
-function seedCache(stateDir, node, cons, { model = "opus", promptHash = "ph1", shape = "rap_bo_headless", candidates, judgedBy, shared } = {}) {
+function seedCache(stateDir, node, cons, pers, { model = "opus", promptHash = "ph1", shape, candidates, judgedBy, shared } = {}) {
+  shape ??= topShape(node, cons, pers);
   // `judged_by` is what cli-arch-verdict.js:52 really stores alongside the recommendation (F-2).
   const rec = { sig: node.id, target_shape: shape, components: [], invariants: [], candidates: candidates ?? [{ id: shape, score: 1 }], source: "judge", ...(judgedBy ? { judged_by: judgedBy } : {}), ...(shared ? { shared } : {}) };
-  const cache = putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec);
+  const cache = putEntry({ entries: {} }, factHash(node, cons, pers), model, promptHash, rec);
   writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
   return rec;
 }
 
 /** Seed the cache with a judge verdict whose `shared` grouping names a sig from ANOTHER run. */
-function seedCacheWithForeignShared(stateDir, node, cons, foreignSig, opts = {}) {
-  const { model = "opus", promptHash = "ph1", shape = "rap_bo_headless" } = opts;
+function seedCacheWithForeignShared(stateDir, node, cons, pers, foreignSig, opts = {}) {
+  const { model = "opus", promptHash = "ph1", shape = topShape(node, cons, pers) } = opts;
   const rec = {
     sig: node.id, target_shape: shape, components: [], invariants: [],
     candidates: [{ id: shape, score: 1 }], source: "judge",
     shared: { services: [{ id: "SRV_ORDER_MGMT", members: [foreignSig] }], projections: [], fiori_apps: [] },
   };
-  writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(node, cons), model, promptHash, rec), null, 2));
+  writeFileSync(join(stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(node, cons, pers), model, promptHash, rec), null, 2));
   return rec;
 }
 
-const consOf = () => consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+/** The shape this node's OWN facts offer — a seed the arch gate accepts rather than refuses. Derived from
+ *  the real matcher so no test has to know which shape a fixture node resolves to, and so a future change
+ *  to the corpus gating cannot silently invalidate every seeded cache entry. */
+const topShape = (node, cons, pers) => matchTargetShapes(factStream(node, cons, pers))[0]?.id;
+const consOf = (doc = FIXTURE) => consumptionFacts(JSON.parse(readFileSync(doc, "utf8")));
+const persOf = (doc = FIXTURE) => persistenceFacts(JSON.parse(readFileSync(doc, "utf8")));
+// The fixture's only node that still RESOLVES to a target shape. Since RC-1 a managed RAP BO requires
+// table evidence — the shape's whole point is an owned persistent root — and ZFICO_BTC_CSV_SCR / _TOP touch
+// no table at all, so they are correctly `unplaceable` and a human re-dispositions them. Tests that need a
+// node which resolves must name the one that does, rather than assume the first.
+const archNode = (plan) => plan.nodes.find((n) => n.object === "ZFICO_BTC_CSV_GL");
+/** How many of the fixture's nodes a shape can actually be justified for (the rest are `unplaceable`). */
+const PLACEABLE = 1;
+/** The grouping fixture adds two table-owning objects, so three of its nodes resolve. */
+const PLACEABLE_GROUPING = 3;
+/** Its placeable nodes, in plan order — the ones a cross-object group can actually be built from. */
+const archNodes = (plan) => plan.nodes.filter((n) => /^(ZORD_ORDER|ZORD_ITEM|ZFICO_BTC_CSV_GL)$/.test(n.object));
 const stateOf = (stateDir, runId) => JSON.parse(readFileSync(join(stateDir, "runs", `${runId}.state.json`), "utf8"));
 const manifestOf = (runsDir, runId) => JSON.parse(readFileSync(join(runsDir, runId, "architecture-manifest.json"), "utf8"));
 const archEscs = (run, runId) => {
@@ -78,12 +103,12 @@ test("arch: every node escalates (cache miss) → 0 contracts, 0 ARCH_REVIEW, pe
   const planned = run("plan", FIXTURE);
   const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.equal(out.resolved, 0);
-  assert.equal(out.pending, planned.nodes.length);
+  assert.equal(out.pending, PLACEABLE);
   assert.equal(archEscs(run, planned.run_id).length, 0, "no ARCH_REVIEW without a bound contract");
   assert.deepEqual(stateOf(stateDir, planned.run_id).arch_contracts, {}, "no contracts bound");
   const m = manifestOf(runsDir, planned.run_id);
   assert.equal(m.rows.length, 0);
-  assert.equal(m.pending.length, planned.nodes.length);
+  assert.equal(m.pending.length, PLACEABLE);
   assert.ok(m.pending.every((p) => p.fact && Array.isArray(p.candidates)), "each pending row carries the P8 fact + candidates the fulfiller judges");
 });
 
@@ -92,11 +117,11 @@ test("arch: every node escalates (cache miss) → 0 contracts, 0 ARCH_REVIEW, pe
 test("arch: a cached node → binds a contract + raises ONE ARCH_REVIEW + a fit_to_standard row + options", () => {
   const { stateDir, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.equal(out.resolved, 1);
-  assert.equal(out.pending, planned.nodes.length - 1);
+  assert.equal(out.pending, PLACEABLE - 1);
   assert.equal(out.rows[0].sig, target.id);
   assert.equal(out.rows[0].target_shape, "rap_bo_headless");
 
@@ -122,8 +147,8 @@ test("arch: a cached node → binds a contract + raises ONE ARCH_REVIEW + a fit_
 test("arch is idempotent — a re-run rebinds the same contract hash + raises no duplicate ARCH_REVIEW", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   const a = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const b = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.equal(a.rows[0].contract_hash, b.rows[0].contract_hash);
@@ -135,8 +160,8 @@ test("arch is idempotent — a re-run rebinds the same contract hash + raises no
 test("arch re-run PRESERVES an existing ratification when the contract hash is unchanged", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
   reviewOk(run, planned.run_id, target.id);
@@ -151,8 +176,8 @@ test("arch re-run PRESERVES an existing ratification when the contract hash is u
 test("arch re-run CLEARS the ratification when the contract hash changes (re-ratification is required)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
@@ -174,8 +199,8 @@ test("arch re-run CLEARS the ratification when the contract hash changes (re-rat
 test("decide reject leaves the node UNRATIFIED, so the driver refuses to build it", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "reject", "--by", "eng");
   assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, null, "a reject ratifies nothing");
@@ -189,8 +214,8 @@ test("decide reject leaves the node UNRATIFIED, so the driver refuses to build i
 test("G a re-run does NOT re-raise ARCH_REVIEW for a still-ratified, unchanged contract", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
@@ -203,8 +228,8 @@ test("G a re-run does NOT re-raise ARCH_REVIEW for a still-ratified, unchanged c
 test("G a CHANGED contract DOES raise a fresh ARCH_REVIEW (re-ratify exactly what changed)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   reviewOk(run, planned.run_id, target.id);
   run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
@@ -286,8 +311,8 @@ test("H3 arch-verdict ingests a judge selection, and a following `arch` RESOLVES
 test("V1 a cached grouping naming a FOREIGN run's sig is a cache miss, not a dead run", () => {
   const { stateDir, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCacheWithForeignShared(stateDir, target, consOf(), "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCacheWithForeignShared(stateDir, target, consOf(), persOf(), "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
 
   const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.ok(out.pending >= 1, "the poisoned node re-escalates to the judge");
@@ -304,14 +329,14 @@ test("V1 a cached grouping naming a FOREIGN run's sig is a cache miss, not a dea
 // pending.
 test("V1b a cached grouping naming a plan node that is NOT RESOLVED this run is also a miss", () => {
   const { stateDir, runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
-  const nodes = loadPlan(planned.run_id, stateDir).nodes;
+  const planned = run("plan", GROUPING_FIXTURE);
+  const nodes = archNodes(loadPlan(planned.run_id, stateDir));
   const [a, b] = nodes;
-  seedCacheWithForeignShared(stateDir, a, consOf(), b.id); // b is a real plan node — just not judged yet
+  seedCacheWithForeignShared(stateDir, a, consOf(GROUPING_FIXTURE), persOf(GROUPING_FIXTURE), b.id); // b is a real plan node — just not judged yet
 
-  const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const out = run("arch", planned.run_id, GROUPING_FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.ok(!out.rows.some((r) => r.sig === a.id), "a group naming an unresolved sibling is a miss, not a fatal error");
-  assert.equal(out.pending, nodes.length, "so every arch-gated node is awaiting the judge, and the verb survived");
+  assert.equal(out.pending, PLACEABLE_GROUPING, "so every PLACEABLE node is awaiting the judge, and the verb survived");
   const m = manifestOf(runsDir, planned.run_id);
   assert.ok(m.pending.some((p) => p.sig === a.id), "and the manifest carries the request, so arch-verdict can serve it");
 });
@@ -343,7 +368,7 @@ test("INV `arch` never throws a blueprint violation for a cached grouping, whate
       candidates: [{ id: "rap_bo_headless", score: 1 }], source: "judge",
       shared: { services: [{ id: "SRV", members }], projections: [], fiori_apps: [] },
     };
-    writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(target, consOf()), "opus", "ph1", rec), null, 2));
+    writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(putEntry({ entries: {} }, factHash(target, consOf(), persOf()), "opus", "ph1", rec), null, 2));
 
     ctx.run("arch", p.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1"); // must not throw
     assert.ok(
@@ -356,8 +381,8 @@ test("INV `arch` never throws a blueprint violation for a cached grouping, whate
 test("V1 a cached grouping naming THIS plan's sigs still resolves from cache (no false miss)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCacheWithForeignShared(stateDir, target, consOf(), target.id); // its OWN sig — the documented lane shape
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCacheWithForeignShared(stateDir, target, consOf(), persOf(), target.id); // its OWN sig — the documented lane shape
   const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.ok(out.rows.some((r) => r.sig === target.id), "a legitimate cached grouping is still reused");
 });
@@ -407,7 +432,7 @@ test("B arch-verdict REFUSES a key that diverges from the outstanding request (s
 test("B arch-verdict REFUSES a sig with no outstanding request (nothing asked for this judgment)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const sig = loadPlan(planned.run_id, stateDir).nodes[0].id;
+  const sig = archNode(loadPlan(planned.run_id, stateDir)).id;
   // `arch` has never run, so no request exists for this node
   assert.throws(() => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium"), /outstanding|request|arch/i);
 });
@@ -439,16 +464,16 @@ test("H3 arch-verdict requires a named judge and verifies the findings doc like 
 
 test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide approve → drive DISPATCHES (no deadlock)", () => {
   const { runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
+  const planned = run("plan", GROUPING_FIXTURE);
   assert.equal(run("drive", planned.run_id).action, "await_human", "precondition: the driver is arch-blocked");
 
-  run("arch", planned.run_id, FIXTURE);
+  run("arch", planned.run_id, GROUPING_FIXTURE);
   for (const p of manifestOf(runsDir, planned.run_id).pending) {
-    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "judge-agent", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium");
+    run("arch-verdict", planned.run_id, GROUPING_FIXTURE, p.sig, "--shape", p.candidates[0].id, "--by", "judge-agent", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium");
   }
-  const resolved = run("arch", planned.run_id, FIXTURE);
+  const resolved = run("arch", planned.run_id, GROUPING_FIXTURE);
   assert.equal(resolved.pending, 0, "every node is judged");
-  assert.equal(resolved.resolved, planned.nodes.length);
+  assert.equal(resolved.resolved, PLACEABLE_GROUPING);
   reviewAndApprove(run, planned.run_id);
 
   const d = run("drive", planned.run_id);
@@ -461,10 +486,10 @@ test("H3 END-TO-END: plan → arch → arch-verdict ×N → arch → decide appr
 test("LOW a multi-candidate node renders the full prompt contract (>= 3 options, one recommended, an 'other' escape)", () => {
   const { stateDir, runsDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
+  const target = archNode(loadPlan(planned.run_id, stateDir));
   // The judge weighed a competing shape — the recommendation carries BOTH candidates, so archOptions takes
   // the buildPromptOptions arm rather than the single-candidate arm the fixture normally exercises.
-  seedCache(stateDir, target, consOf(), { candidates: [{ id: "rap_bo_headless", score: 2 }, { id: "rap_bo_odata", score: 1 }] });
+  seedCache(stateDir, target, consOf(), persOf(), { candidates: [{ id: "rap_bo_headless", score: 2 }, { id: "rap_bo_odata", score: 1 }] });
   const out = run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.equal(out.resolved, 1);
   const { options } = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
@@ -485,21 +510,21 @@ const writeShared = (base, name, shared) => {
 
 test("M4 the blueprint tier REFUSES a shared group naming a plan node that is not in the app", () => {
   const { base, runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
-  run("arch", planned.run_id, FIXTURE);
+  const planned = run("plan", GROUPING_FIXTURE);
+  run("arch", planned.run_id, GROUPING_FIXTURE);
   const pending = manifestOf(runsDir, planned.run_id).pending;
   // The judge groups this BO behind a shared OData service and names a SECOND member which is a real plan
   // node — so the write seam accepts it (F) — but which is never judged, so it is absent from the blueprint.
   // That is the live path for checkBlueprint's cross-object checks: a group referencing an object the app
   // does not contain must block BEFORE any contract freezes.
   const shared = writeShared(base, "shared-bad.json", { services: [{ id: "SRV_X", members: [pending[0].sig, pending[1].sig] }] });
-  run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared);
+  run("arch-verdict", planned.run_id, GROUPING_FIXTURE, pending[0].sig, "--shape", pending[0].candidates[0].id, "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared);
 
   // The grouping must NOT freeze — that is M4's property, and it still holds. But it must not take the verb
   // down with it either (V1b): throwing here wrote no manifest, which left no pending request, which meant
   // `arch-verdict` refused every correction and the run could never recover. Both properties together: the
   // contract does not freeze, and the node returns to the judge with its request on the manifest.
-  const out = run("arch", planned.run_id, FIXTURE);
+  const out = run("arch", planned.run_id, GROUPING_FIXTURE);
   assert.ok(!out.rows.some((r) => r.sig === pending[0].sig), "the group referencing an unjudged node does NOT freeze a contract");
   assert.ok(manifestOf(runsDir, planned.run_id).pending.some((p) => p.sig === pending[0].sig), "and it is re-offered to the judge, so the run stays recoverable");
 });
@@ -509,8 +534,8 @@ test("M4 the blueprint tier REFUSES a shared group naming a plan node that is no
 // one. Accepting it would freeze into the CROSS-RUN cache a grouping no run can ever satisfy.
 test("M4b the judge's grouping may not name a member that can never be a blueprint object", () => {
   const { base, stateDir, runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
-  run("arch", planned.run_id, FIXTURE);
+  const planned = run("plan", GROUPING_FIXTURE);
+  run("arch", planned.run_id, GROUPING_FIXTURE);
   const pending = manifestOf(runsDir, planned.run_id).pending;
   // Rewrite one node's frozen disposition to a non-arch-gated one, then re-point state at the edited plan:
   // the fixture is all-re_architect, so this is the only way to obtain the shape under test.
@@ -527,7 +552,7 @@ test("M4b the judge's grouping may not name a member that can never be a bluepri
 
   const shared = writeShared(base, "shared-nongated.json", { services: [{ id: "SRV_Y", members: [pending[0].sig, victim.id] }] });
   assert.throws(
-    () => run("arch-verdict", planned.run_id, FIXTURE, pending[0].sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared),
+    () => run("arch-verdict", planned.run_id, GROUPING_FIXTURE, pending[0].sig, "--shape", pending[0].candidates[0].id, "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", shared),
     /not an arch-gated plan node/,
     "refused at the writer, before it can reach the cross-run cache",
   );
@@ -581,21 +606,21 @@ test("F a shared group naming a member that is not a PLAN node is refused at the
 
 test("E per-node memberships UNION by label into one app-level group (the lane's real grouping path)", () => {
   const { base, runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
-  run("arch", planned.run_id, FIXTURE);
+  const planned = run("plan", GROUPING_FIXTURE);
+  run("arch", planned.run_id, GROUPING_FIXTURE);
   const pending = manifestOf(runsDir, planned.run_id).pending;
 
   // the judge put both objects under the same service label; the fulfiller passes each node's OWN sig only
   for (const p of pending.slice(0, 2)) {
     const f = writeShared(base, `grp-${p.sig.slice(0, 8)}.json`, { services: [{ id: "SRV_ORDER_MGMT", members: [p.sig] }] });
-    run("arch-verdict", planned.run_id, FIXTURE, p.sig, "--shape", "rap_bo_headless", "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", f);
+    run("arch-verdict", planned.run_id, GROUPING_FIXTURE, p.sig, "--shape", p.candidates[0].id, "--by", "j", "--rationale", "batch_report only, no interactive or remote surface", "--confidence", "medium", "--shared-json", f);
   }
-  const out = run("arch", planned.run_id, FIXTURE);
-  assert.equal(out.resolved, 2);
+  const out = run("arch", planned.run_id, GROUPING_FIXTURE);
+  assert.ok(out.resolved >= 2, `both judged nodes resolve: ${out.resolved}`);
   const { services } = manifestOf(runsDir, planned.run_id).shared;
   assert.equal(services.length, 1, "one label → ONE group, not two");
   assert.equal(services[0].id, "SRV_ORDER_MGMT");
-  assert.deepEqual(services[0].members.slice().sort(), [pending[0].sig, pending[1].sig].sort(), "both judged objects are members");
+  for (const p of pending.slice(0, 2)) assert.ok(services[0].members.includes(p.sig), "each judged object is a member of the single unioned group");
 });
 
 test("E the committed judge prompt emits the sig-free grouping contract the lane consumes", () => {
@@ -637,8 +662,8 @@ const reviewAndApprove = (run, runId) => {
 test("D arch-review records the reviewer verdict against the CURRENT contract hash", () => {
   const { base, stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
 
   const out = reviewOk(run, planned.run_id, target.id, { verdict: "concerns", flags: ["over_built"], notes: "a headless BO would do" });
@@ -653,8 +678,8 @@ test("D arch-review records the reviewer verdict against the CURRENT contract ha
 test("D approve is REFUSED without an independent reviewer verdict (GAN separation enforced, not prose)", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
   assert.throws(() => run("decide", planned.run_id, id, "approve", "--by", "eng"), "the judge's work must be independently reviewed before a human ratifies it");
@@ -665,8 +690,8 @@ test("D approve is REFUSED without an independent reviewer verdict (GAN separati
 test("D a verdict bound to a DIFFERENT contract hash does not satisfy the gate (no inheriting a review)", () => {
   const { base, stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   reviewOk(run, planned.run_id, target.id);
 
@@ -680,8 +705,8 @@ test("D a verdict bound to a DIFFERENT contract hash does not satisfy the gate (
 test("D the reviewer payload is validated, and an unknown sig / unbound contract is refused", () => {
   const { base, stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const bad = (doc) => {
     const p = join(base, `bad-${Math.abs(JSON.stringify(doc).length)}.json`);
@@ -699,8 +724,8 @@ test("D the reviewer payload is validated, and an unknown sig / unbound contract
 test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratified_by in state", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
   reviewOk(run, planned.run_id, target.id);
@@ -716,8 +741,8 @@ test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratifie
 test("decide refine on an ARCH_REVIEW captures notes and ratifies NO contract", () => {
   const { stateDir, run } = mk();
   const planned = run("plan", FIXTURE);
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, consOf());
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
   const row = run("decide", planned.run_id, id, "refine:use analytical_cds", "--by", "eng");
@@ -735,11 +760,12 @@ test("decide refine on an ARCH_REVIEW captures notes and ratifies NO contract", 
 // `deterministic-single-candidate` and every one of them presented as "judge".
 test("a resolved arch row names WHO selected its shape, not merely that it came through the judge seam", () => {
   const { stateDir, runsDir, run } = mk();
-  const planned = run("plan", FIXTURE);
-  const cons = consOf();
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, cons, { model: "opus", promptHash: "ph1", shape: "rap_bo_headless", judgedBy: "test-judge" });
-  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  const planned = run("plan", GROUPING_FIXTURE);
+  const cons = consOf(GROUPING_FIXTURE);
+  const pers = persOf(GROUPING_FIXTURE);
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, cons, pers, { model: "opus", promptHash: "ph1", shape: "rap_bo_headless", judgedBy: "test-judge" });
+  run("arch", planned.run_id, GROUPING_FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
 
   const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.ok(row, "the node resolves from the seeded cache");
@@ -805,10 +831,11 @@ test("the manifest row carries every grouping the object joins", () => {
   const ctx = mk();
   const planned = ctx.run("plan", FIXTURE, "--package", "ZFICO");
   const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
-  const target = loadPlan(planned.run_id, ctx.stateDir).nodes[0];
+  const pers = persistenceFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+  const target = archNode(loadPlan(planned.run_id, ctx.stateDir));
   // A headless BO fronted by a shared service AND reusing a shared projection — two coherent memberships.
   // (Not a fiori_app: conformance tier 5 correctly refuses to enrol a shape with no UI in one.)
-  seedCache(ctx.stateDir, target, cons, {
+  seedCache(ctx.stateDir, target, cons, pers, {
     model: "opus", promptHash: "ph1",
     shared: { services: [{ id: "SRV_X", members: [target.id] }], projections: [{ id: "PRJ_X", members: [target.id] }] },
   });
@@ -875,8 +902,9 @@ test("a matcher-resolved row says so plainly — no rationale is invented for a 
   const { stateDir, runsDir, run } = mk();
   const planned = run("plan", FIXTURE, "--package", "ZFICO");
   const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
-  const target = loadPlan(planned.run_id, stateDir).nodes[0];
-  seedCache(stateDir, target, cons, { model: "opus", promptHash: "ph1" });
+  const pers = persistenceFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
+  const target = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, target, cons, pers, { model: "opus", promptHash: "ph1" });
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const row = manifestOf(runsDir, planned.run_id).rows.find((r) => r.sig === target.id);
   assert.equal(row.judged_rationale, null, "a cached entry with no recorded reason must not fabricate one");
@@ -889,30 +917,48 @@ test("a matcher-resolved row says so plainly — no rationale is invented for a 
 // of the others. The cohesion evidence now rides the decision it qualifies.
 test("a grouping decision carries the structural evidence it rests on", () => {
   const ctx = mk();
-  const planned = ctx.run("plan", FIXTURE);
-  const cons = consumptionFacts(JSON.parse(readFileSync(FIXTURE, "utf8")));
-  const nodes = loadPlan(planned.run_id, ctx.stateDir).nodes;
-  const gl = nodes.find((n) => (n.dependencies ?? []).length > 0);   // ZFICO_BTC_CSV_GL depends on the other two
-  const linked = nodes.find((n) => (gl.dependencies ?? []).includes(n.id));
+  const planned = ctx.run("plan", GROUPING_FIXTURE);
+  const cons = consumptionFacts(JSON.parse(readFileSync(GROUPING_FIXTURE, "utf8")));
+  const pers = persistenceFacts(JSON.parse(readFileSync(GROUPING_FIXTURE, "utf8")));
+  const all = loadPlan(planned.run_id, ctx.stateDir).nodes;
+  const nodes = archNodes(loadPlan(planned.run_id, ctx.stateDir));
+  const gl = nodes.find((n) => (n.dependencies ?? []).length > 0);   // ZFICO_BTC_CSV_GL depends on two others
+  const linked = all.find((n) => (gl.dependencies ?? []).includes(n.id));
 
   const members = nodes.map((n) => n.id);
   const shared = { services: [{ id: "SRV_X", members }] };
   let cache = { entries: {} };
   for (const n of nodes) {
-    const rec = { sig: n.id, target_shape: "rap_bo_headless", components: [], invariants: [], candidates: [{ id: "rap_bo_headless", score: 1 }], source: "judge", shared };
-    cache = putEntry(cache, factHash(n, cons), "opus", "ph1", rec);
+    const shape = topShape(n, cons, pers);
+    const rec = { sig: n.id, target_shape: shape, components: [], invariants: [], candidates: [{ id: shape, score: 1 }], source: "judge", shared };
+    cache = putEntry(cache, factHash(n, cons, pers), "opus", "ph1", rec);
   }
   writeFileSync(join(ctx.stateDir, "arch-verdict-cache.json"), JSON.stringify(cache, null, 2));
-  ctx.run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  ctx.run("arch", planned.run_id, GROUPING_FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
 
   const rows = manifestOf(ctx.runsDir, planned.run_id).rows;
-  const glGroup = rows.find((r) => r.sig === gl.id).groupings[0];
-  assert.equal(glGroup.evidence.linked_members, 2, `the hub of the group reaches both others: ${JSON.stringify(glGroup.evidence)}`);
-  assert.equal(glGroup.evidence.isolated, false);
+  const bySig = (sig) => rows.find((r) => r.sig === sig).groupings[0];
+  const order = nodes.find((n) => n.object === "ZORD_ORDER");
 
-  const linkedGroup = rows.find((r) => r.sig === linked.id).groupings[0];
-  assert.equal(linkedGroup.evidence.linked_members, 1);
-  assert.match(linkedGroup.options.find((o) => o.recommended).rationale, /structurally connected to 1/);
+  // The connected case: ZORD_ORDER calls ZORD_ITEM, so its membership rests on a real structural edge.
+  const memberSigs = new Set(members);
+  const expected = (n) => (n.dependencies ?? []).filter((d) => memberSigs.has(d)).length
+    + nodes.filter((o) => o.id !== n.id && (o.dependencies ?? []).includes(n.id)).length;
+  for (const n of nodes) {
+    assert.equal(bySig(n.id).evidence.linked_members, expected(n),
+      `${n.object}: the row must report the plan's own adjacency, not a guess`);
+  }
+
+  // The isolated case — the one the review caught in the wild (APP_TABLE_MAINTENANCE enrolled a logging demo
+  // with zero edges to any member). The row must SAY the grouping rests on nothing structural.
+  const isolated = nodes.filter((n) => expected(n) === 0);
+  assert.ok(isolated.length > 0, "this fixture must contain the case the review caught in the wild");
+  for (const n of isolated) {
+    const d = bySig(n.id);
+    assert.equal(d.evidence.isolated, true, `${n.object} shares no edge with any member`);
+    assert.match(d.options.find((o) => o.recommended).rationale, /shares NO structural edge/,
+      "the row must SAY the grouping rests on nothing structural — the APP_TABLE_MAINTENANCE failure");
+  }
 });
 
 // Measured against 15 real arch-judge answers over the equalize-idoc + TALV corpora (2026-08-11): the
