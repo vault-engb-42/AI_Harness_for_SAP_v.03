@@ -14,11 +14,19 @@
  * questions, they are silent independently, and a recommendation that reasons over a widening flat pile of
  * labels is the failure mode being corrected here — not a thing to add one more label to.
  *
- * The claim is WEAK positively and STRONG negatively, on purpose. A `uses-table` edge proves the object
- * TOUCHES a table, never that it owns the root entity: the CPG carries no access mode, so read-vs-write is
- * not available offline today (logged with the analyser-coverage gaps in MODERNISER_DESIGN.md). The ABSENCE
- * is conclusive, though — an object that touches no table at all owns no persistent root. Shapes therefore
- * use this as a NECESSARY condition (they refuse `no_persistence_evidence`) and never as a sufficient one.
+ * OWNERSHIP IS WRITING (R3a). The first version of this module could not distinguish a reader from a writer,
+ * because the analyser emitted `uses-table` for SELECT only — INSERT/UPDATE/MODIFY/DELETE produced no edge at
+ * all, so every object read and none could ever be seen to write. `owns_customer_table` was therefore
+ * inferred from READING your own table, and the independent review failed four recommendations on the
+ * consequence: `bdef_managed` + `draft_enabled` on objects that never write. A managed RAP Business Object
+ * exists to OWN AND MUTATE data; writing your own table is that claim, reading it is not.
+ *
+ * The analyser now stamps `access` on the edge, so the four facts are distinct evidence rather than one
+ * inference. An edge with NO access is read — the conservative reading, so an older findings doc can never
+ * manufacture ownership it never demonstrated.
+ *
+ * The ABSENCE remains conclusive: an object that touches no table at all owns no persistent root. Shapes use
+ * that as a NECESSARY condition (they refuse `no_persistence_evidence`) and never as a sufficient one.
  *
  * OWNERSHIP DOES NOT PROPAGATE, and that is the mirror image of the surface rule rather than an exception to
  * it. A surface IS transitive through delegation — an object that reaches a grid presents a grid, however
@@ -37,7 +45,10 @@
 import { reachableFacts } from "./reach.js";
 
 /** The closed, sorted persistence enum. `no_persistence_evidence` is a MEMBER, not an escape hatch. */
-export const PERSISTENCE_FACTS = ["no_persistence_evidence", "owns_customer_table", "reads_sap_table"];
+export const PERSISTENCE_FACTS = [
+  "no_persistence_evidence", "owns_customer_table", "reads_customer_table", "reads_sap_table",
+  "writes_sap_table",
+];
 
 /** The absence marker, named once. */
 export const NO_PERSISTENCE = "no_persistence_evidence";
@@ -63,16 +74,24 @@ const CUSTOMER_NAMESPACE = /^[ZY]|^\/[A-Z0-9_]+\//;
 export function persistenceFacts(doc) {
   return reachableFacts(doc, {
     factsOfEdge: (edge) => (PERSISTENCE_EDGE_KINDS.has(String(edge?.kind ?? "").toLowerCase())
-      ? [classifyTable(edge.target)].filter(Boolean)
+      ? [classifyTable(edge.target, edge.access)].filter(Boolean)
       : []),
     absence: NO_PERSISTENCE,
     propagate: false, // you own what YOU touch — see the header
   });
 }
 
-/** A table this object touches: its OWN if customer-namespace, someone else's if SAP's. */
-function classifyTable(target) {
+/**
+ * A table this object touches, by WHOSE data it is and WHAT it does to it. Only one cell of that matrix is
+ * ownership of a persistent root: writing a customer table. Writing an SAP table is a distinct and louder
+ * fact — it is mutating standard data, which Clean Core forbids outright — and is deliberately not folded
+ * into ownership.
+ */
+function classifyTable(target, access) {
   const bare = String(target ?? "").toUpperCase().split(".")[0];
   if (!bare) return null;
-  return CUSTOMER_NAMESPACE.test(bare) ? "owns_customer_table" : "reads_sap_table";
+  const writes = String(access ?? "read").toLowerCase() === "write";
+  const mine = CUSTOMER_NAMESPACE.test(bare);
+  if (mine) return writes ? "owns_customer_table" : "reads_customer_table";
+  return writes ? "writes_sap_table" : "reads_sap_table";
 }

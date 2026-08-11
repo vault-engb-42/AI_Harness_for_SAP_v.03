@@ -237,7 +237,7 @@ test("the fact stream carries persistence as a separate dimension", () => {
       nodes: [{ id: "ZCL_X", kind: "class", object: "ZCL_X" }],
       edges: [
         { source: "ZCL_X", target: "CL_SALV_TABLE", kind: "call-method" },
-        { source: "ZCL_X", target: "ZTAB_MINE", kind: "uses-table" },
+        { source: "ZCL_X", target: "ZTAB_MINE", kind: "uses-table", access: "write" },
       ],
     },
   };

@@ -22,8 +22,8 @@ import { persistenceFacts, PERSISTENCE_FACTS, NO_PERSISTENCE } from "../src/plan
 const graph = (edges, nodes = []) => ({ graph: { nodes, edges } });
 
 test("a customer table is the object's own persistence; an SAP table is someone else's data", () => {
-  const mine = persistenceFacts(graph([{ source: "ZCL_X", target: "ZTALV_LAYOUT_SET", kind: "uses-table" }]));
-  assert.deepEqual(mine.ZCL_X, ["owns_customer_table"], `a Z table is customer-owned persistence`);
+  const mine = persistenceFacts(graph([{ source: "ZCL_X", target: "ZTALV_LAYOUT_SET", kind: "uses-table", access: "write" }]));
+  assert.deepEqual(mine.ZCL_X, ["owns_customer_table"], `writing a Z table is customer-owned persistence`);
   const theirs = persistenceFacts(graph([{ source: "ZCL_Y", target: "EKPO", kind: "uses-table" }]));
   assert.deepEqual(theirs.ZCL_Y, ["reads_sap_table"], "EKPO is SAP's data, not a root this object can own");
 });
@@ -49,7 +49,7 @@ test("every object the CPG contains gets an answer, including one with no edges 
 // propagated, the managed BO would have been re-admitted for the very rows this fix exists to stop.
 test("ownership does NOT propagate — calling a DAO is consuming its table, not owning it", () => {
   const out = persistenceFacts(graph([
-    { source: "ZCL_DAO", target: "ZTAB_ORDERS", kind: "uses-table" },
+    { source: "ZCL_DAO", target: "ZTAB_ORDERS", kind: "uses-table", access: "write" },
     { source: "ZCL_SERVICE.RUN", target: "ZCL_DAO.READ", kind: "call-method" },
   ]));
   assert.deepEqual(out.ZCL_DAO, ["owns_customer_table"], "the object holding the table owns it");
@@ -58,14 +58,17 @@ test("ownership does NOT propagate — calling a DAO is consuming its table, not
 
 test("an object touching both keeps both — owning your own table does not unsee SAP's", () => {
   const out = persistenceFacts(graph([
-    { source: "ZCL_X", target: "ZTAB_MINE", kind: "uses-table" },
-    { source: "ZCL_X", target: "MARA", kind: "uses-table" },
+    { source: "ZCL_X", target: "ZTAB_MINE", kind: "uses-table", access: "write" },
+    { source: "ZCL_X", target: "MARA", kind: "uses-table", access: "read" },
   ]));
   assert.deepEqual(out.ZCL_X, ["owns_customer_table", "reads_sap_table"]);
 });
 
 test("the enum is closed and sorted — it reaches the judge's prompt like every other fact (P8)", () => {
-  assert.deepEqual(PERSISTENCE_FACTS, ["no_persistence_evidence", "owns_customer_table", "reads_sap_table"]);
+  assert.deepEqual(PERSISTENCE_FACTS, [
+    "no_persistence_evidence", "owns_customer_table", "reads_customer_table", "reads_sap_table",
+    "writes_sap_table",
+  ]);
   assert.deepEqual([...PERSISTENCE_FACTS].sort(), PERSISTENCE_FACTS);
 });
 
@@ -83,7 +86,7 @@ test("a structural edge is not a persistence path — an INCLUDE is the object's
 // data would tell the harness the object owns nothing, which is the exact silence RC-1 exists to remove, in a
 // corpus neither demo represents.
 test("a REGISTERED customer namespace is customer persistence too", () => {
-  const out = persistenceFacts(graph([{ source: "/ACME/CL_ORDER", target: "/ACME/TORDER", kind: "uses-table" }]));
+  const out = persistenceFacts(graph([{ source: "/ACME/CL_ORDER", target: "/ACME/TORDER", kind: "uses-table", access: "write" }]));
   assert.deepEqual(out["/ACME/CL_ORDER"], ["owns_customer_table"], "/VENDOR/ is a customer namespace");
 });
 
@@ -92,4 +95,30 @@ test("an SAP table is still SAP's, whatever else is in the corpus", () => {
     const out = persistenceFacts(graph([{ source: "ZCL_X", target: t, kind: "uses-table" }]));
     assert.deepEqual(out.ZCL_X, ["reads_sap_table"], t);
   }
+});
+
+// R3a. Until the analyser emitted an access mode, `uses-table` meant SELECT only — the CPG could not show a
+// write, so `owns_customer_table` was inferred from READING your own table. The independent review failed
+// four recommendations on the consequence: `bdef_managed` + `draft_enabled` on objects that never write
+// ("the contract mandates transactional save and draft for a read-only display").
+//
+// A managed RAP Business Object exists to OWN AND MUTATE data. Writing your own table is that claim; reading
+// it is not. The edge now carries `access`, so the distinction is evidence rather than inference — and an
+// edge with no access (an older findings doc) is treated as a read, which is the conservative reading.
+test("R3a writing your own table is ownership; merely reading it is not", () => {
+  const writes = persistenceFacts(graph([{ source: "ZCL_BO", target: "ZTORDER", kind: "uses-table", access: "write" }]));
+  assert.deepEqual(writes.ZCL_BO, ["owns_customer_table"], "a write to a customer table is ownership");
+
+  const readsOnly = persistenceFacts(graph([{ source: "ZCL_RPT", target: "ZTORDER", kind: "uses-table", access: "read" }]));
+  assert.deepEqual(readsOnly.ZCL_RPT, ["reads_customer_table"], `reading your own table is not owning it: ${JSON.stringify(readsOnly)}`);
+});
+
+test("R3a writing an SAP table is still not ownership — it is someone else's data", () => {
+  const out = persistenceFacts(graph([{ source: "ZCL_X", target: "MARA", kind: "uses-table", access: "write" }]));
+  assert.deepEqual(out.ZCL_X, ["writes_sap_table"], "mutating standard data is a distinct, and louder, fact");
+});
+
+test("R3a an edge with NO access mode is read — an older doc must not manufacture ownership", () => {
+  const out = persistenceFacts(graph([{ source: "ZCL_X", target: "ZTORDER", kind: "uses-table" }]));
+  assert.deepEqual(out.ZCL_X, ["reads_customer_table"], "absent evidence is the conservative reading");
 });
