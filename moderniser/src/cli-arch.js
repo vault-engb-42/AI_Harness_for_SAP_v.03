@@ -33,7 +33,7 @@ import { buildAppBlueprint } from "./plan/app-blueprint.js";
 import { groupingDecision, archOptions } from "./plan/arch-row.js";
 import { buildAdjacency } from "./plan/group-evidence.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
-import { standardTablesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
+import { standardTablesByObject, standardCapabilitiesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
 import { raiseArchReviews } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
@@ -49,6 +49,7 @@ export function cmdArch(io, pos, flags) {
   const cons = consumptionFacts(doc);
   const pers = persistenceFacts(doc);
   const std = standardTablesByObject(doc);
+  const caps = standardCapabilitiesByObject(doc); // the second fit-to-standard channel (RC-3)
   const corpus = loadPatternCorpus();
   const opts = { model_id: flags.model ?? null, prompt_hash: flags["prompt-hash"] ?? defaultPromptHash() };
   const cacheLookup = toLookup(readArchVerdictCache(io));
@@ -56,7 +57,7 @@ export function cmdArch(io, pos, flags) {
   const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, pers, corpus, cacheLookup, opts);
   const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
   const groupCtx = { plan, adjacency: buildAdjacency(plan) };
-  const { nextState, rows } = freezeContracts(io, runId, resolved, std, corpus, state, blueprint, groupCtx);
+  const { nextState, rows } = freezeContracts(io, runId, resolved, std, caps, corpus, state, blueprint, groupCtx);
 
   const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared };
   saveArchManifest(io, runId, archManifest);
@@ -203,7 +204,7 @@ function mergeShared(resolved) {
 }
 
 /** Freeze one coarse contract per resolved node, bind it (preserving an unchanged ratification), build rows. */
-function freezeContracts(io, runId, resolved, std, corpus, state, blueprint, groupCtx) {
+function freezeContracts(io, runId, resolved, std, caps, corpus, state, blueprint, groupCtx) {
   let nextState = state;
   const rows = [];
   for (const { node, recommendation } of resolved) {
@@ -237,7 +238,7 @@ function freezeContracts(io, runId, resolved, std, corpus, state, blueprint, gro
       // decision uses, so each can be validated or overridden. Empty when the object joins nothing — a
       // headless BO shares nothing by definition, and manufacturing a question there would be noise.
       groupings: groupingDecision(node.id, blueprint, groupCtx),
-      fit_to_standard: fitToStandardAdvisory(node, std),
+      fit_to_standard: fitToStandardAdvisory(node, std, caps),
       options: archOptions(recommendation),
     });
   }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fitToStandardAdvisory, standardTablesByObject, STANDARD_DOMAINS } from "../src/plan/fit-to-standard.js";
+import { fitToStandardAdvisory, standardTablesByObject, standardCapabilitiesByObject, STANDARD_DOMAINS } from "../src/plan/fit-to-standard.js";
 import { planHash } from "../src/sched/plan.js";
 
 // B3.5 seam 6 (BUILD_PLAN S13): the fit-to-standard fork, OFFLINE-ADVISORY only. Offline,
@@ -84,4 +84,87 @@ test("M6 the memoised case-fold index is per-map and never bleeds between standa
   const shared = { ZfOo: [{ table: "MARA", domain: "Material" }] };
   assert.deepEqual(fitToStandardAdvisory(n, shared).tables, fitToStandardAdvisory(n, shared).tables, "repeat calls on one map are stable");
   assert.deepEqual(fitToStandardAdvisory(n, shared).tables, ["MARA"], "mixed-case key still resolves via the cached index");
+});
+
+// RC-3 (root-cause analysis of the 2026-08-11 ARCH_REVIEW). The advisory reasoned from a 26-entry hand list
+// of standard tables, and the reviewers found both halves of what that misses:
+//
+//   "fit_to_standard claims 'no standard-domain tables detected', but the source types v_mblnr/v_mjahr off
+//    MKPF — grounding returns MKPF/MSEG notToBeReleased, successors I_MaterialDocumentHeader_2 /
+//    I_MaterialDocumentItem_2 — so 'build' was chosen on a fact the source contradicts."
+//
+//   "CL_BALI_LOG/IF_BALI_LOG released (Application Log is SAP standard, so fit_to_standard 'build' is wrong)."
+//
+// Both channels are now read from the ORACLE REGISTRY rather than a hand list, which is the difference
+// between fixing these two corpora and generalising: the registry knows 34,000+ names, the list knew 26.
+// Adding the five names the reviewers happened to hit would have been the overfit.
+
+test("RC-3 a standard table the hand list never knew is still standard-domain evidence", () => {
+  // MKPF/MSEG are absent from STANDARD_DOMAINS; the registry has them as notToBeReleased WITH a released
+  // CDS successor, which is exactly what "SAP owns this data and already ships a view for it" means.
+  const doc = { graph: { edges: [
+    { source: "ZCL_GM", target: "MKPF", kind: "uses-table" },
+    { source: "ZCL_GM", target: "MSEG", kind: "uses-table" },
+  ] } };
+  const std = standardTablesByObject(doc);
+  const tables = (std.ZCL_GM ?? []).map((t) => t.table).sort();
+  assert.deepEqual(tables, ["MKPF", "MSEG"], `the registry knows these: ${JSON.stringify(std)}`);
+  const adv = fitToStandardAdvisory({ object: "ZCL_GM", members: ["ZCL_GM"] }, std);
+  assert.equal(adv.advisory, true);
+  assert.equal(adv.action, "verify_live", "not 'build' — the source contradicts that");
+});
+
+test("RC-3 the curated domain labels survive — a registry fallback does not lose them", () => {
+  const std = standardTablesByObject({ graph: { edges: [{ source: "ZCL_PO", target: "EKPO", kind: "uses-table" }] } });
+  assert.deepEqual(std.ZCL_PO, [{ table: "EKPO", domain: "Purchasing" }], "a curated label beats the generic one");
+});
+
+test("RC-3 a CUSTOMER table is not standard-domain evidence, however much data it holds", () => {
+  const std = standardTablesByObject({ graph: { edges: [{ source: "ZCL_X", target: "ZTORDER", kind: "uses-table" }] } });
+  assert.deepEqual(std.ZCL_X ?? [], [], "the customer's own table is not SAP's standard");
+});
+
+// The second channel: an object that already DELEGATES to a released SAP API is telling us the standard
+// exists. ZAESOP_LOG_DEMO wraps the Application Log and the harness proposed building a bespoke one.
+test("RC-3 calling a RELEASED SAP API is fit-to-standard evidence in its own right", () => {
+  const doc = { graph: { edges: [{ source: "ZAESOP_LOG_DEMO", target: "CL_BALI_LOG.ADD_ITEM", kind: "call-method" }] } };
+  const caps = standardCapabilitiesByObject(doc);
+  assert.deepEqual(caps.ZAESOP_LOG_DEMO, ["CL_BALI_LOG"], `the Application Log is SAP standard: ${JSON.stringify(caps)}`);
+
+  const adv = fitToStandardAdvisory({ object: "ZAESOP_LOG_DEMO", members: ["ZAESOP_LOG_DEMO"] }, {}, caps);
+  assert.equal(adv.advisory, true, "an object wrapping a released standard must not read as a bespoke build");
+  assert.equal(adv.action, "verify_live");
+  assert.match(adv.note, /CL_BALI_LOG/, "and the human is told WHICH standard");
+});
+
+test("RC-3 a CLASSIC SAP API is not a standard to adopt — it is the thing being replaced", () => {
+  const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCL_X", target: "CL_SALV_TABLE.FACTORY", kind: "call-method" }] } });
+  assert.deepEqual(caps.ZCL_X ?? [], [], "CL_SALV_TABLE is classicAPI, not a released standard to fit to");
+});
+
+test("RC-3 absence stays fail-closed — no evidence still means the bespoke build path", () => {
+  const adv = fitToStandardAdvisory({ object: "ZCL_X", members: ["ZCL_X"] }, {}, {});
+  assert.equal(adv.advisory, false);
+  assert.equal(adv.action, "build");
+});
+
+// Measured on the two corpora the moment the capability channel went live: it surfaced CL_ABAP_TYPEDESCR,
+// CL_ABAP_CHAR_UTILITIES, CL_ABAP_STRUCTDESCR, CX_ROOT and CX_STATIC_CHECK. All are genuinely `released`, and
+// none is a capability anyone would "adopt instead of building" — they are the ABAP LANGUAGE RUNTIME and its
+// exception hierarchy, which every object uses. An advisory that fires on RTTI trains the human to ignore it.
+//
+// SAP's own naming convention separates them: CL_ABAP_* is the language runtime, CX_* is an exception class.
+// Neither is an application capability. That is a convention across all of SAP, not a fact about these two
+// corpora, so excluding them generalises rather than overfits.
+test("RC-3 the language runtime is not a business capability to fit to", () => {
+  const noise = ["CL_ABAP_TYPEDESCR", "CL_ABAP_CHAR_UTILITIES", "CL_ABAP_STRUCTDESCR", "CL_ABAP_ELEMDESCR", "CX_ROOT", "CX_STATIC_CHECK"];
+  for (const target of noise) {
+    const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCL_X", target: `${target}.RUN`, kind: "call-method" }] } });
+    assert.deepEqual(caps.ZCL_X ?? [], [], `${target} is language infrastructure, not an SAP application capability`);
+  }
+});
+
+test("RC-3 a real released BUSINESS capability still registers", () => {
+  const caps = standardCapabilitiesByObject({ graph: { edges: [{ source: "ZCL_X", target: "CL_BALI_LOG.ADD_ITEM", kind: "call-method" }] } });
+  assert.deepEqual(caps.ZCL_X, ["CL_BALI_LOG"], "the Application Log is exactly what fit-to-standard means");
 });
