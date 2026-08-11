@@ -32,11 +32,19 @@ export const CONSUMPTION_FACTS = [
  * otherwise. The direction is the difference between an event the system CONSUMES and one it RAISES, and
  * it decides which objects belong to the same integration.
  *
- * Direction-NEUTRAL ALE helpers (EDI_* document processing, IDOC_ERROR_*) match neither: they are used on
- * both sides, and guessing a direction from them would be the same fabricated confidence in a new place.
+ * Direction-NEUTRAL ALE helpers match neither: they are used on both sides, and guessing a direction from
+ * them would be the same fabricated confidence in a new place. That list includes EDI_* document
+ * processing, IDOC_ERROR_*, and — the one that had to be learned rather than assumed —
+ * IDOC_INBOUND_ASYNCHRONOUS. The independent ARCH_REVIEW read zcl_idoc_output.clas.abap:331 and found
+ * `CALL FUNCTION 'IDOC_INBOUND_ASYNCHRONOUS' IN BACKGROUND TASK DESTINATION lv_rfc_dest`: the classic ALE
+ * OUTBOUND tRFC send, where the sender calls the RECEIVER's inbound FM across a destination. Matching the
+ * callee name alone reported `remote_idoc_inbound` for an object whose every other signal is outbound.
+ * The direction lives in the DESTINATION, and the CPG edge does not carry one (an analyser-coverage gap,
+ * logged in MODERNISER_DESIGN.md) — so this FM claims nothing. `IDOC_INPUT_*`, the ALE inbound
+ * process-code handlers, stay unambiguous.
  */
 const IDOC_DIRECTIONS = [
-  ["remote_idoc_inbound", /^IDOC_INPUT_|^IDOC_INBOUND/],
+  ["remote_idoc_inbound", /^IDOC_INPUT_/],
   ["remote_idoc_outbound", /^IDOC_OUTPUT_|^MASTER_IDOC_/],
 ];
 

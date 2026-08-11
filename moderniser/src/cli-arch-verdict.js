@@ -61,8 +61,15 @@ const SHARED_KINDS = ["services", "projections", "fiori_apps"];
 
 /** The closed confidence vocabulary. A grade outside it is a fulfiller error, not a new grade. */
 const CONFIDENCE_GRADES = new Set(["high", "medium", "low"]);
-/** Enough for the 1–3 sentences the prompt asks for; a wall of text in a gate row is not a reason. */
-const RATIONALE_MAX = 600;
+/**
+ * Enough for the 1-3 sentences the prompt asks for; a wall of text in a gate row is not a reason.
+ *
+ * Measured, not guessed: 15 real arch-judge answers over equalize-idoc + TALV ran 514-806 chars. The first
+ * value here was 600, which would have refused NINE of those fifteen — every one conforming to the prompt.
+ * A cap that rejects the answer the prompt asks for is a wrong cap, and truncating instead would break the
+ * skill's "pass the judge's words through verbatim".
+ */
+const RATIONALE_MAX = 1200;
 
 /**
  * The judge's REASON, required (H-5). The prompt has always demanded "1-3 sentences grounded in the FACTS"

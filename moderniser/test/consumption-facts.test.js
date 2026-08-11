@@ -278,7 +278,7 @@ test("a customer object is not a classic API — the net does not fire on Z-code
 // ---------------------------------------------------------------------------------------------------
 
 test("an inbound ALE call states its direction", () => {
-  for (const target of ["IDOC_INPUT_MBGMCR", "IDOC_INPUT_SALESORDER_CREATEFR", "IDOC_INBOUND_ASYNCHRONOUS"]) {
+  for (const target of ["IDOC_INPUT_MBGMCR", "IDOC_INPUT_SALESORDER_CREATEFR", "IDOC_INPUT_INVOIC"]) {
     const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
     assert.deepEqual(out.ZCL_X, ["remote_idoc", "remote_idoc_inbound"], `${target} is inbound`);
   }
@@ -291,8 +291,20 @@ test("an outbound ALE call states its direction", () => {
   }
 });
 
+// IDOC_INBOUND_ASYNCHRONOUS earned its place on this list the hard way. The independent ARCH_REVIEW read
+// zcl_idoc_output.clas.abap:331 and found `CALL FUNCTION 'IDOC_INBOUND_ASYNCHRONOUS' IN BACKGROUND TASK
+// DESTINATION lv_rfc_dest` - the classic ALE OUTBOUND tRFC send, in which the sender calls the RECEIVER's
+// inbound FM across a destination. Reading the callee name alone therefore reported `remote_idoc_inbound`
+// for an object whose every other signal (EXECUTE_OUTBOUND, status 18/20, eventcode EDIO) is outbound.
+//
+// The direction lives in the DESTINATION, and the CPG edge does not carry one (the analyser does not
+// extract it - logged in MODERNISER_DESIGN.md's analyser-coverage backlog). So this FM is transport
+// plumbing that runs on both sides, and claiming a direction from its name is exactly the fabricated
+// confidence this arc exists to remove. `IDOC_INPUT_*` - the ALE inbound process-code handlers - remain
+// unambiguous.
 test("a direction-neutral ALE helper claims no direction", () => {
-  for (const target of ["EDI_DOCUMENT_OPEN_FOR_PROCESS", "EDI_SEGMENTS_GET_ALL", "IDOC_ERROR_WORKFLOW_START"]) {
+  for (const target of ["EDI_DOCUMENT_OPEN_FOR_PROCESS", "EDI_SEGMENTS_GET_ALL", "IDOC_ERROR_WORKFLOW_START",
+                        "IDOC_INBOUND_ASYNCHRONOUS"]) {
     const out = consumptionFacts(graph([{ source: "ZCL_X", target, kind: "call-function" }]));
     assert.deepEqual(out.ZCL_X, ["remote_idoc"], `${target} is not evidence of a direction`);
   }

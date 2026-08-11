@@ -914,3 +914,39 @@ test("a grouping decision carries the structural evidence it rests on", () => {
   assert.equal(linkedGroup.evidence.linked_members, 1);
   assert.match(linkedGroup.options.find((o) => o.recommended).rationale, /structurally connected to 1/);
 });
+
+// Measured against 15 real arch-judge answers over the equalize-idoc + TALV corpora (2026-08-11): the
+// rationale lengths were 514, 515, 537, 544, 577, 578, 604, 606, 620, 667, 682, 691, 757, 777, 806 chars.
+// The first cap was 600, which would have REFUSED nine of the fifteen — every one of them conforming to the
+// prompt's "1-3 sentences grounded in the FACTS". A cap that rejects the answer the prompt asks for is a
+// wrong cap, and the alternative (truncating) would break the skill's "pass the judge's words through
+// verbatim". The bound exists to keep a wall of text out of a gate row, not to force paraphrase.
+test("a real judge rationale is accepted at its natural length", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  const why = "The consumption surface carries both ui_dynpro and ui_salv, i.e. an interactive classic screen "
+    + "plus an ALV grid, alongside a classic_api_surface - an interactive UI that must survive the "
+    + "re-architecture, so the shape needs an OData service binding plus Fiori Elements metadata rather than "
+    + "a headless BO. The re_architect disposition and ui_rearch hint agree with the coarse RAP Business "
+    + "Object target, and the single offered candidate matches the facts, so no other justification arises. "
+    + "Confidence is tempered by a thin member_summary (1 member, unknown grade, zero recorded "
+    + "complexity/blast) with 5 dependencies, which leaves the true breadth of the screen logic unquantified.";
+  assert.ok(why.length > 600 && why.length < 900, `this is the real observed shape: ${why.length} chars`);
+  const out = run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j",
+                  "--rationale", why, "--confidence", "low");
+  assert.equal(out.sig, sig);
+});
+
+test("a wall of text is still refused — the bound exists, it is just not 600", () => {
+  const { runsDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  run("arch", planned.run_id, FIXTURE);
+  const sig = manifestOf(runsDir, planned.run_id).pending[0].sig;
+  assert.throws(
+    () => run("arch-verdict", planned.run_id, FIXTURE, sig, "--shape", "rap_bo_headless", "--by", "j",
+              "--rationale", "x".repeat(4000), "--confidence", "low"),
+    /rationale/i,
+  );
+});
