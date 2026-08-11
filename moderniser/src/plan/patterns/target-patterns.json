@@ -51,6 +51,9 @@
         ],
         "none": [
           "persistence:no_persistence_evidence"
+        ],
+        "all": [
+          "object_kind:function"
         ]
       },
       "components": [
@@ -68,7 +71,7 @@
         "dcl_authorization",
         "commit_entities_only"
       ],
-      "example": "a function consumed remotely (RFC/BAPI) — a RAP BO exposed as an OData V4 service; no interactive Fiori UI."
+      "example": "a FUNCTION MODULE consumed remotely (RFC/BAPI) — a RAP BO exposed as an OData V4 service; no interactive Fiori UI. The object_kind gate exists because remote_rfc/remote_bapi describe what the object CALLS, while this shape claims the object IS CALLED: nothing in the pipeline emits an inbound-exposure marker, so the closest honest evidence of an external entry point is that a function module is callable from outside its group by construction. A report that calls a BAPI is making an outbound call and is not a remotely-consumed object (independent review, abap_fico ZCREATE_ASSET, 2026-08-11)."
     },
     {
       "id": "rap_bo_fiori",
@@ -81,8 +84,9 @@
           "rule:talos-s4-004-screen-flow",
           "rule:talos-s4-005-web-dynpro"
         ],
-        "none": [
-          "persistence:no_persistence_evidence"
+        "none": [],
+        "all": [
+          "persistence:owns_customer_table"
         ]
       },
       "components": [
@@ -103,6 +107,37 @@
         "draft_enabled"
       ],
       "example": "an ALV grid / dynpro maintenance screen — a RAP BO with an OData service and a Fiori Elements list/object page. The UI evidence arrives from a CPG edge (ui_salv/ui_dynpro) OR from the analyser's screen RULES: a dynpro is a screen, not a call, so it leaves no edge for the consumption detector to see. The rules are used rather than the coarser `ui_rearch` hint because that hint also fires on a WRITE list, which is batch output and stays headless. The rule list is the analyser's IMPLEMENTED classic-UI detectors (CLOUD-014 dynpro, S4-004 screen flow, S4-005 Web Dynpro) rather than the two the demo corpora happen to emit; CLOUD-028 (legacy-UI rollup) is catalogued but has no detector yet, and ABAP-PERF-77 is about a CALL SCREEN inside a NEW RAP handler, so it is deliberately not evidence about the legacy object."
+    },
+    {
+      "id": "fiori_list_report",
+      "name": "Read-only Fiori Elements list report over a CDS view",
+      "when_signals": {
+        "any": [
+          "consumption:ui_salv",
+          "consumption:ui_dynpro",
+          "rule:talos-cloud-014-classic-dynpro",
+          "rule:talos-s4-004-screen-flow",
+          "rule:talos-s4-005-web-dynpro"
+        ],
+        "none": [
+          "persistence:no_persistence_evidence",
+          "persistence:owns_customer_table"
+        ]
+      },
+      "components": [
+        "cds_interface",
+        "cds_projection",
+        "service_def",
+        "service_binding",
+        "metadata_ext",
+        "test_class"
+      ],
+      "grounding_refs": [],
+      "invariants": [
+        "dcl_authorization",
+        "readonly_query"
+      ],
+      "example": "a classic list or ALV grid that only READS — a CDS view exposed through an OData service with Fiori Elements annotations, and no behaviour pool, no draft and nothing to commit. Added after an independent review failed four recommendations for mandating bdef_managed + draft_enabled + commit_entities_only on objects that never write; R3a gave the analyser an access mode, which is what makes a reader and a writer separable at all. It still publishes data, so it carries dcl_authorization."
     },
     {
       "id": "rap_bo_events",

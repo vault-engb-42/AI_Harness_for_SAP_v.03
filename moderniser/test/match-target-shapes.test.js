@@ -10,6 +10,10 @@ import { assemblePlan } from "../src/sched/assemble.js";
 // match.js PROPOSES ranked target_shape candidates from the fact stream; the LLM judge (S14) SELECTS
 // among them only for the escalated subset. Deterministic, closed over the corpus, no I/O per call.
 
+/** Either UI-capable shape — the transactional BO, or the read-only list report (R2). */
+const UI_SHAPES = ["rap_bo_fiori", "fiori_list_report"];
+const someUiShape = (ids) => ids.some((i) => UI_SHAPES.includes(i));
+
 const fact = (o = {}) => ({
   object_kind: "class", graph_kind: "object", finding_families: [], driving_rule_ids: [],
   disposition_hints: [], disposition: "re_architect", consumption: [], modernization_target: null,
@@ -50,25 +54,37 @@ test("a re_architect node with NO UI and NO remote consumption → rap_bo_headle
   assert.ok(!out.some((c) => c.id === "rap_bo_odata"), "no OData candidate without remote consumption");
 });
 
-test("adding a UI consumption fact adds rap_bo_fiori as a candidate (S14 TDD)", () => {
-  const headless = matchTargetShapes(fact({ consumption: ["batch_report"] }));
-  const withUi = matchTargetShapes(fact({ consumption: ["batch_report", "ui_salv"] }));
-  assert.ok(!headless.some((c) => c.id === "rap_bo_fiori"));
-  assert.ok(withUi.some((c) => c.id === "rap_bo_fiori"), "a UI-consumption fact surfaces the Fiori shape");
+test("adding a UI consumption fact surfaces a UI-capable shape (S14 TDD)", () => {
+  const base = { persistence: ["reads_sap_table"] };
+  const headless = matchTargetShapes(fact({ ...base, consumption: ["batch_report"] })).map((c) => c.id);
+  const withUi = matchTargetShapes(fact({ ...base, consumption: ["batch_report", "ui_salv"] })).map((c) => c.id);
+  assert.ok(!someUiShape(headless), "no UI shape without a UI surface");
+  assert.ok(someUiShape(withUi), `a UI-consumption fact surfaces a UI shape: ${JSON.stringify(withUi)}`);
+  // Which ONE it is depends on whether the object owns and mutates data (R2/R3a): this one only reads.
+  assert.ok(withUi.includes("fiori_list_report"), "a reader gets the read-only list report");
 });
 
-test("remote consumption without UI → rap_bo_odata; IDoc → rap_bo_events", () => {
-  const odata = matchTargetShapes(fact({ consumption: ["remote_bapi"] })).map((c) => c.id);
+// Updated for R1: `remote_bapi`/`remote_rfc` say what the object CALLS, and `rap_bo_odata` claims the object
+// IS CALLED. The two are not the same fact, and reading one as the other is what put an OData binding on a
+// report that merely calls a BAPI outbound (abap_fico ZCREATE_ASSET). An externally-callable kind is the
+// evidence the pipeline can actually supply.
+test("remote consumption without UI → rap_bo_odata for an externally-callable kind; IDoc → rap_bo_events", () => {
+  const odata = matchTargetShapes(fact({ object_kind: "function", consumption: ["remote_bapi"] })).map((c) => c.id);
   assert.ok(odata.includes("rap_bo_odata"));
   assert.ok(!odata.includes("rap_bo_fiori"), "no Fiori without a UI surface");
+
+  const notExposed = matchTargetShapes(fact({ object_kind: "class", consumption: ["remote_bapi"] })).map((c) => c.id);
+  assert.ok(!notExposed.includes("rap_bo_odata"), "a class making an outbound BAPI call is not remotely consumed");
+
   const events = matchTargetShapes(fact({ consumption: ["remote_idoc"] })).map((c) => c.id);
   assert.ok(events.includes("rap_bo_events"));
 });
 
 test("a UI + remote node yields MULTIPLE candidates (ambiguity → the LLM will be escalated to select)", () => {
-  const out = matchTargetShapes(fact({ consumption: ["ui_salv", "remote_bapi"] }));
+  // An externally-callable kind, so both the UI surface and the remote surface can legitimately propose.
+  const out = matchTargetShapes(fact({ object_kind: "function", consumption: ["ui_salv", "remote_bapi"], persistence: ["reads_sap_table"] }));
   const ids = out.map((c) => c.id);
-  assert.ok(ids.includes("rap_bo_fiori") && ids.includes("rap_bo_odata"), "both surfaces propose their shape");
+  assert.ok(someUiShape(ids) && ids.includes("rap_bo_odata"), `both surfaces propose their shape: ${JSON.stringify(ids)}`);
   assert.ok(out.length > 1, "|candidates| > 1 (escalation trigger)");
 });
 
@@ -159,7 +175,7 @@ test("a classic-dynpro rule is UI evidence even when the CPG holds no UI edge", 
     dependency_count: 2,
   };
   const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
-  assert.ok(ids.includes("rap_bo_fiori"), `a dynpro is a UI surface: ${JSON.stringify(ids)}`);
+  assert.ok(someUiShape(ids), `a dynpro is a UI surface: ${JSON.stringify(ids)}`);
 });
 
 test("headless refuses an object the analyser found a screen in", () => {
@@ -172,7 +188,7 @@ test("headless refuses an object the analyser found a screen in", () => {
   };
   const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
   assert.ok(!ids.includes("rap_bo_headless"), `a screen contradicts headless: ${JSON.stringify(ids)}`);
-  assert.ok(ids.includes("rap_bo_fiori"), `and the UI shape must be on offer instead: ${JSON.stringify(ids)}`);
+  assert.ok(someUiShape(ids), `and a UI shape must be on offer instead: ${JSON.stringify(ids)}`);
 });
 
 // The guard against the over-reach the measurement caught: a WRITE list is batch OUTPUT, not an interactive
@@ -260,4 +276,82 @@ test("a Web Dynpro application is UI evidence too — not just the two rules the
   const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
   assert.ok(ids.includes("rap_bo_fiori"), `Web Dynpro is an interactive UI: ${JSON.stringify(ids)}`);
   assert.ok(!ids.includes("rap_bo_headless"), "and it contradicts headless exactly as a dynpro does");
+});
+
+// R1 (independent ARCH_REVIEW, abap_fico 2026-08-11): "remote_bapi is invented: the BAPI is an OUTBOUND
+// call; a REPORT has no inbound RFC surface, and an OData binding cannot serve it. The rationale inverts the
+// dependency direction." Verified in source — zcreate_asset.prog.abap:77 is `CALL FUNCTION
+// 'BAPI_FIXEDASSET_CREATE1'`, an outbound call this report makes.
+//
+// `remote_bapi` and `remote_rfc` describe what the object CALLS. `rap_bo_odata`'s premise is the opposite —
+// that the object IS consumed remotely — and nothing in the pipeline emits an inbound-exposure marker (no
+// RFC-enabled flag reaches the CPG, checked across the corpora). It was therefore firing on the inverse of
+// its own claim, which is the same class of defect as reading IDOC_INBOUND_ASYNCHRONOUS as inbound.
+//
+// The honest available evidence of an external entry point is the object KIND: a function module is callable
+// from outside its group by construction. A report is not. That is coarse, and it is the right kind of coarse
+// — it never claims more than the pipeline can see.
+test("R1 a REPORT that calls a BAPI is not a remotely-consumed object", () => {
+  const fact = {
+    object_kind: "report", graph_kind: "object", finding_families: ["clean-core"], driving_rule_ids: [],
+    disposition_hints: ["style"], disposition: "re_architect",
+    consumption: ["batch_report", "remote_bapi", "ui_salv"], persistence: ["reads_sap_table"],
+    modernization_target: "RAP Business Object",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 2, total_blast: 1 }, dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(!ids.includes("rap_bo_odata"), `an outbound BAPI call is not inbound exposure: ${JSON.stringify(ids)}`);
+});
+
+test("R1 a FUNCTION MODULE with a remote surface is still an OData candidate", () => {
+  const fact = {
+    object_kind: "function", graph_kind: "object", finding_families: ["clean-core"], driving_rule_ids: [],
+    disposition_hints: ["rfc_rebuild"], disposition: "re_architect",
+    consumption: ["remote_rfc"], persistence: ["owns_customer_table"],
+    modernization_target: "OData V4 Service",
+    member_summary: { members: 1, worst_grade: "C", max_complexity: 2, total_blast: 1 }, dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(ids.includes("rap_bo_odata"), `an FM is externally callable by construction: ${JSON.stringify(ids)}`);
+});
+
+// R2 (independent ARCH_REVIEW, 2026-08-11 — four of seven fails). `rap_bo_fiori` carries `draft_enabled` and
+// `commit_entities_only` unconditionally, and those were being mandated for objects that never write:
+// "the contract mandates bdef_managed + behavior_pool and invariants commit_entities_only + draft_enabled on
+// all 9 objects — transactional save and draft for a read-only display".
+//
+// A read-only Fiori list report over a CDS view is not a degraded BO; it is its own extremely common ABAP
+// Cloud target — CDS + service + annotations, no behaviour pool, no draft, nothing to commit. So this is a
+// corpus addition rather than conditional code ("grow the corpus, not the code"), and R3a's write evidence is
+// what finally makes the two separable.
+test("R2 a read-only UI object gets a list report, not a draft-enabled managed BO", () => {
+  const fact = {
+    object_kind: "report", graph_kind: "object", finding_families: ["clean-core"],
+    driving_rule_ids: ["talos-cloud-015-salv-table-factory"], disposition_hints: ["ui_rearch"],
+    disposition: "re_architect", consumption: ["ui_salv", "batch_report"],
+    persistence: ["reads_sap_table"], modernization_target: "Fiori Elements App",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 }, dependency_count: 1,
+  };
+  const out = matchTargetShapes(fact, loadPatternCorpus());
+  const ids = out.map((c) => c.id);
+  assert.ok(ids.includes("fiori_list_report"), `a read-only grid is a list report: ${JSON.stringify(ids)}`);
+  assert.ok(!ids.includes("rap_bo_fiori"), "and NOT a managed draft BO it cannot satisfy");
+
+  const lr = out.find((c) => c.id === "fiori_list_report");
+  assert.ok(!lr.invariants.includes("draft_enabled"), "draft on a read-only object is meaningless");
+  assert.ok(!lr.invariants.includes("commit_entities_only"), "there is nothing to commit");
+  assert.ok(lr.invariants.includes("dcl_authorization"), "but it publishes data, so it owes an auth contract");
+  assert.ok(!lr.components.includes("bdef_managed"), "no behaviour definition without behaviour");
+});
+
+test("R2 a UI object that WRITES its own data still gets the transactional BO", () => {
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: ["clean-core"],
+    driving_rule_ids: ["talos-cloud-014-classic-dynpro"], disposition_hints: ["ui_rearch"],
+    disposition: "re_architect", consumption: ["ui_dynpro"],
+    persistence: ["owns_customer_table"], modernization_target: "Fiori Elements App",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 4, total_blast: 3 }, dependency_count: 2,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(ids.includes("rap_bo_fiori"), `an object that owns and mutates data is a real BO: ${JSON.stringify(ids)}`);
 });
