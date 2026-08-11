@@ -30,6 +30,8 @@ import { kahnLevels } from "./levels.js";
 import { buildConflictGraph } from "../graph/conflict.js";
 import { freezePlan } from "./plan.js";
 import { classifyDisposition } from "../plan/disposition.js";
+import { consumptionFacts } from "../plan/consumption-facts.js";
+import { persistenceFacts } from "../plan/persistence-facts.js";
 import { groundCandidates } from "../plan/ground-candidates.js";
 
 export function assemblePlan(doc, opts = {}) {
@@ -61,8 +63,18 @@ export function assemblePlan(doc, opts = {}) {
   // pre-pass (S3) supplies the cache from the analyser doc. disposition_* ride the node → covered by
   // plan_hash (§6.11); an override at the DISPOSITION gate (B3) triggers a REPLAN + re-freeze.
   const groundingCache = groundCandidates(doc);
+  // RC-2: the classifier also sees what the CPG actually FOUND, so the analyser's coarse
+  // `modernization_target` can corroborate a disposition but never create one on its own. Same two
+  // dimensions the shape matcher reads, from the same frozen doc, so the two stages cannot disagree about
+  // what the object is.
+  const cons = consumptionFacts(doc);
+  const pers = persistenceFacts(doc);
+  const structureOf = (n) => ({
+    consumption: unionFacts(n, cons),
+    persistence: unionFacts(n, pers),
+  });
   for (const n of nodes) {
-    Object.assign(n, classifyDisposition(n, groundingCache), { disposition_source: "classifier", disposition_decided_by: null });
+    Object.assign(n, classifyDisposition(n, groundingCache, structureOf(n)), { disposition_source: "classifier", disposition_decided_by: null });
   }
   applyDispositionOverrides(nodes, opts.dispositionOverrides ?? {});
 
@@ -97,6 +109,16 @@ function assertAugmentFits(og, augment) {
       throw new Error(`assemble: augment edge '${e.source}' → '${e.target}' has an endpoint unknown to the object graph — a dropped edge is exactly the cycle Tarjan exists to catch`);
     }
   }
+}
+
+/** A super-node's structural facts: the union over its members (case-insensitive, as the fact stream reads them). */
+function unionFacts(node, byObject) {
+  const upper = {};
+  for (const k of Object.keys(byObject)) upper[k.toUpperCase()] = byObject[k];
+  const members = node.members?.length ? node.members : [node.object];
+  const out = new Set();
+  for (const m of members) for (const f of upper[String(m).toUpperCase()] ?? []) out.add(f);
+  return [...out].sort();
 }
 
 /** One frozen plan node per in-plan super-node — everything load-bearing lives here (see the file header). */

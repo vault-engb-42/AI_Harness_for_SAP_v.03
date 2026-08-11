@@ -20,12 +20,12 @@ const RE_ARCH_TARGET = /\b(RAP|CDS|OData|Fiori)\b/i;
  * @param {Record<string, {released_clean?: boolean, released_standard_exists?: boolean, grounding_certainty?: number}>} cache grounding cache (ground-candidates.js)
  * @returns {{disposition: string, disposition_rationale: string, disposition_target: string|null, disposition_confidence: number, disposition_reversible: boolean, disposition_autonomy: string}}
  */
-export function classifyDisposition(node, cache = {}) {
+export function classifyDisposition(node, cache = {}, structure = null) {
   const g = cache[node.object] ?? {};
   const hints = new Set(node.disposition_hints ?? []);
   const target = node.modernization_target ?? null;
 
-  const pick = decide(node, g, hints, target);
+  const pick = decide(node, g, hints, target, structure);
   const reversible = pick.disposition === "refactor";
   const autonomy = pick.disposition === "refactor" && pick.confidence >= DISPOSITION_AUTO_THRESHOLD ? "auto" : "prompt";
 
@@ -66,7 +66,7 @@ function unionEvidence(node, cache, field) {
  * `modernization_target` is the fallback so an analysed-but-empty-signal object (e.g. an FM whose findings
  * are attributed to its function group) still routes to re_architect, never to refactor by mere absence.
  */
-function decide(node, g, hints, target) {
+function decide(node, g, hints, target, structure) {
   if (node.dynamic_seal === "NEEDS_MANUAL_SEAM") {
     return { disposition: "seal", rationale: "dynamic dispatch sealed the node (NEEDS_MANUAL_SEAM)", target: null, confidence: 0.95 };
   }
@@ -99,7 +99,22 @@ function decide(node, g, hints, target) {
   // Champion re-architecture where the analyser assigned a Cloud target — even for a currently-clean logic/UI
   // class (a clean business class in a RAP app should BECOME a RAP BO, not be left classic). Target wins over
   // mere cleanliness here; the gate (B3) offers refactor/retire as alternatives, the app-blueprint (B3.5) decides absorption.
+  //
+  // RC-2: the label may CONFIRM structure, never invent it. NINE of the fifteen recommendations the
+  // 2026-08-11 independent review failed rode this exact branch — the analyser calls a demo program a "Fiori
+  // Elements App" because it draws a grid, and the object was re-architected on the strength of that string.
+  // The patterns corpus already forbids a coarse `modernization_target` dictating the SHAPE; disposition was
+  // obeying it unconditionally. An object the CPG shows to have no surface and no data of its own is sealed
+  // for manual review instead.
   if (target && RE_ARCH_TARGET.test(target)) {
+    if (structure && !hasStructure(structure)) {
+      return {
+        disposition: "seal",
+        rationale: `the analyser named "${target}" but the CPG shows no surface and no data of its own — manual review`,
+        target: null,
+        confidence: 0.4,
+      };
+    }
     return { disposition: "re_architect", rationale: `analyser target "${target}" — re-architect to Cloud`, target, confidence: 0.7 };
   }
   // Non-retain, no re-arch target, released-clean → in-stack Clean-Core refactor.
@@ -107,6 +122,19 @@ function decide(node, g, hints, target) {
     return { disposition: "refactor", rationale: "released-API-clean (analysed, 0 P1 blockers), no re-arch target — in-stack Clean-Core refactor", target: target ?? "in-stack Clean-Core", confidence: g.grounding_certainty ?? 0.8 };
   }
   return { disposition: "seal", rationale: "no clear disposition signal — manual review", target: null, confidence: 0.3 };
+}
+
+/**
+ * Did the CPG actually SEE anything — a surface it presents, or data of its own? Both dimensions state their
+ * own absence explicitly (`no_surface_evidence` / `no_persistence_evidence`), so this reads real evidence
+ * rather than an empty list, and an object that is merely unread is never mistaken for one proven empty.
+ *
+ * Fail-SAFE by construction: `decide` only consults this when `structure` was supplied at all. A caller that
+ * cannot produce CPG evidence gets the old behaviour, not a silent mass re-disposition.
+ */
+function hasStructure({ consumption = [], persistence = [] }) {
+  const real = (facts, absence) => facts.some((f) => f !== absence);
+  return real(consumption, "no_surface_evidence") || real(persistence, "no_persistence_evidence");
 }
 
 /**

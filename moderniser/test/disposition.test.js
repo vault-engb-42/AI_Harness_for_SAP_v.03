@@ -143,3 +143,47 @@ test("no signal + no target + not clean → seal (low-confidence prompt)", () =>
   assert.equal(d.disposition_autonomy, "prompt");
   assert.ok(d.disposition_confidence < 0.5, "low confidence");
 });
+
+// RC-2 (root-cause analysis of the 2026-08-11 ARCH_REVIEW). NINE of the fifteen failed recommendations rode
+// one branch: `analyser target "..." — re-architect to Cloud`, confidence 0.7. That is the analyser's COARSE
+// LABEL deciding what happens to an object — the exact thing the patterns corpus forbids for shape selection
+// ("a coarse modernization_target never dictates the shape — the structural evidence does") while disposition
+// obeyed it unconditionally. The analyser labels a demo program "Fiori Elements App" because it draws a grid.
+//
+// The label may now CONFIRM structure; it may not invent it. An object the CPG shows to have no surface and
+// no data of its own is sealed for manual review instead, whatever the label says.
+//
+// `structure` is fail-SAFE: absent means "not known", not "known to be absent", so a caller that cannot
+// supply CPG evidence gets exactly the old behaviour rather than a silent mass re-disposition.
+test("RC-2 the coarse analyser target does NOT re-architect an object with no structure at all", () => {
+  const d = classifyDisposition(node({ modernization_target: "Fiori Elements App" }), {}, {
+    consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
+  });
+  assert.equal(d.disposition, "seal", `a label is not evidence: ${d.disposition_rationale}`);
+  assert.match(d.disposition_rationale, /no surface and no data/i);
+  assert.ok(d.disposition_confidence < 0.5, "and it is not a confident call");
+});
+
+test("RC-2 the same label DOES re-architect once the CPG corroborates it", () => {
+  for (const structure of [
+    { consumption: ["ui_salv"], persistence: ["no_persistence_evidence"] },
+    { consumption: ["no_surface_evidence"], persistence: ["owns_customer_table"] },
+  ]) {
+    const d = classifyDisposition(node({ modernization_target: "RAP Business Object" }), {}, structure);
+    assert.equal(d.disposition, "re_architect", `corroborated: ${JSON.stringify(structure)}`);
+  }
+});
+
+test("RC-2 unknown structure is not absent structure — an uninformed caller keeps the old answer", () => {
+  const d = classifyDisposition(node({ modernization_target: "RAP Business Object" }), {});
+  assert.equal(d.disposition, "re_architect", "fail-safe: absence of evidence is not evidence of absence");
+});
+
+test("RC-2 a HARD structural signal still outranks the structure check", () => {
+  // ui_rearch is a finding-derived verdict about the object's own code; it decides before the label branch
+  // is ever reached, so a screen-bearing object is never sealed for want of a CPG edge.
+  const d = classifyDisposition(node({ disposition_hints: ["ui_rearch"], modernization_target: "Fiori Elements App" }), {}, {
+    consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
+  });
+  assert.equal(d.disposition, "re_architect");
+});

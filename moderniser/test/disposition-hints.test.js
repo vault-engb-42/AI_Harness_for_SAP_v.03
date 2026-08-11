@@ -104,3 +104,27 @@ test("DATA-DRIVE: an unknown/garbage disposition_hint tag never propagates — r
 test("DATA-DRIVE: an untagged finding still derives via the message regex (unchanged fallback = baseline safety)", () => {
   assert.equal(dispositionHint(f({ message: "IDoc inbound processing (ALE)" })), "rfc_rebuild");
 });
+
+// RC-2, from the root-cause analysis of the 2026-08-11 ARCH_REVIEW. `os_exec` means "OS/file operation with
+// no released in-stack equivalent", and its pattern list ended in a bare `cl_gui_` — which matches every SAP
+// GUI CONTROL, not just the frontend-services file API. So ZCL_GUI_ALV_GRID, a subclass of CL_GUI_ALV_GRID,
+// was dispositioned as an OS/file operation: "this object IS a GUI class" read as "this object writes files".
+//
+// `cl_gui_frontend` was already in the list and is the pattern that actually means file I/O. A grid, a
+// container, a splitter or a timer is a UI surface — `ui_rearch`'s job, and one it already does.
+test("os_exec is FILE/OS work, not any SAP GUI control", () => {
+  for (const target of ["CL_GUI_ALV_GRID", "CL_GUI_CONTAINER", "CL_GUI_SPLITTER_CONTAINER", "CL_GUI_TIMER"]) {
+    const h = dispositionHint(f({ rule_id: "talos-x", message: `${target} is not released for ABAP Cloud` }));
+    assert.notEqual(h, "os_exec", `${target} is a UI control, not an OS/file operation`);
+  }
+});
+
+test("the real frontend FILE surface still registers as os_exec", () => {
+  for (const message of [
+    "cl_gui_frontend_services GUI_DOWNLOAD — no in-stack cloud equivalent",
+    "CL_GUI_FRONTEND_SERVICES=>FILE_OPEN_DIALOG is not available in ABAP Cloud",
+    "OPEN DATASET with a variable path (SEC-002)",
+  ]) {
+    assert.equal(dispositionHint(f({ rule_id: "talos-x", message })), "os_exec", message);
+  }
+});

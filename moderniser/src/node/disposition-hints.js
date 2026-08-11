@@ -20,7 +20,12 @@ const HINT_PATTERNS = [
   // adversarial review (2026-07-29) showed matches the English verb "write" in remediation prose of ≥5 real
   // analyser rules (ABAP-PERF-79, direct-table-write, strict-direct-db, …) → false ui_rearch → false re_architect.
   ["ui_rearch", /dynpro|module.?pool|call\s+screen|selection.?screen|write\s*[:/]|classic\s*list|list\s*processor|list\s*output|format\s+color|\balv\b|salv|reuse_alv|grid_display|smart\s*form|sapscript|adobe\s*form|web\s*dynpro|\bbsp\b|classic.?ui|legacy.?ui/i],
-  ["os_exec", /open\s+dataset|call\s+.system.|\bsxpg\b|gui_download|gui_upload|frontend_services|cl_gui_frontend|cl_gui_/i],
+  // RC-2: the list used to end in a bare `cl_gui_`, which matches every SAP GUI CONTROL rather than the
+  // frontend-services FILE api - so ZCL_GUI_ALV_GRID, a subclass of CL_GUI_ALV_GRID, was dispositioned as
+  // an OS/file operation. "This object IS a GUI class" read as "this object writes files", and the shape
+  // matcher then routed a grid wrapper to a query provider. `cl_gui_frontend` is the pattern that really
+  // means file I/O; a grid, container, splitter or timer is a UI surface, which is `ui_rearch`'s job.
+  ["os_exec", /open\s+dataset|call\s+.system.|\bsxpg\b|gui_download|gui_upload|frontend_services|cl_gui_frontend/i],
   // The cross-system CONSTRUCT, not a coincidental noun: `CALL FUNCTION ... DESTINATION` (not the BTP
   // "Destination service" noun), and `RFC` only in an ABAP RFC keyword context (not a dead "…RFC 'SFW…'" probe
   // or the CSV standard "RFC 4180"). Hardened by the adversarial review (2026-07-29).
