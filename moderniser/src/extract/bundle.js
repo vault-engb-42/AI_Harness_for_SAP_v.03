@@ -116,11 +116,22 @@ function fileHashes(files) {
   return out;
 }
 
-/** CPG edges WITHOUT `evidence` — dropping file:line is what makes the diff node-granular (R1). */
+/**
+ * CPG edges WITHOUT `evidence` — dropping file:line is what makes the diff node-granular (R1).
+ *
+ * `access` is KEPT (F-1). It is the difference between reading a table and writing it, so projecting it
+ * away made a modernisation that deletes an object's only DML indistinguishable from one that changes
+ * nothing — identical bundles, no changed edge, PASS_STRUCTURAL 1.0. This is the third place the field
+ * was silently dropped (`semantic.js` and `cpg.js` were the first two): the R3a rule is that whatever
+ * carries `access` carries it end to end, or the write channel fails OPEN to "read".
+ */
 function cpgEdges(analysis) {
   return asArray(analysis?.graph?.edges)
     .filter((e) => e && e.source != null && e.target != null)
-    .map((e) => ({ source: String(e.source), target: String(e.target), kind: String(e.kind ?? "") }));
+    .map((e) => ({
+      source: String(e.source), target: String(e.target), kind: String(e.kind ?? ""),
+      ...(e.access ? { access: String(e.access) } : {}),
+    }));
 }
 
 function cpgNodes(analysis) {

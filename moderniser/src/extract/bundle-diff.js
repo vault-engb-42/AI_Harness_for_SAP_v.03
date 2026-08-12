@@ -75,23 +75,27 @@ function changedEdges(b, a) {
   const ag = groupEdges(a.cpg_edges);
   const out = [];
   for (const key of [...new Set([...bg.keys(), ...ag.keys()])].sort()) {
-    const [source, kind] = key.split(SEP);
+    const [source, kind, access] = key.split(SEP);
+    const mode = access ? { access } : {};
     const bt = bg.get(key) ?? new Set();
     const at = ag.get(key) ?? new Set();
     for (const t of [...bt].filter((x) => !at.has(x)).sort()) {
-      out.push({ kind, source, target_before: t, target_after: null });
+      out.push({ kind, source, target_before: t, target_after: null, ...mode });
     }
     for (const t of [...at].filter((x) => !bt.has(x)).sort()) {
-      out.push({ kind, source, target_before: null, target_after: t });
+      out.push({ kind, source, target_before: null, target_after: t, ...mode });
     }
   }
   return out;
 }
 
+// Keyed on (source, kind, ACCESS): without the mode in the key, a table that was written before and is
+// only read after collapses onto the same key with the same target, and the write simply vanishes from
+// the diff. An access-less edge keys on an empty mode, so pre-R3a corpora group exactly as they did.
 function groupEdges(edges) {
   const map = new Map();
   for (const e of asArray(edges)) {
-    const key = `${e.source}${SEP}${e.kind}`;
+    const key = `${e.source}${SEP}${e.kind}${SEP}${e.access ?? ""}`;
     if (!map.has(key)) map.set(key, new Set());
     map.get(key).add(e.target);
   }

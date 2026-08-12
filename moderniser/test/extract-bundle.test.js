@@ -94,3 +94,15 @@ test("total: empty / malformed file sets yield an inert bundle", () => {
   assert.equal(b.max_nesting, 0);
   assert.doesNotThrow(() => assembleBundle(null));
 });
+
+test("F-1: `access` survives the projection — a write and a read to the same table are not the same fact", () => {
+  const analysis = {
+    graph: {
+      nodes: [{ id: "ZR_ORD", kind: "report" }],
+      edges: [{ source: "ZR_ORD", target: "ZORDERS", kind: "uses-table", access: "write", evidence: "z.prog.abap:12" }],
+    },
+  };
+  const out = assembleBundle(FILES, { analysis });
+  assert.deepEqual(out.cpg_edges, [{ source: "ZR_ORD", target: "ZORDERS", kind: "uses-table", access: "write" }],
+    "evidence is still dropped (node granularity) but the ACCESS MODE is evidence, not noise");
+});

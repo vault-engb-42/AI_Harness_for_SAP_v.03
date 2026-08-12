@@ -216,3 +216,21 @@ test("deterministic + total: repeated diffs are deep-equal; missing sides never 
   assert.doesNotThrow(() => diffBundles(undefined, undefined));
   assert.doesNotThrow(() => diffBundles(before, {}));
 });
+
+test("F-1: an object that LOSES its database write is a changed edge, not a silent structural pass", () => {
+  // The modernisation replaced `UPDATE zorders` with `SELECT SINGLE FROM zorders` — same table,
+  // same edge kind, opposite meaning. Keyed on (source, kind) alone the two sides are identical and
+  // the object scores the strongest available pass while having lost the mutation it exists to perform.
+  const edge = (access) => ({ cpg_edges: [{ source: "ZR_ORD", target: "ZORDERS", kind: "uses-table", access }] });
+  const d = diffBundles(edge("write"), edge("read"));
+  assert.ok(d.changed_edges.length > 0, "a write that became a read must surface as a changed edge");
+  const modes = d.changed_edges.map((e) => e.access).sort();
+  assert.deepEqual(modes, ["read", "write"], "and the diff must say WHICH mode went and which arrived");
+  assert.ok(parity(d, {}).classes.includes("data-source"),
+    "so the parity classifier raises data-source instead of PASS_STRUCTURAL 1.0");
+});
+
+test("F-1: an access-less corpus (pre-R3a docs) diffs exactly as before — no phantom edge changes", () => {
+  const bundle = { cpg_edges: [{ source: "ZR_ORD", target: "ZORDERS", kind: "uses-table" }] };
+  assert.deepEqual(diffBundles(bundle, bundle).changed_edges, []);
+});
