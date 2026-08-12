@@ -66,3 +66,24 @@ test("ALL_RULES wiring is pinned — removing any pack breaks this test", () => 
     "test-quality-pack",
   ]);
 });
+
+// judgement-4 — a `disposition_hint` is EVIDENCE the moderniser acts on directly: `ui_rearch` routes an
+// object to re_architect at 0.85 without further corroboration. A rule that bundles UI and non-UI
+// constructs under one ui_rearch tag therefore re-architects objects that merely format data. Guarding the
+// whole pack rather than the one rule, so the next bundled rule cannot reintroduce it.
+const NON_UI_CONSTRUCTS = [
+  "  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'.",
+  "  CALL FUNCTION 'NUMBER_GET_NEXT'.",
+  "  CALL FUNCTION 'BAPI_MATERIAL_SAVEDATA'.",
+];
+
+test("no ui_rearch-tagged rule fires on a construct that is not a user interface", () => {
+  for (const r of regexRows) {
+    if (r.disposition_hint !== "ui_rearch" || !r.pattern) continue;
+    const re = new RegExp(r.pattern, r.flags || "");
+    for (const snippet of NON_UI_CONSTRUCTS) {
+      assert.equal(re.test(snippet), false,
+        `${r.id} is tagged ui_rearch but matches a non-UI construct: ${snippet.trim()}`);
+    }
+  }
+});

@@ -1295,15 +1295,26 @@
   },
   {
     "id": "talos-deprecated-classic-function-module",
+    "family": "deprecation",
+    "severity": "priority-2",
+    "pattern": "CALL\\s+FUNCTION\\s+'(?:CONVERSION_EXIT_|NUMBER_GET_NEXT)[^']*'",
+    "flags": "i",
+    "message": "Deprecated classic function module call (CONVERSION_EXIT_*, NUMBER_GET_NEXT) — not S/4HANA-Cloud ready; replace with a released API equivalent (S/4 readiness).",
+    "object_types": [],
+    "example": "  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'.",
+    "counter_example": "  CALL FUNCTION 'BAPI_MATERIAL_SAVEDATA'."
+  },
+  {
+    "id": "talos-deprecated-classic-ui-function-module",
     "disposition_hint": "ui_rearch",
     "family": "deprecation",
     "severity": "priority-2",
-    "pattern": "CALL\\s+FUNCTION\\s+'(?:CONVERSION_EXIT_|NUMBER_GET_NEXT|POPUP_TO_CONFIRM|RS_COVERPAGE_|REUSE_ALV_GRID_DISPLAY)[^']*'",
+    "pattern": "CALL\\s+FUNCTION\\s+'(?:POPUP_TO_CONFIRM|RS_COVERPAGE_|REUSE_ALV_GRID_DISPLAY)[^']*'",
     "flags": "i",
-    "message": "Deprecated classic function module call (CONVERSION_EXIT_*, NUMBER_GET_NEXT, POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY) — not S/4HANA-Cloud ready; replace with a released API/CDS/Fiori equivalent (S/4 readiness).",
+    "message": "Deprecated classic UI function module call (POPUP_TO_CONFIRM, RS_COVERPAGE_*, REUSE_ALV_GRID_DISPLAY) — no ABAP Cloud UI runtime; re-architect to RAP/Fiori (S/4 readiness).",
     "object_types": [],
     "example": "  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'.",
-    "counter_example": "  CALL FUNCTION 'BAPI_MATERIAL_SAVEDATA'."
+    "counter_example": "  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'."
   },
   {
     "id": "talos-s4-010-vbfa-access",
