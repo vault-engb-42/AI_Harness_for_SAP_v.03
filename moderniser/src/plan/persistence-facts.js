@@ -71,7 +71,17 @@ const WRITING_SAP_API = new RegExp(
   "^(BAPI_.*_(CREATE|CREATEFROM|CHANGE|POST|CANCEL|REVERSE|DELETE|CONFIRM|SETSTATUS|SAVE)"
   + "|BAPI_TRANSACTION_COMMIT"
   + "|POSTING_INTERFACE_"
-  + "|IDOC_INPUT_)",
+  + "|IDOC_INPUT_"
+  // F-2: ALE/EDI is the OTHER sanctioned write surface, and recognising only the BAPI family left six of
+  // the ten integration APIs in the equalize-idoc corpus invisible — ZCL_IDOC_OUTPUT calls
+  // EDI_DOCUMENT_STATUS_SET and IDOC_INBOUND_ASYNCHRONOUS and still read as `reads_sap_table`.
+  + "|IDOC_OUTPUT_"      // builds and dispatches an outbound IDoc — a created document
+  + "|IDOC_INBOUND_"     // posts an inbound IDoc (tRFC/queued ALE entry points)
+  + "|MASTER_IDOC_"      // distributes master data as IDocs
+  // The IDoc STATUS write triple. Scoped to these three verbs, not all of EDI_DOCUMENT_*, so the
+  // readers in the same family (EDI_DOCUMENT_GET_DATA, EDI_SEGMENTS_GET_ALL) stay reads.
+  + "|EDI_DOCUMENT_(STATUS_SET|OPEN_FOR_PROCESS|CLOSE_PROCESS)"
+  + ")",
 );
 
 /** The absence marker, named once. */

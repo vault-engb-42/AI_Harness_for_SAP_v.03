@@ -170,3 +170,27 @@ test("writing through an API is NOT ownership — the object still owns no entit
   assert.ok(!out.ZCREATE_ASSET.includes("owns_customer_table"),
     "it mutates SAP's data through SAP's API; it owns no persistent root of its own");
 });
+
+// F-2 — R5 recognised the BAPI family and stopped there. ALE/EDI is the OTHER sanctioned write surface,
+// and six of the ten integration APIs in the equalize-idoc corpus fell straight through it.
+
+test("F-2: the ALE/EDI status API writes — it mutates the IDoc control record", () => {
+  for (const fm of ["EDI_DOCUMENT_STATUS_SET", "EDI_DOCUMENT_OPEN_FOR_PROCESS", "EDI_DOCUMENT_CLOSE_PROCESS"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.ok(out.ZCL_X.includes("writes_via_sap_api"), `${fm} mutates IDoc status: ${JSON.stringify(out.ZCL_X)}`);
+  }
+});
+
+test("F-2: creating an outbound IDoc, posting an inbound one, and distributing master data all write", () => {
+  for (const fm of ["IDOC_OUTPUT_INVOIC", "IDOC_INBOUND_ASYNCHRONOUS", "IDOC_INBOUND_SINGLE", "MASTER_IDOC_DISTRIBUTE_DEBMAS"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.ok(out.ZCL_X.includes("writes_via_sap_api"), `${fm} creates or posts a document: ${JSON.stringify(out.ZCL_X)}`);
+  }
+});
+
+test("F-2: reading an IDoc is still not writing it — the verb rule holds across the ALE family too", () => {
+  for (const fm of ["EDI_SEGMENTS_GET_ALL", "EDI_DOCUMENT_GET_DATA", "IDOC_READ_COMPLETELY"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.deepEqual(out.ZCL_X, ["no_persistence_evidence"], `${fm} only reads`);
+  }
+});
