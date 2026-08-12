@@ -104,13 +104,18 @@ function decide(node, g, hints, target, structure) {
   // 2026-08-11 independent review failed rode this exact branch — the analyser calls a demo program a "Fiori
   // Elements App" because it draws a grid, and the object was re-architected on the strength of that string.
   // The patterns corpus already forbids a coarse `modernization_target` dictating the SHAPE; disposition was
-  // obeying it unconditionally. An object the CPG shows to have no surface and no data of its own is sealed
-  // for manual review instead.
+  // obeying it unconditionally. An object the CPG shows to have no surface and no data ACCESS AT ALL is
+  // sealed for manual review instead.
+  //
+  // F-6: the bar here is "any structural evidence", NOT ownership — `hasStructure` accepts a mere read.
+  // That is the right bar for corroborating a coarse label, but the rationale used to say "no data OF ITS
+  // OWN", which asserts an ownership test the code never performs. In a codebase whose central defect class
+  // is reader-vs-owner conflation, a rationale that claims more than it checked is the same bug in prose.
   if (target && RE_ARCH_TARGET.test(target)) {
     if (structure && !hasStructure(structure)) {
       return {
         disposition: "seal",
-        rationale: `the analyser named "${target}" but the CPG shows no surface and no data of its own — manual review`,
+        rationale: `the analyser named "${target}" but the CPG shows no surface and no data access at all — manual review`,
         target: null,
         confidence: 0.4,
       };

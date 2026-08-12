@@ -160,7 +160,7 @@ test("RC-2 the coarse analyser target does NOT re-architect an object with no st
     consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
   });
   assert.equal(d.disposition, "seal", `a label is not evidence: ${d.disposition_rationale}`);
-  assert.match(d.disposition_rationale, /no surface and no data/i);
+  assert.match(d.disposition_rationale, /no surface and no data access at all/i);
   assert.ok(d.disposition_confidence < 0.5, "and it is not a confident call");
 });
 
