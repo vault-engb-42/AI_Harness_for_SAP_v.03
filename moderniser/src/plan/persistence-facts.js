@@ -47,8 +47,32 @@ import { reachableFacts } from "./reach.js";
 /** The closed, sorted persistence enum. `no_persistence_evidence` is a MEMBER, not an escape hatch. */
 export const PERSISTENCE_FACTS = [
   "no_persistence_evidence", "owns_customer_table", "reads_customer_table", "reads_sap_table",
-  "writes_sap_table",
+  "writes_sap_table", "writes_via_sap_api",
 ];
+
+/**
+ * SAP's SANCTIONED write path. R3a taught this module to see direct DML — and in Clean-Core ABAP direct DML
+ * on an SAP table is the ANTI-pattern, while the BAPI is how correct code writes. So the detector learned
+ * the rare case and stayed blind to the normal one, and the independent review found the consequence by
+ * reading source: ZCREATE_ASSET, a mass-CREATE utility calling BAPI_FIXEDASSET_CREATE1 in a loop, was handed
+ * `fiori_list_report`, whose `readonly_query` invariant "would structurally FORBID the create the object
+ * exists to perform". Measured across the corpora: SIX objects write only this way (four in equalize-idoc,
+ * two in abap_fico), and every one of them was a failed review.
+ *
+ * The ACTION VERB separates a write from a read, so BAPI_*_GETLIST and BAPI_*_GETDETAIL are deliberately
+ * absent. BAPI_TRANSACTION_COMMIT stands on its own: an object that commits an LUW is transactional whatever
+ * API did the work. POSTING_INTERFACE_* is the FI batch-input posting surface and IDOC_INPUT_* the ALE
+ * inbound handlers, both of which create business documents.
+ *
+ * This is evidence of WRITING, never of OWNERSHIP: the object mutates SAP's data through SAP's API and owns
+ * no persistent root of its own — which is exactly what the reviewers said of all six.
+ */
+const WRITING_SAP_API = new RegExp(
+  "^(BAPI_.*_(CREATE|CREATEFROM|CHANGE|POST|CANCEL|REVERSE|DELETE|CONFIRM|SETSTATUS|SAVE)"
+  + "|BAPI_TRANSACTION_COMMIT"
+  + "|POSTING_INTERFACE_"
+  + "|IDOC_INPUT_)",
+);
 
 /** The absence marker, named once. */
 export const NO_PERSISTENCE = "no_persistence_evidence";
@@ -75,10 +99,17 @@ export function persistenceFacts(doc) {
   return reachableFacts(doc, {
     factsOfEdge: (edge) => (PERSISTENCE_EDGE_KINDS.has(String(edge?.kind ?? "").toLowerCase())
       ? [classifyTable(edge.target, edge.access)].filter(Boolean)
-      : []),
+      : [writeThroughApi(edge.target)].filter(Boolean)),
     absence: NO_PERSISTENCE,
     propagate: false, // you own what YOU touch — see the header
   });
+}
+
+/** Does this call mutate business data through SAP's own API? See WRITING_SAP_API. */
+function writeThroughApi(target) {
+  const bare = String(target ?? "").toUpperCase().split(".")[0];
+  if (!bare || CUSTOMER_NAMESPACE.test(bare)) return null; // customer code is not SAP's sanctioned path
+  return WRITING_SAP_API.test(bare) ? "writes_via_sap_api" : null;
 }
 
 /**

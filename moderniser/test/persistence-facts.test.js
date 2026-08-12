@@ -67,7 +67,7 @@ test("an object touching both keeps both — owning your own table does not unse
 test("the enum is closed and sorted — it reaches the judge's prompt like every other fact (P8)", () => {
   assert.deepEqual(PERSISTENCE_FACTS, [
     "no_persistence_evidence", "owns_customer_table", "reads_customer_table", "reads_sap_table",
-    "writes_sap_table",
+    "writes_sap_table", "writes_via_sap_api",
   ]);
   assert.deepEqual([...PERSISTENCE_FACTS].sort(), PERSISTENCE_FACTS);
 });
@@ -121,4 +121,52 @@ test("R3a writing an SAP table is still not ownership — it is someone else's d
 test("R3a an edge with NO access mode is read — an older doc must not manufacture ownership", () => {
   const out = persistenceFacts(graph([{ source: "ZCL_X", target: "ZTORDER", kind: "uses-table" }]));
   assert.deepEqual(out.ZCL_X, ["reads_customer_table"], "absent evidence is the conservative reading");
+});
+
+// The blind spot R3a left, found by the independent review reading source (2026-08-12):
+//
+//   "It is a mass-CREATE utility, not a read-only report ... CALL FUNCTION 'BAPI_FIXEDASSET_CREATE1' inside
+//    LOOP AT lt_anla ... fiori_list_report plus readonly_query would structurally FORBID the create the
+//    object exists to perform."
+//   "It CREATES FI documents - POSTING_INTERFACE_START/_DOCUMENT/_END with FTPOST/BLNTAB and tcode FB01."
+//
+// R3a taught the detector to see direct DML. But in Clean-Core ABAP direct DML on an SAP table is the
+// ANTI-pattern — the sanctioned write path IS the BAPI. So the detector learned to see the rare case and
+// stayed blind to the normal one. Measured across the corpora: 6 objects write through an SAP API with no
+// direct DML at all (4 in equalize-idoc, 2 in abap_fico), and every one of them was a failed review.
+//
+// Recognised by SAP's own naming convention, exactly as R5 recognises delegation: the ACTION verb is what
+// distinguishes a write from a read, so BAPI_*_GETLIST and BAPI_*_GETDETAIL are deliberately not writes.
+
+test("a BAPI that creates or changes data is write evidence", () => {
+  for (const fm of ["BAPI_FIXEDASSET_CREATE1", "BAPI_SALESORDER_CREATEFROMDAT2", "BAPI_OBJCL_CHANGE",
+                    "BAPI_BATCH_CREATE", "BAPI_TRANSACTION_COMMIT"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.ok(out.ZCL_X.includes("writes_via_sap_api"), `${fm} writes: ${JSON.stringify(out.ZCL_X)}`);
+  }
+});
+
+test("the SAP posting and ALE-inbound interfaces write too", () => {
+  for (const fm of ["POSTING_INTERFACE_DOCUMENT", "POSTING_INTERFACE_START", "IDOC_INPUT_MBGMCR"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.ok(out.ZCL_X.includes("writes_via_sap_api"), `${fm} posts data: ${JSON.stringify(out.ZCL_X)}`);
+  }
+});
+
+test("a READING BAPI is not write evidence — the verb is what distinguishes them", () => {
+  for (const fm of ["BAPI_ADDRESSORG_GETDETAIL", "BAPI_MATERIAL_GETLIST", "BAPI_COMPANYCODE_GETDETAIL"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
+    assert.deepEqual(out.ZCL_X, ["no_persistence_evidence"], `${fm} only reads`);
+  }
+});
+
+test("a CUSTOMER function named like a BAPI is not an SAP write path", () => {
+  const out = persistenceFacts(graph([{ source: "ZCL_X", target: "Z_BAPI_ORDER_CREATE", kind: "call-function" }]));
+  assert.deepEqual(out.ZCL_X, ["no_persistence_evidence"], "customer code is not SAP's sanctioned API");
+});
+
+test("writing through an API is NOT ownership — the object still owns no entity", () => {
+  const out = persistenceFacts(graph([{ source: "ZCREATE_ASSET", target: "BAPI_FIXEDASSET_CREATE1", kind: "call-function" }]));
+  assert.ok(!out.ZCREATE_ASSET.includes("owns_customer_table"),
+    "it mutates SAP's data through SAP's API; it owns no persistent root of its own");
 });

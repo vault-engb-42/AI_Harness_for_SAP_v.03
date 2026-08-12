@@ -355,3 +355,35 @@ test("R2 a UI object that WRITES its own data still gets the transactional BO", 
   const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
   assert.ok(ids.includes("rap_bo_fiori"), `an object that owns and mutates data is a real BO: ${JSON.stringify(ids)}`);
 });
+
+// The precise defect the review named on the re-run (2026-08-12): "fiori_list_report plus the contract's
+// readonly_query invariant would structurally FORBID the create the object exists to perform." ZCREATE_ASSET
+// is a mass-CREATE utility whose SALV grid renders a BAPIRET2 message LOG, not an entity list — R2 fixed
+// over-building for genuine readers and, without a write signal that sees the API path, turned it into
+// under-building for writers.
+//
+// A shape carrying `readonly_query` may not be offered to an object with write evidence, by either path.
+test("a shape with readonly_query is refused to an object that writes through an SAP API", () => {
+  const fact = {
+    object_kind: "report", graph_kind: "object", finding_families: ["clean-core"],
+    driving_rule_ids: ["talos-cloud-015-salv-table-factory"], disposition_hints: ["ui_rearch"],
+    disposition: "re_architect", consumption: ["ui_salv", "batch_report"],
+    persistence: ["reads_sap_table", "writes_via_sap_api"], modernization_target: "Fiori Elements App",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 }, dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(!ids.includes("fiori_list_report"), `a creator is not a read-only report: ${JSON.stringify(ids)}`);
+  assert.ok(!ids.includes("custom_entity_query"), "nor a read-only query provider");
+});
+
+test("the same object WITHOUT write evidence still gets the list report", () => {
+  const fact = {
+    object_kind: "report", graph_kind: "object", finding_families: ["clean-core"],
+    driving_rule_ids: ["talos-cloud-015-salv-table-factory"], disposition_hints: ["ui_rearch"],
+    disposition: "re_architect", consumption: ["ui_salv", "batch_report"],
+    persistence: ["reads_sap_table"], modernization_target: "Fiori Elements App",
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 3, total_blast: 2 }, dependency_count: 1,
+  };
+  const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
+  assert.ok(ids.includes("fiori_list_report"), `a genuine reader is unaffected: ${JSON.stringify(ids)}`);
+});

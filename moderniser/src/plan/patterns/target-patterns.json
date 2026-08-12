@@ -121,7 +121,9 @@
         ],
         "none": [
           "persistence:no_persistence_evidence",
-          "persistence:owns_customer_table"
+          "persistence:owns_customer_table",
+          "persistence:writes_via_sap_api",
+          "persistence:writes_sap_table"
         ]
       },
       "components": [
@@ -137,7 +139,7 @@
         "dcl_authorization",
         "readonly_query"
       ],
-      "example": "a classic list or ALV grid that only READS — a CDS view exposed through an OData service with Fiori Elements annotations, and no behaviour pool, no draft and nothing to commit. Added after an independent review failed four recommendations for mandating bdef_managed + draft_enabled + commit_entities_only on objects that never write; R3a gave the analyser an access mode, which is what makes a reader and a writer separable at all. It still publishes data, so it carries dcl_authorization."
+      "example": "a classic list or ALV grid that only READS — a CDS view exposed through an OData service with Fiori Elements annotations, and no behaviour pool, no draft and nothing to commit. Added after an independent review failed four recommendations for mandating bdef_managed + draft_enabled + commit_entities_only on objects that never write; R3a gave the analyser an access mode, which is what makes a reader and a writer separable at all. It still publishes data, so it carries dcl_authorization. It refuses every form of write evidence, not just an owned table: an object that creates data through BAPI_*_CREATE or POSTING_INTERFACE_* is not a read-only report, and handing it readonly_query would structurally forbid the behaviour it exists to perform (independent review, ZCREATE_ASSET, 2026-08-12)."
     },
     {
       "id": "rap_bo_events",
@@ -217,7 +219,9 @@
           "consumption:remote_rfc"
         ],
         "none": [
-          "persistence:owns_customer_table"
+          "persistence:owns_customer_table",
+          "persistence:writes_via_sap_api",
+          "persistence:writes_sap_table"
         ]
       },
       "components": [
