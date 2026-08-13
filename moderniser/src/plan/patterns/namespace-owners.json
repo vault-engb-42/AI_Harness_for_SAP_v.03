@@ -1,0 +1,8 @@
+{
+  "schema": "moderniser/namespace-owners@1",
+  "note": "WHO OWNS A REGISTERED /NS/ NAMESPACE. A registered namespace says nothing about ownership on its own — SAP ships add-ons in registered namespaces (/SAPAPO/, /BEV1/) exactly as partners and customers do — and the oracle cannot settle it: probed 2026-08-13, classifyName returns 'unknown' for an SAP add-on name and a customer name alike, because the released-API registry carries no namespace-ownership data. This file is the seam for that data. It is DELIBERATELY EMPTY: entries are landscape facts, and inventing them would invert a Clean-Core verdict as surely as the regex it replaces. Populate from SAP's registered-namespace registry (transaction SE03 / the namespace licence) or from the operator's own landscape inventory.",
+  "customer_owned": [],
+  "sap_delivered": [],
+  "unresolved_default": "sap",
+  "unresolved_note": "What an unlisted namespace means. 'sap' is the fail-safe: claiming someone else's table HIDES a Clean-Core violation, while declining to claim your own costs the object a RAP BO root — which surfaces as an unmatched shape and escalates to a human. Never manufacture ownership from silence. Set to 'customer' only for a landscape where every registered namespace is known to be yours."
+}

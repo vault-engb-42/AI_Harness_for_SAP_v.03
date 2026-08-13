@@ -85,9 +85,30 @@ test("a structural edge is not a persistence path — an INCLUDE is the object's
 // in one — `/ACME/TORDER` is that customer's own table every bit as much as `ZTORDER` is. Reading it as SAP's
 // data would tell the harness the object owns nothing, which is the exact silence RC-1 exists to remove, in a
 // corpus neither demo represents.
-test("a REGISTERED customer namespace is customer persistence too", () => {
+// CONTRACT CHANGED 2026-08-13 (F-9.2). This asserted that a registered `/NS/` namespace is customer
+// persistence. It is not decidable that way: SAP ships add-ons in registered namespaces (/SAPAPO/, /BEV1/)
+// exactly as partners and customers do, so the old rule reported a WRITE TO AN SAP ADD-ON TABLE as
+// `owns_customer_table` — a Clean-Core violation recorded as ownership, inverted.
+//
+// The oracle was consulted as the authority and cannot settle it either: probed 2026-08-13, `classifyName`
+// returns `unknown` for `/SAPAPO/MATKEY` and `/ACME/ZTAB` alike. Absence from the registry is therefore not
+// evidence of customer ownership.
+//
+// So unresolved `/NS/` falls to NOT-OWNED. The errors are asymmetric: claiming someone else's table hides a
+// violation silently, whereas declining to claim your own costs the object a BO root — which surfaces as an
+// unmatched shape and escalates to a human. Same rule as `access ?? "read"`: never manufacture ownership
+// from silence.
+test("F-9.2: a REGISTERED namespace is NOT proof of customer ownership — SAP ships there too", () => {
   const out = persistenceFacts(graph([{ source: "/ACME/CL_ORDER", target: "/ACME/TORDER", kind: "uses-table", access: "write" }]));
-  assert.deepEqual(out["/ACME/CL_ORDER"], ["owns_customer_table"], "/VENDOR/ is a customer namespace");
+  assert.deepEqual(out["/ACME/CL_ORDER"], ["writes_sap_table"],
+    "unproven ownership is not ownership; the write is still recorded, as someone else's data");
+});
+
+test("F-9.2: an unambiguous Z/Y prefix IS ownership — the change narrows the rule, it does not delete it", () => {
+  for (const [obj, tab] of [["ZCL_A", "ZMYTAB"], ["YCL_B", "YMYTAB"]]) {
+    const out = persistenceFacts(graph([{ source: obj, target: tab, kind: "uses-table", access: "write" }]));
+    assert.deepEqual(out[obj], ["owns_customer_table"], `${tab} is unambiguously the customer's`);
+  }
 });
 
 test("an SAP table is still SAP's, whatever else is in the corpus", () => {

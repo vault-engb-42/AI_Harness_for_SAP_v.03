@@ -42,7 +42,11 @@
  * P8: the source is the resolved CPG symbol graph, and every emitted value is a member of the closed enum
  * below — no free-form string escapes this module, exactly as in `consumption-facts.js`.
  */
+import { readFileSync } from "node:fs";
 import { reachableFacts } from "./reach.js";
+
+/** Landscape-supplied namespace→owner registry. See `namespaceOwners`. */
+const OWNERS_PATH = new URL("./patterns/namespace-owners.json", import.meta.url);
 
 /** The closed, sorted persistence enum. `no_persistence_evidence` is a MEMBER, not an escape hatch. */
 export const PERSISTENCE_FACTS = [
@@ -99,7 +103,60 @@ const PERSISTENCE_EDGE_KINDS = new Set(["uses-table"]);
  * that customer's own table exactly as `ZTORDER` is. Reading it as SAP's data would report that the object
  * owns nothing, which is the very silence this module exists to remove, in a corpus neither demo represents.
  */
-const CUSTOMER_NAMESPACE = /^[ZY]|^\/[A-Z0-9_]+\//;
+/** Unambiguous customer prefixes. The oracle has no entry for customer code by construction. */
+const CUSTOMER_PREFIX = /^[ZY]/;
+/** A registered `/NS/` namespace. Says nothing about WHO owns it — see `ownsName`. */
+const REGISTERED_NAMESPACE = /^\/[A-Z0-9_]+\//;
+
+/**
+ * Is this name the CUSTOMER'S own data — the only kind a RAP root can own (F-9.2)?
+ *
+ * `Z`/`Y` is unambiguous. A registered `/NS/` namespace is NOT: SAP ships add-ons in registered namespaces
+ * (`/SAPAPO/`, `/BEV1/`) exactly as partners and customers do, and the previous rule claimed all of them as
+ * customer-owned — turning a write to an SAP add-on table into `owns_customer_table`, i.e. reporting a
+ * Clean-Core VIOLATION as ownership. Inverted, which is the worst direction to be wrong in.
+ *
+ * The oracle is consulted because it is the authority on SAP-delivered objects, and a name it knows is
+ * SAP's whatever its prefix. It does NOT currently settle the rest: probed 2026-08-13, `classifyName`
+ * returns `unknown` for `/SAPAPO/MATKEY` and `/ACME/ZTAB` alike — the registry carries no
+ * namespace-ownership data. So absence from it is not evidence of customer ownership.
+ *
+ * Unresolved `/NS/` therefore falls to NOT-OWNED. The two errors are not symmetric: claiming someone else's
+ * table hides a violation silently, while declining to claim your own costs the object a BO root, which
+ * shows up as an unmatched shape and escalates to a human. Manufacturing ownership from silence is the
+ * worse error — the same rule `access ?? "read"` follows one function below.
+ */
+function ownsName(name) {
+  if (CUSTOMER_PREFIX.test(name)) return true;
+  const ns = name.match(REGISTERED_NAMESPACE)?.[0];
+  if (!ns) return false; // a bare name is SAP's
+  const owners = namespaceOwners();
+  if (owners.customer.has(ns)) return true;
+  if (owners.sap.has(ns)) return false;
+  return owners.unresolvedDefault === "customer";
+}
+
+/**
+ * The namespace→owner registry (`patterns/namespace-owners.json`), read once.
+ *
+ * Ownership of a registered namespace is a LANDSCAPE FACT, not a property of the name, so it is data the
+ * operator supplies rather than a rule anyone can derive. The file ships EMPTY on purpose: seeding it with a
+ * guessed list of SAP namespaces would invert a Clean-Core verdict exactly as the regex it replaces did,
+ * just in a different set of cases. Unlisted falls to `unresolved_default`, which is "sap" — the fail-safe
+ * direction, because claiming someone else's table hides a violation while declining your own escalates.
+ */
+let _owners = null;
+function namespaceOwners() {
+  if (_owners) return _owners;
+  const raw = JSON.parse(readFileSync(OWNERS_PATH, "utf8"));
+  const norm = (xs) => new Set((xs ?? []).map((s) => String(s).toUpperCase()));
+  _owners = {
+    customer: norm(raw.customer_owned),
+    sap: norm(raw.sap_delivered),
+    unresolvedDefault: raw.unresolved_default === "customer" ? "customer" : "sap",
+  };
+  return _owners;
+}
 
 /**
  * @param {object} doc analyser-findings.json (read-only, P8)
@@ -118,7 +175,7 @@ export function persistenceFacts(doc) {
 /** Does this call mutate business data through SAP's own API? See WRITING_SAP_API. */
 function writeThroughApi(target) {
   const bare = String(target ?? "").toUpperCase().split(".")[0];
-  if (!bare || CUSTOMER_NAMESPACE.test(bare)) return null; // customer code is not SAP's sanctioned path
+  if (!bare || CUSTOMER_PREFIX.test(bare)) return null; // customer code is not SAP's sanctioned path
   return WRITING_SAP_API.test(bare) ? "writes_via_sap_api" : null;
 }
 
@@ -132,7 +189,7 @@ function classifyTable(target, access) {
   const bare = String(target ?? "").toUpperCase().split(".")[0];
   if (!bare) return null;
   const writes = String(access ?? "read").toLowerCase() === "write";
-  const mine = CUSTOMER_NAMESPACE.test(bare);
+  const mine = ownsName(bare);
   if (mine) return writes ? "owns_customer_table" : "reads_customer_table";
   return writes ? "writes_sap_table" : "reads_sap_table";
 }
