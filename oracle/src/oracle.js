@@ -73,6 +73,32 @@ const STATE_WARNING = {
  * @typedef {{authStates: Set<string>, fallbackStates: Set<string>, successors: Array<{name: string, type: string}>, mapping_kind: string|null, successor_concept: string|null}} OracleRec */
 let _index = null;
 
+/**
+ * The registered `/NS/` namespaces SAP itself ships in, DERIVED from the registry rather than listed.
+ *
+ * An object SAP classified in its own released-API/classification data is SAP-delivered by definition, so
+ * the namespace it lives in is SAP's. This answers the question `classifyName` cannot: that returns
+ * `unknown` for an unlisted `/SAPAPO/` name, which is silence about one OBJECT, not evidence about the
+ * NAMESPACE — and the moderniser was reading that silence as customer ownership (F-9.2), turning a
+ * Clean-Core violation into `owns_customer_table`.
+ *
+ * Derived at load time, never snapshotted: a hand-copied list of these would drift from the registry
+ * exactly as `validate-findings.js` drifted from the schema.
+ *
+ * @returns {Set<string>} upper-cased namespaces including both slashes, e.g. "/SCWM/"
+ */
+export function sapNamespaces() {
+  if (_namespaces) return _namespaces;
+  _namespaces = new Set();
+  for (const name of loadIndex().byName.keys()) {
+    const ns = String(name).match(/^\/[A-Z0-9_]+\//);
+    if (ns) _namespaces.add(ns[0]);
+  }
+  return _namespaces;
+}
+/** @type {Set<string>|null} */
+let _namespaces = null;
+
 function loadIndex() {
   if (_index) return _index;
   const full = new Map();

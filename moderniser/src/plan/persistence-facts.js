@@ -43,6 +43,7 @@
  * below — no free-form string escapes this module, exactly as in `consumption-facts.js`.
  */
 import { readFileSync } from "node:fs";
+import { sapNamespaces } from "../../../oracle/src/oracle.js";
 import { reachableFacts } from "./reach.js";
 
 /** Landscape-supplied namespace→owner registry. See `namespaceOwners`. */
@@ -150,9 +151,13 @@ function namespaceOwners() {
   if (_owners) return _owners;
   const raw = JSON.parse(readFileSync(OWNERS_PATH, "utf8"));
   const norm = (xs) => new Set((xs ?? []).map((s) => String(s).toUpperCase()));
+  // SAP's own namespaces are DERIVED from the registry, not listed: an object SAP classified in its own
+  // released-API data is SAP-delivered, so its namespace is SAP's. 44 of them at time of writing. The file's
+  // `sap_delivered` only ADDS to that, for a landscape running an add-on the shipped registry does not cover.
+  const sap = new Set([...sapNamespaces(), ...norm(raw.sap_delivered)]);
   _owners = {
     customer: norm(raw.customer_owned),
-    sap: norm(raw.sap_delivered),
+    sap,
     unresolvedDefault: raw.unresolved_default === "customer" ? "customer" : "sap",
   };
   return _owners;

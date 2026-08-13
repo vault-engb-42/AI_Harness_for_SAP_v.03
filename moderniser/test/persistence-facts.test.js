@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { persistenceFacts, PERSISTENCE_FACTS, NO_PERSISTENCE } from "../src/plan/persistence-facts.js";
+import { sapNamespaces } from "../../oracle/src/oracle.js";
+const SAP_NAMESPACES = sapNamespaces();
 
 // RC-1 (root-cause analysis of the 2026-08-11 ARCH_REVIEW: 13 of 15 recommendations FAILED). Every reviewer
 // wrote the same sentence differently — "no entity to manage, so bdef_managed / draft_enabled /
@@ -80,12 +82,10 @@ test("a structural edge is not a persistence path — an INCLUDE is the object's
   assert.deepEqual(out.ZFUGR_X, [NO_PERSISTENCE], "an INCLUDE does not inherit the included unit's tables");
 });
 
-// GENERALISATION (operator, 2026-08-11). `/^[ZY]/` is only PART of the customer namespace. SAP also issues
-// REGISTERED namespaces of the form `/VENDOR/OBJECT`, and a partner or large customer ships its whole product
-// in one — `/ACME/TORDER` is that customer's own table every bit as much as `ZTORDER` is. Reading it as SAP's
-// data would tell the harness the object owns nothing, which is the exact silence RC-1 exists to remove, in a
-// corpus neither demo represents.
-// CONTRACT CHANGED 2026-08-13 (F-9.2). This asserted that a registered `/NS/` namespace is customer
+// CONTRACT CHANGED 2026-08-13 (F-9.2). The rationale this replaces (operator, 2026-08-11) held that a
+// registered `/VENDOR/` namespace is customer persistence "every bit as much as ZTORDER is". That is true of
+// a namespace the customer licensed, and false of the many SAP ships in — and the rule could not tell them
+// apart, so it claimed all of them. This asserted that a registered `/NS/` namespace is customer
 // persistence. It is not decidable that way: SAP ships add-ons in registered namespaces (/SAPAPO/, /BEV1/)
 // exactly as partners and customers do, so the old rule reported a WRITE TO AN SAP ADD-ON TABLE as
 // `owns_customer_table` — a Clean-Core violation recorded as ownership, inverted.
@@ -214,4 +214,22 @@ test("F-2: reading an IDoc is still not writing it — the verb rule holds acros
     const out = persistenceFacts(graph([{ source: "ZCL_X", target: fm, kind: "call-function" }]));
     assert.deepEqual(out.ZCL_X, ["no_persistence_evidence"], `${fm} only reads`);
   }
+});
+
+// F-9.2 second half — SAP's own namespaces are DERIVED from its registry, not defaulted into. Without this
+// the fail-safe default happened to give the right answer for /SCWM/ for the wrong reason, and would have
+// given the wrong one the moment `unresolved_default` were set to "customer" for a landscape.
+test("F-9.2: a namespace SAP ships in is known SAP, derived from its own registry", () => {
+  for (const tab of ["/SCWM/AQUA", "/SAPAPO/MATKEY", "/UI2/TAB", "/BOBF/CONF"]) {
+    const out = persistenceFacts(graph([{ source: "ZCL_X", target: tab, kind: "uses-table", access: "write" }]));
+    assert.deepEqual(out.ZCL_X, ["writes_sap_table"], `${tab} is SAP's, and writing it is the Clean-Core finding`);
+  }
+});
+
+test("F-9.2: the derived SAP namespace set is non-empty and really comes from the registry", () => {
+  // If this ever empties, every /NS/ table silently falls to the unresolved default and the derivation is
+  // dead without anything failing — the absence-as-evidence shape this codebase keeps rediscovering.
+  assert.ok(SAP_NAMESPACES.size >= 20, `expected the registry to yield many namespaces, got ${SAP_NAMESPACES.size}`);
+  for (const ns of ["/SCWM/", "/SAPAPO/", "/UI2/"]) assert.ok(SAP_NAMESPACES.has(ns), `${ns} must be derived`);
+  assert.equal(SAP_NAMESPACES.has("/ACME/"), false, "a customer namespace is absent from SAP's registry");
 });
