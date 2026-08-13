@@ -5,10 +5,15 @@
  * .claude/schemas/analyser-findings.schema.json. Doubles as the C5 oracle.
  */
 
-const SEVERITY = new Set(["priority-1", "priority-2", "priority-3", "info"]);
-const NODE_KIND = new Set(["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"]);
-const EDGE_KIND = new Set(["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"]);
-const NAMESPACE = new Set(["Z", "Y", "registered", "sap"]);
+// EXPORTED so `analyser/test/seam-contract.test.js` can assert each set IS the schema's, rather than a
+// copy that happens to agree today. This file says above that it "mirrors" the schema; a mirror nobody
+// compares is how `access` came to be declared in the schema, emitted by the analyser, and unknown here.
+export const SEVERITY = new Set(["priority-1", "priority-2", "priority-3", "info"]);
+export const NODE_KIND = new Set(["class", "method", "function", "report", "cds", "behavior", "table", "form", "interface"]);
+export const EDGE_KIND = new Set(["calls", "call-function", "call-method", "get-badi", "uses-table", "authority-check", "inherits", "consumes-cds", "includes", "data-flow-def", "data-flow-use"]);
+/** R3a: the access mode on a uses-table edge. Absent on pre-R3a documents, so absence stays legal. */
+export const EDGE_ACCESS = new Set(["read", "write"]);
+export const NAMESPACE = new Set(["Z", "Y", "registered", "sap"]);
 const POSTURE = new Set(["level-a", "brownfield-mixed", "classic", "unknown"]);
 const GRADE = new Set(["A", "B", "C", "D", "unknown"]);
 const TIER = new Set(["retire", "re-platform", "keep-and-clean", "unknown"]);
@@ -67,6 +72,11 @@ function validateGraph(graph, errors) {
   graph.edges.forEach((e, i) => {
     for (const r of ["source", "target", "kind"]) if (absent(e?.[r])) errors.push(`edges[${i}] missing ${r}`);
     if (badEnum(e, "kind", EDGE_KIND)) errors.push(`edges[${i}] bad kind: ${e.kind}`);
+    // `badEnum` treats an absent key as valid, so a pre-R3a document with no access mode still passes.
+    // What must not pass is a PRESENT-but-wrong mode: persistence-facts.js reads anything other than
+    // "write" as a read, so an unvalidated typo silently downgrades a writer to a reader — the exact
+    // fail-open this field was added to close.
+    if (badEnum(e, "access", EDGE_ACCESS)) errors.push(`edges[${i}] bad access: ${e.access}`);
   });
 }
 
