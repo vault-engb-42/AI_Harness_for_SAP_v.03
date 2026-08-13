@@ -34,7 +34,8 @@ const HINT_PATTERNS = [
   ["auth", /authority.?check|\bpfcg\b|\bdcl\b|authorization/i],
 ];
 
-const KNOWN_HINTS = new Set(["ui_rearch", "os_exec", "rfc_rebuild", "db_refactor", "auth", "style"]);
+/** The closed hint vocabulary. Exported so the shape corpus can be checked against it (F-7). */
+export const KNOWN_HINTS = new Set(["ui_rearch", "os_exec", "rfc_rebuild", "db_refactor", "auth", "style"]);
 
 /**
  * @param {{family?: string, rule_id?: string, message?: string}} finding

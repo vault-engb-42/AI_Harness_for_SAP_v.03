@@ -186,6 +186,10 @@
         "cds_analytical_query"
       ],
       "grounding_refs": [],
+      "blocked_on": [
+        "family:analytics"
+      ],
+      "blocked_note": "No analyser rule carries family:analytics — the catalogue's 15 families have no analytics member, so this route is inert and the shape is reachable only through the two coarse `target:` strings below. Those are the analyser's free-text modernization_target, whose real values are released API names (I_PRODUCT, I_SUPPLIER); neither literal has been observed in any corpus. Treat this shape as effectively unreachable until an analytics detector exists.",
       "invariants": [
         "analytics_annotations",
         "dcl_authorization"
@@ -205,6 +209,11 @@
         "cds_value_help"
       ],
       "grounding_refs": [],
+      "blocked_on": [
+        "family:value-help",
+        "family:search-help"
+      ],
+      "blocked_note": "UNREACHABLE: both routes name families no producer emits. The 352-rule catalogue and both data packs contain neither value-help nor search-help, so no corpus can select this shape — it has never been proposed and cannot be. Kept rather than deleted because the target is correct and the gap is upstream: a search-help/F4 detector in the analyser. Add the detector, then remove this block.",
       "invariants": [
         "search_help_semantics"
       ],
