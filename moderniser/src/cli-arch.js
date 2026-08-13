@@ -42,6 +42,13 @@ import {
 
 const PROMPT_PATH = new URL("./plan/patterns/arch-reason-prompt.md", import.meta.url);
 const CORPUS_PATH = new URL("./plan/patterns/target-patterns.json", import.meta.url);
+// Domain separator between the two hashed inputs. NUL is the correct choice — it cannot occur in either
+// UTF-8 input, so no (template, corpus) pair can collide by shifting the boundary between them — but it is
+// CONSTRUCTED, never typed. A literal 0x00 byte in a source file makes grep report the file as binary,
+// which has already cost time twice in this repo (cpg.js, and this line: the first version of it carried a
+// raw NUL that silently made every hand-reconstruction of this hash disagree with the real one).
+// Same idiom as `extract/bundle-diff.js`.
+const SEP = String.fromCharCode(0);
 
 export function cmdArch(io, pos, flags) {
   const [runId] = pos;
@@ -269,7 +276,7 @@ export function defaultPromptHash() {
   // DIFFERENT question, and must miss.
   return createHash("sha256")
     .update(readFileSync(PROMPT_PATH, "utf8"))
-    .update(" ")
+    .update(SEP)
     .update(readFileSync(CORPUS_PATH, "utf8"))
     .digest("hex");
 }

@@ -18,10 +18,15 @@ import { defaultPromptHash } from "../src/cli-arch.js";
 const PROMPT = new URL("../src/plan/patterns/arch-reason-prompt.md", import.meta.url);
 const CORPUS = new URL("../src/plan/patterns/target-patterns.json", import.meta.url);
 
-// Asserted as a PROPERTY (the corpus is covered) rather than as an exact byte composition. An
-// equality test against a hand-rebuilt digest pins an internal detail the contract does not care about,
-// and it did not reproduce here — so it would have been a test asserting something I had not established.
-// What matters, and what is established, is that the template alone is not the key and the key is stable.
+test("the hash is exactly sha256(template + NUL + corpus) — reconstructable, not opaque", () => {
+  const expected = createHash("sha256")
+    .update(readFileSync(PROMPT, "utf8"))
+    .update(String.fromCharCode(0))
+    .update(readFileSync(CORPUS, "utf8"))
+    .digest("hex");
+  assert.equal(defaultPromptHash(), expected);
+});
+
 test("the template alone is NOT the hash — the regression this closes would pass that", () => {
   const templateOnly = createHash("sha256").update(readFileSync(PROMPT, "utf8")).digest("hex");
   assert.notEqual(defaultPromptHash(), templateOnly,
