@@ -10,6 +10,8 @@
  * the preimage the verdict cache is keyed on (S14 / ADDITION A).
  */
 import { createHash } from "node:crypto";
+import { NO_EVIDENCE } from "./consumption-facts.js";
+import { NO_PERSISTENCE } from "./persistence-facts.js";
 import { canonicalJSON } from "../state/canonical-json.js";
 
 // The analyser's `modernization_target` vocabulary. A target outside it is a residual free string, so it
@@ -39,13 +41,13 @@ export function factStream(node, consumptionByObject = {}, persistenceByObject =
     driving_rule_ids: [...(node.driving_rule_ids ?? [])].sort(),
     disposition_hints: [...(node.disposition_hints ?? [])].sort(),
     disposition: node.disposition ?? null,
-    consumption: memberUnion(node, consumptionByObject),
+    consumption: memberUnion(node, consumptionByObject, NO_EVIDENCE),
     // WHAT THE OBJECT OWNS — a separate question from what surface it presents, and the one the harness
     // could not ask at all until RC-1. A managed RAP Business Object IS an object that owns a persistent
     // root; without this field the matcher could not tell a display utility from a business object, and the
     // independent reviewer failed 13 of 15 recommendations on exactly that (`no entity to manage, so
     // bdef_managed / draft_enabled / commit_entities_only have no referent`).
-    persistence: memberUnion(node, persistenceByObject),
+    persistence: memberUnion(node, persistenceByObject, NO_PERSISTENCE),
     modernization_target: safeTarget(node.modernization_target ?? null),
     member_summary: reduceMemberMeta(node.member_meta),
     // cardinality only: the raw dependency sigs are opaque to the judge and are a customer-derived string,
@@ -81,12 +83,23 @@ function upperIndex(map) {
   return out;
 }
 
-/** Sorted union of one dimension's facts over every member (case-insensitive on the member id). */
-function memberUnion(node, byObject) {
+/**
+ * Sorted union of one dimension's facts over every member (case-insensitive on the member id).
+ *
+ * The dimension's ABSENCE marker is dropped as soon as any member supplied real evidence (F-9.4). Unioned
+ * raw, a silent member's marker sat in the same set as a sibling's positive fact, so the node claimed both
+ * `owns_customer_table` and `no_persistence_evidence` — and the `none:` guards in the patterns corpus read
+ * the absence and vetoed the shape. A quiet member out-voted an evidenced one.
+ *
+ * Absence is the conclusive answer for ONE object; across a group it only ever means "these members had
+ * nothing to say". It survives exactly when it is the whole truth — every member silent.
+ */
+export function memberUnion(node, byObject, absence) {
   const byUpper = upperIndex(byObject);
   const members = node.members?.length ? node.members : [node.object];
   const set = new Set();
   for (const m of members) for (const f of byUpper[String(m).toUpperCase()] ?? []) set.add(f);
+  if (set.size > 1) set.delete(absence);
   return [...set].sort();
 }
 

@@ -258,3 +258,27 @@ test("persistence changes the fact hash — new evidence is a new question", () 
   const none = { ZCL_X: ["no_persistence_evidence"] };
   assert.notEqual(factHash(node, {}, owns), factHash(node, {}, none), "two different objects must not share a cached verdict");
 });
+
+// F-9.4 — a super-node is a condensed SCC that ships as ONE unit, and its facts are the union over its
+// members. Unioned raw, a silent member's absence marker lands in the same set as a sibling's positive
+// evidence, so the node simultaneously claims "owns a customer table" and "has no persistence evidence".
+// The `none:` guards in the patterns corpus read that absence and veto the shape — a quiet member
+// out-votes an evidenced one. Absence is the conclusive answer for ONE object; across a group it is
+// merely the members that had nothing to say.
+
+test("F-9.4: a silent member does not veto a sibling's evidence in the union", () => {
+  const n = node({ object: "ZA", members: ["ZA", "ZB"] });
+  const consumption = { ZA: ["ui_salv"], ZB: ["no_surface_evidence"] };
+  const persistence = { ZA: ["no_persistence_evidence"], ZB: ["owns_customer_table"] };
+  const f = factStream(n, consumption, persistence);
+  assert.deepEqual(f.consumption, ["ui_salv"], "ZB had nothing to say; that is not evidence ZA has no surface");
+  assert.deepEqual(f.persistence, ["owns_customer_table"], "nor that the group owns nothing");
+});
+
+test("F-9.4: a group where EVERY member is silent still says so — absence survives when it is the whole truth", () => {
+  const n = node({ object: "ZA", members: ["ZA", "ZB"] });
+  const f = factStream(n, { ZA: ["no_surface_evidence"], ZB: ["no_surface_evidence"] },
+    { ZA: ["no_persistence_evidence"], ZB: ["no_persistence_evidence"] });
+  assert.deepEqual(f.consumption, ["no_surface_evidence"]);
+  assert.deepEqual(f.persistence, ["no_persistence_evidence"]);
+});
