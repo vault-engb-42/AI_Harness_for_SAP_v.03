@@ -70,7 +70,14 @@ export function assemblePlan(doc, opts = {}) {
   // what the object is.
   const cons = consumptionFacts(doc);
   const pers = persistenceFacts(doc);
+  // Which objects the CPG actually OBSERVED. An outgoing edge is proof the analyser walked the object's
+  // body; in-edges only prove that something else names it. Without this distinction "the CPG found nothing
+  // in this object" and "the analyser never parsed this object" arrive at the classifier as the same input,
+  // and they are opposite facts — the first is evidence, the second is a coverage gap.
+  const observedObjects = new Set();
+  for (const e of doc?.graph?.edges ?? []) observedObjects.add(String(e.source ?? "").split(".")[0].toUpperCase());
   const structureOf = (n) => ({
+    observed: (n.members?.length ? n.members : [n.object]).some((m) => observedObjects.has(String(m).toUpperCase())),
     // Shared with the fact stream rather than reimplemented (F-8.3/F-9.4). The private copy this replaces
     // rebuilt the case-folded index per node — quadratic at the 100K+ LOC scale — and, being a second
     // implementation of the same union, never received the absence-marker fix: a silent member vetoed an

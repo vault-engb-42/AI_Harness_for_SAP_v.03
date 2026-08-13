@@ -159,9 +159,14 @@ test("RC-2 the coarse analyser target does NOT re-architect an object with no st
   const d = classifyDisposition(node({ modernization_target: "Fiori Elements App" }), {}, {
     consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
   });
-  assert.equal(d.disposition, "seal", `a label is not evidence: ${d.disposition_rationale}`);
-  assert.match(d.disposition_rationale, /no surface and no data access at all/i);
-  assert.ok(d.disposition_confidence < 0.5, "and it is not a confident call");
+  // CONTRACT CHANGED 2026-08-13. This asserted `seal`, and `seal` was wrong: the corpus suite's
+  // generalisation guarantee ("no object degrades to seal") is the authority, and this branch violated it
+  // for 15 objects across talv and equalize-idoc. Declining to RE-ARCHITECT on a bare label is correct and
+  // is preserved; abandoning the object is not. An in-place Clean-Core refactor is a true-modernisation
+  // disposition, so the label's claim is still refused without the object being dropped.
+  assert.equal(d.disposition, "re_architect", `${d.disposition_rationale}`);
+  assert.match(d.disposition_rationale, /uncorroborated and the shape stage must justify/i);
+  assert.ok(d.disposition_confidence < 0.7, "and it is not as confident as a corroborated call");
 });
 
 test("RC-2 the same label DOES re-architect once the CPG corroborates it", () => {
@@ -186,4 +191,55 @@ test("RC-2 a HARD structural signal still outranks the structure check", () => {
     consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
   });
   assert.equal(d.disposition, "re_architect");
+});
+
+// RC-2 REGRESSION (corpus gate, 2026-08-13) — the corroboration check sealed 15 objects across talv and
+// equalize-idoc, violating the documented generalisation guarantee that every object receives a
+// true-modernisation disposition. It shipped because `npm test` excludes the corpus suite that asserts it.
+
+const labelled = (o = {}) => ({
+  object: "ZTHING", object_kind: "class", modernization_target: "RAP Business Object",
+  disposition_hints: [], finding_families: [], driving_rule_ids: [], ...o,
+});
+const SILENT = { observed: true, consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"] };
+
+test("RC-2: an object the CPG never observed is NOT evidence of an empty object", () => {
+  // A function module whose INCLUDE body was never traversed looks exactly like one that does nothing.
+  const d = classifyDisposition(labelled({ object_kind: "function" }), {}, { ...SILENT, observed: false });
+  assert.notEqual(d.disposition, "seal");
+  assert.equal(d.disposition, "re_architect");
+  assert.equal(d.disposition_confidence, 0.5, "provisional — the label is uncorroborated, not corroborated");
+  assert.match(d.disposition_rationale, /never observed this object's body/i);
+});
+
+test("RC-2: an OBSERVED object with no surface and no data refactors in place — it is not abandoned", () => {
+  const d = classifyDisposition(labelled(), {}, SILENT);
+  assert.notEqual(d.disposition, "seal", "seal is the harness giving up; the guarantee forbids it");
+  assert.equal(d.disposition, "re_architect");
+  assert.match(d.disposition_rationale, /uncorroborated and the shape stage must justify/i);
+});
+
+test("RC-2: a DDIC table is retained — it calls nothing by construction, which is not emptiness", () => {
+  const d = classifyDisposition(labelled({ object: "ZTALV_LAYOUT_SET", object_kind: "table" }), {}, { ...SILENT, observed: false });
+  assert.equal(d.disposition, "refactor");
+  assert.match(d.disposition_rationale, /DDIC table — structurally retained/i);
+});
+
+test("RC-2: corroborated structure still earns re_architect at full confidence", () => {
+  const d = classifyDisposition(labelled(), {}, { observed: true, consumption: ["ui_salv"], persistence: ["owns_customer_table"] });
+  assert.equal(d.disposition, "re_architect");
+  assert.equal(d.disposition_confidence, 0.7);
+});
+
+test("RC-2: NO input to the label branch can produce a seal", () => {
+  for (const observed of [true, false]) {
+    for (const cons of [["no_surface_evidence"], ["ui_salv"]]) {
+      for (const pers of [["no_persistence_evidence"], ["owns_customer_table"]]) {
+        for (const kind of ["class", "function", "table", "report"]) {
+          const d = classifyDisposition(labelled({ object_kind: kind }), {}, { observed, consumption: cons, persistence: pers });
+          assert.notEqual(d.disposition, "seal", `${kind}/observed=${observed}/${cons}/${pers} sealed`);
+        }
+      }
+    }
+  }
 });

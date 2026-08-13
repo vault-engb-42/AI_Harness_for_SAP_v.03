@@ -82,7 +82,7 @@ function decide(node, g, hints, target, structure) {
   // Role-aware balance (evidence: zapcommander, 2026-07-29). Interfaces + exception classes are STRUCTURALLY
   // never re-architected — retain-and-clean in place, regardless of the coarse target.
   if (isRetainKind(node)) {
-    const what = node.kind === "interface" ? "interface" : "exception class";
+    const what = node.object_kind === "interface" ? "interface" : node.object_kind === "table" ? "DDIC table" : "exception class";
     return { disposition: "refactor", rationale: `${what} — structurally retained; Clean-Core refactor in place`, target: target ?? "in-stack retain", confidence: g.released_clean ? (g.grounding_certainty ?? 0.8) : 0.7 };
   }
   // Cross-system integration (RFC / CALL FUNCTION DESTINATION / IDoc / ALE): re-architect to a released in-stack
@@ -112,12 +112,33 @@ function decide(node, g, hints, target, structure) {
   // OWN", which asserts an ownership test the code never performs. In a codebase whose central defect class
   // is reader-vs-owner conflation, a rationale that claims more than it checked is the same bug in prose.
   if (target && RE_ARCH_TARGET.test(target)) {
+    // The CPG can only corroborate an object it actually READ. An object with no outgoing edges yielded no
+    // observations at all: a function module whose INCLUDE body the analyser never traversed is
+    // indistinguishable from one that genuinely does nothing. Silence there is the analyser's coverage gap,
+    // never evidence about the object — reading it as evidence sealed nine objects across two corpora.
+    // `=== false` deliberately: a caller that supplies CPG facts but omits the flag has not told us the
+    // object was unobserved, and inferring it from the omission would be this module's own defect class.
+    if (structure && structure.observed === false) {
+      return {
+        disposition: "re_architect",
+        rationale: `analyser target "${target}" — the CPG never observed this object's body, so the target is uncorroborated and this disposition is provisional`,
+        target,
+        confidence: 0.5,
+      };
+    }
+    // Observed, and it genuinely presents no surface and touches no data. Still re_architect, at reduced
+    // confidence — because DISPOSITION answers "does this need modernising", while the SHAPE MATCHER answers
+    // "into what". RC-2's real concern was a managed RAP BO invented from a label, and that is refused where
+    // the evidence lives: the corpus `none:` persistence guards cannot match a BO shape without ownership,
+    // and an unmatched node escalates. Downgrading the disposition as well was belt-and-braces that cost the
+    // object its modernisation path and flipped equalize-idoc — an INTEGRATION framework — to refactor-
+    // dominant, which the corpus suite rejects.
     if (structure && !hasStructure(structure)) {
       return {
-        disposition: "seal",
-        rationale: `the analyser named "${target}" but the CPG shows no surface and no data access at all — manual review`,
-        target: null,
-        confidence: 0.4,
+        disposition: "re_architect",
+        rationale: `analyser target "${target}" — the CPG found no surface and no data access, so the target is uncorroborated and the shape stage must justify any structure it proposes`,
+        target,
+        confidence: 0.5,
       };
     }
     return { disposition: "re_architect", rationale: `analyser target "${target}" — re-architect to Cloud`, target, confidence: 0.7 };
@@ -154,5 +175,11 @@ function hasStructure({ consumption = [], persistence = [] }) {
 function isRetainKind(node) {
   if (node.object_kind === "interface") return true;
   if (node.object_kind === "class" && /(^|\/)[YZ]?CX_/i.test(node.object)) return true;
+  // A DDIC table is DATA, not code. It calls nothing by construction, so every code-shaped question the
+  // classifier asks — what surface does it present, what data does it access — is a category error against
+  // it, and the structure check below read the definitional silence as evidence of emptiness. Four tables
+  // were sealed across two corpora on that reading. A Z table is retained and becomes the persistent root a
+  // RAP BO manages; it is never itself re-architected.
+  if (node.object_kind === "table") return true;
   return false;
 }
