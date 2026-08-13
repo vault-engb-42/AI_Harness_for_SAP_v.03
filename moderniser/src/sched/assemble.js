@@ -30,8 +30,9 @@ import { kahnLevels } from "./levels.js";
 import { buildConflictGraph } from "../graph/conflict.js";
 import { freezePlan } from "./plan.js";
 import { classifyDisposition } from "../plan/disposition.js";
-import { consumptionFacts } from "../plan/consumption-facts.js";
-import { persistenceFacts } from "../plan/persistence-facts.js";
+import { consumptionFacts, NO_EVIDENCE } from "../plan/consumption-facts.js";
+import { persistenceFacts, NO_PERSISTENCE } from "../plan/persistence-facts.js";
+import { memberUnion } from "../plan/arch-facts.js";
 import { groundCandidates } from "../plan/ground-candidates.js";
 
 export function assemblePlan(doc, opts = {}) {
@@ -70,8 +71,12 @@ export function assemblePlan(doc, opts = {}) {
   const cons = consumptionFacts(doc);
   const pers = persistenceFacts(doc);
   const structureOf = (n) => ({
-    consumption: unionFacts(n, cons),
-    persistence: unionFacts(n, pers),
+    // Shared with the fact stream rather than reimplemented (F-8.3/F-9.4). The private copy this replaces
+    // rebuilt the case-folded index per node — quadratic at the 100K+ LOC scale — and, being a second
+    // implementation of the same union, never received the absence-marker fix: a silent member vetoed an
+    // evidenced sibling here for as long as the duplicate existed.
+    consumption: memberUnion(n, cons, NO_EVIDENCE),
+    persistence: memberUnion(n, pers, NO_PERSISTENCE),
   });
   for (const n of nodes) {
     Object.assign(n, classifyDisposition(n, groundingCache, structureOf(n)), { disposition_source: "classifier", disposition_decided_by: null });
@@ -109,16 +114,6 @@ function assertAugmentFits(og, augment) {
       throw new Error(`assemble: augment edge '${e.source}' → '${e.target}' has an endpoint unknown to the object graph — a dropped edge is exactly the cycle Tarjan exists to catch`);
     }
   }
-}
-
-/** A super-node's structural facts: the union over its members (case-insensitive, as the fact stream reads them). */
-function unionFacts(node, byObject) {
-  const upper = {};
-  for (const k of Object.keys(byObject)) upper[k.toUpperCase()] = byObject[k];
-  const members = node.members?.length ? node.members : [node.object];
-  const out = new Set();
-  for (const m of members) for (const f of upper[String(m).toUpperCase()] ?? []) out.add(f);
-  return [...out].sort();
 }
 
 /** One frozen plan node per in-plan super-node — everything load-bearing lives here (see the file header). */
