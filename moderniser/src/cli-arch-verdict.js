@@ -71,6 +71,9 @@ const CONFIDENCE_GRADES = new Set(["high", "medium", "low"]);
  * skill's "pass the judge's words through verbatim".
  */
 const RATIONALE_MAX = 1200;
+/** A shared-group id is an identifier, not prose: it names a service/projection/app in the gate artifact. */
+const GROUP_ID_MAX = 64;
+const GROUP_ID_SHAPE = /^[A-Za-z0-9_.:-]+$/;
 
 /**
  * The judge's REASON, required (H-5). The prompt has always demanded "1-3 sentences grounded in the FACTS"
@@ -110,7 +113,7 @@ function validateConfidence(value) {
  * diagnose from the message. Members are checked against the PLAN (not the resolved subset) so a dangling
  * sig is refused by the writer that produced it, rather than blocking the whole verb for everyone later.
  */
-function validateShared(shared, plan) {
+export function validateShared(shared, plan) {
   const bad = (m) => { throw new Error(`arch-verdict: --shared-json ${m}`); };
   if (shared === null || typeof shared !== "object" || Array.isArray(shared)) {
     bad(`must be an object of {${SHARED_KINDS.join(" | ")}: [{id, members}]}`);
@@ -126,6 +129,13 @@ function validateShared(shared, plan) {
     if (!Array.isArray(groups)) bad(`'${kind}' must be an array of {id, members}`);
     for (const g of groups) {
       if (!g || typeof g !== "object" || typeof g.id !== "string" || g.id === "") bad(`'${kind}' has a group with no non-empty string id`);
+      // F-9.5 — members are bounded (they must be arch-gated plan sigs of THIS run), but the id was free
+      // text. It is fulfiller output crossing into `putEntry`, which freezes it in the CROSS-RUN cache with
+      // no eviction path, and it is rendered into the gate artifact the operator ratifies. An unbounded or
+      // control-character id corrupts that artifact permanently. Same closed-vocabulary discipline as every
+      // other value that reaches the human (P8).
+      if (g.id.length > GROUP_ID_MAX) bad(`group id is ${g.id.length} chars, over the ${GROUP_ID_MAX} limit`);
+      if (!GROUP_ID_SHAPE.test(g.id)) bad(`group id '${g.id}' must be ${GROUP_ID_SHAPE} — letters, digits, _ . : -`);
       if (!Array.isArray(g.members)) bad(`group '${g.id}' members must be an array of plan node sigs`);
       for (const m of g.members) {
         if (typeof m !== "string" || !known.has(m)) bad(`group '${g.id}' names member '${m}' which is not an arch-gated plan node of this run`);
