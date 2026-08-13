@@ -41,6 +41,7 @@ import {
 } from "./cli-io.js";
 
 const PROMPT_PATH = new URL("./plan/patterns/arch-reason-prompt.md", import.meta.url);
+const CORPUS_PATH = new URL("./plan/patterns/target-patterns.json", import.meta.url);
 
 export function cmdArch(io, pos, flags) {
   const [runId] = pos;
@@ -259,5 +260,16 @@ function rebind(state, sig, ref, hash) {
 
 /** The committed judge prompt's content hash — the default prompt_hash when the skill does not pin one. */
 export function defaultPromptHash() {
-  return createHash("sha256").update(readFileSync(PROMPT_PATH, "utf8")).digest("hex");
+  // F-8.1 — the CORPUS is part of the prompt in every sense that matters. The verdict cache is keyed on
+  // (fact_hash, model_id, prompt_hash), and the judge does not choose freely: it picks from the ranked
+  // CANDIDATE LIST the patterns corpus produced for those facts. Hashing the template alone left the corpus
+  // outside the key, so tightening a guard or adding a shape left every frozen verdict still addressable —
+  // and served — carrying a candidate list that no longer exists. The human then ratifies alternatives the
+  // corpus can no longer produce. Same facts + same model + same template but a different corpus is a
+  // DIFFERENT question, and must miss.
+  return createHash("sha256")
+    .update(readFileSync(PROMPT_PATH, "utf8"))
+    .update(" ")
+    .update(readFileSync(CORPUS_PATH, "utf8"))
+    .digest("hex");
 }
