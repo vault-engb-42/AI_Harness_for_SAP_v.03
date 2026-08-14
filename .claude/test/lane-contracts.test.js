@@ -316,6 +316,11 @@ test("the /modernise skill wires both plan-time gates (disposition + arch) and t
   // H: a ratified contract that nothing checks against is inert — SELF_CHECK must run the conformance gate.
   assert.ok(skill.includes("conformance <R>"), "the skill must run the conformance gate for an arch-gated node");
   assert.match(skill, /ARCH_REVIEW/, "the skill must surface the ARCH_REVIEW ratification gate");
+  // S14/F-8.2: the lane already told the operator to resolve an `unplaceable` row with
+  // `decide <R> <esc_id> override:<disposition>` while nothing raised an escalation, so the id that
+  // instruction names did not exist and the node deadlocked at await_human/arch_ratification. Same guard as
+  // DROPPED_DEPENDENCY above: name the kind, and present ITS typed decisions rather than inventing any.
+  assert.match(skill, /NO_TARGET_SHAPE/, "the skill must surface the unplaceable gate by kind — the operator finds it in `packets`");
   assert.match(skill, /abap-arch-reviewer/, "the skill must spawn the independent arch reviewer (GAN counter-party)");
 });
 

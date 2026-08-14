@@ -9,6 +9,7 @@
  * human ratification — it renders no PASS and never grades the ratchet.
  */
 import { raiseEscalation, resolveEscalation } from "../exception/escalation-bus.js";
+import { parseDispositionDecision } from "./disposition-gate.js";
 
 /**
  * Raise one ARCH_REVIEW per architecture-manifest row (idempotent per node via the bus).
@@ -23,6 +24,47 @@ export function raiseArchReviews(register, archManifest, { ts }) {
     reg = raiseEscalation(reg, { kind: "ARCH_REVIEW", node_ids: [row.sig] }, { ts });
   }
   return reg;
+}
+
+/**
+ * Raise one NO_TARGET_SHAPE per UNPLACEABLE node (idempotent per node via the bus) — the gate for an object
+ * `reasonArchitecture` could justify no shape for. It is the counterpart to raiseArchReviews above and
+ * deliberately not the same kind: an ARCH_REVIEW asks a human to ratify a frozen Architecture Contract, and
+ * an unplaceable node has none. Without this the manifest named the node and nothing else did: it held no
+ * contract, so `isArchRatified` was permanently false and `drive` reported await_human/arch_ratification
+ * against a gate that existed nowhere.
+ * @param {{escalations: object[]}} register
+ * @param {Array<{sig: string}>} unplaceable the arch manifest's `unplaceable` rows
+ * @param {{ts: string}} meta
+ * @returns {{escalations: object[]}} the new register
+ */
+export function raiseNoTargetShape(register, unplaceable, { ts }) {
+  let reg = register;
+  for (const row of unplaceable ?? []) {
+    reg = raiseEscalation(reg, { kind: "NO_TARGET_SHAPE", node_ids: [row.sig] }, { ts });
+  }
+  return reg;
+}
+
+/**
+ * Record the operator's NO_TARGET_SHAPE decision: override:<disposition> | other:<freeform>. Shares
+ * `parseDispositionDecision` with the disposition gate because this gate's decision IS a disposition — the
+ * remedy for an unplaceable object is to re-disposition it, and `collectOverrides` reads it back for
+ * `replan`. `approve` parses there and is refused HERE: approving would resolve the gate while changing
+ * nothing, leaving the node as unplaceable as before with a human's name on it — the deadlock, signed.
+ * Fails closed on a non-NO_TARGET_SHAPE escalation, an unknown id, a missing decider, or an invalid form.
+ * @returns {{escalations: object[]}} the new register
+ */
+export function recordNoTargetShapeDecision(register, id, raw, { decided_by, ts, run_id }) {
+  if (typeof decided_by !== "string" || !decided_by) throw new Error("arch-gate: decided_by (a named human) is required");
+  const e = register.escalations.find((x) => x.id === id);
+  if (!e) throw new Error(`arch-gate: unknown escalation '${id}'`);
+  if (e.kind !== "NO_TARGET_SHAPE") throw new Error(`arch-gate: '${id}' is a ${e.kind}, not a NO_TARGET_SHAPE`);
+  const decision = parseDispositionDecision(raw);
+  if (decision.verb === "approve") {
+    throw new Error("arch-gate: 'approve' is not a NO_TARGET_SHAPE decision — there is no shape to approve; re-disposition it (override:<disposition>) or record why the corpus is missing a shape (other:<text>)");
+  }
+  return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision, run_id });
 }
 
 /**

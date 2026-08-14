@@ -26,6 +26,12 @@ export const DECISIONS = Object.freeze({
   DISPOSITION_REVIEW: ["approve", "override", "other"], //     plan-time disposition gate (B3/S2) — PARAMETRIZED (override:<disposition>, other:<freeform>); use plan/disposition-gate.js recordDispositionDecision, not the generic recorder
   ARCH_REVIEW: ["approve", "refine", "reject"], //             plan-time architecture gate (B3.5a/S12) — PARAMETRIZED (refine:<notes>); use plan/arch-gate.js recordArchDecision, not the generic recorder
   DROPPED_DEPENDENCY: ["ACCEPT_DROP", "REVISE_DISPOSITION"], // §7.4 — accept building the dependents against a dropped object, or go revise a disposition and `replan`
+  // S14 unplaceable gate — PARAMETRIZED (override:<disposition>, other:<freeform>); use plan/arch-gate.js
+  // recordNoTargetShapeDecision, not the generic recorder. Deliberately NO `approve`: there is no shape and
+  // no contract to approve, so approving would resolve the gate, leave the node exactly as unbuildable as it
+  // was, and put a human's name on the deadlock. The two decisions are the two real moves — re-disposition
+  // the object, or say the patterns corpus is missing a shape (a human act outside this run).
+  NO_TARGET_SHAPE: ["override", "other"],
 });
 
 const CAUSE = {
@@ -43,6 +49,8 @@ const CAUSE = {
   // Both are GUARDED, matching OSCILLATION eight lines above: a row raised through the generic `escalate`
   // verb carries no root_signature, and rendering the literal "undefined" plus an off-by-one count is a
   // worse failure than saying plainly that the dropped object is unnamed.
+  NO_TARGET_SHAPE: (e) =>
+    `no target shape fits ${e.node_ids.length} object(s) — re-disposition (override:<disposition>) rather than inventing a shape, or say the corpus is missing one`,
   DROPPED_DEPENDENCY: (e) => {
     const dropped = e.root_signature ?? null;
     const dependents = e.node_ids.length - (dropped && e.node_ids.includes(dropped) ? 1 : 0);

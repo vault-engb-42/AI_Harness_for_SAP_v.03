@@ -34,7 +34,7 @@ import { groupingDecision, archOptions } from "./plan/arch-row.js";
 import { buildAdjacency } from "./plan/group-evidence.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
 import { standardTablesByObject, standardCapabilitiesByObject, fitToStandardAdvisory } from "./plan/fit-to-standard.js";
-import { raiseArchReviews } from "./plan/arch-gate.js";
+import { raiseArchReviews, raiseNoTargetShape } from "./plan/arch-gate.js";
 import {
   loadRun, readEscalations, saveEscalations, saveState, log,
   readArchVerdictCache, saveArchContract, archContractRef, saveArchManifest,
@@ -76,7 +76,11 @@ export function cmdArch(io, pos, flags) {
   // A CHANGED contract has had its ratification voided by `rebind`, so it reappears here, which is the
   // promise the lane makes: re-ratify exactly what changed.
   const unratified = { rows: rows.filter((r) => !isArchRatified(nextState, r.sig)) };
-  saveEscalations(io, raiseArchReviews(readEscalations(io), unratified, { ts: new Date().toISOString() }));
+  const ts = new Date().toISOString();
+  // …and one NO_TARGET_SHAPE per node no shape fits. Naming it in the manifest was never enough: the
+  // documented remedy is `decide <esc_id> override:<disposition>`, so without a raised row the id that
+  // remedy names does not exist and the node rests at await_human/arch_ratification with no gate to clear.
+  saveEscalations(io, raiseNoTargetShape(raiseArchReviews(readEscalations(io), unratified, { ts }), unplaceable, { ts }));
   log(io, runId, "arch", { resolved: rows.length, pending: pending.length, unplaceable: unplaceable.length });
   return {
     run_id: runId,

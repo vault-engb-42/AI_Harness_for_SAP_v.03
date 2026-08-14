@@ -12,7 +12,7 @@
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
 import { recordDispositionDecision, raiseDispositionReviews, droppedDependencies, raiseDroppedDependencies } from "./plan/disposition-gate.js";
-import { recordArchDecision, parseArchDecision } from "./plan/arch-gate.js";
+import { recordArchDecision, parseArchDecision, recordNoTargetShapeDecision } from "./plan/arch-gate.js";
 import { bindArchContract } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
@@ -121,6 +121,11 @@ export function cmdDecide(io, pos, flags) {
         reviewer_verdict: binding.reviewer_verdict,
       }));
     }
+  } else if (target?.kind === "NO_TARGET_SHAPE") {
+    // S14 unplaceable gate: also a plan-time decision, also parametrized, and also a DISPOSITION — the only
+    // remedy for an object no shape fits is to re-disposition it, which `replan` reads back via
+    // collectOverrides. `approve` is refused by the recorder; there is nothing here to approve.
+    next = recordNoTargetShapeDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId });
   } else if (target?.kind === "DISPOSITION_REVIEW") {
     // Plan-time gate (B3): the decision precedes any artifact, so there is NO generation to bind —
     // route to the parametrized recorder (approve | override:<disposition> | other:<freeform>), S2.

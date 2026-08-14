@@ -33,6 +33,15 @@ export const ESCALATION_KINDS = Object.freeze([
   // contains flagged nodes" (exception/risk-gate.js), and DISPOSITION_REVIEW both collides on id with the
   // per-node review and would let one `override:<d>` rewrite the dropped node through collectOverrides.
   "DROPPED_DEPENDENCY",
+  // plan-time UNPLACEABLE gate (S14) — one per arch-gated node no target shape fits. `reasonArchitecture`
+  // returns `no_shape` and the manifest lists it, but the documented remedy ("re-disposition it") names an
+  // escalation id, so without a kind of its own the node held no contract, could never be ratified, and
+  // `drive` reported await_human/arch_ratification against a gate that did not exist. Its own kind for the
+  // same two reasons DROPPED_DEPENDENCY has one: the id keys on (kind, node_ids), so reusing
+  // DISPOSITION_REVIEW would collide with the disposition gate's OWN review of that node and dedupe into it
+  // while that one is open — this gate would never reach the human at all; and ARCH_REVIEW means "ratify
+  // this frozen contract", which is precisely the thing an unplaceable node does not have.
+  "NO_TARGET_SHAPE",
 ]);
 
 const KIND_SET = new Set(ESCALATION_KINDS);
