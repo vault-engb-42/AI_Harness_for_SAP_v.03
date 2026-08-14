@@ -321,6 +321,10 @@ test("the /modernise skill wires both plan-time gates (disposition + arch) and t
   // instruction names did not exist and the node deadlocked at await_human/arch_ratification. Same guard as
   // DROPPED_DEPENDENCY above: name the kind, and present ITS typed decisions rather than inventing any.
   assert.match(skill, /NO_TARGET_SHAPE/, "the skill must surface the unplaceable gate by kind — the operator finds it in `packets`");
+  // F-8.4: `arch` now DECLINES an un-renderable Fiori enrolment instead of throwing the whole verb. A repair
+  // the lane never reports is worse than the throw it replaced — the human would ratify a blueprint believing
+  // the judge produced all of it. The manifest field is the only record; the lane must present it.
+  assert.match(skill, /pruned_groupings/, "the skill must report the app-level groupings the arch verb declined");
   assert.match(skill, /abap-arch-reviewer/, "the skill must spawn the independent arch reviewer (GAN counter-party)");
 });
 

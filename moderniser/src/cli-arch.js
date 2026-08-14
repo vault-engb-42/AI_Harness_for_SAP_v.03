@@ -29,7 +29,7 @@ import { matchTargetShapes, loadPatternCorpus } from "./plan/patterns/match.js";
 import { reasonArchitecture, validateSelection } from "./plan/arch-reason.js";
 import { toLookup } from "./state/arch-verdict-cache.js";
 import { buildArchContract, bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
-import { buildAppBlueprint } from "./plan/app-blueprint.js";
+import { buildAppBlueprint, pruneUnrenderable } from "./plan/app-blueprint.js";
 import { groupingDecision, archOptions } from "./plan/arch-row.js";
 import { buildAdjacency } from "./plan/group-evidence.js";
 import { checkBlueprint } from "./plan/blueprint-conformance.js";
@@ -63,11 +63,14 @@ export function cmdArch(io, pos, flags) {
   const cacheLookup = toLookup(readArchVerdictCache(io));
 
   const { resolved, pending, unplaceable } = reasonArchNodes(plan, cons, pers, corpus, cacheLookup, opts);
-  const blueprint = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
+  const { blueprint, pruned } = assertBlueprintOk(runId, resolved, corpus); // F1: consistent BEFORE any freeze
   const groupCtx = { plan, adjacency: buildAdjacency(plan) };
   const { nextState, rows } = freezeContracts(io, runId, resolved, std, caps, corpus, state, blueprint, groupCtx);
 
-  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared };
+  // `pruned_groupings` names every app-level decision the verb DECLINED. Repairing silently would be the
+  // fabricated-confidence failure this arc keeps finding: the human would ratify a blueprint believing the
+  // judge produced it, when part of the judge's answer was thrown away.
+  const archManifest = { run_id: runId, plan_hash: plan.plan_hash, rows, pending, unplaceable, shared: blueprint.shared, pruned_groupings: pruned };
   saveArchManifest(io, runId, archManifest);
   saveState(io, runId, nextState); // state BEFORE escalations: a crash residue leaves a bound-but-unraised node, healed on re-run
   // Raise ONLY for contracts that still need a human (G). A re-run preserves the ratification of an
@@ -81,7 +84,7 @@ export function cmdArch(io, pos, flags) {
   // documented remedy is `decide <esc_id> override:<disposition>`, so without a raised row the id that
   // remedy names does not exist and the node rests at await_human/arch_ratification with no gate to clear.
   saveEscalations(io, raiseNoTargetShape(raiseArchReviews(readEscalations(io), unratified, { ts }), unplaceable, { ts }));
-  log(io, runId, "arch", { resolved: rows.length, pending: pending.length, unplaceable: unplaceable.length });
+  log(io, runId, "arch", { resolved: rows.length, pending: pending.length, unplaceable: unplaceable.length, pruned_groupings: pruned.length });
   return {
     run_id: runId,
     resolved: rows.length,
@@ -90,6 +93,7 @@ export function cmdArch(io, pos, flags) {
     // Objects no target shape fits. Neither resolved nor pending, so they must be named here or they leave
     // no trace at all — the silent disappearance this whole arc exists to stop.
     unplaceable,
+    pruned_groupings: pruned, // app-level claims the verb declined (F-8.4) — the lane surfaces them
   };
 }
 
@@ -186,18 +190,18 @@ function sharedFitsPlan(recommendation, known) {
  * contract freezes. M4: `shared` is the judge's real cross-object grouping merged across recommendations —
  * hardcoding `{}` here made checkBlueprint's cross-object checks (3+4) unreachable, so the "mandatory" tier
  * could never detect a violation. A group naming a member that is not in the app now blocks the freeze.
- * @returns {object} the checked blueprint (its `shared` is carried onto the manifest)
+ * @returns {{blueprint: object, pruned: object[]}} the checked blueprint (its `shared` is carried onto the
+ *   manifest) plus the Fiori enrolments declined on the way there (F-8.4), which the manifest reports
  */
 function assertBlueprintOk(runId, resolved, corpus) {
-  const verdict = {
-    app_id: runId,
-    assignments: resolved.map((r) => ({ sig: r.node.id, target_shape: r.recommendation.target_shape })),
-    shared: mergeShared(resolved),
-  };
-  const blueprint = buildAppBlueprint(verdict, corpus);
+  const assignments = resolved.map((r) => ({ sig: r.node.id, target_shape: r.recommendation.target_shape }));
+  // F-8.4: decline the un-renderable Fiori enrolments FIRST, so one bad cross-object claim costs only itself.
+  // Everything that survives this still has to pass the grader below — the repair is narrow, not a bypass.
+  const { shared, pruned } = pruneUnrenderable(mergeShared(resolved), assignments, corpus);
+  const blueprint = buildAppBlueprint({ app_id: runId, assignments, shared }, corpus);
   const { ok, violations } = checkBlueprint(blueprint, corpus);
   if (!ok) throw new Error(`arch: the app blueprint is not internally consistent — ${violations.join("; ")}`);
-  return blueprint;
+  return { blueprint, pruned };
 }
 
 /** Union the per-recommendation cross-object groups by id (members deduped, order canonical). */

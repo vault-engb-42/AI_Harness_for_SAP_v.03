@@ -13,6 +13,45 @@
  * the closed target_shape vocabulary. `blueprint-conformance.js` proves internal consistency before freeze.
  */
 import { loadPatternCorpus } from "./patterns/match.js";
+import { uiCapable } from "./blueprint-conformance.js";
+
+/**
+ * Decline the Fiori-app enrolments that cannot render, so ONE bad cross-object claim costs only itself.
+ *
+ * `shared` rides EACH judge recommendation and is unioned across all of them, so one verdict can say "A and
+ * B are one Fiori app" while A's own verdict says A is headless. Both pass the writer guard (`validateShared`
+ * — members are arch-gated plan sigs) and the plan-fit filter (`sharedFitsPlan` — members are resolved);
+ * only the JOINT reading violates tier 5. Reproduced on the grouping fixture: `arch` threw before writing the
+ * manifest, so all three nodes lost their contracts, `arch-verdict` had no pending request to serve, and the
+ * offending verdict stayed in the CROSS-RUN cache — every re-run threw identically, with no verb able to
+ * recover the run. That is the same unrecoverable state V1/V1b closed, reached through a different door.
+ *
+ * Narrow by construction. Only a Fiori app's membership is repairable, because "this object has no UI" is a
+ * fact about the object that the app cannot override; a headless BO behind an OData service or a shared
+ * projection is ordinary and is left alone. A member with NO assignment is left alone too — that is a
+ * dangling ref, and repairing it here would hide the inconsistency tier 3 exists to refuse.
+ *
+ * @param {{services?: object[], projections?: object[], fiori_apps?: object[]}} shared the merged groupings
+ * @param {Array<{sig: string, target_shape: string}>} assignments the resolved object→shape assignment
+ * @returns {{shared: object, pruned: Array<{kind: string, group: string, member: string, shape: string}>}}
+ */
+export function pruneUnrenderable(shared, assignments, corpus = loadPatternCorpus()) {
+  const shapeOf = new Map((assignments ?? []).map((a) => [a.sig, a.target_shape]));
+  const pruned = [];
+  const fiori_apps = [];
+  for (const g of shared?.fiori_apps ?? []) {
+    const keep = [];
+    for (const member of g.members ?? []) {
+      const shape = shapeOf.get(member);
+      if (shape !== undefined && !uiCapable(shape, corpus)) pruned.push({ kind: "fiori_apps", group: g.id, member, shape });
+      else keep.push(member);
+    }
+    // An app with no renderable member is not an app. Keeping an empty shell would leave the human ratifying
+    // a grouping with nothing in it, and `groupingDecision` offering membership of it.
+    if (keep.length > 0) fiori_apps.push({ ...g, members: keep });
+  }
+  return { shared: { ...shared, fiori_apps }, pruned };
+}
 
 /**
  * @param {{app_id?: string, assignments: Array<{sig: string, target_shape: string, rationale?: string}>, shared?: {services?: Array<{id: string, members: string[]}>, projections?: Array<{id: string, members: string[]}>, fiori_apps?: Array<{id: string, members: string[]}>}}} verdict

@@ -80,8 +80,12 @@ export function checkBlueprint(blueprint, corpus = loadPatternCorpus()) {
  * Can this shape BE part of a Fiori app? Read from the corpus rather than a hardcoded id list, so a UI
  * pattern added tomorrow is covered the day it lands: a Fiori Elements UI is exactly what a `metadata_ext`
  * component is for (the annotations the app renders from).
+ *
+ * EXPORTED so `pruneUnrenderable` (app-blueprint.js) can decline exactly what tier 5 refuses. A second copy
+ * of this predicate would be the divergent duplication that matters: a pruner that admitted one shape the
+ * grader rejects would restore the very throw it exists to prevent, and only on the corpus that added the shape.
  */
-function uiCapable(shape, corpus) {
+export function uiCapable(shape, corpus = loadPatternCorpus()) {
   const pattern = corpus.patterns.find((p) => p.id === shape);
   return (pattern?.components ?? []).includes("metadata_ext");
 }
