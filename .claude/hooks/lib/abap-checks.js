@@ -92,9 +92,67 @@ function rapAuthWeakening(oldText, newText) {
   return findings;
 }
 
+/**
+ * Blank out comments so the P4 checks below read CODE, not prose about code.
+ *
+ * Every check here counts occurrences of an invariant's keywords, and until this existed a comment
+ * naming one was indistinguishable from the thing itself. The dangerous direction is fail-OPEN: delete a
+ * real AUTHORITY-CHECK and write `" AUTHORITY-CHECK moved to the caller` where it stood, and the counts
+ * balance — the removal goes unreported. That is not an adversarial input; explaining a removal in a
+ * comment is exactly what a careful author does, which is what made it reachable by accident.
+ *
+ * Over-stripping is equally unsafe in the other direction (a literal eaten as a comment hides an invariant
+ * that IS there), so string literals are tracked rather than assumed away: `'…'` with `''` escaping,
+ * `|…|` templates with backslash escaping. Comment forms handled: ABAP `*` in column 1 and `"` to end of
+ * line; CDS/BDEF `//` to end of line, and slash-star … star-slash block comments spanning lines. Text is
+ * replaced by spaces, never deleted, so offsets stay put for the windowed sy-subrc check.
+ */
+export function stripAbapComments(text) {
+  const src = String(text ?? "");
+  let out = "";
+  let i = 0;
+  let state = "code"; // code | str | tpl | line | block
+  while (i < src.length) {
+    const c = src[i];
+    const next = src[i + 1];
+    const atLineStart = i === 0 || src[i - 1] === "\n";
+    if (state === "str") {
+      if (c === "'" && next === "'") { out += "''"; i += 2; continue; }
+      if (c === "'") state = "code";
+      out += c; i += 1; continue;
+    }
+    if (state === "tpl") {
+      if (c === "\\") { out += c + (next ?? ""); i += 2; continue; }
+      if (c === "|") state = "code";
+      out += c; i += 1; continue;
+    }
+    if (state === "line") {
+      if (c === "\n") { state = "code"; out += c; } else out += " ";
+      i += 1; continue;
+    }
+    if (state === "block") {
+      if (c === "*" && next === "/") { state = "code"; out += "  "; i += 2; continue; }
+      out += c === "\n" ? c : " ";
+      i += 1; continue;
+    }
+    if (atLineStart && c === "*") { state = "line"; out += " "; i += 1; continue; }
+    if (c === "'") { state = "str"; out += c; i += 1; continue; }
+    if (c === "|") { state = "tpl"; out += c; i += 1; continue; }
+    if (c === '"') { state = "line"; out += " "; i += 1; continue; }
+    if (c === "/" && next === "/") { state = "line"; out += "  "; i += 2; continue; }
+    if (c === "/" && next === "*") { state = "block"; out += "  "; i += 2; continue; }
+    out += c; i += 1;
+  }
+  return out;
+}
+
 // Returns [{type, detail}] for immutable-invariant (P4) regressions between the
 // pre-change (oldText) and post-change (newText) source of an object.
-export function detectInvariantWeakening(oldText, newText) {
+export function detectInvariantWeakening(rawOldText, rawNewText) {
+  // Comments are stripped from BOTH sides before anything is counted. Stripping only the new side would
+  // let a baseline comment inflate the old count into a phantom removal.
+  const oldText = stripAbapComments(rawOldText);
+  const newText = stripAbapComments(rawNewText);
   const findings = [];
   const authRe = /AUTHORITY-CHECK/gi;
   if (countMatches(oldText, authRe) > countMatches(newText, authRe)) {

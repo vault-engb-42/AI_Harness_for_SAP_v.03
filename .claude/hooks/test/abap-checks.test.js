@@ -40,6 +40,60 @@ test("detectInvariantWeakening catches AUTHORITY-CHECK / COMMIT WORK / SY-SUBRC 
   assert.equal(detectInvariantWeakening(withAuth, withAuth).length, 0);
 });
 
+// P4 is stated as "hard-fail, agent-proof" and is enforced HERE. Every check in this file counted
+// occurrences in the RAW text, so an ABAP COMMENT naming an invariant was indistinguishable from the
+// invariant itself. That cuts both ways, and the dangerous direction is fail-OPEN: delete a real
+// AUTHORITY-CHECK, write `" AUTHORITY-CHECK moved to the caller` where it stood, and the counts balance —
+// the removal is not reported. That is not an adversarial input; it is the single most natural way an agent
+// removes a check, because explaining the removal in a comment is what a careful author does.
+test("P4: an ABAP comment naming an invariant can NEVER stand in for the invariant", () => {
+  const withAuth = "METHOD read.\n  AUTHORITY-CHECK OBJECT 'S_CARRID' ID 'ACTVT' FIELD '03'.\n  IF sy-subrc <> 0.\n    RAISE EXCEPTION TYPE cx_auth.\n  ENDIF.\n  SELECT * FROM sflight INTO TABLE rt.\nENDMETHOD.";
+
+  const maskedByLineComment = "METHOD read.\n  \" AUTHORITY-CHECK was moved to the caller\n  SELECT * FROM sflight INTO TABLE rt.\n  IF sy-subrc <> 0.\n    CLEAR rt.\n  ENDIF.\nENDMETHOD.";
+  assert.ok(
+    detectInvariantWeakening(withAuth, maskedByLineComment).some((f) => f.type === "authority-check-removed"),
+    "a trailing-quote comment must not mask the removal",
+  );
+
+  const maskedByStarComment = "METHOD read.\n* AUTHORITY-CHECK OBJECT 'S_CARRID' ID 'ACTVT' FIELD '03'.\n  SELECT * FROM sflight INTO TABLE rt.\nENDMETHOD.";
+  assert.ok(
+    detectInvariantWeakening(withAuth, maskedByStarComment).some((f) => f.type === "authority-check-removed"),
+    "commenting the check OUT is removing it — a full-line * comment must not mask it either",
+  );
+
+  // Same hole, same shape, on the other two classic invariants.
+  const withCommit = "MODIFY ztab FROM ls.\nCOMMIT WORK.";
+  assert.ok(
+    detectInvariantWeakening(withCommit, "MODIFY ztab FROM ls.\n\" COMMIT WORK is done by the caller now").some((f) => f.type === "commit-work-suppressed"),
+    "a comment must not stand in for the save",
+  );
+  const withEntities = "MODIFY ENTITIES OF zi_x ENTITY e UPDATE FIELDS ( f ) WITH lt.\nCOMMIT ENTITIES RESPONSE OF zi_x FAILED DATA(cf).";
+  assert.ok(
+    detectInvariantWeakening(withEntities, "MODIFY ENTITIES OF zi_x ENTITY e UPDATE FIELDS ( f ) WITH lt.\n* COMMIT ENTITIES happens in the caller").some((f) => f.type === "commit-entities-suppressed"),
+    "a comment must not stand in for the RAP save",
+  );
+
+  // And the fail-open converse: a comment must not SATISFY the sy-subrc requirement either.
+  const subrcOnlyInComment = "AUTHORITY-CHECK OBJECT 'Z' ID 'ACTVT' FIELD '03'.\n\" sy-subrc is checked by the wrapper\nMODIFY ztab FROM ls.";
+  assert.ok(
+    detectInvariantWeakening("", subrcOnlyInComment).some((f) => f.type === "sy-subrc-unchecked"),
+    "the guard must read code, not the promise of code",
+  );
+});
+
+test("P4: stripping comments does not corrupt string literals that contain quotes or asterisks", () => {
+  // The fix must not treat a `"` inside a '...' literal as a comment start, or a `*` inside a literal
+  // as a full-line comment — doing so would DELETE real code from the scanned text and silently stop
+  // the guard seeing an invariant that is genuinely there. Fail-open by over-stripping is the same
+  // defect wearing different clothes.
+  const src = "AUTHORITY-CHECK OBJECT 'S_X' ID 'MSG' FIELD 'say \"hi\" now'.\nIF sy-subrc <> 0. RAISE. ENDIF.";
+  assert.equal(detectInvariantWeakening(src, src).length, 0, "unchanged source is never a regression");
+  assert.ok(
+    detectInvariantWeakening(src, "WRITE 'gone'.").some((f) => f.type === "authority-check-removed"),
+    "the check inside a quote-bearing line is still SEEN, so its removal is still caught",
+  );
+});
+
 test("detectInvariantWeakening catches COMMIT ENTITIES (the RAP save) suppression — P4(b), C1", () => {
   // In ABAP Cloud / RAP the save is COMMIT ENTITIES, not COMMIT WORK (which is a runtime error in a
   // behaviour pool). Dropping the RAP save from a consumer is the P4(b) invariant regression.
