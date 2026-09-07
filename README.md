@@ -29,11 +29,12 @@ The same engines run **offline at scale** — the analyser and modernisation eng
 
 ## See it work
 
-Two committed demo bundles, each a real customer FICO package rather than a toy:
+Three committed FICO demo bundles, each a real customer package rather than a toy (`demos/` holds three
+further bundles — talv, equalize-idoc and zapcommander — at varying completeness):
 
 - **[`demos/abap_fico-e2e-2026-07-14/`](demos/abap_fico-e2e-2026-07-14/)** — a brownfield package modernised end to end. In this run, S/4 readiness went **36 → 100**, Clean-Core grade **D → A**, and analyser findings **879 → 646** ([`comparison.json`](demos/abap_fico-e2e-2026-07-14/comparison.json)); the before/after source and a rendered walkthrough are in the bundle.
 - **[`demos/abap_fico-verdict-arc-2026-07-22/`](demos/abap_fico-verdict-arc-2026-07-22/)** — the independent judge pointed at those modernised drafts. It does **not** rubber-stamp: the offline verdict is **`BLOCK`**, with four independent reasons (`atc-p1-nonzero`, `atc-p2-nonzero`, `auth-delta-unattested`, `parity-not-equivalent:needs_review`), and the driver loops back to regenerate ([`offline-verdict.json`](demos/abap_fico-verdict-arc-2026-07-22/offline-verdict.json)). The grader is real enough to fail the harness's own output until it is actually clean.
-- **[`demos/abap_fico-acceptance-2026-07-27/`](demos/abap_fico-acceptance-2026-07-27/)** — the **current reference run: the full pipeline regenerated from scratch** (fetch → analyse → modernise → judge). S/4 readiness **36 → 100**, Clean-Core **D → A**, priority-1 findings **42 → 0**; the offline verdict `BLOCK`s and self-corrects; `npm run test:corpus` is **7/7**. Regenerating it fresh — rather than reusing fixed artifacts — surfaced and fixed two real harness defects (see the bundle's [`README.md`](demos/abap_fico-acceptance-2026-07-27/README.md)). The corpus is unlicensed, so its source is fetched, never vendored ([`demos/FETCH.md`](demos/FETCH.md)).
+- **[`demos/abap_fico-acceptance-2026-07-27/`](demos/abap_fico-acceptance-2026-07-27/)** — the **current reference run: the full pipeline regenerated from scratch** (fetch → analyse → modernise → judge). S/4 readiness **36 → 100**, Clean-Core **D → A**, priority-1 findings **42 → 0**, total findings **879 → 660**; the offline verdict `BLOCK`s and self-corrects; `npm run test:corpus` is **29/29** across four corpora. Regenerating it fresh — rather than reusing fixed artifacts — surfaced and fixed two real harness defects (see the bundle's [`README.md`](demos/abap_fico-acceptance-2026-07-27/README.md)). The corpus is unlicensed, so its source is fetched, never vendored ([`demos/FETCH.md`](demos/FETCH.md)).
 
 ## What's inside
 

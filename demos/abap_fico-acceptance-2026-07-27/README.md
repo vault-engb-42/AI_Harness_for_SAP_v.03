@@ -13,9 +13,9 @@ so it **surfaced and fixed two real gap-2b defects** (see the last section).
 | **S/4HANA readiness** | **36%** | **100%** |
 | **ABAP Cloud readiness** | **27%** | **91%** |
 | Clean-Core grade | **D** | **A** |
-| Total findings | 879 | 676 |
+| Total findings | 879 | 660 |
 | **Priority-1 findings** | **42** | **0** |
-| Priority-2 findings | 821 | 659 |
+| Priority-2 findings | 821 | 643 |
 | Clarity | 61% | 74% |
 | Stability | 5% | 75% |
 
@@ -99,7 +99,7 @@ before/
   abap_fico-BEFORE.html   ← open in a browser: the interactive report
 after/
   modernised-source/      the moderniser's 43 Level-A draft artifacts, 11 objects (NOT vendored)
-  analyser-findings.json  the analyser's AFTER diagnosis (A grade, 100% S/4, 676 findings)
+  analyser-findings.json  the analyser's AFTER diagnosis (A grade, 100% S/4, 660 findings)
   abap_fico-AFTER.html    ← open in a browser
 comparison.json           machine-readable before/after deltas
 before-after-comparison.html
