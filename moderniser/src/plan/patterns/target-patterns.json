@@ -146,7 +146,7 @@
       "name": "Event-driven RAP Business Object (RAP business events)",
       "when_signals": {
         "any": [
-          "consumption:remote_idoc"
+          "consumption:remote_idoc_outbound"
         ],
         "none": [
           "persistence:no_persistence_evidence"
@@ -166,7 +166,34 @@
         "dcl_authorization",
         "commit_entities_only"
       ],
-      "example": "an IDoc / ALE inbound flow — a RAP BO raising/consuming RAP business events for the asynchronous integration."
+      "example": "an OUTBOUND IDoc / ALE sender — a RAP BO that RAISES business events for the asynchronous integration. This entry previously keyed on bare `consumption:remote_idoc` and its example read 'raising/consuming', covering both ALE directions with one shape. That was a deliberate authorial choice and it was wrong on ABAP semantics: an INBOUND process-code handler is a receiver, so `rap_business_events` prescribed it an emitter it can never be, and with a single candidate the judge had no way to disagree. Direction now decides — see rap_bo_message_driven for the other half."
+    },
+    {
+      "id": "rap_bo_message_driven",
+      "name": "Message-driven RAP Business Object (inbound asynchronous integration)",
+      "when_signals": {
+        "any": [
+          "consumption:remote_idoc"
+        ],
+        "none": [
+          "consumption:remote_idoc_outbound",
+          "persistence:no_persistence_evidence"
+        ]
+      },
+      "components": [
+        "cds_interface",
+        "cds_projection",
+        "bdef_managed",
+        "behavior_pool",
+        "dcl",
+        "test_class"
+      ],
+      "grounding_refs": [],
+      "invariants": [
+        "dcl_authorization",
+        "commit_entities_only"
+      ],
+      "example": "an INBOUND ALE process-code handler — a RAP BO whose create/update is driven by an arriving message. It is deliberately rap_bo_events MINUS `rap_business_events`: this shape does not invent a new mechanism, it declines to prescribe one that cannot apply to a receiver. It also catches the direction-UNRESOLVED case (bare `remote_idoc`, e.g. an object whose only ALE callee is IDOC_INBOUND_ASYNCHRONOUS, which carries its direction in the destination the CPG edge cannot see). Unresolved is not evidence of outbound, and the conservative shape is the one that omits an unjustifiable component rather than the one that asserts it — while still leaving the object a candidate, because a shape nobody can be given is an unclearable gate."
     },
     {
       "id": "analytical_cds",

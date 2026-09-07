@@ -76,8 +76,62 @@ test("remote consumption without UI → rap_bo_odata for an externally-callable 
   const notExposed = matchTargetShapes(fact({ object_kind: "class", consumption: ["remote_bapi"] })).map((c) => c.id);
   assert.ok(!notExposed.includes("rap_bo_odata"), "a class making an outbound BAPI call is not remotely consumed");
 
+  // An IDoc object still gets a shape. WHICH shape now depends on direction — see the ALE tests below;
+  // this assertion deliberately no longer names rap_bo_events, because bare `remote_idoc` (direction
+  // unresolved) must NOT be handed an event emitter.
   const events = matchTargetShapes(fact({ consumption: ["remote_idoc"] })).map((c) => c.id);
-  assert.ok(events.includes("rap_bo_events"));
+  assert.ok(events.length > 0, "an IDoc object is never left without a candidate");
+});
+
+// ALE DIRECTION (F-8.5). `rap_bo_events` keyed on `consumption:remote_idoc`, which fires identically for an
+// inbound ALE process-code handler and an outbound IDoc sender, and prescribed `rap_business_events` to both.
+// An inbound handler is a RECEIVER: it will never raise a business event, so that component describes an
+// object which cannot exist — and with a single candidate, `validateSelection` gives the judge no way to
+// disagree, so three equalize-idoc inbound handlers were frozen to it with nothing contradicting the claim.
+//
+// The direction facts needed to tell them apart were ALREADY produced, enum-closed and proven on the corpus
+// (consumption-facts.js IDOC_DIRECTIONS) — and read by NO pattern. Third instance of this repo's signature
+// defect: a fact nothing consumes is a fact that cannot challenge anything.
+//
+// The load-bearing argument is NOT "RAISE ENTITY EVENT is absent from the corpus" — that is ABAP-Cloud
+// TARGET syntax, absent from every legacy corpus by construction, and proves nothing about the shape.
+const componentsOf = (cands) => cands.flatMap((c) => c.components ?? []);
+
+test("F-8.5 an INBOUND ALE handler is never prescribed rap_business_events — a receiver raises nothing", () => {
+  // ZCL_IDOC_INPUT_GM's real measured fact shape on the equalize-idoc corpus.
+  const inbound = matchTargetShapes(fact({
+    consumption: ["remote_bapi", "remote_idoc", "remote_idoc_inbound"],
+    persistence: ["writes_via_sap_api"],
+  }));
+  assert.ok(inbound.length > 0, "it must still get a shape — trading a wrong contract for no contract is not a fix");
+  assert.ok(
+    !componentsOf(inbound).includes("rap_business_events"),
+    `an inbound receiver must not be told to emit events: ${JSON.stringify(inbound.map((c) => c.id))}`,
+  );
+});
+
+test("F-8.5 an OUTBOUND IDoc sender still gets rap_bo_events, with the event component intact", () => {
+  // ZCL_IDOC_OUTPUT_INV's real measured fact shape. This must stay green through the whole change.
+  const outbound = matchTargetShapes(fact({
+    consumption: ["remote_idoc", "remote_idoc_outbound"],
+    persistence: ["reads_sap_table"],
+  }));
+  assert.ok(outbound.map((c) => c.id).includes("rap_bo_events"), `outbound keeps its shape: ${JSON.stringify(outbound.map((c) => c.id))}`);
+  assert.ok(componentsOf(outbound).includes("rap_business_events"), "an outbound sender genuinely emits");
+});
+
+test("F-8.5 direction UNRESOLVED falls to the conservative shape, and never loses its candidate", () => {
+  // ZCL_IDOC_OUTPUT is the real case: its only ALE callee is IDOC_INBOUND_ASYNCHRONOUS, which
+  // consumption-facts.js deliberately refuses to direction-classify (the direction lives in the
+  // destination, which the CPG edge does not carry). Gating the event shape on `outbound` alone would
+  // strip this object of its ONLY candidate and convert a settled row into a human re-disposition —
+  // manufacturing exactly the unclearable gate arch-reason.js warns about. It must land somewhere.
+  const unknown = matchTargetShapes(fact({ consumption: ["remote_idoc"], persistence: ["reads_sap_table"] }));
+  assert.ok(unknown.length > 0, "an unresolved direction must not cost the object its shape");
+  assert.ok(
+    !componentsOf(unknown).includes("rap_business_events"),
+    "unresolved is not evidence of outbound — decline to prescribe what cannot be justified",
+  );
 });
 
 test("a UI + remote node yields MULTIPLE candidates (ambiguity → the LLM will be escalated to select)", () => {
