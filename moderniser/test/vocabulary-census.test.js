@@ -124,6 +124,54 @@ test("census: every acknowledgement carries a known type — free text is not an
   }
 });
 
+// ---- the same predicate, extended to the disposition-hint vocabulary ----
+//
+// TWO DECISION SURFACES, and measuring one would have been worse than measuring none. Hints feed the shape
+// matcher AND `classifyDisposition`. Against shapes alone, five of six read as inert — but ui_rearch,
+// os_exec and rfc_rebuild each MOVE the disposition (seal -> re_architect). Condemning them on the shape
+// reading would have been the `ui_frontend` mistake a second time: a guard that flags load-bearing
+// vocabulary is a guard that gets weakened and then deleted.
+//
+// So a vocabulary's census must enumerate EVERY surface it feeds. That is the cost of this pattern, and it
+// is the reason this file grows a surface list per vocabulary rather than one generic sweep.
+
+const HINT_ACKNOWLEDGED = {
+  // `style` is the catch-all RETURN of dispositionHint — "no re-arch-forcing construct detected". Its
+  // meaning IS the absence of a signal, so moving no decision is not a defect, it is the definition.
+  style: { type: "judge_only" },
+  // Produced (db_refactor by the message-regex fallback at disposition-hints.js:33, auth by tagged rules)
+  // and read by nothing. Unlike `style` these ASSERT something — a DB access worth refactoring, an
+  // authorization construct — and an object whose only signal is one of them currently falls to the `seal`
+  // baseline. That may be deliberate conservatism (one SELECT finding is not proof an object needs
+  // re-architecting, and seal routes to a human) or it may be a miss. I do not have evidence of intent, so
+  // they are recorded as OWED rather than blessed: `judge_only` would assert an intent I cannot show.
+  db_refactor: { type: "owed", arc: "disposition-signal-review" },
+  auth: { type: "owed", arc: "disposition-signal-review" },
+};
+
+test("census: every disposition hint moves a decision on SOME surface, or is acknowledged", async () => {
+  const { KNOWN_HINTS } = await import("../src/node/disposition-hints.js");
+  const { classifyDisposition } = await import("../src/plan/disposition.js");
+  const structure = { observed: true, consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"] };
+  const node = (hints) => ({ object: "ZX", object_kind: "class", findings: [], members: ["ZX"], disposition_hints: hints });
+  const dispositionOf = (hints) => JSON.stringify(classifyDisposition(node(hints), {}, structure));
+  const shapeOf = (hints) => outcome(base({ disposition_hints: hints }));
+
+  const baseDisposition = dispositionOf([]);
+  const baseShape = shapeOf([]);
+  const inert = [...KNOWN_HINTS].filter((h) => dispositionOf([h]) === baseDisposition && shapeOf([h]) === baseShape);
+
+  const unacknowledged = inert.filter((h) => !HINT_ACKNOWLEDGED[h]);
+  assert.deepEqual(unacknowledged, [], `hints produced but moving nothing on either surface: ${unacknowledged}`);
+
+  const stale = Object.keys(HINT_ACKNOWLEDGED).filter((h) => !inert.includes(h));
+  assert.deepEqual(stale, [], `these hints now move a decision — delete their entries: ${stale}`);
+
+  // The guard must be able to FAIL. If every hint read as inert, the two calls above would be measuring
+  // nothing at all — a broken harness looks identical to a perfectly-wired vocabulary.
+  assert.ok(inert.length < KNOWN_HINTS.size, "some hint must be load-bearing, or this census is measuring nothing");
+});
+
 // ---- the other direction: a verdict no input can move ----
 
 test("census: namespace ownership is DERIVED from evidence, never asserted from silence", async () => {
