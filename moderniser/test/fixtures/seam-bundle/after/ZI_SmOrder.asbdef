@@ -1,0 +1,52 @@
+// Hand-written seam fixture — MIT, written for this repository, not vendored.
+//
+// P4 invariant surface. The `authorization master ( global, instance )` clause plus the
+// GET_GLOBAL_AUTHORIZATIONS / GET_INSTANCE_AUTHORIZATIONS handlers in the behaviour pool are
+// where the classic BEFORE side's authorization gate relocated TO. The offline verdict reads
+// this clause; an after-side that lost it must fail, which is why the seam suite asserts on it.
+//
+// There is deliberately NO explicit COMMIT WORK in any RAP artifact here: inside a behaviour
+// pool that is a runtime error (P4b). The save boundary is the framework's, declared by
+// `persistent table` plus the managed implementation.
+managed implementation in class zbp_i_smorder unique;
+strict ( 2 );
+
+define behavior for ZI_SmOrder alias SmOrder
+persistent table zsm_order
+lock master
+authorization master ( global, instance )
+etag master LastChangedAt
+{
+  field ( readonly )
+  OrderId,
+  CreatedBy,
+  CreatedAt,
+  LastChangedBy,
+  LastChangedAt;
+
+  field ( mandatory )
+  Customer,
+  Currency;
+
+  create;
+  update;
+  delete;
+
+  validation validateCustomer on save { create; field Customer; }
+
+  determination calculateCountry on save { create; field Customer; }
+
+  mapping for zsm_order
+  {
+    OrderId       = order_id;
+    Customer      = customer;
+    Country       = country;
+    NetValue      = net_value;
+    Currency      = currency;
+    CreatedOn     = created_on;
+    CreatedBy     = created_by;
+    CreatedAt     = created_at;
+    LastChangedBy = last_changed_by;
+    LastChangedAt = last_changed_at;
+  }
+}

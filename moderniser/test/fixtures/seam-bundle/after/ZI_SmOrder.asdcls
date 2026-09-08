@@ -1,0 +1,13 @@
+// Hand-written seam fixture — MIT, written for this repository, not vendored.
+//
+// The DCL half of the P4(a) authorization gate: row-level access, co-equal with the BDEF
+// clause and the handlers. The classic side restricted by sales organisation through an
+// authorization object; this is where that restriction lives in the modernised artifact.
+@EndUserText.label: 'Row-level authorization for ZI_SmOrder (seam fixture)'
+@MappingRole: true
+define role ZI_SmOrder_Access {
+  grant
+    select
+      on ZI_SmOrder
+        where ( Country ) = aspect pfcg_auth( S_SM_ORDER, LAND1, ACTVT = '03' );
+}

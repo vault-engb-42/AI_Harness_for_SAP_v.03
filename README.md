@@ -55,8 +55,15 @@ further bundles — talv, equalize-idoc and zapcommander — at varying complete
 # Start the ported Node sidecar (no docker, no Python). Binds 127.0.0.1:8090:
 node sap-adt-sidecar/server.js            # ADAPTER_PORT overrides the port
 
-# Offline tests (no SAP needed) — real processes + real failure paths:
+# Offline tests (no SAP needed) — real processes + real failure paths.
+# Green on a CLEAN CHECKOUT: everything it runs is tracked, including the
+# analyser→moderniser seam suite over a hand-written MIT bundle.
 npm test
+
+# Adds the DEEP corpus lane over real customer packages. Their source is
+# third-party and cannot be shipped, so fetch it first (demos/FETCH.md);
+# this fails loudly rather than skipping when the corpus is absent:
+npm run test:all
 
 # LIVE end-to-end against a real SAP system (read-only). Fails LOUDLY if creds
 # are missing — never skipped, never faked:

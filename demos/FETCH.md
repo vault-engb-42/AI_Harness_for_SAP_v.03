@@ -49,7 +49,15 @@ This is the B7 offline E2E acceptance: it asserts the modernised residuals BLOCK
 provisionally), the driver self-corrects, the imperative→declarative paradigm shift + the authorization
 relocation are both detected, and two passes are byte-identical. It is deliberately **not** part of
 `npm test` (its input cannot be shipped) and **fails loudly** when the corpus is missing — never
-skipped, never faked.
+skipped, never faked. Run it via `npm run test:all`, which is `npm test` plus this lane.
+
+> This rule was briefly broken and is restored. Commit `0d3ca2b` appended `test:corpus` to `npm test`
+> for a sound reason — the non-recursive glob meant the only suites exercising the analyser→moderniser
+> seam were never running, and a disposition regression shipped through a green gate — but it made the
+> documented entry command red on any clean checkout, contradicting this paragraph without updating it.
+> The seam coverage now lives in `moderniser/test/seam-bundle.test.js`, over a bundle hand-written for
+> this repository under its MIT licence, so `npm test` keeps that coverage without needing your fetch.
+> Vendoring any of the corpora here to achieve the same thing would violate the licences above.
 
 ---
 
