@@ -10,6 +10,16 @@
     "example": "  EXEC SQL."
   },
   {
+    "id": "talos-adbc-native-bypass",
+    "family": "clean-core",
+    "severity": "priority-1",
+    "pattern": "\\bcl_sql_(connection|statement|result_set)\\b",
+    "flags": "i",
+    "message": "ADBC (CL_SQL_*) bypasses Open SQL and its parameter binding, and is not released for ABAP Cloud; use CDS / Open SQL, or a released API",
+    "object_types": [],
+    "example": "  DATA(lo_stmt) = NEW cl_sql_statement( lo_con )."
+  },
+  {
     "id": "talos-os-command",
     "disposition_hint": "os_exec",
     "family": "security",

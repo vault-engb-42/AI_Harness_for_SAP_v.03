@@ -193,3 +193,47 @@ START-OF-SELECTION.
   SELECT * FROM foo WHERE ( lv_cond ) INTO TABLE @DATA(lt).`);
   assert.ok(cls.some((x) => x.rule_id === "talos-dynamic-where-subquery"), "a real dynamic WHERE clause still flagged");
 });
+
+// F-9.4 — ADBC (the ABAP Database Connectivity classes) bypasses Open SQL exactly as EXEC SQL does, and
+// was flagged NOWHERE. Measured on a class whose only data access is
+// `cl_sql_connection=>get_connection( )` + `cl_sql_statement->execute_update( |UPDATE ...| )`:
+//
+//   rule ids fired      : description_empty, talos-missing-test-class, abapdoc, no_prefixes
+//   clean-core findings : 0
+//   cloud blockers      : 0
+//   cloud-ready         : 100%
+//
+// Not merely unflagged — CERTIFIED CLEAN. The CPG does resolve the call-method edges, and the oracle
+// returns level:unknown / needs_review / atc_priority:none for CL_SQL_STATEMENT (contrast CL_GUI_ALV_GRID,
+// which returns level B / classicAPI / P3), so neither channel says anything. A false negative in P1.
+//
+// Deliberately a rule and not an extractor: the SQL rides a string literal that is frequently built at
+// runtime, so no AST can reach the table name. Flagging the BYPASS is what the Clean-Core gate needs and
+// is fully decidable; claiming the table would be the manufactured-evidence failure F-9.3 guards against.
+test("F-9.4 ADBC is flagged as a Clean-Core bypass, like native SQL", () => {
+  const src = [
+    "    DATA(lo_con) = cl_sql_connection=>get_connection( ).",
+    "    DATA(lo_stmt) = NEW cl_sql_statement( lo_con ).",
+    "    lo_stmt->execute_update( |UPDATE zfi_ledger SET amount = 1| ).",
+  ].join("\n");
+  const hits = findings(`REPORT zr_adbc.
+START-OF-SELECTION.
+${src}`);
+  const adbc = hits.filter((h) => h.rule_id === "talos-adbc-native-bypass");
+  assert.ok(adbc.length > 0, `ADBC must be flagged: ${JSON.stringify(hits.map((h) => h.rule_id))}`);
+  assert.equal(adbc[0].family, "clean-core");
+  assert.equal(adbc[0].severity, "priority-1", "it bypasses Open SQL entirely — same tier as EXEC SQL");
+});
+
+test("F-9.4 the ADBC rule does not fire on ordinary Open SQL or on unrelated names", () => {
+  const clean = [
+    "    SELECT SINGLE dmbtr FROM bkpf INTO @DATA(lv) WHERE bukrs = '1000'.",
+    "    DATA(lo_alv) = cl_salv_table=>factory( ).",
+    "    \" the sql_statement variable below is not ADBC",
+    "    DATA(lv_sql_statement) = 'text'.",
+  ].join("\n");
+  const hits = findings(`REPORT zr_clean.
+START-OF-SELECTION.
+${clean}`).filter((h) => h.rule_id === "talos-adbc-native-bypass");
+  assert.deepEqual(hits, [], `no false positive on Open SQL: ${JSON.stringify(hits)}`);
+});
