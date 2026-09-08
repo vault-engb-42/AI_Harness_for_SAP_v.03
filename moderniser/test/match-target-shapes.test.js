@@ -120,6 +120,17 @@ test("F-8.5 an OUTBOUND IDoc sender still gets rap_bo_events, with the event com
   assert.ok(componentsOf(outbound).includes("rap_business_events"), "an outbound sender genuinely emits");
 });
 
+test("F-8.5b the inbound direction fact is LOAD-BEARING, not merely implied by excluding outbound", () => {
+  // The census caught this in the fix that introduced it. `rap_bo_message_driven` distinguished direction by
+  // EXCLUDING outbound, so `remote_idoc_inbound` still moved no outcome — delete its detector and nothing
+  // would break. Naming it changes no candidate SET (bare remote_idoc already matches) but scores a
+  // genuinely-inbound object above a direction-unresolved one, which is the truth being reported.
+  const inbound = matchTargetShapes(fact({ consumption: ["remote_idoc", "remote_idoc_inbound"], persistence: ["writes_via_sap_api"] }));
+  const unknown = matchTargetShapes(fact({ consumption: ["remote_idoc"], persistence: ["writes_via_sap_api"] }));
+  const scoreOf = (c) => c.find((x) => x.id === "rap_bo_message_driven")?.score ?? 0;
+  assert.ok(scoreOf(inbound) > scoreOf(unknown), `known inbound must outrank unresolved: ${scoreOf(inbound)} vs ${scoreOf(unknown)}`);
+});
+
 test("F-8.5 direction UNRESOLVED falls to the conservative shape, and never loses its candidate", () => {
   // ZCL_IDOC_OUTPUT is the real case: its only ALE callee is IDOC_INBOUND_ASYNCHRONOUS, which
   // consumption-facts.js deliberately refuses to direction-classify (the direction lives in the

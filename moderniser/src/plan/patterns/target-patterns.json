@@ -173,6 +173,7 @@
       "name": "Message-driven RAP Business Object (inbound asynchronous integration)",
       "when_signals": {
         "any": [
+          "consumption:remote_idoc_inbound",
           "consumption:remote_idoc"
         ],
         "none": [
