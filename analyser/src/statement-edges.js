@@ -42,14 +42,64 @@ export function collectStatementEdges(obj) {
   const edges = [];
   for (const file of obj.getABAPFiles?.() ?? []) {
     const filename = file.getFilename();
+    // F-9.3: statements between EXEC SQL and ENDEXEC are NATIVE SQL, and abaplint gives them their own
+    // statement type carrying the raw tokens. Tracked as a state pair rather than by instanceof, because
+    // `Statements.NativeSQL` IS NOT EXPORTED — the constructor is named that, the export does not exist, so
+    // `instanceof Statements.NativeSQL` is `instanceof undefined` and throws. ExecSQL/EndExec are exported.
+    let inNative = false;
     for (const st of file.getStatements()) {
-      const desc = descriptorFor(st.get(), st.getTokens());
+      const grammar = st.get();
+      if (grammar instanceof Statements.ExecSQL) { inNative = true; continue; }
+      if (grammar instanceof Statements.EndExec) { inNative = false; continue; }
+      const desc = inNative ? nativeSqlDescriptor(st.getTokens()) : descriptorFor(grammar, st.getTokens());
       if (!desc) continue;
       const row = st.getFirstToken()?.getStart()?.getRow?.() ?? 0;
       edges.push({ ...desc, evidence: `${filename}:${row}` });
     }
   }
   return edges;
+}
+
+/** A bare, unambiguous identifier. Anything else is not evidence of a DDIC table. */
+const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * The table a NATIVE SQL statement targets, or null (F-9.3).
+ *
+ * Native SQL is free-form text to the parser, not a typed grammar, so this is deliberately the most
+ * conservative reading that is still useful: only the four unambiguous DML head positions, only a bare
+ * identifier, and nothing at all otherwise. The failure this guards against is manufacturing ownership —
+ * `owns_customer_table` is what earns an object a managed RAP BO root, and deriving it from a name that
+ * might be a schema, a synonym, a view or a host variable would conjure a Business Object for an object
+ * that owns nothing. Emitting nothing costs the object an edge; emitting the wrong thing costs it a
+ * wrong architecture, and only one of those is recoverable.
+ *
+ * Two limits worth stating rather than hiding, both measured against @abaplint/core 2.119.53:
+ *   - a schema-qualified target (`UPDATE myschema.zorders`) is SPLIT across statements at the `.`, so the
+ *     fragment reads `UPDATE myschema .` — rejected here by the trailing-dot check, never claimed;
+ *   - a column-qualified select (`SELECT a.id FROM t`) is split the same way, so its FROM lands in a
+ *     fragment that does not start with SELECT and yields nothing. Under-reporting, by design;
+ *   - the tokenizer STRIPS the host-variable colon, so `INSERT INTO :target` is indistinguishable from a
+ *     real table name. That one cannot be detected here and is not claimed to be.
+ */
+function nativeSqlDescriptor(tokens) {
+  const words = tokens.map((t) => t.getStr());
+  const head = words[0]?.toUpperCase();
+  const at = (i) => (words[i + 1] === "." ? null : words[i]); // a following dot means qualified/truncated
+  const afterKeyword = (kw) => {
+    const i = words.findIndex((w) => w.toUpperCase() === kw);
+    return i >= 0 && i + 1 < words.length ? at(i + 1) : null;
+  };
+
+  let name = null;
+  let access = null;
+  if (head === "SELECT") { name = afterKeyword("FROM"); access = "read"; }
+  else if (head === "INSERT") { name = afterKeyword("INTO"); access = "write"; }
+  else if (head === "UPDATE") { name = at(1); access = "write"; }
+  else if (head === "DELETE") { name = afterKeyword("FROM") ?? at(1); access = "write"; }
+
+  if (!name || !BARE_IDENTIFIER.test(name)) return null;
+  return { kind: "uses-table", target: name.toUpperCase(), targetKind: "table", access };
 }
 
 /**

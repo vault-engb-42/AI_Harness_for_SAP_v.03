@@ -188,3 +188,65 @@ START-OF-SELECTION.
   assert.ok(edges.some((e) => e.access === "read"), "the SELECT survives");
   assert.ok(edges.some((e) => e.access === "write"), `the UPDATE must not be suppressed by the read: ${JSON.stringify(edges)}`);
 });
+
+// F-9.3 — NATIVE SQL. `descriptorFor` had no branch for it, so a table reached only through
+// EXEC SQL was absent from the CPG entirely: no uses-table edge, no graph node, and
+// `persistence-facts.js` (which derives the persistence dimension exclusively from uses-table
+// edges) reported no_persistence_evidence. The dangerous case is MIXED code — an Open SQL read
+// beside a native-SQL write — because the read SUPPRESSES the absence marker, so the object
+// matches a read-only shape and is handed `readonly_query`, an invariant that structurally
+// forbids the write it exists to perform. Pure native SQL fails SAFE (no candidate -> no_shape).
+//
+// NOT a parser gap, verified against @abaplint/core directly: EXEC SQL parses, and the statement
+// between ExecSQL and EndExec carries `UPDATE zorders ...` in its token stream. Note that
+// `Statements.NativeSQL` is NOT exported (the constructor is named that, the export does not
+// exist), so this is detected by tracking the exported ExecSQL/EndExec pair rather than by
+// instanceof on a class that would be undefined.
+const NATIVE_SQL = `REPORT zr_native.
+START-OF-SELECTION.
+  SELECT SINGLE dmbtr FROM bkpf INTO @DATA(lv_amt) WHERE bukrs = '1000'.
+  EXEC SQL.
+    UPDATE zorders SET status = 'X' WHERE id = 1
+  ENDEXEC.
+  EXEC SQL.
+    SELECT amount INTO :lv_amt FROM zfi_ledger WHERE id = 2
+  ENDEXEC.`;
+
+test("F-9.3 a native-SQL write is a WRITE table edge — the table is not invisible", () => {
+  const [obj] = load([{ filename: "zr_native.prog.abap", source: NATIVE_SQL }]);
+  const writes = collectStatementEdges(obj).filter((e) => e.kind === "uses-table" && e.access === "write");
+  assert.ok(
+    writes.some((e) => e.target === "ZORDERS"),
+    `EXEC SQL UPDATE must yield a write edge, or the object reads as owning nothing: ${JSON.stringify(writes)}`,
+  );
+});
+
+test("F-9.3 a native-SQL read is a READ table edge", () => {
+  const [obj] = load([{ filename: "zr_native.prog.abap", source: NATIVE_SQL }]);
+  const reads = collectStatementEdges(obj).filter((e) => e.kind === "uses-table" && e.access === "read");
+  assert.ok(reads.some((e) => e.target === "ZFI_LEDGER"), `EXEC SQL SELECT must be a read: ${JSON.stringify(reads)}`);
+  assert.ok(reads.some((e) => e.target === "BKPF"), "the ordinary Open SQL read alongside it still works");
+});
+
+// The over-claim guard. A native-SQL statement is free-form text to the parser, not a typed grammar:
+// the "table" may be schema-qualified, a synonym, a view, or built dynamically, and NONE of those is
+// evidence that this object owns a DDIC table. Claiming ownership from a lower-confidence source is
+// how a managed RAP BO gets conjured for an object that has none. Only an unambiguous bare identifier
+// in a DML head position counts; everything else emits nothing, which is the fail-safe direction.
+test("F-9.3 an ambiguous native-SQL target is NOT claimed — silence beats a manufactured table", () => {
+  const AMBIGUOUS = `REPORT zr_amb.
+START-OF-SELECTION.
+  EXEC SQL.
+    UPDATE myschema.zorders SET status = 'X'
+  ENDEXEC.
+  EXEC SQL.
+    INSERT INTO :dynamic_target VALUES ( 1 )
+  ENDEXEC.
+  EXEC SQL.
+    SELECT a.id FROM zone_tab AS a JOIN ztwo_tab AS b ON a.id = b.id
+  ENDEXEC.`;
+  const [obj] = load([{ filename: "zr_amb.prog.abap", source: AMBIGUOUS }]);
+  const targets = collectStatementEdges(obj).filter((e) => e.kind === "uses-table").map((e) => e.target);
+  assert.ok(!targets.some((t) => t.includes(".")), `a schema-qualified name is not a DDIC table: ${JSON.stringify(targets)}`);
+  assert.ok(!targets.includes("ZTWO_TAB"), `a joined table is not the statement's subject: ${JSON.stringify(targets)}`);
+});
