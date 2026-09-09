@@ -140,13 +140,18 @@ const HINT_ACKNOWLEDGED = {
   // meaning IS the absence of a signal, so moving no decision is not a defect, it is the definition.
   style: { type: "judge_only" },
   // Produced (db_refactor by the message-regex fallback at disposition-hints.js:33, auth by tagged rules)
-  // and read by nothing. Unlike `style` these ASSERT something — a DB access worth refactoring, an
-  // authorization construct — and an object whose only signal is one of them currently falls to the `seal`
-  // baseline. That may be deliberate conservatism (one SELECT finding is not proof an object needs
-  // re-architecting, and seal routes to a human) or it may be a miss. I do not have evidence of intent, so
-  // they are recorded as OWED rather than blessed: `judge_only` would assert an intent I cannot show.
-  db_refactor: { type: "owed", arc: "disposition-signal-review" },
-  auth: { type: "owed", arc: "disposition-signal-review" },
+  // and read by no deterministic rule. These were first recorded as `owed`, on the reasoning that unlike
+  // `style` they ASSERT something and an object whose only signal is one of them falls to the `seal`
+  // baseline — possibly a miss.
+  //
+  // MEASURED, and the measurement closed it: across abap_fico, equalize-idoc, talv and the seam bundle —
+  // 77 plan nodes — ZERO objects are sealed at all, so no object reaches the state the concern was about.
+  // And the fallback there is `seal` → human review, which is the fail-safe direction: an object landing on
+  // it is routed to a person, never silently built wrong. Wiring these to move a disposition would be a
+  // behavioural change justified by no observed case, which is the invented-fixture trap that also parked
+  // corpus-derived namespace ownership. Nothing is owed; they inform the judge's fact stream and stop there.
+  db_refactor: { type: "judge_only" },
+  auth: { type: "judge_only" },
 };
 
 test("census: every disposition hint moves a decision on SOME surface, or is acknowledged", async () => {
@@ -170,6 +175,67 @@ test("census: every disposition hint moves a decision on SOME surface, or is ack
   // The guard must be able to FAIL. If every hint read as inert, the two calls above would be measuring
   // nothing at all — a broken harness looks identical to a perfectly-wired vocabulary.
   assert.ok(inert.length < KNOWN_HINTS.size, "some hint must be load-bearing, or this census is measuring nothing");
+});
+
+// ---- target shapes: a DIFFERENT predicate, because "unreferenced" means nothing here ----
+//
+// Two vocabularies were considered for this census and REJECTED on measurement, which is worth recording
+// so nobody adds them later believing it was an oversight:
+//
+//   RULE IDS      115 defined, 3 referenced by a shape. A converse census would fire 112 times on its
+//                 first run. Rules exist to produce findings for the human and the ATC gate, not to gate
+//                 target shapes, so being unreferenced is their NORMAL state. Their meaningful guard is the
+//                 FORWARD one — a shape naming a rule that does not exist — already enforced by
+//                 target-patterns-vocabulary.test.js.
+//   COMPONENTS    all 16 are unreferenced by code BY DESIGN: their consumer is an LLM generator reading the
+//                 frozen contract. A reference scan reports 16 dead components and is simply wrong.
+//
+// For SHAPES the honest question is not "does anything reference it" but "can it EVER be produced?" — the
+// `value_help_cds` class, a shape whose signals no producer emits, which therefore sits in the corpus
+// looking like an option while being unreachable. That is satisfiability, and it is testable: build a fact
+// stream out of the shape's OWN declared signals and check the matcher actually offers it back.
+
+test("census: every corpus shape is SATISFIABLE — a shape nothing can ever match is a dead option", () => {
+  // Object kinds matter independently of signals: `rap_bo_odata` requires an externally-callable kind, so a
+  // shape can be signal-satisfiable and still unreachable for the kind under test. Try each.
+  const KINDS = ["class", "function", "program", "report", "table"];
+  const unreachable = [];
+
+  for (const p of corpus.patterns) {
+    const when = p.when_signals ?? {};
+    const anyList = (when.any ?? []).length ? when.any : [null];
+    let reached = false;
+
+    for (const one of anyList) {
+      for (const kind of KINDS) {
+        const f = base({ object_kind: kind });
+        const apply = (sig) => {
+          if (!sig || !sig.includes(":")) return;
+          const kindOf = sig.slice(0, sig.indexOf(":"));
+          const value = sig.slice(sig.indexOf(":") + 1);
+          if (kindOf === "consumption") f.consumption.push(value);
+          else if (kindOf === "persistence") f.persistence.push(value);
+          else if (kindOf === "rule") f.driving_rule_ids.push(value);
+          else if (kindOf === "hint") f.disposition_hints.push(value);
+          else if (kindOf === "family") f.finding_families.push(value);
+          else if (kindOf === "disposition") f.disposition = value;
+          else if (kindOf === "target") f.modernization_target = value;
+        };
+        for (const s of when.all ?? []) apply(s);
+        apply(one);
+        if (matchTargetShapes(f, corpus).some((c) => c.id === p.id)) { reached = true; break; }
+      }
+      if (reached) break;
+    }
+    if (!reached) unreachable.push(p.id);
+  }
+
+  assert.deepEqual(
+    unreachable, [],
+    `these corpus shapes cannot be produced by any fact stream built from their OWN declared signals — they `
+    + `sit in the corpus looking like options while being unreachable, which is how a dead shape survives `
+    + `review: ${unreachable}`,
+  );
 });
 
 // ---- the other direction: a verdict no input can move ----
