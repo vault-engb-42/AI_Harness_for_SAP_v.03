@@ -72,3 +72,58 @@ test("the 'Total findings' headline equals the length of the after-findings arra
     assert.equal(row.after, (after.findings ?? []).length, `demos/${name}: shipped headline vs actual after-findings count`);
   }
 });
+
+// ---- the proof set: cross-artifact agreement, which needs no corpus source ----
+//
+// `offline-verdict.json` and `proof/*` are hand-assembled — no code writer produces them — so unlike
+// comparison.json there is nothing to RECOMPUTE them against on a clean checkout. That was left as a stated
+// scope limit and it is closed here as far as it honestly can be: several of these artifacts quote the SAME
+// figure, and two committed artifacts disagreeing is drift regardless of which one is right.
+//
+// What is deliberately NOT asserted, and why: the proof set's `atc_p2` does NOT agree with the priority-2
+// count in the after-findings doc beside it (659 vs 643, the same 16 that produced the comparison.json
+// drift). That is real, and it is NOT a fixable-by-editing defect. `git log` shows proof/checkpoint.json
+// last written 2026-07-28 by the original demo run, and after/analyser-findings.json regenerated 2026-08-11
+// by 5ef68e7 — so the proof set faithfully records a run made under the THEN-current analyser, and the
+// findings were later re-derived under a changed one. Hand-editing 659 to 643 would manufacture a number
+// for a run that never produced it, which is the exact failure this whole file exists to catch. Making them
+// agree requires re-running the pipeline — a real run, not a regeneration — so it is documented in the
+// bundle README instead of papered over here.
+
+const proofBundles = () => comparableBundles().filter(({ name }) => existsSync(join(DEMOS, name, "proof")));
+
+test("a bundle shipping a proof set is checked — the guard below cannot pass vacuously", () => {
+  assert.ok(proofBundles().length >= 1, `expected >= 1 bundle with a proof/ directory, found ${proofBundles().length}`);
+});
+
+test("the proof set agrees with ITSELF: two artifacts quoting one figure must not disagree", () => {
+  for (const { name } of proofBundles()) {
+    const p = (f) => join(DEMOS, name, "proof", f);
+    if (existsSync(p("checkpoint.json")) && existsSync(p("evidence.json"))) {
+      const [cp, ev] = [read(p("checkpoint.json")), read(p("evidence.json"))];
+      for (const key of ["atc_p1", "atc_p2"]) {
+        assert.equal(cp[key], ev[key], `demos/${name}: checkpoint.json and evidence.json disagree on ${key} — one is stale`);
+      }
+    }
+    if (existsSync(p("selfcheck-gates.json")) && existsSync(p("frozen-plan.json"))) {
+      assert.equal(
+        read(p("selfcheck-gates.json")).plan_hash, read(p("frozen-plan.json")).plan_hash,
+        `demos/${name}: the gate record and the frozen plan name different plan hashes — the proof describes a different run than the plan it ships`,
+      );
+    }
+  }
+});
+
+test("a shipped offline verdict declares the fields a reader is being asked to trust", () => {
+  for (const { name } of proofBundles()) {
+    const vPath = join(DEMOS, name, "offline-verdict.json");
+    if (!existsSync(vPath)) continue;
+    const v = read(vPath);
+    for (const field of ["demo", "mode", "corpus", "before", "after", "verdict", "honesty"]) {
+      assert.ok(v[field] !== undefined, `demos/${name}/offline-verdict.json is missing '${field}'`);
+    }
+    // `honesty` is the field that says what the run did NOT prove. A proof bundle that drops it is a proof
+    // bundle claiming more than it earned — offline never reaches GREEN (P6), and the artifact must say so.
+    assert.ok(String(v.honesty).length > 0, `demos/${name}: the offline verdict must state its own limits, not just its result`);
+  }
+});

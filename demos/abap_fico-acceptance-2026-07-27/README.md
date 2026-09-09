@@ -19,6 +19,16 @@ so it **surfaced and fixed two real gap-2b defects** (see the last section).
 | Clarity | 61% | 74% |
 | Stability | 5% | 75% |
 
+> **The `proof/` set records an earlier run than the findings above.** `proof/checkpoint.json` and
+> `proof/evidence.json` were written by the original 2026-07-27 run and report `atc_p2: 659`; the
+> `analyser-findings.json` docs were re-derived on 2026-08-11 under a changed analyser and yield **643** — a
+> 16-finding difference, the same one that had left `comparison.json` quoting 676 against an actual 660.
+> The comparison and the tables here are regenerated and correct. The proof set is **not** edited to match:
+> it is a faithful record of what that run actually produced, and rewriting 659 to 643 would put a number in
+> it that no run ever emitted. Reconciling them needs the pipeline re-run, which is a new run rather than a
+> regeneration. `analyser/test/demo-bundle-integrity.test.js` guards the artifacts that CAN be recomputed and
+> states this exclusion explicitly.
+
 **What moved the needle:** every classic Cloud/S4 blocker the analyser found — `CALL FUNCTION`,
 `CL_SALV_TABLE=>factory`, `SELECT *`, and the `notToBeReleased` DDIC reads (T001→`I_CompanyCode`,
 SKB1→`I_GLAccountInCompanyCode`, TBSL→`I_PostingKey`, KNA1→`I_Customer`, BSEG→`I_OperationalAcctgDocItem`,
