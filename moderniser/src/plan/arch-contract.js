@@ -91,5 +91,13 @@ export function bindArchContract(state, sig, { ref, hash, ratified_by = null, re
 /** A node is arch-ratified iff a contract is bound AND a human ratified it (the fail-closed drive precondition). */
 export function isArchRatified(state, sig) {
   const c = state?.arch_contracts?.[sig];
-  return !!(c && c.hash && c.ratified_by);
+  if (!c || !c.hash || !c.ratified_by) return false;
+  // The ratification must be ABOUT the contract now bound. `assertReviewed` enforced this at `decide` time,
+  // which covered the human path; GAP 3 ratifies at review time, so without this an auto-ratification bound
+  // to a superseded hash would keep reading as ratified. `rebind` already voids a ratification when `arch`
+  // re-runs with a changed contract, so this closes the remaining door — a hand-edited state file, which the
+  // codebase treats as reachable elsewhere ("durable and hand-editable"). Enforced CONTINUOUSLY here rather
+  // than once at the decision, so it holds for both paths.
+  const reviewed = c.reviewer_verdict?.contract_hash;
+  return reviewed === undefined ? true : reviewed === c.hash;
 }

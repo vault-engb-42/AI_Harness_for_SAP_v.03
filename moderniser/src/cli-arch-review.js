@@ -10,13 +10,26 @@
  *
  * `arch-review <run_id> <sig> --verdict <file> --by <reviewer>` records it against the contract that was
  * actually reviewed (bound to its contract_hash, so a later contract change cannot inherit an old review),
- * and `cmdDecide` refuses to ratify without one. The verdict's CONTENT does not decide anything — a human
- * may ratify over a reviewer's concerns, which is their call — but it must exist and must be about the
- * contract being ratified.
+ * and `cmdDecide` refuses to ratify without one.
+ *
+ * GAP 3 (2026-09-10): a `pass` now RATIFIES. The decisive argument is this repository's own stated
+ * principle, at the top of escalation-bus.js — "The human is an exception handler + attester, NEVER A
+ * VOLUME GATE" — against a measured 196 human decisions to modernise the four corpora. It does not weaken
+ * GAN separation: the rule is that the GENERATOR must not grade itself, and this reviewer is a
+ * fresh-context agent that never sees the judge's session, reads the real source, and may rule the
+ * disposition itself wrong. The grader is still not the writer; what changes is whether a SECOND grader
+ * must also sign every object.
+ *
+ * It implements the reviewer's OWN vocabulary rather than reinterpreting it: `concerns` is defined as
+ * "defensible but something deserves the human's eye" and `fail` as "wrong on the evidence", so only
+ * `pass` ratifies. Until now that vocabulary was recorded and then ignored — a produced fact with no
+ * consumer, in the most consequential gate here. A human may still ratify over concerns; that is their
+ * call and is unchanged. P5 is untouched: offline never GREENs and a human still releases the transport.
  */
 import { readFileSync } from "node:fs";
 import { bindArchContract } from "./plan/arch-contract.js";
-import { loadRun, saveState, log } from "./cli-io.js";
+import { recordArchDecision } from "./plan/arch-gate.js";
+import { loadRun, saveState, log, readEscalations, saveEscalations } from "./cli-io.js";
 
 /** The closed verdict vocabulary the abap-arch-reviewer renders. */
 export const REVIEWER_VERDICTS = ["pass", "concerns", "fail"];
@@ -34,9 +47,30 @@ export function cmdArchReview(io, pos, flags) {
   }
   const payload = parseVerdict(readFileSync(flags.verdict, "utf8"));
   const reviewer_verdict = { ...payload, reviewed_by: flags.by, contract_hash: binding.hash };
-  saveState(io, runId, bindArchContract(state, sig, { ...binding, reviewer_verdict }));
-  log(io, runId, "arch-review", { sig, verdict: payload.verdict, flags: payload.flags, reviewed_by: flags.by });
-  return { run_id: runId, sig, verdict: payload.verdict, flags: payload.flags, contract_hash: binding.hash };
+
+  // GAP 3. `pass` ratifies; anything else leaves the human gate open, because the reviewer's own vocabulary
+  // says so. The attribution is `auto:<reviewer>` and NEVER a person's name — an automatic ratification that
+  // reads as a human signature would be a fabricated attestation, which is the one thing this gate exists to
+  // make impossible. It names the reviewer that supplied the basis, so the trail stays answerable.
+  const autoRatify = payload.verdict === "pass";
+  const ratified_by = autoRatify ? `auto:${flags.by}` : (binding.ratified_by ?? null);
+  saveState(io, runId, bindArchContract(state, sig, { ...binding, reviewer_verdict, ratified_by }));
+
+  if (autoRatify) {
+    // Resolve the human gate too. Leaving it OPEN while the contract is ratified would show the operator a
+    // decision that no longer needs making — the duplicate-row erosion `cmdArch` already avoids on re-runs.
+    const reg = readEscalations(io);
+    const esc = reg.escalations.find((e) => e.kind === "ARCH_REVIEW" && e.status === "OPEN" && e.node_ids?.[0] === sig);
+    if (esc) {
+      saveEscalations(io, recordArchDecision(reg, esc.id, "approve", {
+        decided_by: ratified_by, ts: new Date().toISOString(), run_id: runId,
+        contract_hash: binding.hash, reviewer_verdict,
+      }));
+    }
+  }
+
+  log(io, runId, "arch-review", { sig, verdict: payload.verdict, flags: payload.flags, reviewed_by: flags.by, auto_ratified: autoRatify });
+  return { run_id: runId, sig, verdict: payload.verdict, flags: payload.flags, contract_hash: binding.hash, auto_ratified: autoRatify };
 }
 
 /** Validate the reviewer's payload against a closed shape — it is agent output crossing into durable state. */

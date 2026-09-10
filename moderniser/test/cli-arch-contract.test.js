@@ -14,7 +14,7 @@ import { groupingDecision } from "../src/plan/arch-row.js";
 import {
   CLI, FIXTURE, GROUPING_FIXTURE, mk, seedCache, seedCacheWithForeignShared, topShape, consOf, persOf,
   archNode, PLACEABLE, PLACEABLE_GROUPING, archNodes, stateOf, manifestOf, archEscs, writeShared,
-  reviewOk, reviewAndApprove,
+  reviewOk, reviewAndApprove, humanRatify,
 } from "./helpers/arch-cli.js";
 
 // cli-arch, split by concern: contract freeze, ratification lifecycle and the fail-closed guards.
@@ -99,9 +99,7 @@ test("arch re-run PRESERVES an existing ratification when the contract hash is u
   const target = archNode(loadPlan(planned.run_id, stateDir));
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  const id = archEscs(run, planned.run_id)[0].id;
-  reviewOk(run, planned.run_id, target.id);
-  run("decide", planned.run_id, id, "approve", "--by", "eng");
+  humanRatify(run, planned.run_id, target.id);
   assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[target.id].ratified_by, "eng", "precondition: ratified");
 
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1"); // identical facts → identical hash
@@ -115,8 +113,7 @@ test("arch re-run CLEARS the ratification when the contract hash changes (re-rat
   const target = archNode(loadPlan(planned.run_id, stateDir));
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  reviewOk(run, planned.run_id, target.id);
-  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
+  humanRatify(run, planned.run_id, target.id);
 
   // What the human ratified is a SPECIFIC contract hash. Simulate the contract having been ratified under a
   // different hash (the shape the operator approved is not the shape now being frozen): the re-run must NOT
@@ -153,8 +150,7 @@ test("G a re-run does NOT re-raise ARCH_REVIEW for a still-ratified, unchanged c
   const target = archNode(loadPlan(planned.run_id, stateDir));
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  reviewOk(run, planned.run_id, target.id);
-  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
+  humanRatify(run, planned.run_id, target.id);
 
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   assert.equal(archEscs(run, planned.run_id).length, 0, "nothing to ask: the human already approved this exact contract");
@@ -167,8 +163,7 @@ test("G a CHANGED contract DOES raise a fresh ARCH_REVIEW (re-ratify exactly wha
   const target = archNode(loadPlan(planned.run_id, stateDir));
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  reviewOk(run, planned.run_id, target.id);
-  run("decide", planned.run_id, archEscs(run, planned.run_id)[0].id, "approve", "--by", "eng");
+  humanRatify(run, planned.run_id, target.id);
 
   const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
   const st = JSON.parse(readFileSync(statePath, "utf8"));

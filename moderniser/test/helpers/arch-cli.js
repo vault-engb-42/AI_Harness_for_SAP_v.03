@@ -96,11 +96,28 @@ export function reviewOk(run, runId, sig, payload = { verdict: "pass", flags: []
   return run("arch-review", runId, sig, "--verdict", p, "--by", "abap-arch-reviewer");
 }
 
-/** Ratify every OPEN ARCH_REVIEW the way the lane does: independent review first, then the human. */
+/**
+ * Ratify every OPEN ARCH_REVIEW the way the lane does: independent review first, then the human IF one is
+ * still required. Since GAP 3 a reviewer `pass` ratifies and resolves the gate itself, so the human step is
+ * conditional — `decide` on an already-resolved escalation is refused, correctly. Keyed on the verb's own
+ * `auto_ratified` flag rather than on a guess about which verdict was rendered.
+ */
 export const reviewAndApprove = (run, runId) => {
   for (const e of archEscs(run, runId)) {
-    reviewOk(run, runId, e.node_ids[0]);
-    run("decide", runId, e.id, "approve", "--by", "eng");
+    const res = reviewOk(run, runId, e.node_ids[0]);
+    if (!res?.auto_ratified) run("decide", runId, e.id, "approve", "--by", "eng");
   }
 };
 
+
+/**
+ * Ratify ONE contract through the HUMAN path, for tests whose subject is that path (or that simply need a
+ * ratification stamped with a person's name). Since GAP 3 a reviewer `pass` ratifies by itself and resolves
+ * the gate, so reaching a human decision means rendering `concerns` — "defensible, but something deserves
+ * the human's eye" — which is precisely when a person is supposed to be asked.
+ */
+export const humanRatify = (run, runId, sig, by = "eng") => {
+  const esc = archEscs(run, runId).find((e) => e.node_ids?.[0] === sig) ?? archEscs(run, runId)[0];
+  reviewOk(run, runId, sig, { verdict: "concerns", flags: ["needs_human_eye"] });
+  return run("decide", runId, esc.id, "approve", "--by", by);
+};

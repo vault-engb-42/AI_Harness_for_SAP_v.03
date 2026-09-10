@@ -11,6 +11,7 @@ import { factHash, factStream } from "../src/plan/arch-facts.js";
 import { matchTargetShapes } from "../src/plan/patterns/match.js";
 import { putEntry } from "../src/state/arch-verdict-cache.js";
 import { groupingDecision } from "../src/plan/arch-row.js";
+import { isArchRatified } from "../src/plan/arch-contract.js";
 import {
   CLI, FIXTURE, GROUPING_FIXTURE, mk, seedCache, seedCacheWithForeignShared, topShape, consOf, persOf,
   archNode, PLACEABLE, PLACEABLE_GROUPING, archNodes, stateOf, manifestOf, archEscs, writeShared,
@@ -57,7 +58,11 @@ test("D a verdict bound to a DIFFERENT contract hash does not satisfy the gate (
   const target = archNode(loadPlan(planned.run_id, stateDir));
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
-  reviewOk(run, planned.run_id, target.id);
+  // RULE 7 — the INVARIANT is unchanged (a review of contract A can never ratify contract B) but GAP 3 gave
+  // it a second path to defend. A `concerns` verdict keeps the human gate open, so the original decide-time
+  // refusal is still exercised below; the auto-ratified case is covered by its own test further down, which
+  // asserts `isArchRatified` stops holding once the bound hash moves.
+  reviewOk(run, planned.run_id, target.id, { verdict: "concerns", flags: ["over_built"] });
 
   const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
   const st = JSON.parse(readFileSync(statePath, "utf8"));
@@ -92,7 +97,11 @@ test("decide approve ratifies an ARCH_REVIEW: contract_hash on the row + ratifie
   seedCache(stateDir, target, consOf(), persOf());
   run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
   const id = archEscs(run, planned.run_id)[0].id;
-  reviewOk(run, planned.run_id, target.id);
+  // RULE 7 — this test was written when EVERY review left a human gate open, and it asserts the HUMAN
+  // decide path, which is unchanged and still worth pinning. Since GAP 3 a `pass` ratifies and resolves the
+  // gate itself, so the human path is now reached via `concerns` — "defensible, but something deserves the
+  // human's eye". The assertions below are untouched; only the route to them moved.
+  reviewOk(run, planned.run_id, target.id, { verdict: "concerns", flags: ["over_built"] });
   const row = run("decide", planned.run_id, id, "approve", "--by", "eng");
   assert.equal(row.status, "RESOLVED");
   assert.equal(row.decision.verb, "approve");
@@ -359,4 +368,96 @@ test("a wall of text is still refused — the bound exists, it is just not 600",
               "--rationale", "x".repeat(4000), "--confidence", "low"),
     /rationale/i,
   );
+});
+
+// GAP 3 — a reviewer PASS auto-ratifies; concerns/fail still go to a human.
+//
+// The decisive argument is the harness's own stated principle, at the top of escalation-bus.js: "The human
+// is an exception handler + attester, NEVER A VOLUME GATE." Measured across the four corpora, the status quo
+// demanded 196 decisions to modernise them — that is a volume gate, and it contradicts the design's own words.
+//
+// This does NOT weaken GAN separation. The principle is that the GENERATOR must not evaluate itself, and the
+// reviewer is a fresh-context agent that never sees the judge's session, reads the real source, and may rule
+// the disposition itself wrong. Under auto-ratification the grader is still not the writer; what changes is
+// whether a SECOND grader must also sign every object.
+//
+// It also implements the reviewer's OWN vocabulary rather than reinterpreting it: `concerns` is defined as
+// "defensible but something deserves the human's eye", `fail` as "wrong on the evidence". Until now that
+// vocabulary was recorded and then ignored — "the verdict's CONTENT does not decide anything" — a produced
+// fact with no consumer, in the most consequential gate in the harness.
+//
+// P5 is untouched: offline never GREENs, and a human still reads the proof bundle and releases the transport.
+
+test("GAP3 a reviewer PASS ratifies the contract without a human, and says so in the audit trail", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const node = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, node, consOf(), persOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  reviewOk(run, planned.run_id, node.id, { verdict: "pass", flags: [] });
+
+  const binding = stateOf(stateDir, planned.run_id).arch_contracts[node.id];
+  assert.ok(binding.ratified_by, "a PASS must ratify — that is the whole point of the change");
+  // The audit trail must never let an automatic ratification read as a human's signature.
+  assert.match(binding.ratified_by, /^auto:/, `an auto-ratification must be self-identifying, got '${binding.ratified_by}'`);
+  assert.ok(!/^(eng|alice|bob)$/i.test(binding.ratified_by), "and must never borrow a person's name");
+
+  // The gate is cleared, so the driver can dispatch and no ARCH_REVIEW is left demanding a human.
+  assert.equal(archEscs(run, planned.run_id).filter((e) => e.status === "OPEN").length, 0, "no human gate left open");
+});
+
+test("GAP3 CONCERNS does NOT auto-ratify — the reviewer said a human should look", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const node = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, node, consOf(), persOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  reviewOk(run, planned.run_id, node.id, { verdict: "concerns", flags: ["over_built"] });
+  assert.ok(!stateOf(stateDir, planned.run_id).arch_contracts[node.id].ratified_by, "concerns is an exception, not an approval");
+  assert.ok(archEscs(run, planned.run_id).some((e) => e.status === "OPEN"), "the human gate stays open");
+});
+
+test("GAP3 FAIL does NOT auto-ratify", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const node = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, node, consOf(), persOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+
+  reviewOk(run, planned.run_id, node.id, { verdict: "fail", flags: ["wrong_disposition"] });
+  assert.ok(!stateOf(stateDir, planned.run_id).arch_contracts[node.id].ratified_by, "a failed review can never ratify");
+});
+
+test("GAP3 a human can still ratify over concerns — their call, unchanged", () => {
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const node = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, node, consOf(), persOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, node.id, { verdict: "concerns", flags: ["over_built"] });
+
+  const esc = archEscs(run, planned.run_id).find((e) => e.status === "OPEN");
+  run("decide", planned.run_id, esc.id, "approve", "--by", "eng");
+  assert.equal(stateOf(stateDir, planned.run_id).arch_contracts[node.id].ratified_by, "eng", "a named human still overrides");
+});
+
+test("GAP3 an AUTO-ratification stops holding when the contract it reviewed moves", () => {
+  // The hole GAP 3 would otherwise have opened. `assertReviewed` enforced "the review is about THIS contract"
+  // at decide time, which covered the human path; auto-ratification happens at review time, so the check has
+  // to be continuous. `isArchRatified` now re-validates it on every read.
+  const { stateDir, run } = mk();
+  const planned = run("plan", FIXTURE);
+  const node = archNode(loadPlan(planned.run_id, stateDir));
+  seedCache(stateDir, node, consOf(), persOf());
+  run("arch", planned.run_id, FIXTURE, "--model", "opus", "--prompt-hash", "ph1");
+  reviewOk(run, planned.run_id, node.id, { verdict: "pass", flags: [] });
+
+  const statePath = join(stateDir, "runs", `${planned.run_id}.state.json`);
+  const st = JSON.parse(readFileSync(statePath, "utf8"));
+  assert.ok(isArchRatified(st, node.id), "precondition: the pass ratified it");
+
+  st.arch_contracts[node.id].hash = "a-different-contract-hash"; // the contract moved on
+  assert.ok(!isArchRatified(st, node.id), "a ratification cannot survive the contract it was about");
 });

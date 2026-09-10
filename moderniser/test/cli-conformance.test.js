@@ -51,10 +51,10 @@ function ratifiedRun() {
 
   const verdictFile = join(ctx.base, "review.json");
   writeFileSync(verdictFile, JSON.stringify({ verdict: "pass", flags: [] }));
+  // Since GAP 3 a reviewer `pass` ratifies and resolves the ARCH_REVIEW itself, so no human decide follows.
+  // This helper's subject is CONFORMANCE — it needs a ratified contract to exist, not a particular route to
+  // one — so it takes the shorter path the lane now actually walks.
   ctx.run("arch-review", planned.run_id, target.id, "--verdict", verdictFile, "--by", "abap-arch-reviewer");
-  const esc = ctx.run("escalations", planned.run_id, "--max", "50");
-  const id = [...esc.surfaced, ...esc.queued].find((e) => e.kind === "ARCH_REVIEW").id;
-  ctx.run("decide", planned.run_id, id, "approve", "--by", "eng");
 
   const contract = JSON.parse(readFileSync(join(ctx.runsDir, planned.run_id, `arch-contract-${target.id}.json`), "utf8"));
   return { ...ctx, runId: planned.run_id, sig: target.id, contract };
