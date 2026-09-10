@@ -452,3 +452,47 @@ test("the same object WITHOUT write evidence still gets the list report", () => 
   const ids = matchTargetShapes(fact, loadPatternCorpus()).map((c) => c.id);
   assert.ok(ids.includes("fiori_list_report"), `a genuine reader is unaffected: ${JSON.stringify(ids)}`);
 });
+
+// GAP 2 — pinning the RC-2 decision, so the 18 unplaceable talv nodes are never "fixed" by inventing the
+// shape RC-2 removed.
+//
+// The chain that produces them is understood and deliberate: `modernization_target` is a pure KIND -> LABEL
+// lookup in analyser/src/modernization-plan.js (`function: "OData V4 Service"`), carrying no evidence at
+// all; `disposition.js` turns "has a label" into re_architect; and the shape matcher then refuses to place
+// it without ownership evidence. That refusal IS the evidence gate — disposition.js says so outright:
+// "DISPOSITION answers 'does this need modernising', while the SHAPE MATCHER answers 'into what' ... a
+// managed RAP BO invented from a label ... is refused where the evidence lives."
+//
+// Measured on talv: 18 of 21 arch-gated nodes are unplaceable because 66 of 78 objects own no data at all
+// (TALV is a reusable ALV wrapper library). Those escalate through NO_TARGET_SHAPE to a human, which is the
+// designed outcome, not a gap. Downgrading the disposition instead was tried and reverted — it flipped
+// equalize-idoc, an integration framework, to refactor-dominant, which the corpus suite rejects.
+test("GAP2 a label alone never conjures a Business Object — ownership evidence does", () => {
+  const BO_COMPONENTS = ["bdef_managed", "behavior_pool"];
+  // Every analyser target label, on an object with NO persistence evidence whatsoever.
+  for (const target of ["OData V4 Service", "RAP Business Object", "Fiori Elements App"]) {
+    for (const kind of ["class", "function", "report", "program"]) {
+      const cands = matchTargetShapes(fact({
+        object_kind: kind, modernization_target: target,
+        consumption: ["no_surface_evidence"], persistence: ["no_persistence_evidence"],
+      }));
+      const conjured = cands.filter((c) => (c.components ?? []).some((x) => BO_COMPONENTS.includes(x)));
+      assert.deepEqual(
+        conjured.map((c) => c.id), [],
+        `target "${target}" on a ${kind} that owns nothing must not yield a BO: ${JSON.stringify(conjured.map((c) => c.id))}`,
+      );
+    }
+  }
+});
+
+test("GAP2 the SAME object with ownership evidence does get a Business Object", () => {
+  // The other half, so the guard above cannot pass by the matcher being broken for everything.
+  const cands = matchTargetShapes(fact({
+    object_kind: "class", modernization_target: "RAP Business Object",
+    consumption: ["ui_salv"], persistence: ["owns_customer_table"],
+  }));
+  assert.ok(
+    cands.some((c) => (c.components ?? []).includes("bdef_managed")),
+    `ownership is what earns a BO: ${JSON.stringify(cands.map((c) => c.id))}`,
+  );
+});
