@@ -16,6 +16,9 @@ import { recordArchDecision, parseArchDecision, recordNoTargetShapeDecision } fr
 import { bindArchContract } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
+import { readFileSync } from "node:fs";
+import { consumptionFacts } from "./plan/consumption-facts.js";
+import { persistenceFacts } from "./plan/persistence-facts.js";
 import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, saveState, log } from "./cli-io.js";
 
 const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the manifest pins it
@@ -82,11 +85,76 @@ export function cmdEscalations(io, pos, flags) {
  */
 export function cmdPackets(io, pos, flags) {
   const [runId] = pos;
-  loadRun(io, runId);
+  const { plan } = loadRun(io, runId);
   const max = flags.max === undefined ? DEFAULT_SURFACE_MAX : Number(flags.max);
   const criticalSigs = new Set(String(flags.critical ?? "").split(",").filter(Boolean));
   const { surfaced, queued } = surfaceable(readEscalations(io), { max, criticalSigs });
-  return { packets: surfaced.map((e) => renderPacket(e)), queued: queued.length };
+  const context = packetContext(plan, pos[1] ?? flags.findings);
+  return { packets: surfaced.map((e) => renderPacket(e, context(e))), queued: queued.length };
+}
+
+/**
+ * The EVIDENCE a GatePacket carries, per escalation (GAP 2b).
+ *
+ * `renderPacket` has always accepted `evidence` and `plan_fields`; `cmdPackets` passed neither, so every
+ * packet reached the operator as a 64-char sig, a one-line cause and a verb list. For NO_TARGET_SHAPE that
+ * is close to unusable: to decide they had to map the sig to the architecture manifest, find the object,
+ * and go read its ABAP — measured on talv, 70 of 92 re_architect nodes reach no shape, so 70 times.
+ *
+ * FACTS ONLY, deliberately. This names the object and states what was observed; it does NOT recommend a
+ * disposition. A recommendation would anchor a human who would otherwise read the code, and this gate
+ * exists precisely because the harness declines to choose. Same idiom as `no_successor_refs`, which the
+ * classifier gathers as "evidence for a human decision, not the decision".
+ *
+ * Everything comes from the FROZEN PLAN, so it needs no extra input and cannot drift from what was
+ * planned. The consumption/persistence axes — the ones every BO shape gates on, and therefore the ones
+ * that explain an unplaceable node — live in the findings doc, so they are added only when a doc is
+ * supplied (`packets <run> <findings>`), and reported as an explicit absence when it is not.
+ */
+function packetContext(plan, findingsPath) {
+  const bySig = new Map(plan.nodes.map((n) => [n.id, n]));
+  let cons = null;
+  let pers = null;
+  if (findingsPath) {
+    const doc = JSON.parse(readFileSync(findingsPath, "utf8"));
+    cons = consumptionFacts(doc);
+    pers = persistenceFacts(doc);
+  }
+  const factsFor = (node, map) => {
+    if (!map) return null;
+    const out = new Set();
+    for (const m of node.members ?? [node.object]) for (const f of map[String(m)] ?? []) out.add(f);
+    return [...out].sort();
+  };
+  return (e) => {
+    const node = bySig.get(e.node_ids?.[0]);
+    if (!node) return {};
+    return {
+      plan_fields: {
+        object: node.object,
+        object_kind: node.object_kind ?? null,
+        members: node.members ?? [node.object],
+        wave: node.wave,
+        disposition: node.disposition,
+        disposition_rationale: node.disposition_rationale ?? null,
+        disposition_confidence: node.disposition_confidence ?? null,
+        modernization_target: node.modernization_target ?? null,
+      },
+      evidence: {
+        // An absent doc is reported as absent, never as an empty fact set — "no surface observed" and
+        // "nobody looked" are different claims, and conflating them is how a gate lies quietly.
+        consumption: factsFor(node, cons) ?? "(not computed — re-run with `packets <run> <findings>`)",
+        persistence: factsFor(node, pers) ?? "(not computed — re-run with `packets <run> <findings>`)",
+        // `driving_rule_ids` is deliberately NOT carried. On a real object it is ~23 entries of
+        // formatting lint (indentation, keyword_case, abapdoc) that answer neither "what is this" nor
+        // "why can it not be placed", and burying the three decisive facts under them makes the packet
+        // worse than the bare sig it replaced. `finding_families` is their summarised form and IS carried.
+        finding_families: node.finding_families ?? [],
+        disposition_hints: node.disposition_hints ?? [],
+        ...(node.disposition_evidence ?? {}),
+      },
+    };
+  };
 }
 
 export function cmdDecide(io, pos, flags) {
