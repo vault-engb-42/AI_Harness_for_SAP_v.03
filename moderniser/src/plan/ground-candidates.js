@@ -14,6 +14,9 @@ import { STANDARD_DOMAINS } from "./fit-to-standard.js";
 const BLOCKER_FAMILIES = new Set(["clean-core", "deprecation"]);
 // Below the source-grounded 1.0 — keeps a finding-derived refactor at PROMPT until real source grounding (θ=0.9).
 const FINDING_DERIVED_CERTAINTY = 0.8;
+// Reached only on positive ref evidence (see `sourceGrounded` below). At or above the gate's 0.9 threshold,
+// so this is the value — and the only value — that lets a refactor node clear the human prompt.
+const SOURCE_GROUNDED_CERTAINTY = 1.0;
 
 /**
  * Registry states that mean "this API is not coming to the cloud as-is" — expressed in the vocabulary
@@ -27,6 +30,10 @@ const FINDING_DERIVED_CERTAINTY = 0.8;
  * deprecated 550 (458 with no successor), removed 675 (81 with no successor), released 33,450.
  */
 const NO_FORWARD_PATH = new Set(["deprecated", "removed"]);
+
+// A customer prefix (Z or Y) is customer code, not an SAP API — evidence of nothing about released-API
+// cleanliness, so such a ref is counted neither for nor against the source-grounded 1.0.
+const CUSTOMER_NS = /^[ZY]/;
 
 /**
  * @param {{findings?: Array<{object: string, family?: string, atc_priority?: string}>, modernization_plan?: {objects?: Array<{object: string}>}}} doc analyser-findings.json
@@ -44,15 +51,24 @@ export function groundCandidates(doc) {
     const fs = byObject.get(o.object) ?? [];
     const analysed = fs.length > 0;
     const p1Blockers = fs.filter((f) => f.atc_priority === "P1" && BLOCKER_FAMILIES.has(f.family));
-    const ev = registry.get(o.object) ?? { no_successor_refs: [], standard_domains: [] };
+    const { _sapRefCount = 0, _allRefsReleased = false, ...ev } =
+      registry.get(o.object) ?? { no_successor_refs: [], standard_domains: [] };
+    const released_clean = analysed && p1Blockers.length === 0;
+    // GAP 1 — the source-grounded 1.0, and the ONLY thing that opens the disposition gate's `auto` lane.
+    // It demands POSITIVE evidence on both axes: finding-derived cleanliness AND at least one classifiable
+    // SAP reference with every one of them `released`. An object referencing nothing stays at 0.8 — absence
+    // of refs is not cleanliness — and `unknown` never counts as released, because that is what the
+    // registry returns for an SAP object it simply does not carry (BAPI_SALESORDER_CREATEFROMDAT2 among
+    // them). 1.0 means no human looks at this node again, so it is spent only where something was proved.
+    const sourceGrounded = released_clean && _sapRefCount > 0 && _allRefsReleased;
     cache[o.object] = {
-      released_clean: analysed && p1Blockers.length === 0,
+      released_clean,
       // The registry answers "is this SAP API released, and what replaces it?" — it CANNOT answer "does a
       // released SAP standard already deliver this CUSTOM object's capability", which is a semantic bridge
       // (why fit-to-standard is advisory). So this stays false and the standard-domain reads below are
       // offered as EVIDENCE for the human's replace decision, never as an automatic classification.
       released_standard_exists: false,
-      grounding_certainty: FINDING_DERIVED_CERTAINTY,
+      grounding_certainty: sourceGrounded ? SOURCE_GROUNDED_CERTAINTY : FINDING_DERIVED_CERTAINTY,
       ...ev,
     };
   }
@@ -75,7 +91,7 @@ export function groundCandidates(doc) {
 function groundRegistryRefs(doc) {
   const byObject = new Map();
   const ensure = (owner) => {
-    if (!byObject.has(owner)) byObject.set(owner, { noSucc: new Set(), domains: new Set() });
+    if (!byObject.has(owner)) byObject.set(owner, { noSucc: new Set(), domains: new Set(), sapRefs: new Set(), unreleased: new Set() });
     return byObject.get(owner);
   };
   for (const e of doc?.graph?.edges ?? []) {
@@ -97,6 +113,16 @@ function groundRegistryRefs(doc) {
     }
 
     const info = classify(ref);
+
+    // GAP 1 evidence. A CUSTOMER ref (Z*/Y*) is not an SAP API and says nothing about released-API
+    // cleanliness, so it is not counted either way. Everything else is: `released` is the positive
+    // evidence the source-grounded 1.0 rests on, and ANY other state — including `unknown`, which is what
+    // the registry returns for an SAP object it simply does not carry — withholds it.
+    if (!CUSTOMER_NS.test(ref)) {
+      bucket.sapRefs.add(ref);
+      if (info?.release_state !== "released") bucket.unreleased.add(ref);
+    }
+
     if (!NO_FORWARD_PATH.has(info?.release_state)) continue;
     // A named successor means there IS a forward path — that is a re-architect basis, not a retire one.
     if ((info.successors ?? []).length === 0) bucket.noSucc.add(ref);
@@ -106,6 +132,8 @@ function groundRegistryRefs(doc) {
     out.set(owner, {
       no_successor_refs: [...b.noSucc].sort(),
       standard_domains: [...b.domains].sort(),
+      _sapRefCount: b.sapRefs.size,
+      _allRefsReleased: b.sapRefs.size > 0 && b.unreleased.size === 0,
     });
   }
   return out;
