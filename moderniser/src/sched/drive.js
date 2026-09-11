@@ -206,7 +206,7 @@ export function driveOfflineVerdict(plan, state, sig, result) {
 // pass): C1 blocks when abaplint analysed none of an artifact, which is right — a clean review of an
 // unanalysed object is not evidence of anything. But no rewrite fixes an engine crash, so routing it down
 // the retry edge spent the whole cycle budget before quarantining. It belongs in exactly this category.
-const ESCALATABLE = Object.freeze([
+export const ESCALATABLE = Object.freeze([
   ["auth-delta-unattested", "AUTH_EQUIVALENCE", false],
   ["parity-not-equivalent:needs_review", "PARITY_REVIEW", false],
   [UNANALYSABLE_REASON_PREFIX, "UNANALYSABLE_ARTIFACT", true],

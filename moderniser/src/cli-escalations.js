@@ -144,7 +144,7 @@ export function cmdPackets(io, pos, flags) {
  * that explain an unplaceable node — live in the findings doc, so they are added only when a doc is
  * supplied (`packets <run> <findings>`), and reported as an explicit absence when it is not.
  */
-function packetContext(plan, findingsPath) {
+export function packetContext(plan, findingsPath) {
   const bySig = new Map(plan.nodes.map((n) => [n.id, n]));
   let cons = null;
   let pers = null;
