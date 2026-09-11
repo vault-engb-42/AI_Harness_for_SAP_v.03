@@ -132,6 +132,43 @@ test("raise -> decide -> re-verdict: the owed attestation can now actually be cl
   );
 });
 
+test("ONE verdict step raises EVERY gate it owes, not just the first", () => {
+  // Measured 2026-09-11: this fixture owes BOTH auth-delta-unattested AND
+  // parity-not-equivalent:needs_review from a single step. `raiseOwedGates` loops the driver's whole
+  // intent list, and a fold that stopped at the first would leave the operator clearing one gate, being
+  // told the node is still blocked, and having no second gate to find.
+  const { cli, writeDir } = mkCli();
+  const { runId, sig } = toOwedAttestation(cli, writeDir);
+  for (const kind of ["AUTH_EQUIVALENCE", "PARITY_REVIEW"]) {
+    const rows = openRows(cli, runId, kind);
+    assert.equal(rows.length, 1, `${kind}: one step owes two gates and must raise both`);
+    assert.deepEqual(rows[0].node_ids, [sig]);
+  }
+});
+
+test("attesting ONE owed gate does not void it when the OTHER is still open", () => {
+  // PROBED, not reasoned (2026-09-11). `latestEvent` says the latest EVENT governs and a re-raise voids a
+  // prior attestation — so if a later verdict step re-raised the gate a human had just resolved, the
+  // attestation would silently evaporate and the node could never clear. It does not: the attested reason
+  // is removed from the reason list BEFORE the driver derives its escalation intents, so the resolved kind
+  // is never re-raised. This test is that probe, kept.
+  const { cli, writeDir } = mkCli();
+  const { runId, sig, before, after } = toOwedAttestation(cli, writeDir);
+  const [auth] = openRows(cli, runId, "AUTH_EQUIVALENCE");
+  cli("decide", runId, auth.id, "ATTEST", "--by", "sec-reviewer");
+
+  // TWICE — a single re-run could pass while the void happens on the step after it.
+  cli("drive", runId, "--verdict", sig, "--before", before, "--after", after);
+  const third = cli("drive", runId, "--verdict", sig, "--before", before, "--after", after);
+
+  assert.ok(
+    !third.verdict.reasons.includes("auth-delta-unattested"),
+    `the attestation must survive repeated verdict steps: ${JSON.stringify(third.verdict.reasons)}`,
+  );
+  assert.equal(openRows(cli, runId, "AUTH_EQUIVALENCE").length, 0, "and its gate must not re-open");
+  assert.equal(openRows(cli, runId, "PARITY_REVIEW").length, 1, "while the gate still genuinely owed stays open");
+});
+
 test("re-running the verdict step does not storm the register with duplicate gates", () => {
   // The bus dedupes an already-OPEN (kind, node-set), and the lane re-runs `drive --verdict` on every
   // resume. A gate that re-raised per step would also VOID its own prior attestation on every tick
