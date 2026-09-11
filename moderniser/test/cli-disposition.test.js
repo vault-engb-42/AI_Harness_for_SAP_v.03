@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -13,12 +13,15 @@ import { tmpdir } from "node:os";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "src", "cli.js");
 const FIXTURE = join(HERE, "fixtures", "analyser-findings.json");
+const GROUPING_FIXTURE = join(HERE, "fixtures", "analyser-findings-grouping.json");
 
 function mkCli() {
   const base = mkdtempSync(join(tmpdir(), "disp-cli-"));
   const state = join(base, "state");
   const runs = join(base, "runs");
-  return (...a) => JSON.parse(execFileSync(process.execPath, [CLI, ...a, "--state-dir", state, "--runs-dir", runs], { encoding: "utf8" }));
+  const cli = (...a) => JSON.parse(execFileSync(process.execPath, [CLI, ...a, "--state-dir", state, "--runs-dir", runs], { encoding: "utf8" }));
+  cli.planOf = (runId) => JSON.parse(readFileSync(join(state, "plan", `${runId}.plan.json`), "utf8"));
+  return cli;
 }
 
 test("disposition emits the manifest summary + raises one DISPOSITION_REVIEW per prompt row", () => {
@@ -103,4 +106,66 @@ test("GAP2b a NO_TARGET_SHAPE packet names the object and carries its evidence",
   // FACTS ONLY — no disposition is recommended, so the packet informs without anchoring.
   const blob = JSON.stringify(p.evidence) + JSON.stringify(p.plan_fields);
   assert.ok(!/recommend|suggest/i.test(blob), `the gate states evidence, it does not advise: ${blob}`);
+});
+
+// GAP 6 — the surfacing window showed the wrong gates, in the wrong order.
+//
+// Measured on a real talv run sharing the default register: 89 OPEN escalations, of which only 60 belonged
+// to the run the operator asked about. `surfaceable` has no run scoping — `run_id` is stamped by
+// `resolveEscalation` at decide time and never consulted when reading — so `packets <run>` surfaced gates
+// for objects that are not in that run's plan at all. `collectOverrides` is run-scoped for exactly this
+// reason ("an unscoped read would let a decision made against a discarded run silently re-plan this one");
+// the surfacing read never got the same treatment.
+//
+// Ordering compounded it. Gate 1 runs before gate 2, so DISPOSITION_REVIEW rows always have the earliest
+// `opened_at` and always win the window. At the DEFAULT --max 5 the operator saw five routine prompts while
+// the gates the driver is actually stuck on sat at positions 62-89, invisible. Recency is not urgency.
+//
+// `criticalSigs` already exists on `surfaceable` and was reachable ONLY from a manual `--critical` flag —
+// nothing ever computed it. The driver's own blocking predicate supplies it: a node is stuck when it is
+// arch-gated and not ratified, which is precisely what makes `drive` return await_human.
+
+test("GAP6 every surfaced packet names a node of the run asked about", () => {
+  const cli = mkCli();
+  const a = cli("plan", FIXTURE);
+  cli("disposition", a.run_id);
+
+  // A second run in the same state dir, sharing escalations.json — the real cross-run condition.
+  const b = cli("plan", GROUPING_FIXTURE);
+  cli("disposition", b.run_id);
+
+  // NOTE the fixtures OVERLAP by design (the grouping fixture is the abap_fico one plus two objects), so a
+  // shared object legitimately carries the SAME content-hashed sig in both plans. "Did run A's sigs appear"
+  // is therefore not the invariant — the invariant is that every surfaced packet belongs to the run asked
+  // about. An unscoped read fails this because it returns rows whose nodes are in NEITHER of those plans.
+  const bNodes = new Set(cli.planOf(b.run_id).nodes.map((n) => n.id));
+  const bPackets = cli("packets", b.run_id, "--max", "99").packets;
+  assert.ok(bPackets.length > 0, "run B must raise gates for this test to mean anything");
+  const foreign = bPackets.filter((p) => !p.node_ids.some((n) => bNodes.has(n)));
+  assert.deepEqual(foreign.map((p) => p.id), [], `every packet must name a node of run B: ${foreign.length} foreign`);
+
+  // And the converse, so the scoping cannot pass by surfacing nothing: run A still gets its own.
+  const aNodes = new Set(cli.planOf(a.run_id).nodes.map((n) => n.id));
+  const aPackets = cli("packets", a.run_id, "--max", "99").packets;
+  assert.ok(aPackets.length > 0 && aPackets.every((p) => p.node_ids.some((n) => aNodes.has(n))), "run A keeps its own gates");
+});
+
+test("GAP6 the gates the driver is STUCK on outrank routine prompts in a TIGHT window", () => {
+  const cli = mkCli();
+  const planned = cli("plan", GROUPING_FIXTURE);   // 5 nodes -> 5 routine prompts, raised FIRST
+  cli("disposition", planned.run_id);
+  cli("arch", planned.run_id, GROUPING_FIXTURE);   // then the blocking ones, with LATER opened_at
+
+  const blockingKinds = new Set(["NO_TARGET_SHAPE", "ARCH_REVIEW"]);
+  const all = cli("packets", planned.run_id, "--max", "99").packets;
+  assert.ok(all.some((p) => blockingKinds.has(p.kind)), "the fixture must produce a blocking gate");
+  assert.ok(all.filter((p) => p.kind === "DISPOSITION_REVIEW").length >= 3, "and enough routine prompts to crowd a tight window");
+
+  // A window far SMALLER than the routine-prompt count. Under opened_at ordering this is all
+  // DISPOSITION_REVIEW and the operator never learns the run is blocked.
+  const window = cli("packets", planned.run_id, "--max", "2").packets;
+  assert.ok(
+    window.some((p) => blockingKinds.has(p.kind)),
+    `a tight window must still surface what the run is stuck on, got: ${JSON.stringify(window.map((p) => p.kind))}`,
+  );
 });

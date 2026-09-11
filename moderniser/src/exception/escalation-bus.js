@@ -121,13 +121,18 @@ export function latestEvent(rows) {
  * @param {{max: number, criticalSigs?: Set<string>}} opts
  * @returns {{surfaced: object[], queued: object[]}}
  */
-export function surfaceable(register, { max, criticalSigs = new Set() }) {
+export function surfaceable(register, { max, criticalSigs = new Set(), criticalKinds = new Set() }) {
   if (!Number.isInteger(max) || max < 0) {
     throw new Error(`escalation: max must be a non-negative integer (got ${max}) — an unguarded slice would invert the rate limit`);
   }
+  // A stuck NODE is not enough to make an escalation urgent: the routine DISPOSITION_REVIEW for a blocked
+  // object names the same sig as the NO_TARGET_SHAPE that is actually holding it up, so sig-matching alone
+  // cannot tell them apart — measured, it surfaced five routine prompts while the blocking gates waited.
+  // `criticalKinds` narrows it to the kinds that genuinely block; empty means "any kind", preserving the
+  // original behaviour for callers that pass only sigs.
   const open = register.escalations
     .filter((x) => x.status === "OPEN")
-    .map((x) => ({ e: x, critical: x.node_ids.some((n) => criticalSigs.has(n)) }))
+    .map((x) => ({ e: x, critical: x.node_ids.some((n) => criticalSigs.has(n)) && (criticalKinds.size === 0 || criticalKinds.has(x.kind)) }))
     .sort((a, b) => Number(b.critical) - Number(a.critical) || cmp(a.e.opened_at, b.e.opened_at) || cmp(a.e.id, b.e.id));
   return { surfaced: open.slice(0, max).map((x) => x.e), queued: open.slice(max).map((x) => x.e) };
 }

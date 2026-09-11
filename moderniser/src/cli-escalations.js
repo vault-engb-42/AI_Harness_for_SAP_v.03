@@ -13,7 +13,7 @@ import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
 import { recordDispositionDecision, raiseDispositionReviews, droppedDependencies, raiseDroppedDependencies } from "./plan/disposition-gate.js";
 import { recordArchDecision, parseArchDecision, recordNoTargetShapeDecision } from "./plan/arch-gate.js";
-import { bindArchContract } from "./plan/arch-contract.js";
+import { bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
 import { readFileSync } from "node:fs";
@@ -71,11 +71,46 @@ export function cmdDisposition(io, pos) {
 
 export function cmdEscalations(io, pos, flags) {
   const [runId] = pos;
-  loadRun(io, runId);
-  const max = flags.max === undefined ? DEFAULT_SURFACE_MAX : Number(flags.max);
-  const criticalSigs = new Set(String(flags.critical ?? "").split(",").filter(Boolean));
-  const { surfaced, queued } = surfaceable(readEscalations(io), { max, criticalSigs });
+  const { plan, state } = loadRun(io, runId);
+  const { surfaced, queued } = surfaceForRun(io, plan, state, flags);
   return { surfaced, queued };
+}
+
+/**
+ * The surfacing window for ONE run (GAP 6). Two defects, both measured on a real talv run against the
+ * shared register: 89 OPEN escalations of which only 60 belonged to the run the operator asked about, and a
+ * default window of 5 that was entirely routine prompts while 18 blocking gates sat unseen at positions
+ * 62-89.
+ *
+ * SCOPED. `escalations.json` is a SHARED cross-run register and `surfaceable` never consulted a run —
+ * `run_id` is stamped by `resolveEscalation` at decide time and never read back here. So the window could
+ * show gates for objects that are not in this plan at all. `collectOverrides` is run-scoped for exactly
+ * this reason; the surfacing read simply never got the same treatment. An escalation belongs to this run
+ * if it names at least one of its plan nodes.
+ *
+ * ORDERED BY WHAT IS STUCK. Gate 1 runs before gate 2, so DISPOSITION_REVIEW rows always hold the earliest
+ * `opened_at` and always won the window: recency is not urgency. `criticalSigs` already existed on
+ * `surfaceable` and was reachable only from a manual `--critical` flag that nothing ever computed. It is
+ * now computed from the DRIVER'S OWN blocking predicate — a node is stuck when it is arch-gated and not
+ * ratified, which is precisely what makes `drive` return await_human — so the window leads with the gates
+ * that are actually holding the run up. An explicit `--critical` still wins, for an operator who knows
+ * better than the predicate.
+ */
+function surfaceForRun(io, plan, state, flags) {
+  const max = flags.max === undefined ? DEFAULT_SURFACE_MAX : Number(flags.max);
+  const mine = new Set(plan.nodes.map((n) => n.id));
+  const register = readEscalations(io);
+  const scoped = { ...register, escalations: register.escalations.filter((e) => (e.node_ids ?? []).some((n) => mine.has(n))) };
+
+  const explicit = String(flags.critical ?? "").split(",").filter(Boolean);
+  const criticalSigs = explicit.length
+    ? new Set(explicit)
+    : new Set(plan.nodes.filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id)).map((n) => n.id));
+
+  // The kinds that actually hold a run up. `drive` returns await_human for an arch-gated node without a
+  // ratified contract; ARCH_REVIEW and NO_TARGET_SHAPE are the two gates that clear that state. A
+  // DISPOSITION_REVIEW never makes the driver stop — approving one changes nothing until a `replan`.
+  return surfaceable(scoped, { max, criticalSigs, criticalKinds: new Set(["NO_TARGET_SHAPE", "ARCH_REVIEW"]) });
 }
 
 /**
@@ -85,10 +120,8 @@ export function cmdEscalations(io, pos, flags) {
  */
 export function cmdPackets(io, pos, flags) {
   const [runId] = pos;
-  const { plan } = loadRun(io, runId);
-  const max = flags.max === undefined ? DEFAULT_SURFACE_MAX : Number(flags.max);
-  const criticalSigs = new Set(String(flags.critical ?? "").split(",").filter(Boolean));
-  const { surfaced, queued } = surfaceable(readEscalations(io), { max, criticalSigs });
+  const { plan, state } = loadRun(io, runId);
+  const { surfaced, queued } = surfaceForRun(io, plan, state, flags);
   const context = packetContext(plan, pos[1] ?? flags.findings);
   return { packets: surfaced.map((e) => renderPacket(e, context(e))), queued: queued.length };
 }
