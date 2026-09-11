@@ -110,11 +110,19 @@ const ACKNOWLEDGED = {
   // would be two mechanisms for one decision, which is how the register and the park register would drift
   // apart. The `superseded_by` type is VERIFIED below: the named verb must be registered in cli.js.
   NO_RELEASED_SUCCESSOR: { type: "superseded_by", verb: "outcome" },
-  // `sched/plan.js replan()` computes `moved_committed` and has no caller, deliberately: `cli-replan.js`
-  // re-derives the run's content hash instead, and "an equal content hash means an identical node set and
-  // identical waves", which subsumes the diff. A replan that DIFFERS produces a NEW run with fresh state,
-  // where no node is committed yet — so there is no committed node whose wave moved for a human to sign
-  // off on. The gate belongs to an architecture where replan mutated a live run; this one does not.
+  // The gate the §3.4 taxonomy describes IS implemented — as a fail-closed REFUSAL rather than an
+  // escalation. `cli-replan.js assertForcedIfDestructive` throws when any node is in flight ("a re-freeze
+  // restarts them from PENDING") or when a changed node would lose a ratified Architecture Contract, and
+  // clearing it requires `--force --by <name>`: a NAMED human accepting the loss, which is exactly the
+  // sign-off REPLAN_WAVE_MOVE asks for. A refusal is the STRONGER form — an escalation can sit queued
+  // while work proceeds, a refusal cannot be bypassed.
+  //
+  // MEASURED, not reasoned: an earlier draft of this entry claimed the gate was unnecessary because a
+  // replan makes a fresh run in which nothing is committed. That is true of per-node PROGRESS
+  // (`migrateState` starts from `initRun`) and false as an argument — `run_epoch` and the untouched nodes'
+  // `arch_contracts` DO carry forward, so a replan is not a clean slate, and the refusal above is what
+  // actually protects the committed work. `sched/plan.js replan()`'s own `moved_committed` computation
+  // stays callerless because the hash bind subsumes the diff it performs.
   REPLAN_WAVE_MOVE: { type: "superseded_by", verb: "replan" },
   // BUILT AND UNWIRED, both flagged by F18 (specs/reviews/branch-review-2026-07-13.md) and still unwired
   // two months later — which is the whole argument for this census existing.
