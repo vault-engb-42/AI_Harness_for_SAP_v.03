@@ -42,6 +42,14 @@ export const ESCALATION_KINDS = Object.freeze([
   // while that one is open — this gate would never reach the human at all; and ARCH_REVIEW means "ratify
   // this frozen contract", which is precisely the thing an unplaceable node does not have.
   "NO_TARGET_SHAPE",
+  // offline final-review gate (R5) — one per node whose generated artifact abaplint could not parse
+  // (`abaplint_engine_error`). `driveOfflineVerdict` has listed it in ESCALATABLE since R5 on the correct
+  // reasoning that no rewrite fixes an engine crash, so it belongs with the reasons a human clears rather
+  // than in the cycle-capped retry loop. It was never added HERE, so the kind the driver emitted was a kind
+  // the taxonomy refused: `raiseEscalation` threw "unknown kind", `renderPacket` threw, and `DECISIONS` had
+  // no verbs — the node rested at PROVISIONAL_GATED on an owed decision that could not be raised, recorded
+  // or cleared. Found by the surface census (test/surface-census.test.js).
+  "UNANALYSABLE_ARTIFACT",
 ]);
 
 const KIND_SET = new Set(ESCALATION_KINDS);

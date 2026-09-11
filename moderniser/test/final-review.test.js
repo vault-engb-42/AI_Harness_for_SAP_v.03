@@ -365,6 +365,49 @@ test("the unanalysable guard survives the diagnostic being given a triage entry 
   }
 });
 
+test("a named human's ATTEST_REVIEWED clears the unanalysable reason — and is named for doing it", () => {
+  // R5's gate, completed. No rewrite fixes an abaplint crash, so the only remedy is a human reading the
+  // artifact the analyser could not. Identical asymmetry to parity and auth (§7.5): the attestation is
+  // EVIDENCE the machine conjunction is re-evaluated with, never a human-granted PASS. Without this the
+  // UNANALYSABLE_ARTIFACT gate would resolve and change nothing — a decision that decides nothing, which is
+  // exactly the defect class the surface census exists to catch.
+  const triaged = triageAll([
+    { rule_id: "abaplint_engine_error", object: "ZCL_X", file: "zcl_x.clas.abap", severity: "info" },
+  ]);
+  const blocked = applyFinalReview({ provisional: true, reasons: [] }, triaged);
+  assert.equal(blocked.provisional, false, "unattested, it must still block");
+
+  const cleared = applyFinalReview({ provisional: true, reasons: [] }, triaged, { artifact_reviewed: "sec-reviewer" });
+  assert.deepEqual(cleared.reasons, [], `the attested reason must be gone: ${JSON.stringify(cleared.reasons)}`);
+  assert.equal(cleared.provisional, true, "and the node is free to rest");
+  assert.equal(cleared.final_review.artifact_reviewed_by, "sec-reviewer", "the attester is named in the proof bundle");
+  assert.equal(
+    cleared.final_review.counts.recommend, blocked.final_review.counts.recommend,
+    "clearing the REASON must not erase the DIAGNOSTIC — the record of why it was raised survives",
+  );
+});
+
+test("an attestation clears only the unanalysable reason, never a real defect", () => {
+  // The asymmetry that keeps this from being a human-granted PASS. A `fix` finding is a defect the
+  // generator can actually repair, so no attestation may launder it — attesting a defective artifact is
+  // meaningless (drive.js:169-170), and a human who could clear a real ATC defect by signature would be a
+  // hole straight through the ratchet.
+  const triaged = triageAll([
+    { rule_id: "abaplint_engine_error", object: "ZCL_X", file: "zcl_x.clas.abap", severity: "info" },
+    { rule_id: "talos-cloud-005-class-final-abstract", object: "ZCL_Y", file: "zcl_y.clas.abap", severity: "error" },
+  ]);
+  const out = applyFinalReview({ provisional: true, reasons: [] }, triaged, { artifact_reviewed: "sec-reviewer" });
+  assert.equal(out.provisional, false, "the real defect still blocks");
+  assert.ok(
+    out.reasons.some((r) => r.startsWith(FIX_REASON_PREFIX)),
+    `the fix reason must survive the attestation: ${JSON.stringify(out.reasons)}`,
+  );
+  assert.ok(
+    !out.reasons.some((r) => r.startsWith(UNANALYSABLE_REASON_PREFIX)),
+    "while the attested one is cleared",
+  );
+});
+
 test("a replayed verdict already carrying the review's reason still blocks", () => {
   // The block decision turns on whether the review found something, not on whether the reason string is new.
   // Deciding on novelty would let a replay pass provisionally with the defect still present.

@@ -218,22 +218,32 @@ export const UNANALYSABLE_REASON_PREFIX = "final-review-unanalysable:";
  *
  * Pure: the caller runs `analyzePackage` and owns the I/O; this only folds the result.
  *
+ * An UNANALYSABLE reason is cleared by a named human's `ATTEST_REVIEWED`, joined from the audited register
+ * by the caller — identical asymmetry to parity and auth (§7.5): the attestation is EVIDENCE the machine
+ * conjunction is re-evaluated with, never a human-granted PASS. The diagnostics still ride on
+ * `final_review`, and the attester is named there, so clearing the reason never erases the record of why it
+ * was raised.
+ *
  * @param {{provisional?: boolean, reasons?: string[]}} result from `renderOfflineNodeVerdict`
  * @param {{fix?: object[], document?: object[], recommend?: object[]}} [triaged] from `triageAll`
+ * @param {{artifact_reviewed?: string|null}} [attestations] joined from the register by the caller
  * @returns {{provisional: boolean, reasons: string[], final_review: object}}
  */
-export function applyFinalReview(result, triaged) {
+export function applyFinalReview(result, triaged, attestations = {}) {
   const fix = triaged?.fix ?? [];
   const documented = triaged?.document ?? [];
   const recommended = triaged?.recommend ?? [];
+  const attester = attestations?.artifact_reviewed ?? null;
   const final_review = {
     fix,
     document: documented,
     recommend: recommended,
     counts: { fix: fix.length, document: documented.length, recommend: recommended.length },
+    ...(attester ? { artifact_reviewed_by: attester } : {}),
   };
   const reasons = [...(result?.reasons ?? [])];
-  const contributed = [...fixReasons(fix), ...unanalysableReasons(fix, documented, recommended)];
+  const unanalysable = attester ? [] : unanalysableReasons(fix, documented, recommended);
+  const contributed = [...fixReasons(fix), ...unanalysable];
   // The block turns on whether the review CONTRIBUTED anything, not on whether the reason is new. Deciding
   // on novelty would let a replayed verdict — one already carrying the reason — fall back to provisional.
   if (contributed.length === 0) return { provisional: result?.provisional === true, reasons, final_review };

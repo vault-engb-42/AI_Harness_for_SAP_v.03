@@ -32,5 +32,9 @@ export function attestationsOf(io, sig, runId, state) {
   return {
     parity_equivalence: registerAttestation(io, sig, runId, state, "PARITY_REVIEW", "ATTEST_EQUIVALENT"),
     auth_equivalence: registerAttestation(io, sig, runId, state, "AUTH_EQUIVALENCE", "ATTEST"),
+    // R5: the artifact the analyser could not parse, read by a human instead. Same run+epoch+generation
+    // binding as the other two, so a regenerated artifact voids it — a human who attested to code that has
+    // since been rewritten has attested to nothing.
+    artifact_reviewed: registerAttestation(io, sig, runId, state, "UNANALYSABLE_ARTIFACT", "ATTEST_REVIEWED"),
   };
 }

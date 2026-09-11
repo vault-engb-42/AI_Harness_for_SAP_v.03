@@ -32,6 +32,12 @@ export const DECISIONS = Object.freeze({
   // was, and put a human's name on the deadlock. The two decisions are the two real moves — re-disposition
   // the object, or say the patterns corpus is missing a shape (a human act outside this run).
   NO_TARGET_SHAPE: ["override", "other"],
+  // R5 offline gate. ATTESTATION, never a machine PASS (7.5) — exactly PARITY_REVIEW's asymmetry: a named
+  // human reads the artifact the analyser could not, and that reading is recorded as EVIDENCE which the
+  // machine conjunction is then re-evaluated with. `REJECT` leaves the reason standing, so the node stays
+  // blocked. There is deliberately no "retry": the whole point of R5 was that regeneration cannot fix an
+  // engine crash, and offering it would spend the cycle budget for nothing.
+  UNANALYSABLE_ARTIFACT: ["ATTEST_REVIEWED", "REJECT"],
 });
 
 const CAUSE = {
@@ -51,6 +57,9 @@ const CAUSE = {
   // worse failure than saying plainly that the dropped object is unnamed.
   NO_TARGET_SHAPE: (e) =>
     `no target shape fits ${e.node_ids.length} object(s) — re-disposition (override:<disposition>) rather than inventing a shape, or say the corpus is missing one`,
+  UNANALYSABLE_ARTIFACT: (e) =>
+    `the analyser crashed on ${e.node_ids.length} node(s)' generated artifacts — no rewrite fixes an engine `
+    + "error, so a named human reads them and attests, or rejects",
   DROPPED_DEPENDENCY: (e) => {
     const dropped = e.root_signature ?? null;
     const dependents = e.node_ids.length - (dropped && e.node_ids.includes(dropped) ? 1 : 0);

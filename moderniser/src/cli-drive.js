@@ -13,7 +13,8 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { driveDecision, driveReport, driveOfflineVerdict } from "./sched/drive.js";
-import { loadRun, saveState, log, readBaselines } from "./cli-io.js";
+import { loadRun, saveState, log, readBaselines, readEscalations, saveEscalations } from "./cli-io.js";
+import { raiseEscalation } from "./exception/escalation-bus.js";
 import { renderOfflineNodeVerdict } from "./node/offline-checkpoint.js";
 import { assembleBundle } from "./extract/bundle.js";
 import { attestationsOf } from "./cli-attest.js";
@@ -61,6 +62,7 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
   // generated tree lets a sibling's defects condemn a clean node, and the lane had no way to hand over a
   // per-node before-directory at all. Both sides are narrowed here rather than by argument, because a
   // caller cannot get wrong what it cannot supply (the same rule as R1's computed evidence).
+  const attestations = attestationsOf(io, sig, runId, state);
   const node = plan.nodes.find((n) => n.id === sig);
   const afterDir = nodeScopedDir(flags.after, sig);
   const afterFiles = filesFromBundle(afterDir);
@@ -95,14 +97,15 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
       // wrong, and removes the F5 absence case entirely: the evidence is always present and always real.
       findings: { findings: review.findings },
       baselines: readBaselines(io.stateDir),
-      attestations: attestationsOf(io, sig, runId, state),
+      attestations,
       touched_files: afterFiles.map((f) => f.filename),
     },
   );
-  const folded = applyFinalReview(result, triageAll(review.findings));
+  const folded = applyFinalReview(result, triageAll(review.findings), attestations);
 
   const { state: next, action } = driveOfflineVerdict(plan, state, sig, folded);
   saveState(io, runId, next);
+  raiseOwedGates(io, runId, action);
   log(io, runId, "drive-offline-verdict", {
     sig,
     provisional: folded.provisional,
@@ -124,6 +127,39 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
     final_review: folded.final_review,
     scope,
   };
+}
+
+/**
+ * Raise the gates the driver OWES into the durable register.
+ *
+ * `driveOfflineVerdict` computes the escalations and deliberately does not raise them — "Escalations are
+ * RETURNED as intent, never raised here — raising touches the durable register, which is the CLI's job"
+ * (sched/drive.js). The CLI never did that job, so the intent reached stdout and nothing else: no row
+ * existed for `escalations`/`packets` to show, `decide` had no id to take a decision against, and
+ * `registerAttestation` joins from the AUDITED register only — so the node rested at PROVISIONAL_GATED
+ * awaiting a human, against a gate that did not exist. Found by the surface census.
+ *
+ * Raised AFTER the state is saved, matching cmdDecide's ordering rule: a crash between the two leaves a
+ * node correctly awaiting a human with its gate not yet raised, which the idempotent next `drive --verdict`
+ * heals. The reverse order would advertise a gate for a state that was never persisted.
+ *
+ * The bus dedupes an already-OPEN (kind, node-set), which matters more here than anywhere else: the lane
+ * re-runs this step on every resume, and a re-raise VOIDS any attestation already recorded against it
+ * (cli-attest.js — the latest EVENT governs), so a storming gate could never be cleared.
+ */
+function raiseOwedGates(io, runId, action) {
+  const owed = action?.escalations ?? [];
+  if (owed.length === 0) return;
+  const ts = new Date().toISOString();
+  const before = readEscalations(io);
+  let reg = before;
+  for (const e of owed) reg = raiseEscalation(reg, { kind: e.kind, node_ids: e.node_ids }, { ts });
+  if (reg === before) return; // every gate already open — a resume must not re-log a raise that did not happen
+  saveEscalations(io, reg);
+  log(io, runId, "escalate", {
+    kinds: [...new Set(owed.map((e) => e.kind))].sort(),
+    node_ids: [...new Set(owed.flatMap((e) => e.node_ids))].sort(),
+  });
 }
 
 /**

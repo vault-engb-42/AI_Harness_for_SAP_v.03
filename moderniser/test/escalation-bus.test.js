@@ -15,10 +15,11 @@ const B = "b".repeat(64);
 // consequence gate DROPPED_DEPENDENCY, and the S14 unplaceable gate NO_TARGET_SHAPE. The set is CLOSED —
 // this assertion is what makes growing it a deliberate act, so a new kind arrives with its typed decision
 // set (gate-ui.js DECISIONS + CAUSE) and its recorder rather than as a bare string the packet renderer throws on.
-test("the taxonomy is exactly the 7 §3.4 kinds + the four plan-time gates", () => {
+test("the taxonomy is exactly the 7 §3.4 kinds + the four plan-time gates + the offline final-review gate", () => {
   assert.deepEqual(
     [...ESCALATION_KINDS].sort(),
-    ["ARCH_REVIEW", "AUTH_EQUIVALENCE", "BREAK_CYCLE", "DISPOSITION_REVIEW", "DROPPED_DEPENDENCY", "NO_RELEASED_SUCCESSOR", "NO_TARGET_SHAPE", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW"],
+    ["ARCH_REVIEW", "AUTH_EQUIVALENCE", "BREAK_CYCLE", "DISPOSITION_REVIEW", "DROPPED_DEPENDENCY", "NO_RELEASED_SUCCESSOR",
+      "NO_TARGET_SHAPE", "OSCILLATION", "PARITY_REVIEW", "REPLAN_WAVE_MOVE", "RISK_LEVEL_REVIEW", "UNANALYSABLE_ARTIFACT"],
   );
 });
 
