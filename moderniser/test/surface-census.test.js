@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { ESCALATION_KINDS } from "../src/exception/escalation-bus.js";
 import { DECISIONS, renderPacket } from "../src/exception/gate-ui.js";
 import { ESCALATABLE } from "../src/sched/drive.js";
-import { packetContext } from "../src/cli-escalations.js";
+import { packetContext, SURFACING_CRITICAL_KINDS } from "../src/cli-escalations.js";
 import { raiseDispositionReviews, raiseDroppedDependencies } from "../src/plan/disposition-gate.js";
 import { raiseArchReviews, raiseNoTargetShape } from "../src/plan/arch-gate.js";
 
@@ -36,7 +36,7 @@ import { raiseArchReviews, raiseNoTargetShape } from "../src/plan/arch-gate.js";
 //                    reaches the human and tells them nothing they could act on — GAP 2b, where every gate
 //                    arrived as a 64-char signature and a generic sentence.
 //
-// WHY A SOURCE SCAN AND NOT ONLY BEHAVIOUR. Exercising all eleven kinds end-to-end would mean driving a run
+// WHY A SOURCE SCAN AND NOT ONLY BEHAVIOUR. Exercising all twelve kinds end-to-end would mean driving a run
 // into generator thrash, into a parity gray band and into an SCC over budget — corpora that do not exist.
 // So production is measured structurally AND the structural measure is itself cross-checked behaviourally,
 // by calling the four pure producers and asserting rows really appear. A scan that could pass on a comment
@@ -58,11 +58,58 @@ function sources(dir, out = []) {
 // A module PRODUCES a kind when it hands that kind to the bus. BOTH halves are required, and each alone is
 // a measured false answer:
 //   - "imports the bus" alone is not production. cli-escalations.js raises `kind: flags.kind` — the generic
-//     operator verb — which would vouch for all eleven kinds at once and make this census vacuous.
+//     operator verb — which would vouch for all twelve kinds at once and make this census vacuous.
 //   - "names the kind" alone is not production either. oscillation.js builds `{ kind: "OSCILLATION", ... }`
 //     descriptors that nothing raises; counting those would certify the very defect being looked for.
 const RAISERS = sources(SRC).filter((f) => /\braiseEscalation\b/.test(f.text) && !f.path.endsWith("escalation-bus.js"));
-const codeProduced = (kind) => RAISERS.some((f) => f.text.includes(`kind: "${kind}"`));
+
+/** Comments cannot certify a producer. Applied to the CALL text only, so it never has to reason about a
+ *  regex literal elsewhere in the file. */
+const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+
+/**
+ * The kinds handed to the bus by an actual `raiseEscalation(...)` CALL in this source.
+ *
+ * STATEMENT-scoped, and that is the whole point. This was a WHOLE-FILE substring test and the adversarial
+ * pass broke it twice: `oscillation.js` already carries `kind: "OSCILLATION"` in a JSDoc @returns line, so
+ * one unused `import { raiseEscalation }` added there certified the kind as produced; a bare comment beside
+ * a dynamic raise did the same for RISK_LEVEL_REVIEW. Both left the census green while the gate still had
+ * zero callers — the census carrying the exact defect class it exists to catch.
+ *
+ * Parens are matched by DEPTH, not to the first close paren, because the real call sites nest
+ * (`raiseEscalation(readEscalations(io), { kind: "BREAK_CYCLE", ... }, { ts })`). A paren inside a string
+ * literal argument would still miscount; none of the call sites has one, and the hermetic tests below pin
+ * the shapes that matter rather than trusting that.
+ */
+function kindsRaisedIn(text) {
+  const out = new Set();
+  const NEEDLE = "raiseEscalation(";
+  for (let i = text.indexOf(NEEDLE); i >= 0; i = text.indexOf(NEEDLE, i + 1)) {
+    let depth = 0;
+    let j = i + NEEDLE.length - 1;
+    for (; j < text.length; j += 1) {
+      if (text[j] === "(") depth += 1;
+      else if (text[j] === ")") { depth -= 1; if (depth === 0) break; }
+    }
+    for (const m of stripComments(text.slice(i, j + 1)).matchAll(/kind:\s*"([A-Z_]+)"/g)) out.add(m[1]);
+  }
+  return out;
+}
+
+/**
+ * The producer predicate over an ARBITRARY file list. `codeProduced` is defined in terms of it, so the
+ * hermetic tests below exercise the predicate the census really uses rather than a helper it might quietly
+ * stop calling — which is the same "correct mechanism, not wired" trap this whole file exists to catch, and
+ * which the first draft of this fix fell into: the tests called `kindsRaisedIn` directly, so reverting the
+ * predicate to the old whole-file substring scan left them green.
+ *
+ * RESIDUAL LIMIT, stated rather than hidden: a rewrite of `codeProduced` that bypassed this function
+ * entirely would still not be caught. The difference between file-scope and statement-scope is only
+ * OBSERVABLE on drifted input, and no src file today carries a stray kind literal in a bus-importing file.
+ * The hermetic cases below are that drifted input, held one level down.
+ */
+const producedInFiles = (files, kind) => files.some((f) => kindsRaisedIn(f.text).has(kind));
+const codeProduced = (kind) => producedInFiles(RAISERS, kind);
 
 // The second production channel. `driveOfflineVerdict` computes an escalation and returns it as INTENT
 // ("raising touches the durable register, which is the CLI's job", sched/drive.js); `cli-drive.js` raises
@@ -193,7 +240,17 @@ test("surface census: every kind the machinery EMITS is inside the closed taxono
 
 test("surface census: no acknowledgement is stale — a gate that gained a producer must lose its entry", () => {
   const stale = Object.keys(ACKNOWLEDGED).filter((k) => produced(k));
-  assert.deepEqual(stale, [], `these gates now have a producer — delete their ACKNOWLEDGED entries: ${stale}`);
+  // TWO BRANCHES, deliberately. This message used to say only "delete their entries", and the adversarial
+  // pass showed a false positive in `produced()` then walked the developer into permanently retiring an
+  // operator-ratified exemption — with the gate still having zero callers and the suite fully green. A
+  // guard that can be talked into destroying a ratified record is worse than no guard.
+  assert.deepEqual(
+    stale, [],
+    `${stale} read as PRODUCED while still carrying an ACKNOWLEDGED entry. Either (a) the gate genuinely `
+    + `gained a producer, in which case delete its entry — or (b) the scan matched a mention that raises `
+    + `nothing, in which case FIX THE SCAN and keep the entry. Check which before deleting anything: an `
+    + `exemption here was ratified by the operator.`,
+  );
 });
 
 test("surface census: every acknowledgement carries a known, checkable type", () => {
@@ -257,6 +314,75 @@ test("surface census: no gate is MUTE — its packet's content depends on the ob
       + "decision about either of them",
     );
   }
+});
+
+// ---- THE SCAN MUST BE STATEMENT-SCOPED, NOT FILE-SCOPED ----
+//
+// Found by the adversarial pass (2026-09-11) and reproduced twice, independently, by a reviewer and its
+// refuter: the producer scan was a WHOLE-FILE substring test, so any file that imported the bus anywhere
+// certified any kind it merely MENTIONED. `oscillation.js` already carries `kind: "OSCILLATION"` in a JSDoc
+// line, and adding one unused `import { raiseEscalation }` to it made the census report OSCILLATION as
+// produced. A bare comment beside a dynamic raise did the same for RISK_LEVEL_REVIEW.
+//
+// Worse than a false pass: test 4 below reuses the same predicate, so its failure text then instructed the
+// developer to DELETE that kind's operator-ratified exemption — and following that instruction left the
+// suite fully green with the gate still having zero callers. A guard that can be talked into destroying a
+// ratified record is worse than no guard.
+//
+// The census existed to catch exactly this class in OTHER people's code and shipped with it in its own. The
+// fix is to bind the kind literal to an actual `raiseEscalation(...)` CALL. Tested here on synthetic source
+// rather than by mutating the repo, so the guard is hermetic and fast.
+test("surface census: the producer scan is STATEMENT-scoped - a mention outside a raise call is not a producer", () => {
+  const sees = (src, kind) => producedInFiles([{ path: "probe.js", text: src }], kind);
+  const IMPORTS = `import { raiseEscalation } from "./escalation-bus.js";
+`;
+
+  const real = IMPORTS + `reg = raiseEscalation(reg, { kind: "ARCH_REVIEW", node_ids: [s] }, { ts });`;
+  assert.ok(sees(real, "ARCH_REVIEW"), "a real raise must still be seen, or the fix broke the scan");
+
+  // The nested call is why this cannot be a naive "up to the next semicolon" match.
+  const nested = IMPORTS + `const r = raiseEscalation(readEscalations(io), { kind: "BREAK_CYCLE", node_ids: [sig] }, { ts });`;
+  assert.ok(sees(nested, "BREAK_CYCLE"), "balanced parens, not the first close paren");
+
+  // The real oscillation.js shape: the literal lives in a JSDoc @returns line and nothing raises it.
+  const jsdoc = IMPORTS + `/** @returns {Array<{kind: "OSCILLATION", root_signature: string}>} clusters */
+function f() {}`;
+  assert.ok(!sees(jsdoc, "OSCILLATION"), "a JSDoc mention is not a producer");
+
+  const besideCall = IMPORTS + `// { kind: "RISK_LEVEL_REVIEW" } is deliberately NOT raised here yet
+reg = raiseEscalation(reg, { kind: e.kind }, { ts });`;
+  assert.ok(!sees(besideCall, "RISK_LEVEL_REVIEW"), "a comment beside a DYNAMIC raise is not a producer");
+
+  const insideCall = IMPORTS + `raiseEscalation(reg, { /* kind: "PARITY_REVIEW" */ kind: e.kind }, { ts });`;
+  assert.ok(!sees(insideCall, "PARITY_REVIEW"), "nor a comment INSIDE the call parens");
+
+  // The generic operator verb must stay invisible, or the census is vacuous again.
+  const dynamic = IMPORTS + `const next = raiseEscalation(reg, { kind: flags.kind, node_ids }, { ts });`;
+  for (const k of ESCALATION_KINDS) assert.ok(!sees(dynamic, k), `a dynamic kind vouches for nothing, not even ${k}`);
+});
+
+// ---- A GATE THAT CANNOT WIN THE WINDOW IS A GATE THAT DOES NOT REACH A HUMAN ----
+//
+// GAP 6 made the surfacing window lead with the gates that actually BLOCK the run, because at the default
+// `--max 5` the operator saw five routine prompts while 18 blocking gates sat unseen. Its `criticalKinds`
+// was then hard-coded to the two PLAN-time arch gates.
+//
+// The adversarial pass found the consequence: every DRIVE-time kind — the ones GAP 7 finally made real —
+// was excluded, so the gates the driver is stuck on sort LAST, by construction, being the newest rows. The
+// refuter correctly downgraded this from "unreachable" to "unprioritised" (queued rows carry their ids, so
+// `escalations <run>` still finds them), but the ordering still contradicts the principle GAP 6 established.
+//
+// Deriving the set from the driver's OWN table rather than a hand-written literal is what stops it drifting
+// a third time: add a kind to ESCALATABLE and it is prioritised automatically.
+test("surface census: every kind that BLOCKS the driver can win the surfacing window", () => {
+  const blocking = ESCALATABLE.map(([, kind]) => kind);
+  const missing = blocking.filter((k) => !SURFACING_CRITICAL_KINDS.has(k));
+  assert.deepEqual(
+    missing, [],
+    "the driver returns await_human for these and only a human can clear them, but the surfacing path does "
+    + "not rank them as critical — so they sort by recency, and a drive-time gate is always the NEWEST row, "
+    + `which puts it last in the default window: ${missing}`,
+  );
 });
 
 test("surface census: every taxonomy kind still declares typed decisions", () => {

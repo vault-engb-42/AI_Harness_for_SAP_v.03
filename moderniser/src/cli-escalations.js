@@ -15,6 +15,7 @@ import { recordDispositionDecision, raiseDispositionReviews, droppedDependencies
 import { recordArchDecision, parseArchDecision, recordNoTargetShapeDecision } from "./plan/arch-gate.js";
 import { bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
+import { ESCALATABLE } from "./sched/drive.js";
 import { buildDispositionManifest } from "./plan/manifest.js";
 import { readFileSync } from "node:fs";
 import { consumptionFacts } from "./plan/consumption-facts.js";
@@ -22,6 +23,28 @@ import { persistenceFacts } from "./plan/persistence-facts.js";
 import { loadRun, readEscalations, saveEscalations, saveDispositionManifest, saveState, log } from "./cli-io.js";
 
 const DEFAULT_SURFACE_MAX = 5; // MAX_ESC_PER_HUMAN_PER_WINDOW default until the manifest pins it
+
+/**
+ * The kinds that genuinely HOLD A RUN UP, and so the ones that must outrank routine prompts in the window.
+ *
+ * GAP 6 fixed the ordering — recency is not urgency — but hard-coded this to the two PLAN-time arch gates,
+ * and the adversarial pass (2026-09-11) found the consequence: every DRIVE-time kind was excluded, so the
+ * gates a run is actually stuck on sorted LAST, by construction, being the newest rows. The refuter rightly
+ * downgraded that from "unreachable" to "unprioritised" — `escalations <run>` returns queued rows in full,
+ * ids included, so the operator can still find and decide one — but it contradicted the principle GAP 6 had
+ * just established, for precisely the gates GAP 7 made real.
+ *
+ * DERIVED, never listed. `ESCALATABLE` is the driver's own answer to "which reasons can only a human
+ * clear"; reading it here means a kind added there is prioritised automatically. A hand-written literal is
+ * what drifted twice.
+ */
+export const SURFACING_CRITICAL_KINDS = new Set([
+  // plan-time: `drive` returns await_human/arch_ratification until one of these clears
+  "NO_TARGET_SHAPE",
+  "ARCH_REVIEW",
+  // drive-time: the offline BLOCK reasons no regeneration can fix
+  ...ESCALATABLE.map(([, kind]) => kind),
+]);
 
 export function cmdEscalate(io, pos, flags) {
   const [runId] = pos;
@@ -103,14 +126,18 @@ function surfaceForRun(io, plan, state, flags) {
   const scoped = { ...register, escalations: register.escalations.filter((e) => (e.node_ids ?? []).some((n) => mine.has(n))) };
 
   const explicit = String(flags.critical ?? "").split(",").filter(Boolean);
-  const criticalSigs = explicit.length
-    ? new Set(explicit)
-    : new Set(plan.nodes.filter((n) => ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id)).map((n) => n.id));
+  // BOTH of the driver's await_human branches, so a node stuck on either reads as stuck. The second was
+  // missing: a node resting at PROVISIONAL_GATED with a RECORDED FAILING verdict is not rested, it is
+  // waiting on an attestation (sched/drive.js `awaitingAttestation`), and its gate was therefore never
+  // marked critical however long the run sat on it.
+  const stuck = (n) =>
+    (ARCH_GATED_DISPOSITIONS.has(n.disposition) && !isArchRatified(state, n.id))
+    || (state.status?.[n.id] === "PROVISIONAL_GATED" && state.verdict_provisional?.[n.id] === false);
+  const criticalSigs = explicit.length ? new Set(explicit) : new Set(plan.nodes.filter(stuck).map((n) => n.id));
 
-  // The kinds that actually hold a run up. `drive` returns await_human for an arch-gated node without a
-  // ratified contract; ARCH_REVIEW and NO_TARGET_SHAPE are the two gates that clear that state. A
-  // DISPOSITION_REVIEW never makes the driver stop — approving one changes nothing until a `replan`.
-  return surfaceable(scoped, { max, criticalSigs, criticalKinds: new Set(["NO_TARGET_SHAPE", "ARCH_REVIEW"]) });
+  // A DISPOSITION_REVIEW never makes the driver stop — approving one changes nothing until a `replan` — so
+  // it is deliberately absent from the critical set even though it is the most NUMEROUS kind.
+  return surfaceable(scoped, { max, criticalSigs, criticalKinds: SURFACING_CRITICAL_KINDS });
 }
 
 /**
