@@ -151,14 +151,21 @@ function raiseOwedGates(io, runId, action) {
   const owed = action?.escalations ?? [];
   if (owed.length === 0) return;
   const ts = new Date().toISOString();
-  const before = readEscalations(io);
-  let reg = before;
-  for (const e of owed) reg = raiseEscalation(reg, { kind: e.kind, node_ids: e.node_ids }, { ts });
-  if (reg === before) return; // every gate already open — a resume must not re-log a raise that did not happen
+  // Per-gate, not per-batch. The bus dedupes an already-OPEN (kind, node-set), so on a resume some of the
+  // owed gates are new and some are not — logging the whole `owed` list claimed a raise that did not
+  // happen, which makes the run log say a gate reached the human on a step where it did not.
+  let reg = readEscalations(io);
+  const raised = [];
+  for (const e of owed) {
+    const next = raiseEscalation(reg, { kind: e.kind, node_ids: e.node_ids }, { ts });
+    if (next !== reg) raised.push(e);
+    reg = next;
+  }
+  if (raised.length === 0) return;
   saveEscalations(io, reg);
   log(io, runId, "escalate", {
-    kinds: [...new Set(owed.map((e) => e.kind))].sort(),
-    node_ids: [...new Set(owed.flatMap((e) => e.node_ids))].sort(),
+    kinds: [...new Set(raised.map((e) => e.kind))].sort(),
+    node_ids: [...new Set(raised.flatMap((e) => e.node_ids))].sort(),
   });
 }
 
