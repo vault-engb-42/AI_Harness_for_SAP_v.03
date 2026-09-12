@@ -152,6 +152,15 @@ test("attesting ONE owed gate does not void it when the OTHER is still open", ()
   // attestation would silently evaporate and the node could never clear. It does not: the attested reason
   // is removed from the reason list BEFORE the driver derives its escalation intents, so the resolved kind
   // is never re-raised. This test is that probe, kept.
+  //
+  // WHY IT IS NOT REDUNDANT with the single-step test above, corrected 2026-09-12 after the adversarial
+  // pass showed the drift originally cited as evidence was the WRONG one. Removing the bus's no-storm
+  // guard fires this test's DUPLICATE-ROW assertion, which the storm test already covers — it proves
+  // nothing about the void. The drift that isolates the void is a resolved gate being RE-RAISED on a later
+  // step (planted by raising AUTH_EQUIVALENCE unconditionally alongside the driver's intents). Measured:
+  // ONLY this test fails under it — the single-step test still passes, because at step two the attestation
+  // is joined BEFORE the re-raise lands, and the void only shows on the step after. Hence the two extra
+  // steps below are the assertion, not ceremony.
   const { cli, writeDir } = mkCli();
   const { runId, sig, before, after } = toOwedAttestation(cli, writeDir);
   const [auth] = openRows(cli, runId, "AUTH_EQUIVALENCE");
