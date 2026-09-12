@@ -1,12 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync, readdirSync, statSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { ESCALATION_KINDS } from "../src/exception/escalation-bus.js";
 import { DECISIONS, renderPacket } from "../src/exception/gate-ui.js";
 import { ESCALATABLE } from "../src/sched/drive.js";
 import { packetContext, SURFACING_CRITICAL_KINDS } from "../src/cli-escalations.js";
+import { cmdEscalate, cmdPackets } from "../src/cli-escalations.js";
+import { raiseOwedGates } from "../src/cli-drive.js";
+import { readEscalations, loadRun } from "../src/cli-io.js";
 import { raiseDispositionReviews, raiseDroppedDependencies } from "../src/plan/disposition-gate.js";
 import { raiseArchReviews, raiseNoTargetShape } from "../src/plan/arch-gate.js";
 
@@ -44,7 +49,6 @@ import { raiseArchReviews, raiseNoTargetShape } from "../src/plan/arch-gate.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = join(HERE, "..", "src");
-const SKILL_MD = join(HERE, "..", "..", ".claude", "skills", "modernise", "SKILL.md");
 
 function sources(dir, out = []) {
   for (const name of readdirSync(dir)) {
@@ -114,18 +118,38 @@ const codeProduced = (kind) => producedInFiles(RAISERS, kind);
 // The second production channel. `driveOfflineVerdict` computes an escalation and returns it as INTENT
 // ("raising touches the durable register, which is the CLI's job", sched/drive.js); `cli-drive.js` raises
 // whatever it returns, so the kind arrives dynamically and carries no literal for the scan above to see.
-// The driver's OWN table is therefore the source of truth for this channel — and it is a real production
-// path rather than a claim about one, pinned end-to-end by drive-raises-gates.test.js, which drives the
-// real CLI and asserts the row lands in the durable register.
+// The driver's OWN table is the source of truth for WHICH kinds ride this channel.
+//
+// THREE THINGS, and it matters which this file proves and which it does not.
+//   (1) MEMBERSHIP - the kind is in the table. That is this predicate, and on its own it is not
+//       production: the adversarial pass added `if (e.kind === "PARITY_REVIEW") continue;` to
+//       `raiseOwedGates` and the census stayed green while the gray-band gate never reached the register.
+//   (2) THE RAISE LANDS - measured below, by running `raiseOwedGates` for every entry against a real
+//       register. That closes (1).
+//   (3) THE CALL SITE IS WIRED - NOT proved here, and the census must not claim it. Commenting out the
+//       single `raiseOwedGates(...)` call in `offlineVerdictStep` restores the original GAP 7 defect and
+//       leaves every test in this file green. Measured 2026-09-12. The guard for (3) is
+//       drive-raises-gates.test.js, which drives the real CLI end to end; under that same drift all EIGHT
+//       of its tests fail. Duplicating a multi-minute end-to-end loop here would be divergent duplication
+//       for no added coverage - so instead the test below asserts that suite COVERS every entry, which is
+//       the one thing nothing checked: today all three happen to be pinned by hand-written tests, and
+//       nothing stopped a fourth entry arriving with none.
 const driverProduced = (kind) => ESCALATABLE.some(([, k]) => k === kind);
 
-// The third and weakest channel: prose. Some gates are raised by the /modernise SKILL through the generic
-// `escalate` verb rather than by any code. It counts only when the SKILL names the actual raise command for
-// that exact kind — "the operator could type it" is not a production path.
-const SKILL_TEXT = readFileSync(SKILL_MD, "utf8");
-const skillProduced = (kind) => SKILL_TEXT.includes(`--kind ${kind}`);
+// THERE IS NO PROSE CHANNEL. There was one - a match for the raise command in SKILL.md - and the
+// adversarial pass (2026-09-11) took two lines to dismantle the case for it.
+//
+// It certified exactly ONE kind, AUTH_EQUIVALENCE, which the driver channel already covers, so it carried
+// no weight. It could be satisfied by a sentence saying the OPPOSITE, measured: appending "do NOT run
+// `escalate --kind OSCILLATION` by hand - no detector feeds it yet" to the SKILL made the census report
+// OSCILLATION as produced, and routed into the same exemption-deletion remedy. And it was the only channel
+// whose input lived outside moderniser/, so a docs-only edit by someone not touching the moderniser could
+// retire a genuine gap.
+//
+// A channel that certifies nothing new and can be fooled by its own disclaimer is not a weak channel, it
+// is a liability. Deleted rather than hardened: there is nothing left for it to do.
+const produced = (kind) => codeProduced(kind) || driverProduced(kind);
 
-const produced = (kind) => codeProduced(kind) || driverProduced(kind) || skillProduced(kind);
 const inTaxonomy = (kind) => ESCALATION_KINDS.includes(kind);
 
 /** The registered verb set, parsed from cli.js's COMMANDS map — the source of truth the skill contract uses. */
@@ -225,6 +249,39 @@ test("surface census: the production scan is cross-checked by calling the produc
   }
 });
 
+test("surface census: the DRIVER channel is MEASURED - every kind in its table really lands a row", () => {
+  // The code channel has had a behavioural cross-check since it was written; this channel had none, and
+  // the adversarial pass showed what that costs: a one-line filter in `raiseOwedGates` silently removed a
+  // gate from production with the census none the wiser. Real fs, real register, no mocks - one temp state
+  // dir per kind, so a row left by one cannot vouch for the next.
+  for (const [, kind] of ESCALATABLE) {
+    const base = mkdtempSync(join(tmpdir(), "census-driver-"));
+    const io = { stateDir: base, runsDir: join(base, "runs") };
+    raiseOwedGates(io, "R", { action: "await_human", nodes: [A], escalations: [{ kind, node_ids: [A] }] });
+    const rows = readEscalations(io).escalations.filter((e) => e.kind === kind && e.status === "OPEN");
+    assert.equal(
+      rows.length, 1,
+      `${kind}: the driver names it as a reason only a human can clear, but running the raise lands no row, `
+      + "so the gate the census reports as produced never reaches the register",
+    );
+    assert.deepEqual(rows[0].node_ids, [A], `${kind}: the row must name the node the driver blocked on`);
+  }
+});
+
+test("surface census: every driver kind is PINNED end-to-end by drive-raises-gates.test.js", () => {
+  // A COVERAGE check on the end-to-end suite, and deliberately nothing more. It cannot prove the call site
+  // is wired - only that suite can, and it does. What it prevents is a new ESCALATABLE entry arriving with
+  // no end-to-end pin at all, which is the gap the adversarial pass named: "nothing anywhere asserts that
+  // each ESCALATABLE entry HAS one".
+  const e2e = readFileSync(join(HERE, "drive-raises-gates.test.js"), "utf8");
+  const unpinned = ESCALATABLE.map(([, kind]) => kind).filter((kind) => !e2e.includes(kind));
+  assert.deepEqual(
+    unpinned, [],
+    "these kinds ride the driver channel but no end-to-end test names them, so nothing proves the CLI "
+    + `actually raises them from a real run - the defect e13aa2f exists to prevent: ${unpinned}`,
+  );
+});
+
 test("surface census: every kind the machinery EMITS is inside the closed taxonomy", () => {
   // The bus refuses an unknown kind and gate-ui throws on it, so a kind emitted from outside the taxonomy
   // cannot be raised, cannot be rendered and cannot be decided. The node rests on an owed human decision
@@ -294,25 +351,64 @@ const TWO_NODE_PLAN = {
   ],
 };
 
-test("surface census: no gate is MUTE — its packet's content depends on the object it names", () => {
-  const context = packetContext(TWO_NODE_PLAN, null);
-  const decisionBearing = (p) => JSON.stringify({ cause: p.cause, evidence: p.evidence, plan_fields: p.plan_fields });
+test("surface census: the wiring holds at the PRODUCTION surface - `packets` carries context for every kind", () => {
+  // EXERCISED, not reconstructed. This test used to compose packetContext and renderPacket itself, and
+  // the adversarial pass showed what that misses: changing cmdPackets to `renderPacket(e)` - dropping the
+  // context, i.e. restoring GAP 2b on the real surface - left the census fully green. A census that
+  // rebuilds the wiring it is meant to check is blind to the exact defect it names as its motivation.
+  //
+  // One real plan, one subprocess, then the real verbs in-process. Every taxonomy kind is raised on a real
+  // plan node through the real `escalate`, so a kind added tomorrow is covered without anyone remembering.
+  const base = mkdtempSync(join(tmpdir(), "census-surface-"));
+  const io = { stateDir: join(base, "state"), runsDir: join(base, "runs") };
+  const planned = JSON.parse(execFileSync(
+    process.execPath,
+    [join(SRC, "cli.js"), "plan", join(HERE, "fixtures", "analyser-findings.json"), "--state-dir", io.stateDir, "--runs-dir", io.runsDir],
+    { encoding: "utf8" },
+  ));
+  const nodes = loadRun(io, planned.run_id).plan.nodes;
+  assert.ok(nodes.length >= 2, "the fixture must offer two distinct objects for the comparison below");
+  const [one, two] = [nodes[0].id, nodes[1].id];
 
   for (const kind of ESCALATION_KINDS) {
-    const forNode = (sig) => {
-      const e = { id: `esc-${kind}-${sig.slice(0, 4)}`, kind, node_ids: [sig], status: "OPEN", opened_at: "T" };
-      return renderPacket(e, context(e));
-    };
-    const [a, b] = [forNode(A), forNode(B)];
-    assert.ok(
-      Object.keys(a.plan_fields).length > 0,
-      `${kind}: the packet must carry plan fields — a bare signature is not something a human can decide on`,
-    );
+    cmdEscalate(io, [planned.run_id], { kind, nodes: one });
+    cmdEscalate(io, [planned.run_id], { kind, nodes: two });
+  }
+  const { packets } = cmdPackets(io, [planned.run_id], { max: 999 });
+
+  const bearing = (p) => JSON.stringify({ evidence: p.evidence, plan_fields: p.plan_fields });
+  for (const kind of ESCALATION_KINDS) {
+    const mine = packets.filter((p) => p.kind === kind);
+    assert.equal(mine.length, 2, `${kind}: raised on two real plan nodes but ${mine.length} reached the window`);
+    for (const p of mine) {
+      assert.ok(
+        p.plan_fields?.object,
+        `${kind}: reaches the operator as a bare 64-char signature - the production surface passed no context`,
+      );
+    }
     assert.notEqual(
-      decisionBearing(a), decisionBearing(b),
-      `${kind}: two entirely different objects produce the SAME packet, so nothing in it could inform a `
-      + "decision about either of them",
+      bearing(mine[0]), bearing(mine[1]),
+      `${kind}: two entirely different objects produce the SAME packet content, so nothing in it could `
+      + "inform a decision about either of them",
     );
+  }
+});
+
+test("surface census: every kind renders a DISTINCT cause - the human can tell which gate they are at", () => {
+  // The genuinely per-kind property, and the one the loop above was mistaken for. A gate added tomorrow
+  // that copy-pastes a neighbour's cause renders a packet the operator cannot tell apart from the gate
+  // beside it - and `cause` is the ONLY per-kind decision-bearing field renderPacket produces, since
+  // evidence and plan_fields come verbatim from the caller.
+  const context = packetContext(TWO_NODE_PLAN, null);
+  const byCause = new Map();
+  for (const kind of ESCALATION_KINDS) {
+    const e = { id: `esc-${kind}`, kind, node_ids: [A], status: "OPEN", opened_at: "T" };
+    const { cause } = renderPacket(e, context(e));
+    assert.ok(cause && cause.length > 0, `${kind}: renders no cause at all`);
+    const twin = byCause.get(cause);
+    assert.equal(twin, undefined, `${kind} and ${twin} render the SAME cause, so the packets are `
+      + `indistinguishable to the human being asked: "${cause}"`);
+    byCause.set(cause, kind);
   }
 });
 

@@ -147,7 +147,7 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
  * re-runs this step on every resume, and a re-raise VOIDS any attestation already recorded against it
  * (cli-attest.js — the latest EVENT governs), so a storming gate could never be cleared.
  */
-function raiseOwedGates(io, runId, action) {
+export function raiseOwedGates(io, runId, action) {
   const owed = action?.escalations ?? [];
   if (owed.length === 0) return;
   const ts = new Date().toISOString();
