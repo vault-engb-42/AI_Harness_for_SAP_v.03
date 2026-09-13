@@ -48,6 +48,13 @@ export function initRun(plan, opts = {}) {
     generation: {}, // per-sig artifact generation — bumps on EVERY entry to GENERATED (attestation binding)
     verdict_green: {}, // per-sig recorded verdict result — GREEN is EARNED, never asserted
     verdict_provisional: {}, // per-sig offline provisional-pass flag (recorded at PROVISIONAL_GATED; offline never GREENs)
+    // per-sig CHRONOLOGICAL verdict tokens, capped at the oscillation window. Deliberately NOT cleared on
+    // re-entry with the verdict above: oscillation IS flip-flopping across regeneration cycles, so a
+    // history that resets every re-walk can never show it (§3.4 #3, L2/7.6).
+    verdict_series: {},
+    // per-sig root signature of the most recent FAILING verdict, so oscillation clusters by shared cause
+    // rather than storming one escalation per thrashing node (§3.4 #3).
+    verdict_top_fail: {},
     deferral_track: [],
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig

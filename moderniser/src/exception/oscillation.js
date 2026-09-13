@@ -6,6 +6,9 @@
  * with N instances — never N storms. Pure, deterministic.
  */
 const WINDOW = 5;
+/** The detector's window, exported so the state that FEEDS it is capped to the same number — a series
+ *  shorter than the window would silently under-report flips, a longer one is state nothing reads. */
+export const VERDICT_WINDOW = WINDOW;
 const FLIP_THRESHOLD = 2;
 
 /** @param {string[]} verdicts chronological verdict tokens @returns {boolean} */

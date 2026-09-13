@@ -195,19 +195,16 @@ const ACKNOWLEDGED = {
   // actually protects the committed work. `sched/plan.js replan()`'s own `moved_committed` computation
   // stays callerless because the hash bind subsumes the diff it performs.
   REPLAN_WAVE_MOVE: { type: "superseded_by", verb: "replan" },
-  // BUILT AND UNWIRED, both flagged by F18 (specs/reviews/branch-review-2026-07-13.md) and still unwired
-  // two months later — which is the whole argument for this census existing.
+  // RISK_LEVEL_REVIEW is still OWED and still unwired. `exception/risk-gate.js levelDisposition` scores a
+  // wave's green nodes and has zero callers; wiring it today would raise a gate on EVERY wave rather than on
+  // risky ones, because it is fail-closed by design (missing evidence is FLAGGED, never assumed clear) and
+  // MEASURED 2026-09-13: five of its eight inputs - all four touches_* flags and blast_total - have NO
+  // producer anywhere in src. The evidence comes first, then the gate.
   //
-  // `exception/risk-gate.js levelDisposition` scores a wave's green nodes and has zero callers. Wiring it
-  // today would raise a gate on EVERY wave rather than on risky ones: it is fail-closed by design (missing
-  // evidence is FLAGGED, never assumed clear) and the offline path populates none of touches_ddic /
-  // touches_invariant / touches_data_source / touches_money. So the evidence comes first, then the gate.
-  RISK_LEVEL_REVIEW: { type: "owed", arc: "wave-boundary risk evidence — levelDisposition needs touches_* populated before it can flag anything but everything" },
-  // `exception/oscillation.js isOscillating/clusterOscillations` detect a node flip-flopping across
-  // verdicts and have zero callers. The machine ceiling (MAX_PHASE_RETRY_CYCLES) is NOT a substitute — it
-  // counts retries within one pass, while oscillation is a cross-verdict signal — but nothing reads a
-  // node's verdict history across runs yet, so there is no input to detect on.
-  OSCILLATION: { type: "owed", arc: "cross-run verdict history — nothing reads a node's verdict series, so isOscillating has no input" },
+  // OSCILLATION's entry is GONE, and its absence is the point: it was owed on the same F18 grounds until
+  // 2026-09-13, when state gained the bounded verdict series the detector needs and cli-drive gained the
+  // raise. This test is what forced the deletion - the exemption went stale the moment the producer landed.
+  RISK_LEVEL_REVIEW: { type: "owed", arc: "wave-boundary risk evidence - MEASURED 2026-09-13: five of levelDisposition's eight inputs (all four touches_* flags and blast_total) have NO producer anywhere in src, so wiring it today would flag every wave rather than the risky ones" },
 };
 
 const SIG = (c) => c.repeat(64);

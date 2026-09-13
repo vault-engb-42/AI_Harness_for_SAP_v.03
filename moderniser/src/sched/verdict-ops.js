@@ -13,6 +13,7 @@
  * the loop never calls these back), so no import cycle.
  */
 import { bind } from "./loop.js";
+import { VERDICT_WINDOW } from "../exception/oscillation.js";
 import { ratchetGate, offlineRatchetGate } from "../state/ratchet.js";
 import { nodeVerdict, offlineVerdict } from "../node/verdict.js";
 
@@ -28,7 +29,12 @@ export function recordVerdict(plan, state, sig, verdictResult) {
   if (state.status[sig] !== "GATED") {
     throw new Error(`loop: verdict for ${sig} refused — the node is ${state.status[sig]}, not GATED`);
   }
-  return { ...state, verdict_green: { ...state.verdict_green, [sig]: verdictResult.green === true } };
+  return {
+    ...state,
+    verdict_green: { ...state.verdict_green, [sig]: verdictResult.green === true },
+    verdict_series: appendVerdict(state.verdict_series, sig, verdictResult.green === true),
+    verdict_top_fail: topFail(state, sig, verdictResult),
+  };
 }
 
 /**
@@ -43,7 +49,40 @@ export function recordProvisionalVerdict(plan, state, sig, verdictResult) {
   if (state.status[sig] !== "PROVISIONAL_GATED") {
     throw new Error(`loop: provisional verdict for ${sig} refused — the node is ${state.status[sig]}, not PROVISIONAL_GATED`);
   }
-  return { ...state, verdict_provisional: { ...state.verdict_provisional, [sig]: verdictResult.provisional === true } };
+  return {
+    ...state,
+    verdict_provisional: { ...state.verdict_provisional, [sig]: verdictResult.provisional === true },
+    verdict_series: appendVerdict(state.verdict_series, sig, verdictResult.provisional === true),
+    verdict_top_fail: topFail(state, sig, verdictResult),
+  };
+}
+
+/**
+ * Append one verdict token to the node's chronological series, capped at the detector window.
+ *
+ * BOUNDED on purpose: `isOscillating` reads only the last N, and an unbounded history would grow run state
+ * without limit across a 100K-LOC corpus for evidence nothing consumes. Tokens rather than booleans so the
+ * series reads plainly in a state file a human may have to open.
+ */
+function appendVerdict(series, sig, passed) {
+  const prior = series?.[sig] ?? [];
+  return { ...series, [sig]: [...prior, passed ? "pass" : "fail"].slice(-VERDICT_WINDOW) };
+}
+
+/**
+ * The ROOT SIGNATURE of a failing verdict: the first reason, normalised to its rule id.
+ *
+ * Clustering is what keeps one generator weakness from becoming N escalations (§3.4 #3), and it groups on
+ * this. `final-review-fix:<rule_id> (3 hits, first z.clas.abap:7)` must reduce to `<rule_id>` or two nodes
+ * failing the SAME rule in different places would never cluster. A PASSING verdict leaves the prior
+ * signature standing: it is the cause the node keeps returning to, and that is the thing worth grouping.
+ */
+function topFail(state, sig, result) {
+  if (result?.provisional === true || result?.green === true) return state.verdict_top_fail ?? {};
+  const first = (result?.reasons ?? [])[0];
+  if (first === undefined) return state.verdict_top_fail ?? {};
+  const id = String(first).replace(/^final-review-(?:fix|unanalysable):/, "").split(" (")[0];
+  return { ...(state.verdict_top_fail ?? {}), [sig]: id };
 }
 
 /**

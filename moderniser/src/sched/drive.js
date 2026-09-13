@@ -20,6 +20,7 @@ import { recordProvisionalVerdict } from "./verdict-ops.js";
 import { MAX_PHASE_RETRY_CYCLES, isActive } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { UNANALYSABLE_REASON_PREFIX } from "../node/final-review.js";
+import { clusterOscillations } from "../exception/oscillation.js";
 
 // The states a `retire` node passes through on its way to RETIRED. The FSM requires GROUNDED before the
 // terminal, so both the ready-to-route state and that transit state must keep returning the retire action.
@@ -177,6 +178,26 @@ export function driveReport(plan, state, sig, outcome) {
  * @param {{provisional: boolean, reasons: string[]}} result from `renderOfflineNodeVerdict`
  * @returns {{state: object, action: object}}
  */
+/**
+ * The oscillation clusters a run currently has (§3.4 #3, L2/7.6) — PURE, like every other predicate here.
+ *
+ * `isOscillating`/`clusterOscillations` were built, unit-tested and wired to NOTHING for two months (F18 of
+ * branch-review-2026-07-13, operator-ratified OWED 2026-09-11): the detector wants a chronological verdict
+ * series and state kept only the latest verdict as a scalar, so there was no input to detect on. `state`
+ * now carries a bounded series and the root signature of the last failing verdict, which is what this reads.
+ *
+ * Clustering by shared root signature is what makes this ONE escalation per generator weakness rather than
+ * one per thrashing node — the human is an exception handler, never a volume gate.
+ */
+export function oscillationClusters(plan, state) {
+  return clusterOscillations((plan?.nodes ?? []).map((n) => ({
+    sig: n.id,
+    top_fail_rule_id: state?.verdict_top_fail?.[n.id] ?? null,
+    shared_dep: (n.dependencies ?? [])[0] ?? null,
+    verdicts: state?.verdict_series?.[n.id] ?? [],
+  })));
+}
+
 export function driveOfflineVerdict(plan, state, sig, result) {
   if (state.status[sig] === undefined) throw new Error(`drive: unknown node ${sig}`);
   let next = state.status[sig] === "PROVISIONAL_GATED" ? state : applyProgress(plan, state, sig, "PROVISIONAL_GATED");

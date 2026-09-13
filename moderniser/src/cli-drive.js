@@ -12,7 +12,7 @@
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { driveDecision, driveReport, driveOfflineVerdict } from "./sched/drive.js";
+import { driveDecision, driveReport, driveOfflineVerdict, oscillationClusters } from "./sched/drive.js";
 import { loadRun, saveState, log, readBaselines, readEscalations, saveEscalations } from "./cli-io.js";
 import { raiseEscalation } from "./exception/escalation-bus.js";
 import { renderOfflineNodeVerdict } from "./node/offline-checkpoint.js";
@@ -106,6 +106,7 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
   const { state: next, action } = driveOfflineVerdict(plan, state, sig, folded);
   saveState(io, runId, next);
   raiseOwedGates(io, runId, action);
+  raiseOscillations(io, runId, plan, next);
   log(io, runId, "drive-offline-verdict", {
     sig,
     provisional: folded.provisional,
@@ -166,6 +167,36 @@ export function raiseOwedGates(io, runId, action) {
   log(io, runId, "escalate", {
     kinds: [...new Set(raised.map((e) => e.kind))].sort(),
     node_ids: [...new Set(raised.flatMap((e) => e.node_ids))].sort(),
+  });
+}
+
+/**
+ * Raise one OSCILLATION per thrash CLUSTER (§3.4 #3).
+ *
+ * A node whose verdicts flip across regeneration cycles cannot count toward the ratchet, and no further
+ * regeneration will settle it — only a human can (RESEED_GENERATOR / MANUAL_SEAM / DEFER). Raised here for
+ * the same reason as the owed gates: raising touches the durable register, which is the CLI's job.
+ *
+ * ONE escalation per shared root signature, never one per node: the whole point of clustering is that a
+ * single generator weakness hitting twelve nodes is ONE question for the human. The bus then dedupes an
+ * already-open cluster, so a run that keeps thrashing does not re-ask it every step.
+ */
+function raiseOscillations(io, runId, plan, state) {
+  const clusters = oscillationClusters(plan, state);
+  if (clusters.length === 0) return;
+  const ts = new Date().toISOString();
+  let reg = readEscalations(io);
+  const raised = [];
+  for (const c of clusters) {
+    const next = raiseEscalation(reg, { kind: "OSCILLATION", node_ids: c.node_ids, root_signature: c.root_signature }, { ts });
+    if (next !== reg) raised.push(c);
+    reg = next;
+  }
+  if (raised.length === 0) return;
+  saveEscalations(io, reg);
+  log(io, runId, "escalate", {
+    kinds: ["OSCILLATION"],
+    clusters: raised.map((c) => ({ root_signature: c.root_signature, nodes: c.node_ids.length })),
   });
 }
 
