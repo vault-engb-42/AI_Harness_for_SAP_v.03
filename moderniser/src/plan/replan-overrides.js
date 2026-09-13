@@ -70,3 +70,56 @@ export function collectOverrides(register, runId) {
   }
   return out;
 }
+
+/**
+ * The overrides a human RECORDED and a later decision DISCARDED — the other half of the same read.
+ *
+ * Found in the first real GAP 5 run (2026-09-13, abap_fico): six objects were decided `override:refactor`
+ * at the NO_TARGET_SHAPE gate and then `approve` at DISPOSITION_REVIEW for the same nodes. The
+ * temporally-final rule above is correct and deliberate — a later approve means "they changed their mind
+ * back" — but all six overrides died and `replan` reported `changed: []`, a clean diff. The operator was
+ * never told that six of their decisions had been thrown away.
+ *
+ * The ordering that causes it is now the NATURAL one: GAP 6 made blocking gates sort FIRST, so any batch
+ * walking the surfaced list records overrides before approvals, and the ratified surfacing plan (batch the
+ * gate-1 prompts, decide the unplaceable ones individually) produces exactly that batch.
+ *
+ * REPORTING, not refusing. The precedence stays untouched — changing which decision wins would break a
+ * ratified rule to fix a silence. What changes is that the silence ends: `replan` can now say which
+ * decisions it discarded and which gate took them, so a human sees the loss instead of an empty diff.
+ *
+ * @returns {Array<{sig: string, disposition: string, decided_by: string, decided_at: string,
+ *                  superseded_by: string, superseded_at: string}>} sorted by sig
+ */
+export function supersededOverrides(register, runId) {
+  if (typeof runId !== "string" || runId === "") {
+    throw new Error("replan-overrides: a run_id is required — an unscoped read would report another run's decisions");
+  }
+  const bySig = new Map();
+  for (const e of register?.escalations ?? []) {
+    if (!DISPOSITION_DECIDING_KINDS.has(e.kind) || e.status !== "RESOLVED" || e.run_id !== runId) continue;
+    for (const sig of e.node_ids ?? []) {
+      if (!bySig.has(sig)) bySig.set(sig, []);
+      bySig.get(sig).push(e);
+    }
+  }
+  const lost = [];
+  for (const [sig, rows] of bySig) {
+    const final = latestEvent(rows);
+    if (final?.decision?.verb === "override") continue; // it stands — do not cry wolf
+    // Every override this node carried that the final word displaced. Reported per DECISION, not per node:
+    // a human who overrode twice and then approved discarded two decisions, and both are theirs to see.
+    for (const r of rows) {
+      if (r === final || r.decision?.verb !== "override") continue;
+      lost.push({
+        sig,
+        disposition: r.decision.disposition,
+        decided_by: r.resolved_by,
+        decided_at: r.resolved_at,
+        superseded_by: final?.kind ?? "(unknown)",
+        superseded_at: final?.resolved_at ?? null,
+      });
+    }
+  }
+  return lost.sort((a, b) => (a.sig < b.sig ? -1 : a.sig > b.sig ? 1 : 0));
+}

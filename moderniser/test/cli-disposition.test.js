@@ -169,3 +169,80 @@ test("GAP6 the gates the driver is STUCK on outrank routine prompts in a TIGHT w
     `a tight window must still surface what the run is stuck on, got: ${JSON.stringify(window.map((p) => p.kind))}`,
   );
 });
+
+// ---- APPROVING AN UNPLACEABLE NODE RE-CREATES THE DEADLOCK THE GATE EXISTS TO BREAK ----
+//
+// Found in the first real GAP 5 run (2026-09-13, abap_fico). A node can be gated TWICE: DISPOSITION_REVIEW
+// asks "is re_architect right?", NO_TARGET_SHAPE says "nothing can be built from that". Approving the
+// first while the second stands is not a change of mind - it is an UNBUILDABLE answer, and it puts the
+// node straight back at await_human/arch_ratification with no shape to ratify. That is F-8.2 exactly.
+//
+// Narrow ON PURPOSE. Refusing every approve that follows an override would break the temporally-final rule
+// the register is built on, which deliberately lets a human revert. The refusal fires only where the two
+// answers genuinely contradict: an OPEN unplaceable gate on the same node.
+
+test("approve is REFUSED while the same node has an open NO_TARGET_SHAPE gate", () => {
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE);
+  cli("disposition", planned.run_id);
+  cli("arch", planned.run_id, FIXTURE);
+
+  const all = cli("escalations", planned.run_id, "--max", "99");
+  const rows = [...all.surfaced, ...(all.queued ?? [])].filter((r) => r.status === "OPEN");
+  const nts = rows.find((r) => r.kind === "NO_TARGET_SHAPE");
+  assert.ok(nts, "the fixture must produce an unplaceable node for this test to mean anything");
+  const sig = nts.node_ids[0];
+  const review = rows.find((r) => r.kind === "DISPOSITION_REVIEW" && r.node_ids.includes(sig));
+  assert.ok(review, "and that node must also carry its disposition review");
+
+  assert.throws(
+    () => cli("decide", planned.run_id, review.id, "approve", "--by", "eng"),
+    /unplaceable|NO_TARGET_SHAPE/i,
+    "approving the classified disposition of an object no shape fits must be refused, not recorded",
+  );
+});
+
+test("...and is ALLOWED once the unplaceable gate is resolved - the refusal is not a permanent ban", () => {
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE);
+  cli("disposition", planned.run_id);
+  cli("arch", planned.run_id, FIXTURE);
+  const all = cli("escalations", planned.run_id, "--max", "99");
+  const rows = [...all.surfaced, ...(all.queued ?? [])].filter((r) => r.status === "OPEN");
+  const nts = rows.find((r) => r.kind === "NO_TARGET_SHAPE");
+  const sig = nts.node_ids[0];
+  const review = rows.find((r) => r.kind === "DISPOSITION_REVIEW" && r.node_ids.includes(sig));
+
+  // the human answers the unplaceable gate FIRST, which is the order the remedy prescribes
+  cli("decide", planned.run_id, nts.id, "other:the patterns corpus is missing a shape for this", "--by", "eng");
+  const row = cli("decide", planned.run_id, review.id, "approve", "--by", "eng");
+  assert.equal(row.status, "RESOLVED", "with the contradiction gone, the approval is a legitimate answer");
+});
+
+test("END-TO-END: the exact sequence that silently ate six decisions is now REPORTED", () => {
+  // The GAP 5 run, reproduced. Override the unplaceable gate (which RESOLVES it, so the approve below is
+  // legitimately allowed - fix 2 only refuses while it is OPEN), then approve the same node's disposition.
+  // The temporally-final rule still makes approve win; what changed is that replan now SAYS SO.
+  const cli = mkCli();
+  const planned = cli("plan", FIXTURE);
+  cli("disposition", planned.run_id);
+  cli("arch", planned.run_id, FIXTURE);
+  const rows = (() => {
+    const all = cli("escalations", planned.run_id, "--max", "99");
+    return [...all.surfaced, ...(all.queued ?? [])].filter((r) => r.status === "OPEN");
+  })();
+  const nts = rows.find((r) => r.kind === "NO_TARGET_SHAPE");
+  const sig = nts.node_ids[0];
+  const review = rows.find((r) => r.kind === "DISPOSITION_REVIEW" && r.node_ids.includes(sig));
+
+  cli("decide", planned.run_id, nts.id, "override:refactor", "--by", "eng");
+  cli("decide", planned.run_id, review.id, "approve", "--by", "eng");
+
+  const out = cli("replan", planned.run_id, FIXTURE, "--by", "eng");
+  const lost = out.superseded ?? [];
+  assert.equal(lost.length, 1, `the discarded decision must be reported: ${JSON.stringify(out)}`);
+  assert.equal(lost[0].sig, sig);
+  assert.equal(lost[0].disposition, "refactor", "what the human actually asked for");
+  assert.equal(lost[0].superseded_by, "DISPOSITION_REVIEW", "and which gate took it away");
+  assert.match(String(out.note ?? ""), /SUPERSEDED/i, "with a note naming the remedy, not a bare field");
+});

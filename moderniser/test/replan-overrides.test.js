@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { collectOverrides } from "../src/plan/replan-overrides.js";
+import { collectOverrides, supersededOverrides } from "../src/plan/replan-overrides.js";
 
 // P3 / S-a — the operator's disposition OVERRIDES, read back out of the audited escalations register.
 // PURE over (register, run_id). `decide <esc> override:<disposition>` was previously recorded and read by
@@ -92,4 +92,52 @@ test("fail closed: an override naming a non-disposition throws rather than plann
 
 test("fail closed: an unscoped collect is refused", () => {
   assert.throws(() => collectOverrides(reg(row({})), ""), /run_id is required/);
+});
+
+// ---- A DISCARDED HUMAN DECISION MUST NEVER BE SILENT (found in the first real GAP 5 run, 2026-09-13) ----
+//
+// Measured on a live abap_fico run: six objects were decided `override:refactor` at the NO_TARGET_SHAPE
+// gate and then `approve` at the DISPOSITION_REVIEW gate for the SAME nodes. The temporally-final rule is
+// correct and documented - a later approve means "they changed their mind back" - but ALL SIX overrides
+// died and `replan` reported `changed: []`, a clean diff. The operator was never told.
+//
+// The ordering that causes it is now the NATURAL one: GAP 6 made blocking gates sort FIRST, so any batch
+// walking the surfaced list records overrides before approvals, and the agreed surfacing plan (batch the
+// gate-1 prompts, decide the unplaceable ones individually) produces exactly that batch.
+
+test("an override the human recorded and a later approve discarded is REPORTED, not silently dropped", () => {
+  const reg = { escalations: [
+    { id: "e1", kind: "NO_TARGET_SHAPE", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T1", resolved_by: "eng", decision: { verb: "override", disposition: "refactor" } },
+    { id: "e2", kind: "DISPOSITION_REVIEW", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T2", resolved_by: "eng", decision: { verb: "approve" } },
+  ] };
+  assert.deepEqual(collectOverrides(reg, "R"), {}, "the temporally-final rule is unchanged - approve still wins");
+  const lost = supersededOverrides(reg, "R");
+  assert.equal(lost.length, 1, `the DISCARDED decision must be reportable: ${JSON.stringify(lost)}`);
+  assert.equal(lost[0].sig, "A");
+  assert.equal(lost[0].disposition, "refactor", "what they asked for");
+  assert.equal(lost[0].superseded_by, "DISPOSITION_REVIEW", "and which gate took it away");
+  assert.equal(lost[0].decided_by, "eng");
+});
+
+test("an override that STANDS is not reported as superseded", () => {
+  const reg = { escalations: [
+    { id: "e2", kind: "DISPOSITION_REVIEW", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T1", resolved_by: "eng", decision: { verb: "approve" } },
+    { id: "e1", kind: "NO_TARGET_SHAPE", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T2", resolved_by: "eng", decision: { verb: "override", disposition: "refactor" } },
+  ] };
+  assert.equal(collectOverrides(reg, "R").A.disposition, "refactor");
+  assert.deepEqual(supersededOverrides(reg, "R"), [], "nothing was lost - do not cry wolf");
+});
+
+test("superseded reporting is RUN-SCOPED like the collect it mirrors", () => {
+  const reg = { escalations: [
+    { id: "e1", kind: "NO_TARGET_SHAPE", node_ids: ["A"], status: "RESOLVED", run_id: "OTHER",
+      resolved_at: "T1", resolved_by: "eng", decision: { verb: "override", disposition: "refactor" } },
+    { id: "e2", kind: "DISPOSITION_REVIEW", node_ids: ["A"], status: "RESOLVED", run_id: "OTHER",
+      resolved_at: "T2", resolved_by: "eng", decision: { verb: "approve" } },
+  ] };
+  assert.deepEqual(supersededOverrides(reg, "R"), [], "another run's discarded decision is not this run's news");
 });

@@ -23,7 +23,7 @@ import { augmentFromCpg } from "./graph/adapt.js";
 import { readBundleSources } from "./graph/sources.js";
 import { savePlan, PLAN_SCHEMA_VERSION } from "./sched/plan.js";
 import { initRun } from "./sched/loop.js";
-import { collectOverrides } from "./plan/replan-overrides.js";
+import { collectOverrides, supersededOverrides } from "./plan/replan-overrides.js";
 import { readVerifiedDoc } from "./cli-arch.js";
 import { loadRun, readEscalations, saveState, statePath, readJson, log, validRunId } from "./cli-io.js";
 
@@ -63,12 +63,29 @@ export function cmdReplan(io, pos, flags) {
 
   // Newly recorded decisions win over the inherited ones for the same node (the human changed their mind
   // again); an inherited override that nobody re-decided simply carries forward unchanged.
-  const overrides = { ...inherited, ...collectOverrides(readEscalations(io), runId) };
+  const register = readEscalations(io);
+  const overrides = { ...inherited, ...collectOverrides(register, runId) };
+  // Decisions the human RECORDED and a later one DISCARDED. Reported on BOTH exits, because the silent
+  // case is the dangerous one: a run that throws away six overrides and shows `changed: []` tells the
+  // operator nothing happened, when in fact their decisions were the thing that did not happen.
+  const superseded = supersededOverrides(register, runId);
   const next = assemblePlan(doc, { ...opts, dispositionOverrides: overrides }).plan;
   const changed = dispositionDelta(plan, next, overrides);
   if (changed.length === 0) {
-    log(io, runId, "replan", { changed: 0 });
-    return { replanned: false, run_id: runId, plan_hash: plan.plan_hash, changed: [] };
+    log(io, runId, "replan", { changed: 0, superseded: superseded.length });
+    return {
+      replanned: false,
+      run_id: runId,
+      plan_hash: plan.plan_hash,
+      changed: [],
+      superseded,
+      ...(superseded.length > 0
+        ? {
+          note: `${superseded.length} recorded override(s) were SUPERSEDED by a later decision on the same `
+            + "node and did not reach the plan — re-record them AFTER the approvals if they still stand",
+        }
+        : {}),
+    };
   }
 
   const newRunId = validRunId(`run-${next.plan_hash.slice(0, 12)}`);
@@ -76,7 +93,7 @@ export function cmdReplan(io, pos, flags) {
   // A genuine idempotent repeat: the overrides are already applied and the new run may have made progress
   // since. Re-initialising it here would silently discard that progress — report the no-op instead.
   if (existing?.plan_hash === next.plan_hash) {
-    return { replanned: true, already: true, old_run_id: runId, new_run_id: newRunId, old_plan_hash: plan.plan_hash, new_plan_hash: next.plan_hash, changed, restarted: [] };
+    return { replanned: true, already: true, old_run_id: runId, new_run_id: newRunId, old_plan_hash: plan.plan_hash, new_plan_hash: next.plan_hash, changed, restarted: [], superseded };
   }
 
   const restarted = assertForcedIfDestructive(plan, state, changed, flags);
@@ -84,7 +101,7 @@ export function cmdReplan(io, pos, flags) {
   saveState(io, newRunId, migrateState(next, state, changed)); //  which every verb rejects and this verb heals
   log(io, runId, "replan", { new_run_id: newRunId, changed: changed.length, by: flags.by, forced: flags.force !== undefined });
   log(io, newRunId, "replan-from", { old_run_id: runId, changed, restarted, by: flags.by });
-  return { replanned: true, old_run_id: runId, new_run_id: newRunId, old_plan_hash: plan.plan_hash, new_plan_hash: next.plan_hash, changed, restarted };
+  return { replanned: true, old_run_id: runId, new_run_id: newRunId, old_plan_hash: plan.plan_hash, new_plan_hash: next.plan_hash, changed, restarted, superseded };
 }
 
 /**

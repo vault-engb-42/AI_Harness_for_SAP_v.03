@@ -11,7 +11,7 @@
  */
 import { raiseEscalation, surfaceable } from "./exception/escalation-bus.js";
 import { recordDecision, renderPacket } from "./exception/gate-ui.js";
-import { recordDispositionDecision, raiseDispositionReviews, droppedDependencies, raiseDroppedDependencies } from "./plan/disposition-gate.js";
+import { recordDispositionDecision, parseDispositionDecision, raiseDispositionReviews, droppedDependencies, raiseDroppedDependencies } from "./plan/disposition-gate.js";
 import { recordArchDecision, parseArchDecision, recordNoTargetShapeDecision } from "./plan/arch-gate.js";
 import { bindArchContract, isArchRatified, ARCH_GATED_DISPOSITIONS } from "./plan/arch-contract.js";
 import { assertReviewed } from "./cli-arch-review.js";
@@ -217,6 +217,28 @@ export function packetContext(plan, findingsPath) {
   };
 }
 
+/**
+ * Refuse an `approve` whose node still has an OPEN NO_TARGET_SHAPE gate.
+ *
+ * The remedy is named in the message rather than implied: answer the unplaceable gate first
+ * (`override:<disposition>`, or `other:<why>` if the patterns corpus is simply missing a shape), which is
+ * the order the gate's own documented remedy prescribes. Only `approve` is refused — an override here IS a
+ * re-disposition and resolves the contradiction rather than creating it.
+ */
+function assertNotUnplaceable(register, target) {
+  const mine = new Set(target.node_ids ?? []);
+  const open = register.escalations.find(
+    (e) => e.kind === "NO_TARGET_SHAPE" && e.status === "OPEN" && (e.node_ids ?? []).some((n) => mine.has(n)),
+  );
+  if (!open) return;
+  throw new Error(
+    `disposition-gate: refusing to approve ${target.node_ids[0]} — it has an OPEN NO_TARGET_SHAPE gate `
+    + `(${open.id}), meaning no target shape fits the disposition being approved. Approving it re-creates `
+    + "the deadlock that gate exists to break: the node returns to await_human/arch_ratification with no "
+    + "shape to ratify. Answer the unplaceable gate first (override:<disposition>, or other:<why>).",
+  );
+}
+
 export function cmdDecide(io, pos, flags) {
   const [runId, id, decision] = pos;
   const { state } = loadRun(io, runId);
@@ -255,6 +277,19 @@ export function cmdDecide(io, pos, flags) {
     // collectOverrides. `approve` is refused by the recorder; there is nothing here to approve.
     next = recordNoTargetShapeDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId });
   } else if (target?.kind === "DISPOSITION_REVIEW") {
+    // CONTRADICTION, not a change of mind. A node can be gated twice: this gate asks "is the classified
+    // disposition right?", and NO_TARGET_SHAPE says "nothing can be built from that disposition". Approving
+    // the first while the second STANDS puts the node straight back at await_human/arch_ratification with no
+    // shape to ratify — F-8.2's deadlock, re-created by a human's own answer.
+    //
+    // Found in the first real GAP 5 run (2026-09-13): six objects were overridden to `refactor` at the
+    // unplaceable gate and then approved here, and because the human's temporally FINAL word governs, all
+    // six overrides died silently. GAP 6's ordering makes that sequence the natural one for any batch.
+    //
+    // NARROW ON PURPOSE. Refusing every approve that follows an override would break the temporally-final
+    // rule the register is built on, which deliberately lets a human revert. This fires only on the genuine
+    // contradiction — an OPEN unplaceable gate — and lifts the moment that gate is answered.
+    if (parseDispositionDecision(decision).verb === "approve") assertNotUnplaceable(reg, target);
     // Plan-time gate (B3): the decision precedes any artifact, so there is NO generation to bind —
     // route to the parametrized recorder (approve | override:<disposition> | other:<freeform>), S2.
     next = recordDispositionDecision(reg, id, decision, { decided_by: flags.by, ts, run_id: runId });
