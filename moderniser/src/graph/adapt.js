@@ -19,7 +19,8 @@
  *
  * @param {{graph?: {nodes?: Array<{id: string, object?: string, source?: string}>}}} doc analyser-findings doc (read-only, P8)
  * @param {Record<string, string>} [sources] node-id (or object-id) → ABAP source
- * @returns {{edges: Array<{source: string, target: string, kind: string, synthetic: true}>, seals: Record<string, true>}}
+ * @returns {{edges: Array<{source: string, target: string, kind: string, synthetic: true}>, seals: Record<string, true>,
+ *            seal_reasons: Record<string, Array<{kind: string, line: number|null, snippet: string}>>}}
  */
 import { overApproximateEdges } from "./augment.js";
 
@@ -39,7 +40,22 @@ export function augmentFromCpg(doc, sources = {}) {
   const objectByNodeId = new Map(cpgNodes.map((n) => [n.id, objectOf(n)]));
 
   const seals = {};
-  for (const n of scanned.nodes) if (n.dynamic_seal) seals[objectByNodeId.get(n.id)] = true;
+  // GAP 4: the REASON rides a PARALLEL map, not `seals` itself. `seals` is Record<string, true>, asserted
+  // by four tests here and consumed by assemble with `=== true`; widening it would break a settled contract
+  // to carry a field that nothing needs keyed the same way. Both seal PATHS populate this - the scanner
+  // below, and the unresolvable-edge fallback further down - because a seal with no recorded cause is
+  // exactly the bare boolean this closes.
+  const seal_reasons = {};
+  const addReasons = (obj, rs) => {
+    if (!obj || !rs?.length) return;
+    (seal_reasons[obj] ??= []).push(...rs);
+  };
+  for (const n of scanned.nodes) {
+    if (!n.dynamic_seal) continue;
+    const obj = objectByNodeId.get(n.id);
+    seals[obj] = true;
+    addReasons(obj, n.dynamic_seal_reasons);
+  }
 
   const edgeSet = new Map();
   for (const e of scanned.edges) {
@@ -52,6 +68,9 @@ export function augmentFromCpg(doc, sources = {}) {
     else if (membersOf.get(srcObj)?.has(t)) targetObj = srcObj; // program-local form
     if (targetObj === null || !membersOf.has(targetObj)) {
       seals[srcObj] = true; // unresolvable → seal the source, never a dangling edge (L5)
+      // Its own cause: this seal did NOT come from the scanner, and reaching the human as an unexplained
+      // seal just because a different code path set it is the defect, not the seal.
+      addReasons(srcObj, [{ kind: "unresolvable-edge-target", line: null, snippet: `${e.kind} target ${t} resolves to no in-plan object` }]);
       continue;
     }
     if (targetObj === srcObj) continue; // intra-object: no object-level dependency
@@ -60,7 +79,7 @@ export function augmentFromCpg(doc, sources = {}) {
   const edges = [...edgeSet.values()].sort((a, b) =>
     a.source !== b.source ? cmp(a.source, b.source) : a.target !== b.target ? cmp(a.target, b.target) : cmp(a.kind, b.kind),
   );
-  return { edges, seals };
+  return { edges, seals, seal_reasons };
 }
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);

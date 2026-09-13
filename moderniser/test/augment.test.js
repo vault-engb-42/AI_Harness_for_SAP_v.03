@@ -29,6 +29,97 @@ test("a dynamic CALL FUNCTION <var> seals the node and adds no edge", () => {
   assert.equal(syn(r).length, 0, "unresolved target -> seal, not edge");
 });
 
+// GAP 4 - REDUCING the seal population, measured rather than guessed.
+//
+// Measured on the real talv corpus (2026-09-13) once seals carried their cause: 13 sealed nodes, 12 of them
+// by genuinely irreducible constructs - a SELECT whose table comes from a report parameter, GENERATE
+// SUBROUTINE POOL, a PERFORM through a field. Sealing those is CORRECT and no resolver can fix them.
+//
+// ONE was resolvable, and it accounted for 850 of the unresolved hits: ZCL_TALV_PARENT does
+// `SET HANDLER event_handler->on_x FOR grid`, where `event_handler` is an instance variable created two
+// lines earlier with `CREATE OBJECT event_handler TYPE zcl_talv_event_handler` - and that class IS in the
+// plan. The scanner saw a token it could not resolve and sealed the whole object. Resolving a variable to
+// the type it was declared or instantiated with is bounded, local, and idiomatic in every classic
+// ALV/control corpus, which is why it is worth doing for one node here.
+
+test("a handler through a variable resolves to the variable's TYPE - edge, not seal", () => {
+  const src = [
+    "DATA event_handler TYPE REF TO zcl_talv_event_handler.",
+    "SET HANDLER event_handler->on_toolbar FOR grid.",
+  ].join(String.fromCharCode(10));
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+  assert.equal(seal(r, "A"), undefined, "a resolvable target must NOT seal the object");
+  assert.deepEqual(syn(r).map((e) => e.target), ["ZCL_TALV_EVENT_HANDLER=>ON_TOOLBAR"], "rewritten into the class=>method space adapt already resolves");
+});
+
+test("CREATE OBJECT ... TYPE <class> resolves the variable too - talv's actual shape", () => {
+  const src = [
+    "  CREATE OBJECT event_handler TYPE zcl_talv_event_handler",
+    "    EXPORTING io_parent = me.",
+    "  SET HANDLER event_handler->on_check_long_text FOR grid.",
+  ].join(String.fromCharCode(10));
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] });
+  assert.equal(seal(r, "A"), undefined);
+  assert.deepEqual(syn(r).map((e) => e.target), ["ZCL_TALV_EVENT_HANDLER=>ON_CHECK_LONG_TEXT"]);
+});
+
+test("an UNDECLARED variable still seals - resolution never invents a type", () => {
+  // The fail direction that matters. If the declaration is absent the target is genuinely unknown, and
+  // guessing a class would fabricate a dependency edge - the under-approximation L5 forbids.
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: "SET HANDLER lo_mystery->on_x FOR grid." }], edges: [] });
+  assert.equal(seal(r, "A"), undefined, "an unresolved handler token is not itself a seal at scan time");
+  assert.deepEqual(syn(r).map((e) => e.target), ["LO_MYSTERY->ON_X"], "it stays unresolved and adapt seals the source");
+});
+
+// GAP 4 - THE SEAL SAYS THAT, NEVER WHY.
+//
+// Measured on the real talv corpus (2026-09-13): 13 of 42 nodes seal, and not one carries a reason. The
+// plan node holds `dynamic_seal: "NEEDS_MANUAL_SEAM"` and nothing else, so the human asked to confirm the
+// seam has no evidence to confirm AGAINST, and "how many of these seals are resolvable" - the question
+// GAP 4 exists to answer - cannot be asked of the plan at all.
+//
+// The data is not missing, it is DISCARDED: scanNode knows exactly which construct fired, on which line,
+// and returned a bare boolean. Same shape as GAP 2b, where the gate reached the operator as a 64-char sig.
+const reasons = (r, id) => r.nodes.find((n) => n.id === id)?.dynamic_seal_reasons;
+
+test("a sealed node carries WHY it sealed - the construct, the line, and the source line itself", () => {
+  const cpg = { nodes: [{ id: "A", source: ["REPORT z.", "CALL FUNCTION lv_fm EXPORTING x = 1."].join(String.fromCharCode(10)) }], edges: [] };
+  const r = overApproximateEdges(cpg);
+  assert.equal(seal(r, "A"), SEAL);
+  const why = reasons(r, "A");
+  assert.ok(Array.isArray(why) && why.length === 1, `one construct sealed it: ${JSON.stringify(why)}`);
+  assert.equal(why[0].line, 2, "the line number the human should go read");
+  assert.match(why[0].snippet, /CALL FUNCTION lv_fm/, "the source line itself, so the packet needs no second lookup");
+  assert.ok(why[0].kind, "and a CLASSIFIER, so resolvability can be counted rather than eyeballed");
+});
+
+test("an unsealed node carries no reasons field at all - absence is not an empty list", () => {
+  // "nothing sealed it" and "something sealed it for no recorded reason" are different claims, and
+  // conflating them is how a gate lies quietly.
+  const r = overApproximateEdges({ nodes: [{ id: "A", source: "WRITE 1." }], edges: [] });
+  assert.equal(seal(r, "A"), undefined);
+  assert.equal(reasons(r, "A"), undefined);
+});
+
+test("every seal CAUSE is classified distinctly, so the population can be counted", () => {
+  // The three causes are genuinely different questions for a human: an ENHANCEMENT marker is a modification
+  // seam, a dynamic TARGET is an unresolvable dispatch, and the generic dynamic patterns are constructs the
+  // scanner refuses to over-approximate. GAP 4 asks how many are RESOLVABLE - which cannot be answered if
+  // they all report as one undifferentiated "sealed".
+  const kindsFor = (src) => (reasons(overApproximateEdges({ nodes: [{ id: "A", source: src }], edges: [] }), "A") ?? []).map((x) => x.kind);
+  // MEASURED, not assumed. An earlier draft of this test expected `PERFORM (lv_form) ON COMMIT` to be a
+  // dynamic-target; it is not, and the code is right. The resolvable PERFORM regex captures [\w~/]+, which
+  // cannot contain a paren, so a parenthesised form never reaches the target branch at all - the generic
+  // dynamic-construct patterns catch it. The target branch fires where the capture CAN hold a paren.
+  assert.deepEqual(kindsFor("CALL FUNCTION lv_fm."), ["dynamic-construct"]);
+  assert.deepEqual(kindsFor("*ENHANCEMENT-POINT ep_1 SPOTS es_1."), ["enhancement-marker"]);
+  assert.deepEqual(kindsFor("  PERFORM (lv_form) ON COMMIT."), ["dynamic-construct"]);
+  assert.deepEqual(kindsFor("SET HANDLER lo_a->on_x( ) FOR lo_evt."), ["dynamic-target"]);
+  // One line can carry two distinct causes, and both are recorded - a human triaging the seal needs to see
+  // that an unresolvable target AND a refused construct are present, not whichever fired first.
+  assert.deepEqual(kindsFor("SET HANDLER (lv_h) FOR lo_evt."), ["dynamic-target", "dynamic-construct"]);
+});
+
 test("a literal CALL FUNCTION is NOT dynamic — no seal, no synthetic edge (analyser owns it)", () => {
   const cpg = { nodes: [{ id: "A", source: "CALL FUNCTION 'POPUP_TO_INFORM'." }], edges: [] };
   const r = overApproximateEdges(cpg);

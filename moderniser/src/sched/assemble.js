@@ -41,6 +41,7 @@ export function assemblePlan(doc, opts = {}) {
   assertAugmentFits(og, opts.augment);
   const edges = [...og.edges, ...(opts.augment?.edges ?? [])];
   const seals = opts.augment?.seals ?? {};
+  const sealReasons = opts.augment?.seal_reasons ?? {};
   const cond = tarjanCondense(og.nodes.map((n) => n.id), precedenceEdges(edges));
   const levels = kahnLevels(cond, scopeMeta(scoped));
 
@@ -58,7 +59,7 @@ export function assemblePlan(doc, opts = {}) {
   const conflictKeys = superConflictKeys(inPlanSupers, scopedByObject, sigOfSuper, opts.transportOf);
   const predecessors = predecessorMap(cond.edges);
 
-  const nodes = buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, levels, predecessors, conflictKeys, transportOf: opts.transportOf });
+  const nodes = buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, sealReasons, levels, predecessors, conflictKeys, transportOf: opts.transportOf });
 
   // Plan-time disposition (B2): the classifier is PURE over (node, grounding-cache); the grounding
   // pre-pass (S3) supplies the cache from the analyser doc. disposition_* ride the node → covered by
@@ -124,11 +125,17 @@ function assertAugmentFits(og, augment) {
 }
 
 /** One frozen plan node per in-plan super-node — everything load-bearing lives here (see the file header). */
-function buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, levels, predecessors, conflictKeys, transportOf }) {
+function buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals, sealReasons, levels, predecessors, conflictKeys, transportOf }) {
   return [...inPlanSupers.entries()].map(([superId, members]) => {
     const superNode = cond.superNodes.find((s) => s.id === superId);
     const rep = scopedByObject.get(members[0]);
     const sealed = superNode.members.some((m) => seals[m] === true); // any sealed member seals the super-node (L5)
+    // ...and every sealed member's REASON comes with it (GAP 4). A super-node can be sealed by any one of
+    // its members, so the human confirming the seam needs to know WHICH member and WHY - naming the
+    // super-node alone is the bare boolean one level up.
+    const sealWhy = sealed
+      ? superNode.members.flatMap((m) => (sealReasons?.[m] ?? []).map((r) => ({ ...r, member: m })))
+      : [];
     return {
       id: sigOfSuper.get(superId),
       object: rep.object,
@@ -136,6 +143,7 @@ function buildPlanNodes({ inPlanSupers, cond, scopedByObject, sigOfSuper, seals,
       members: [...superNode.members].sort(),
       break_gate: superNode.break_gate,
       ...(sealed ? { dynamic_seal: "NEEDS_MANUAL_SEAM" } : {}),
+      ...(sealWhy.length > 0 ? { dynamic_seal_reasons: sealWhy } : {}),
       wave: levels.levelOf[superId],
       dependencies: inPlanAncestors(superId, predecessors, sigOfSuper),
       conflict_keys: conflictKeys[sigOfSuper.get(superId)],
