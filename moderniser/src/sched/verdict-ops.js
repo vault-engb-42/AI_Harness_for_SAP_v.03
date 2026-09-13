@@ -70,6 +70,19 @@ function appendVerdict(series, sig, passed) {
 }
 
 /**
+ * Record the per-node risk evidence the WAVE gate will score (§3.4 #2).
+ *
+ * Kept in state rather than recomputed: `levelDisposition` scores a whole wave at once, which can only
+ * happen after its last node rests, and the before/after bundles each node's evidence is derived from exist
+ * only during that node's own verdict step.
+ */
+export function recordRiskEvidence(plan, state, sig, evidence) {
+  bind(plan, state);
+  if (state.status[sig] === undefined) throw new Error(`loop: unknown node ${sig}`);
+  return { ...state, risk_evidence: { ...(state.risk_evidence ?? {}), [sig]: evidence } };
+}
+
+/**
  * The ROOT SIGNATURE of a failing verdict: the first reason, normalised to its rule id.
  *
  * Clustering is what keeps one generator weakness from becoming N escalations (§3.4 #3), and it groups on

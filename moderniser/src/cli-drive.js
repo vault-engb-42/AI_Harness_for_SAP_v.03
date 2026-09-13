@@ -12,11 +12,14 @@
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { driveDecision, driveReport, driveOfflineVerdict, oscillationClusters } from "./sched/drive.js";
+import { driveDecision, driveReport, driveOfflineVerdict, oscillationClusters, waveRisk } from "./sched/drive.js";
+import { recordRiskEvidence } from "./sched/verdict-ops.js";
+import { riskEvidence } from "./node/risk-evidence.js";
 import { loadRun, saveState, log, readBaselines, readEscalations, saveEscalations } from "./cli-io.js";
 import { raiseEscalation } from "./exception/escalation-bus.js";
 import { renderOfflineNodeVerdict } from "./node/offline-checkpoint.js";
-import { assembleBundle } from "./extract/bundle.js";
+import { assembleBundle, invariantInput } from "./extract/bundle.js";
+import { invariantDiff } from "./node/invariants.js";
 import { attestationsOf } from "./cli-attest.js";
 import { filesFromBundle } from "../../analyser/src/modes.js";
 import { analyzePackage } from "../../analyser/src/orchestrator.js";
@@ -79,11 +82,13 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
   // regenerates.
   const review = analyzePackage(afterFiles, { package: sig, source_system: `final-review:${sig}` });
 
+  const beforeBundle = assembleBundle(beforeFiles);
+  const afterBundle = assembleBundle(afterFiles);
   const result = renderOfflineNodeVerdict(
     { canonical_sig: sig },
     {
-      before: assembleBundle(beforeFiles),
-      after: assembleBundle(afterFiles),
+      before: beforeBundle,
+      after: afterBundle,
       beforeFiles,
       afterFiles,
       // R1 (adversarial pass 2026-08-07, CONFIRMED with an end-to-end reproduction): this MUST be the
@@ -103,10 +108,24 @@ function offlineVerdictStep(io, runId, plan, state, flags) {
   );
   const folded = applyFinalReview(result, triageAll(review.findings), attestations);
 
-  const { state: next, action } = driveOfflineVerdict(plan, state, sig, folded);
+  let { state: next, action } = driveOfflineVerdict(plan, state, sig, folded);
+  // The WAVE gate's evidence (§3.4 #2), captured HERE because this is the only moment both bundles, the
+  // invariant diff and the after-side analysis exist together. Derived strictly from the diff: every flag
+  // answers "did this CHANGE", never "does this exist".
+  next = recordRiskEvidence(plan, next, sig, riskEvidence({
+    before: beforeBundle,
+    after: afterBundle,
+    beforeFiles,
+    afterFiles,
+    // the SAME diff the checkpoint grades on, so the gate and the verdict can never disagree about
+    // whether an invariant moved
+    invariants: invariantDiff(invariantInput(beforeBundle), invariantInput(afterBundle)),
+    analysis: review,
+  }));
   saveState(io, runId, next);
   raiseOwedGates(io, runId, action);
   raiseOscillations(io, runId, plan, next);
+  raiseWaveRisk(io, runId, plan, next, sig);
   log(io, runId, "drive-offline-verdict", {
     sig,
     provisional: folded.provisional,
@@ -168,6 +187,33 @@ export function raiseOwedGates(io, runId, action) {
     kinds: [...new Set(raised.map((e) => e.kind))].sort(),
     node_ids: [...new Set(raised.flatMap((e) => e.node_ids))].sort(),
   });
+}
+
+/**
+ * Raise ONE RISK_LEVEL_REVIEW when a completed wave contains a flagged node (§3.4 #2, L2).
+ *
+ * The per-level pause is a human-approval BATCHING rhythm over already-green nodes; it never gates
+ * scheduling. So this fires only at a wave BOUNDARY — every node rested — and only when the level's own
+ * scoring says REVIEW. An all-clear level advances silently, which is the difference between a rhythm and
+ * a storm.
+ *
+ * `levelDisposition` is FAIL-CLOSED: a node whose evidence is missing is FLAGGED, never assumed clear. That
+ * is why this gate stayed OWED until the evidence existed — five of its eight inputs had no producer, so
+ * wiring it earlier would have paused every wave in every run.
+ */
+function raiseWaveRisk(io, runId, plan, state, sig) {
+  const risk = waveRisk(plan, state, sig);
+  if (risk === null || risk.disposition !== "REVIEW") return;
+  const ts = new Date().toISOString();
+  const reg = readEscalations(io);
+  const next = raiseEscalation(reg, {
+    kind: "RISK_LEVEL_REVIEW",
+    node_ids: risk.flagged.map((f) => f.sig),
+    root_signature: `wave:${risk.wave}`,
+  }, { ts });
+  if (next === reg) return; // already open for this exact set — one rhythm, not one per node
+  saveEscalations(io, next);
+  log(io, runId, "escalate", { kinds: ["RISK_LEVEL_REVIEW"], wave: risk.wave, flagged: risk.flagged.length });
 }
 
 /**

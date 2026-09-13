@@ -55,6 +55,10 @@ export function initRun(plan, opts = {}) {
     // per-sig root signature of the most recent FAILING verdict, so oscillation clusters by shared cause
     // rather than storming one escalation per thrashing node (§3.4 #3).
     verdict_top_fail: {},
+    // per-sig risk evidence for the wave gate (§3.4 #2). Recorded at the checkpoint alongside the verdict,
+    // because the wave cannot be scored until every one of its nodes has rested — and by then the bundles
+    // the evidence is derived from are long gone.
+    risk_evidence: {},
     deferral_track: [],
     park_register: [],
     activate_mutex: {}, // transport_id -> owning sig

@@ -195,16 +195,11 @@ const ACKNOWLEDGED = {
   // actually protects the committed work. `sched/plan.js replan()`'s own `moved_committed` computation
   // stays callerless because the hash bind subsumes the diff it performs.
   REPLAN_WAVE_MOVE: { type: "superseded_by", verb: "replan" },
-  // RISK_LEVEL_REVIEW is still OWED and still unwired. `exception/risk-gate.js levelDisposition` scores a
-  // wave's green nodes and has zero callers; wiring it today would raise a gate on EVERY wave rather than on
-  // risky ones, because it is fail-closed by design (missing evidence is FLAGGED, never assumed clear) and
-  // MEASURED 2026-09-13: five of its eight inputs - all four touches_* flags and blast_total - have NO
-  // producer anywhere in src. The evidence comes first, then the gate.
-  //
-  // OSCILLATION's entry is GONE, and its absence is the point: it was owed on the same F18 grounds until
-  // 2026-09-13, when state gained the bounded verdict series the detector needs and cli-drive gained the
-  // raise. This test is what forced the deletion - the exemption went stale the moment the producer landed.
-  RISK_LEVEL_REVIEW: { type: "owed", arc: "wave-boundary risk evidence - MEASURED 2026-09-13: five of levelDisposition's eight inputs (all four touches_* flags and blast_total) have NO producer anywhere in src, so wiring it today would flag every wave rather than the risky ones" },
+  // OSCILLATION and RISK_LEVEL_REVIEW both had entries here, on the same F18 grounds, and both are GONE.
+  // Their absence is the point: each was owed until the INPUT its detector needed existed, and this test is
+  // what forced the deletion the moment a producer landed. RISK_LEVEL_REVIEW was the larger of the two -
+  // measured 2026-09-13, five of levelDisposition's eight inputs had no producer anywhere, and since it is
+  // fail-closed, wiring it before that would have flagged EVERY wave. node/risk-evidence.js is those five.
 };
 
 const SIG = (c) => c.repeat(64);

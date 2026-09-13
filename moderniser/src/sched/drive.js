@@ -21,6 +21,7 @@ import { MAX_PHASE_RETRY_CYCLES, isActive } from "../state/node-status.js";
 import { isArchRatified, ARCH_GATED_DISPOSITIONS } from "../plan/arch-contract.js";
 import { UNANALYSABLE_REASON_PREFIX } from "../node/final-review.js";
 import { clusterOscillations } from "../exception/oscillation.js";
+import { levelDisposition } from "../exception/risk-gate.js";
 
 // The states a `retire` node passes through on its way to RETIRED. The FSM requires GROUNDED before the
 // terminal, so both the ready-to-route state and that transit state must keep returning the retire action.
@@ -197,6 +198,29 @@ export function oscillationClusters(plan, state) {
     verdicts: state?.verdict_series?.[n.id] ?? [],
   })));
 }
+
+/**
+ * Score the WAVE a node belongs to, once every node in it has rested (§3.4 #2, L2).
+ *
+ * The per-level pause is a human-approval BATCHING RHYTHM over already-green nodes — it never gates
+ * scheduling, which is why this is asked at a wave BOUNDARY and not per node. An incomplete wave returns
+ * null: scoring it early would flag nodes that simply have not run yet, which is the storm the rhythm
+ * exists to avoid.
+ *
+ * @returns {{wave: number, disposition: "AUTO"|"REVIEW", flagged: Array<object>}|null}
+ */
+export function waveRisk(plan, state, sig, opts = {}) {
+  const node = (plan?.nodes ?? []).find((n) => n.id === sig);
+  if (!node) return null;
+  const peers = plan.nodes.filter((n) => n.wave === node.wave);
+  if (!peers.every((n) => RESTED.has(state?.status?.[n.id]))) return null; // the wave is still running
+  const scored = peers.map((n) => ({ sig: n.id, ...(state?.risk_evidence?.[n.id] ?? {}) }));
+  const { disposition, flagged } = levelDisposition(scored, { blastThreshold: opts.blastThreshold ?? DEFAULT_BLAST_THRESHOLD });
+  return { wave: node.wave, disposition, flagged };
+}
+
+/** §3.4 #2 leaves the threshold to configuration; this is the default until a manifest pins it. */
+const DEFAULT_BLAST_THRESHOLD = 10;
 
 export function driveOfflineVerdict(plan, state, sig, result) {
   if (state.status[sig] === undefined) throw new Error(`drive: unknown node ${sig}`);
