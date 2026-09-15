@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { matchTargetShapes, loadPatternCorpus, PATTERN_IDS } from "../src/plan/patterns/match.js";
+import { matchTargetShapes, explainTargetShapes, loadPatternCorpus, PATTERN_IDS } from "../src/plan/patterns/match.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
 import { factStream } from "../src/plan/arch-facts.js";
 import { assemblePlan } from "../src/sched/assemble.js";
@@ -495,4 +495,56 @@ test("GAP2 the SAME object with ownership evidence does get a Business Object", 
     cands.some((c) => (c.components ?? []).includes("bdef_managed")),
     `ownership is what earns a BO: ${JSON.stringify(cands.map((c) => c.id))}`,
   );
+});
+
+// ---- WHY A SHAPE WAS REFUSED IS COMPUTED, THEN DISCARDED (operator, 2026-09-14) ----
+//
+// `evalWhen` knows exactly which `all` signal was unmet, whether `any` went unsatisfied, and which `none`
+// constraint was violated. It returns { matched: false, score: 0 } and the reason dies there — so an
+// unplaceable object reaches the human as a bare "no target shape fits this object's evidence".
+//
+// That is the GAP 4 seal defect in the shape matcher, and it has a sharper consequence: the operator was
+// offered seal/retire/refactor and NOT re-architect, because nothing could tell them WHICH objection to
+// overrule. "The matcher cannot justify a shape" is a claim about the EVIDENCE; it was presented as if it
+// were a claim about the OBJECT. Every one of abap_fico's six "unplaceable" objects had been fully
+// re-architected in the 2026-07-27 demo, two of them to complete RAP BOs with OData bindings.
+
+test("every shape reports WHY it was refused, not merely that it was", () => {
+  const corpus = loadPatternCorpus();
+  // A fact stream with no surface and no persistence - the real ZFI_C0001/C0002 shape.
+  const fact = {
+    object_kind: "function", graph_kind: "object", finding_families: [], driving_rule_ids: [],
+    disposition_hints: [], disposition: "re_architect", consumption: ["no_surface_evidence"],
+    persistence: ["no_persistence_evidence"], modernization_target: null, dependency_count: 0,
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 1, total_blast: 0 },
+  };
+  assert.deepEqual(matchTargetShapes(fact, corpus), [], "the fixture must genuinely place nowhere");
+
+  const explained = explainTargetShapes(fact, corpus);
+  assert.equal(explained.length, corpus.patterns.length, "EVERY shape is accounted for, not just the near misses");
+  for (const e of explained) {
+    assert.equal(e.matched, false);
+    assert.ok(e.id, "each carries the shape id the human would name to override it");
+    assert.ok(
+      (e.unmet_all?.length ?? 0) + (e.unmet_any?.length ?? 0) + (e.violated_none?.length ?? 0) > 0,
+      `${e.id}: refused with no stated objection - that is the defect: ${JSON.stringify(e)}`,
+    );
+  }
+});
+
+test("a shape that MATCHES reports no objection, and still reports its score", () => {
+  const corpus = loadPatternCorpus();
+  const fact = {
+    object_kind: "class", graph_kind: "object", finding_families: [], driving_rule_ids: [],
+    disposition_hints: [], disposition: "re_architect", consumption: ["ui_salv"],
+    persistence: ["owns_customer_table"], modernization_target: null, dependency_count: 0,
+    member_summary: { members: 1, worst_grade: "D", max_complexity: 1, total_blast: 0 },
+  };
+  const matched = matchTargetShapes(fact, corpus);
+  assert.ok(matched.length > 0, "the fixture must place somewhere for this test to mean anything");
+  const explained = explainTargetShapes(fact, corpus);
+  const hit = explained.find((e) => e.id === matched[0].id);
+  assert.equal(hit.matched, true);
+  assert.equal(hit.score, matched[0].score, "the explanation agrees with the matcher - one computation, not two");
+  assert.deepEqual(hit.unmet_all, [], "a shape that matched has no unmet requirement");
 });

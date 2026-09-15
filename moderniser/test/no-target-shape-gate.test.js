@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { raiseEscalation, ESCALATION_KINDS } from "../src/exception/escalation-bus.js";
 import { renderPacket, DECISIONS } from "../src/exception/gate-ui.js";
 import { raiseNoTargetShape, recordNoTargetShapeDecision } from "../src/plan/arch-gate.js";
+import { PATTERN_IDS } from "../src/plan/patterns/match.js";
 import { collectOverrides } from "../src/plan/replan-overrides.js";
 
 // F-8.2 — the gate for an object NO target shape fits.
@@ -134,4 +135,51 @@ test("E2E plan → disposition → arch → decide override:seal → replan: an 
   const node = cli.planOf(out.new_run_id).nodes.find((n) => n.id === sig);
   assert.equal(node.disposition, "seal", "the node is no longer arch-gated — it routes to the manual seam");
   assert.equal(node.disposition_source, "operator_override");
+});
+
+// ---- A HUMAN MAY SUPPLY A SHAPE THE MATCHER REFUSED (operator, 2026-09-14) ----
+//
+// The gate offered `override:<disposition>` and `other:<text>` and nothing else, so the only way out of
+// "no shape fits" was to STOP re-architecting. Choosing re_architect anyway just re-entered the deadlock,
+// because nothing could supply the shape the matcher would not derive. Measured on abap_fico: all six
+// unplaceable objects had been fully re-architected in the 2026-07-27 demo, two to complete RAP BOs with
+// OData bindings. The harness had narrowed the operator's options to what it could itself justify.
+//
+// THE MATCHER STILL REFUSES. That refusal is what RC-2 earned and it is not being weakened: no shape is
+// ever DERIVED from silence. What changes is that a NAMED HUMAN may overrule it, and the record says the
+// shape was human-supplied rather than evidence-derived, so no proof bundle can later claim otherwise.
+
+test("shape:<id> records a HUMAN-SUPPLIED target shape, named and marked as such", () => {
+  const reg = raiseNoTargetShape(empty(), UNPLACEABLE, { ts: "T" });
+  const row = reg.escalations[0];
+  const out = recordNoTargetShapeDecision(reg, row.id, "shape:rap_bo_odata", { decided_by: "panos", ts: "T2", run_id: "R" });
+  const done = out.escalations.find((e) => e.id === row.id);
+  assert.equal(done.status, "RESOLVED");
+  assert.equal(done.decision.verb, "shape");
+  assert.equal(done.decision.target_shape, "rap_bo_odata");
+  assert.equal(done.resolved_by, "panos", "a shape the evidence could not justify carries the name of who chose it");
+  assert.equal(done.decision.source, "human", "and is marked human-supplied, never evidence-derived");
+});
+
+test("an UNKNOWN shape id is refused — the corpus is the closed set, `other:` is for what is missing", () => {
+  const reg = raiseNoTargetShape(empty(), UNPLACEABLE, { ts: "T" });
+  assert.throws(
+    () => recordNoTargetShapeDecision(reg, reg.escalations[0].id, "shape:rap_bo_invented", { decided_by: "panos", ts: "T2", run_id: "R" }),
+    /rap_bo_invented|corpus|not a target shape/i,
+    "overruling an objection is legitimate; inventing a shape the corpus cannot build is not",
+  );
+  // and every id the corpus DOES offer is accepted
+  for (const id of PATTERN_IDS) {
+    const r = raiseNoTargetShape(empty(), UNPLACEABLE, { ts: "T" });
+    const o = recordNoTargetShapeDecision(r, r.escalations[0].id, `shape:${id}`, { decided_by: "panos", ts: "T2", run_id: "R" });
+    assert.equal(o.escalations[0].decision.target_shape, id);
+  }
+});
+
+test("a bare `shape` with no id is refused — fail-closed, like every other parametrized verb", () => {
+  const reg = raiseNoTargetShape(empty(), UNPLACEABLE, { ts: "T" });
+  assert.throws(
+    () => recordNoTargetShapeDecision(reg, reg.escalations[0].id, "shape", { decided_by: "panos", ts: "T2", run_id: "R" }),
+    /shape/i,
+  );
 });

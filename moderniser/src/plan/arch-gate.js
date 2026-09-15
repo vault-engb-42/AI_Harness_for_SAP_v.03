@@ -9,6 +9,7 @@
  * human ratification — it renders no PASS and never grades the ratchet.
  */
 import { raiseEscalation, resolveEscalation } from "../exception/escalation-bus.js";
+import { PATTERN_IDS } from "./patterns/match.js";
 import { parseDispositionDecision } from "./disposition-gate.js";
 
 /**
@@ -60,11 +61,52 @@ export function recordNoTargetShapeDecision(register, id, raw, { decided_by, ts,
   const e = register.escalations.find((x) => x.id === id);
   if (!e) throw new Error(`arch-gate: unknown escalation '${id}'`);
   if (e.kind !== "NO_TARGET_SHAPE") throw new Error(`arch-gate: '${id}' is a ${e.kind}, not a NO_TARGET_SHAPE`);
+  // `shape:<id>` — a HUMAN-SUPPLIED target shape, the option the gate used to lack (operator, 2026-09-14).
+  //
+  // Without it the only ways out of "no shape fits" were to stop re-architecting (override) or to say the
+  // corpus is missing a pattern (other). Choosing re_architect anyway just re-entered the deadlock, because
+  // nothing could supply the shape the matcher would not derive — so the harness had quietly narrowed the
+  // operator's options to what it could itself justify. Measured on abap_fico: all six unplaceable objects
+  // had been fully re-architected in an earlier demo, two to complete RAP BOs with OData bindings.
+  //
+  // THE MATCHER IS NOT WEAKENED. It still derives no shape from silence, which is what RC-2 earned. This is
+  // a NAMED HUMAN overruling a stated objection, recorded as `source: "human"` so nothing downstream can
+  // present the shape as evidence-derived.
+  const shape = parseShapeDecision(raw);
+  if (shape) return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision: shape, run_id });
+
   const decision = parseDispositionDecision(raw);
   if (decision.verb === "approve") {
-    throw new Error("arch-gate: 'approve' is not a NO_TARGET_SHAPE decision — there is no shape to approve; re-disposition it (override:<disposition>) or record why the corpus is missing a shape (other:<text>)");
+    throw new Error("arch-gate: 'approve' is not a NO_TARGET_SHAPE decision — there is no shape to approve; re-disposition it (override:<disposition>), supply a shape yourself (shape:<id>), or record why the corpus is missing one (other:<text>)");
   }
   return resolveEscalation(register, id, { resolved_by: decided_by, ts, decision, run_id });
+}
+
+/**
+ * `shape:<id>` → the human-supplied target-shape decision, or null when this is not one.
+ *
+ * CLOSED OVER THE CORPUS, deliberately. Overruling the matcher's objection is a legitimate human judgement;
+ * naming a shape the corpus cannot build is not a judgement but a typo or a wish, and it would freeze a
+ * contract the generator has no pattern for. That case has its own verb: `other:<why the corpus is missing
+ * a shape>`, which re-dispositions nothing and records the gap.
+ */
+function parseShapeDecision(raw) {
+  if (typeof raw !== "string") return null;
+  const i = raw.indexOf(":");
+  const verb = (i < 0 ? raw : raw.slice(0, i)).trim();
+  if (verb !== "shape") return null;
+  const target_shape = i < 0 ? "" : raw.slice(i + 1).trim();
+  if (!target_shape) {
+    throw new Error(`arch-gate: 'shape' needs an id — shape:<${PATTERN_IDS.join("|")}>`);
+  }
+  if (!PATTERN_IDS.includes(target_shape)) {
+    throw new Error(
+      `arch-gate: '${target_shape}' is not a target shape in the patterns corpus [${PATTERN_IDS.join(", ")}] — `
+      + "a human may overrule the matcher's objection, but not name a shape the generator has no pattern for; "
+      + "if the corpus is genuinely missing one, record that with other:<why>",
+    );
+  }
+  return { verb: "shape", target_shape, source: "human" };
 }
 
 /**

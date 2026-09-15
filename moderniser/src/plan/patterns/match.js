@@ -43,6 +43,28 @@ export function matchTargetShapes(fact, corpus = loadPatternCorpus()) {
 }
 
 /**
+ * EVERY shape, with the objection that refused it — the other half of `matchTargetShapes`.
+ *
+ * `matchTargetShapes` answers "what fits?" and returns the winners. This answers "why did the rest not?",
+ * which is the question a human needs in order to OVERRULE a refusal intelligently: they are not guessing a
+ * shape, they are overriding a stated objection with their name on it. The matcher itself still refuses to
+ * invent a shape from silence — that refusal is what RC-2 earned — but a person may now see what it
+ * objected to and decide the objection is acceptable.
+ *
+ * One computation, not two: both functions share `evalWhen`, so the explanation can never disagree with the
+ * match. Pinned by a test asserting the scores are equal.
+ *
+ * @returns {Array<{id: string, name?: string, matched: boolean, score: number,
+ *                  unmet_all: string[], unmet_any: string[], violated_none: string[]}>}
+ */
+export function explainTargetShapes(fact, corpus = loadPatternCorpus()) {
+  return corpus.patterns.map((p) => {
+    const { matched, score, unmet_all, unmet_any, violated_none } = evalWhen(p.when_signals, fact);
+    return { id: p.id, name: p.name, matched, score, unmet_all, unmet_any, violated_none };
+  });
+}
+
+/**
  * Evaluate a when-signals predicate against the fact stream.
  * `all` — every signal must hold; `any` — at least one must hold; `none` — none may hold.
  * The match SCORE is the count of satisfied POSITIVE signals (all + any) — `none` is a constraint,
@@ -53,13 +75,23 @@ function evalWhen(when, fact) {
   const any = when?.any ?? [];
   const none = when?.none ?? [];
 
-  const allOk = all.every((s) => signalHolds(s, fact));
-  const anyOk = any.length === 0 || any.some((s) => signalHolds(s, fact));
-  const noneOk = !none.some((s) => signalHolds(s, fact));
-  if (!(allOk && anyOk && noneOk)) return { matched: false, score: 0 };
+  // The OBJECTIONS, kept rather than collapsed to a boolean. This function always knew exactly which signal
+  // was unmet and which constraint was violated, and it used to return only `{matched: false, score: 0}` —
+  // so an object no shape fits reached the human as a bare "no target shape fits this object's evidence".
+  //
+  // That is the GAP 4 seal defect in the matcher, and it cost more here: with no objection to point at, the
+  // operator could not be offered "re-architect it to THIS shape, overruling THAT objection", so the only
+  // remedies on the table were seal/retire/refactor. "The matcher cannot JUSTIFY a shape" is a statement
+  // about the evidence; presented bare, it reads as a statement about the OBJECT. Every one of abap_fico's
+  // six unplaceable objects had in fact been re-architected in an earlier demo.
+  const unmet_all = all.filter((s) => !signalHolds(s, fact));
+  const unmet_any = any.length > 0 && !any.some((s) => signalHolds(s, fact)) ? [...any] : [];
+  const violated_none = none.filter((s) => signalHolds(s, fact));
 
-  const score = all.filter((s) => signalHolds(s, fact)).length + any.filter((s) => signalHolds(s, fact)).length;
-  return { matched: true, score };
+  const matched = unmet_all.length === 0 && unmet_any.length === 0 && violated_none.length === 0;
+  // `none` is a CONSTRAINT, not evidence, so it never contributes to the score (unchanged).
+  const score = matched ? all.filter((s) => signalHolds(s, fact)).length + any.filter((s) => signalHolds(s, fact)).length : 0;
+  return { matched, score, unmet_all, unmet_any, violated_none };
 }
 
 /** Evaluate one `type:value` signal against the fact stream. Throws on an unknown type (fail-closed). */
