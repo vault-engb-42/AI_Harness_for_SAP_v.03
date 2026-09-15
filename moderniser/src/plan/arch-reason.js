@@ -15,6 +15,7 @@
  */
 import { hashFactStream } from "./arch-facts.js";
 import { ARCH_GATED_DISPOSITIONS } from "./arch-contract.js";
+import { loadPatternCorpus } from "./patterns/match.js";
 
 /** Below this classifier confidence, an arch node is escalated to the judge (Sharpening 5 cost control). */
 export const ARCH_REASON_CONFIDENCE_CEILING = 0.9;
@@ -138,6 +139,32 @@ export function freezeJudgeSelection(node, selection, candidates) {
   // OData service fronting several BOs, a shared projection, screens collapsed into one Fiori app — rides
   // the recommendation so cmdArch can assemble the app verdict the blueprint conformance tier checks.
   return selection.shared ? { ...rec, shared: selection.shared } : rec;
+}
+
+/**
+ * Freeze a HUMAN-SUPPLIED target shape (operator, 2026-09-14).
+ *
+ * `freezeJudgeSelection` validates against the matcher's CANDIDATES, and an unplaceable node has none by
+ * definition — so a human overruling the absence could not get a contract through that door. They are not
+ * choosing among offers; they are overruling the fact that none were made. The CORPUS is therefore the only
+ * thing their choice must satisfy: overruling a stated objection is a judgement, naming a shape the
+ * generator has no pattern for is not.
+ *
+ * `source: "human"`, never `"judge"` — a proof bundle must never present this as evidence-derived, and the
+ * name of whoever overruled travels with it.
+ */
+export function freezeHumanSelection(node, selection, corpus = loadPatternCorpus()) {
+  const chosen = (corpus.patterns ?? []).find((p) => p.id === selection?.target_shape);
+  if (!chosen) {
+    throw new Error(
+      `arch-reason: '${selection?.target_shape}' is not in the patterns corpus — a human may overrule the `
+      + "matcher's objection, but not name a shape nothing can build; grow the corpus first",
+    );
+  }
+  const rec = recommend(node, chosen, [], "human");
+  rec.decided_by = selection.decided_by;
+  if (selection.overruled) rec.overruled = selection.overruled; // the objection they chose to accept
+  return rec;
 }
 
 /** A frozen recommendation attached to the node by sig (sigs live here, NEVER in the prompt-bound fact). */

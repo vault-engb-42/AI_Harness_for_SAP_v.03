@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   reasonArchitecture, needsReasoning, validateSelection, entryKey,
-  ARCH_REASON_CONFIDENCE_CEILING, ARCH_REASON_BLAST_BOUND,
+  ARCH_REASON_CONFIDENCE_CEILING, ARCH_REASON_BLAST_BOUND, freezeHumanSelection,
 } from "../src/plan/arch-reason.js";
 import { factStream, factHash } from "../src/plan/arch-facts.js";
 import { consumptionFacts } from "../src/plan/consumption-facts.js";
@@ -224,4 +224,26 @@ test("a self-contained shape is still settled by the matcher — no needless jud
   const node = { id: "sig-headless", disposition: "re_architect", disposition_confidence: 0.99 };
   const res = reasonArchitecture(node, { object_kind: "class" }, [{ id: "rap_bo_headless", score: 5 }], {}, {});
   assert.equal(res.status, "deterministic", "a headless BO shares nothing — asking would be waste");
+});
+
+// A HUMAN-SUPPLIED shape cannot go through freezeJudgeSelection: that validates against the matcher's
+// CANDIDATES, and an unplaceable node has none by definition. The human is overruling the absence, not
+// choosing among offers, so the corpus is the only thing their choice must satisfy.
+
+test("freezeHumanSelection builds a contract for a shape the matcher offered NO candidates for", () => {
+  const node = { id: "A".repeat(64), object: "ZFI_C0002", object_kind: "function", disposition: "re_architect" };
+  const rec = freezeHumanSelection(node, { target_shape: "rap_bo_odata", decided_by: "panos" });
+  assert.equal(rec.target_shape, "rap_bo_odata");
+  assert.equal(rec.source, "human", "never `judge` — the proof bundle must not claim a judge chose this");
+  assert.equal(rec.decided_by, "panos", "a shape the evidence could not justify carries a name");
+  assert.ok((rec.components?.length ?? 0) > 0, "and the corpus components the generator will build");
+});
+
+test("freezeHumanSelection still refuses a shape the CORPUS does not contain", () => {
+  const node = { id: "A".repeat(64), object: "ZX", object_kind: "function", disposition: "re_architect" };
+  assert.throws(
+    () => freezeHumanSelection(node, { target_shape: "rap_bo_invented", decided_by: "panos" }),
+    /corpus|rap_bo_invented/i,
+    "overruling an objection is a judgement; naming a shape nothing can build is not",
+  );
 });

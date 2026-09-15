@@ -141,3 +141,32 @@ test("superseded reporting is RUN-SCOPED like the collect it mirrors", () => {
   ] };
   assert.deepEqual(supersededOverrides(reg, "R"), [], "another run's discarded decision is not this run's news");
 });
+
+// ---- A HUMAN-SUPPLIED SHAPE IMPLIES re_architect (operator, 2026-09-14) ----
+//
+// `shape:<id>` says "build it to THIS shape". That is only meaningful if the node is arch-gated: a node
+// left at `refactor` is never dispatched to build a Business Object, so the decision would record and do
+// nothing — which is exactly the defect class this gate was extended to fix.
+
+test("a shape decision re-dispositions the node to re_architect and carries the shape", () => {
+  const reg = { escalations: [
+    { id: "e1", kind: "NO_TARGET_SHAPE", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T1", resolved_by: "panos",
+      decision: { verb: "shape", target_shape: "rap_bo_odata", source: "human" } },
+  ] };
+  const out = collectOverrides(reg, "R");
+  assert.equal(out.A?.disposition, "re_architect", "a shape is only buildable if the node is arch-gated");
+  assert.equal(out.A.target_shape, "rap_bo_odata", "and the shape rides with it");
+  assert.equal(out.A.decided_by, "panos");
+  assert.equal(out.A.source, "human", "never presented as evidence-derived");
+});
+
+test("a later override still supersedes a shape — the temporally-final rule is unchanged", () => {
+  const reg = { escalations: [
+    { id: "e1", kind: "NO_TARGET_SHAPE", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T1", resolved_by: "panos", decision: { verb: "shape", target_shape: "rap_bo_odata", source: "human" } },
+    { id: "e2", kind: "DISPOSITION_REVIEW", node_ids: ["A"], status: "RESOLVED", run_id: "R",
+      resolved_at: "T2", resolved_by: "panos", decision: { verb: "override", disposition: "seal" } },
+  ] };
+  assert.equal(collectOverrides(reg, "R").A.disposition, "seal", "they changed their mind, and that governs");
+});

@@ -59,6 +59,19 @@ export function collectOverrides(register, runId) {
     // The human's temporally FINAL decision governs — a later `approve` supersedes an earlier override
     // (they changed their mind back), and a later override supersedes an earlier one.
     const final = latestEvent(rows);
+    // A HUMAN-SUPPLIED SHAPE implies re_architect. `shape:<id>` says "build it to THIS shape", which is only
+    // meaningful for an arch-gated node — one left at `refactor` is never dispatched to build a Business
+    // Object, so the decision would record and do nothing. The shape rides along to seed the contract.
+    if (final?.decision?.verb === "shape") {
+      out[sig] = {
+        disposition: "re_architect",
+        target_shape: final.decision.target_shape,
+        source: "human",
+        decided_by: final.resolved_by,
+        decided_at: final.resolved_at,
+      };
+      continue;
+    }
     if (final?.decision?.verb !== "override") continue;
     const disposition = final.decision.disposition;
     // Allowlisted at write time (disposition-gate.js), re-checked here: the register is durable and
